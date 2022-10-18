@@ -1,4 +1,4 @@
 #!/bin/sh
-pushd ~/.dotfiles
+pushd ~/.dotfiles > /dev/null
 home-manager switch -f ./users/aidanp/home.nix
-popd
+popd > /dev/null
