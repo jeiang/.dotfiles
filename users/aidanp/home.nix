@@ -15,6 +15,9 @@ in {
     MOZ_ENABLE_WAYLAND = 1;
   };
   
+  # Enable fonts to be installed as packages
+  fonts.fontconfig.enable = true;
+  
   # Packages to install for my user
   home.packages = with pkgs; [
     unstablePkgs.wezterm
@@ -27,6 +30,8 @@ in {
     obsidian
     obs-studio
     wl-clipboard
+    zoom-us
+    (nerdfonts.override { fonts = [ "FiraCode" "JetBrainsMono" "UbuntuMono" ]; })
   ];
 
   # Programs with configuration in home manager
