@@ -266,6 +266,7 @@ in {
       ];
       profiles = {
         main = {
+          id = 0;
           bookmarks = {
             "Baka-Tsuki" = {
               url = "https://www.baka-tsuki.org/project/index.php?title=Category:Light_novel_(English)";
@@ -319,7 +320,77 @@ in {
               url = "https://e-courier.ca/aQ?is=Zjkl33oH3Y8e&ue=aidan.pinard@my.uwi.edu";
             };
           };
-          id = 0;
+        };
+        secondary = {
+          id = 1;
+          bookmarks = {
+            "Bunkr – A takedown-resilient file hosting." = {
+              url = "https://bunkr.is/";
+            };
+            "Latest Updates | F95zone" = {
+              url = "https://f95zone.to/sam/latest_alpha/";
+            };
+            "Google Translate" = {
+              url = "https://translate.google.com/";
+            };
+            "The smallest #![no_std] program - The Embedonomicon" = {
+              url = "https://docs.rust-embedded.org/embedonomicon/smallest-no-std.html";
+            };
+            "Internet Speed Test - Measure Network Performance | Cloudflare" = {
+              url = "https://speed.cloudflare.com/";
+            };
+            "Online regex tester and debugger: PHP, PCRE, Python, Golang and JavaScript" = {
+              url = "https://regex101.com/";
+            };
+            "Regular expressions - JavaScript | MDN" = {
+              url = "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions";
+            };
+            "Askannz/optimus-manager: A Linux program to handle GPU switching on Optimus laptops." = {
+              url = "https://github.com/Askannz/optimus-manager";
+            };
+            "[pixiv] Discovery" = {
+              url = "https://www.pixiv.net/discovery?mode=r18";
+            };
+            "SauceNAO Image Search" = {
+              url = "https://saucenao.com/";
+            };
+            "Uguu · Kawaii Temporary File Hosting" = {
+              url = "https://uguu.se/";
+            };
+            "regex cant parse html funny" = {
+              url = "https://stackoverflow.com/questions/1732348/regex-match-open-tags-except-xhtml-self-contained-tags/1732454#1732454";
+            };
+            "Browse :: Nyaa" = {
+              url = "https://nyaa.si/";
+            };
+            "Release Technical Preview · KurtBestor/Hitomi-Downloader" = {
+              url = "https://github.com/KurtBestor/Hitomi-Downloader/releases/tag/Technical-Preview";
+            };
+            "LNWNCentral – Novels in PDF and EPUB format" = {
+              url = "https://lnwncentral.wordpress.com/";
+            };
+            "jnovels - No 1 Light Novel website" = {
+              url = "https://jnovels.com/";
+            };
+            "Just Light Novel - Home of All Light Novels" = {
+              url = "https://www.justlightnovels.com/";
+            };
+            "Light Novels - That Novel Corner" = {
+              url = "https://thatnovelcorner.com/light-novels/";
+            };
+            "[VN] - [Ren'Py] - The Interim Domain [v0.03.0] [ILSProductions] | F95zone" = {
+              url = "https://f95zone.to/threads/the-interim-domain-v0-03-0-ilsproductions.114650/";
+            };
+            "[VN] - [Ren'Py] - [Completed] - Now & Then [v0.26.0] [ILSProductions] | F95zone" = {
+              url = "https://f95zone.to/threads/now-then-v0-26-0-ilsproductions.51634/";
+            };
+            "Played F95 Games - Google Sheets" = {
+              url = "https://docs.google.com/spreadsheets/d/1Fp-st1b_1ozyhCKVvbd7VbZtWfhFdL_C_xJleju1vXA/edit#gid=0";
+            };
+            "Lib.rs — home for Rust crates // Lib.rs" = {
+              url = "https://lib.rs/";
+            };
+          };
         };
       };
     };
