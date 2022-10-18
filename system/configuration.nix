@@ -19,7 +19,11 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
+      ./hardware/battery.nix
     ];
+    
+  # Set Charging Limit
+  hardware.asus.battery.chargeUpto = 60;
 
   # Bootloader.
   boot.loader.efi.canTouchEfiVariables = true;
