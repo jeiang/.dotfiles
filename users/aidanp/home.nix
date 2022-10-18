@@ -10,6 +10,11 @@ in {
   home.username = "aidanp";
   home.homeDirectory = "/home/aidanp";
   
+  # Environment Variables
+  home.sessionVariables = {
+    MOZ_ENABLE_WAYLAND = 1;
+  };
+  
   # Packages to install for my user
   home.packages = with pkgs; [
     unstablePkgs.wezterm
@@ -241,6 +246,12 @@ in {
     };
     firefox = {
       enable = true;
+      package = pkgs.wrapFirefox pkgs.firefox-unwrapped {
+        forceWayland = true;
+        extraPolicies = {
+          ExtensionSettings = {};
+        };
+      };
       extensions = with pkgs.nur.repos.rycee.firefox-addons; [
         bitwarden
         canvasblocker
