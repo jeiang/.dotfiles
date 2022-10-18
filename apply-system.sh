@@ -1,4 +1,4 @@
 #!/bin/sh
-pushd ~/.dotfiles
+pushd ~/.dotfiles > /dev/null
 sudo nixos-rebuild switch -I nixos-config=./system/configuration.nix
-popd
+popd > /dev/null
