@@ -33,6 +33,7 @@ in {
   programs = {
     fish = {
       enable = true;
+      package = unstablePkgs.fish;
       plugins = with pkgs; [ 
         {
           name = "done";
