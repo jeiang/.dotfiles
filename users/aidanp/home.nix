@@ -28,10 +28,13 @@ in {
     bitwarden
     git-crypt
     obsidian
-    obs-studio
+    unstablePkgs.obs-studio
     wl-clipboard
     zoom-us
     (nerdfonts.override { fonts = [ "FiraCode" "JetBrainsMono" "UbuntuMono" ]; })
+    discord
+    teams
+    gnome3.gnome-tweaks
   ];
 
   # Programs with configuration in home manager
@@ -48,7 +51,7 @@ in {
           name = "tide";
           src = pkgs.fetchFromGitHub {
             owner = "IlanCosman";
-            repo = "tide";
+             repo = "tide";
             rev = "6833806ba2eaa1a2d72a5015f59c284f06c1d2db";
             sha256 = "vi4sYoI366FkIonXDlf/eE2Pyjq7E/kOKBrQS+LtE+M=";
           };
