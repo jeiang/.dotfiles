@@ -22,7 +22,8 @@
       ./hardware/battery.nix
     ];
 
-  # Boot Params
+  # Kernel Stuff
+  boot.kernelPackages = pkgs.linuxPackages_latest;
   boot.kernelModules = [ "hid-apple" ];
   boot.extraModprobeConfig = ''
     options hid_apple fnmode=2 
