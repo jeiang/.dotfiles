@@ -23,7 +23,6 @@ in {
     unstablePkgs.wezterm
     thefuck
     appimage-run
-    exa
     axel
     bitwarden
     git-crypt
@@ -48,13 +47,27 @@ in {
     unstablePkgs.hyperfine
     unstablePkgs.lutris
     unstablePkgs.wineWowPackages.waylandFull
+    unstablePkgs.mcomix
+    szyszka
+    unstablePkgs.any-nix-shell
   ];
 
   # Programs with configuration in home manager
   programs = {
+    exa = {
+      enable = true;
+      enableAliases = true;
+    };
+    direnv = {
+      enable = true;
+      nix-direnv.enable = true;
+    };
     fish = {
       enable = true;
       package = unstablePkgs.fish;
+      shellInit = ''
+        any-nix-shell fish --info-right | source
+      '';
       plugins = with pkgs; [ 
         {
           name = "done";
