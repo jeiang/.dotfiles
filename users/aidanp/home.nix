@@ -46,6 +46,8 @@ in {
     gimp
     glow
     unstablePkgs.hyperfine
+    unstablePkgs.lutris
+    unstablePkgs.wineWowPackages.waylandFull
   ];
 
   # Programs with configuration in home manager
