@@ -10,6 +10,8 @@ in {
   home.username = "aidanp";
   home.homeDirectory = "/home/aidanp";
 
+  nixpkgs.config = import ./config.nix;
+
   # Environment Variables
   home.sessionVariables = { MOZ_ENABLE_WAYLAND = 1; };
 
