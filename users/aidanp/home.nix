@@ -46,7 +46,6 @@ in {
     gimp
     glow
     unstablePkgs.hyperfine
-    docker
   ];
 
   # Programs with configuration in home manager

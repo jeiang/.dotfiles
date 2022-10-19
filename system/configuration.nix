@@ -90,9 +90,12 @@
   users.users.aidanp = {
     isNormalUser = true;
     description = "Aidan Pinard";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel" "docker" ];
     packages = with pkgs; [ fortune ];
   };
+  
+  # Docker
+  virtualisation.docker.enable = true;
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
