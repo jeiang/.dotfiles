@@ -35,6 +35,18 @@ in {
     discord
     teams
     gnome3.gnome-tweaks
+    bandwhich
+    bingrep
+    choose
+    alacritty
+    czkawka
+    diskonaut
+    duf
+    fd
+    gimp
+    glow
+    unstablePkgs.hyperfine
+    docker
   ];
 
   # Programs with configuration in home manager
