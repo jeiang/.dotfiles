@@ -21,7 +21,13 @@
       ./hardware-configuration.nix
       ./hardware/battery.nix
     ];
-    
+
+  # Boot Params
+  boot.kernelModules = [ "hid-apple" ];
+  boot.extraModprobeConfig = ''
+    options hid_apple fnmode=2 
+  '';
+
   # Set Charging Limit
   hardware.asus.battery.chargeUpto = 60;
 
