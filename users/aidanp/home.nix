@@ -37,6 +37,7 @@ let
       obsidian
       ouch
       qbittorrent
+      rargs
       ripgrep-all
       sad
       thefuck
