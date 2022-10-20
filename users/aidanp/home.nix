@@ -23,7 +23,6 @@ let
       gnome3.gnome-tweaks
       szyszka
       teams
-      wireshark
       wl-clipboard
       zoom-us
     ];
