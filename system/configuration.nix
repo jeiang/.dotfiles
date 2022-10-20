@@ -48,7 +48,8 @@
     fsType = "ext4";
   };
 
-  networking.hostName = "asus-nixos"; # Define your hostname.
+  # Define your hostname.
+  networking.hostName = "asus-nixos";
 
   # Enable networking
   networking.networkmanager.enable = true;
@@ -86,7 +87,7 @@
     pulse.enable = true;
   };
 
-  # Define a user account.
+  # Define primary user account.
   users.users.aidanp = {
     isNormalUser = true;
     description = "Aidan Pinard";
@@ -94,16 +95,15 @@
     packages = with pkgs; [ fortune ];
   };
   
-  # Docker
+  # Enable Docker
   virtualisation.docker.enable = true;
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
-  # List packages installed in system profile. To search, run:
-  # $ nix search wget
+  # Packages installed in system profile.
   environment.systemPackages = with pkgs; [
-    vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
+    vim
     wget
   ];
 
