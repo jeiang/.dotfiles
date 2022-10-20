@@ -91,7 +91,7 @@
   users.users.aidanp = {
     isNormalUser = true;
     description = "Aidan Pinard";
-    extraGroups = [ "networkmanager" "wheel" "docker" "wireshark" ];
+    extraGroups = [ "networkmanager" "wheel" "docker" "wireshark" "dialout" ];
     packages = with pkgs; [ fortune ];
   };
   
