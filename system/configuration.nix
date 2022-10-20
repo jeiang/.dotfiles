@@ -91,7 +91,7 @@
   users.users.aidanp = {
     isNormalUser = true;
     description = "Aidan Pinard";
-    extraGroups = [ "networkmanager" "wheel" "docker" ];
+    extraGroups = [ "networkmanager" "wheel" "docker" "wireshark" ];
     packages = with pkgs; [ fortune ];
   };
   
@@ -106,6 +106,12 @@
     vim
     wget
   ];
+
+  # System-wide Packages with configuration
+  programs = {
+    wireshark.enable = true;
+    wireshark.package = pkgs.wireshark-qt;
+  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
