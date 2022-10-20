@@ -4,6 +4,52 @@ let
 
   unstablePkgs = import <unstable> { };
 
+  packages = {
+    stable = with pkgs; [
+      (nerdfonts.override {
+        fonts = [ "FiraCode" "JetBrainsMono" "UbuntuMono" ];
+      })
+      appimage-run
+      axel
+      bandwhich
+      bingrep
+      bitwarden
+      czkawka
+      diskonaut
+      duf
+      gimp
+      git-crypt
+      glow
+      gnome3.gnome-tweaks
+      szyszka
+      teams
+      wireshark
+      wl-clipboard
+      zoom-us
+    ];
+    unstable = with unstablePkgs; [
+      any-nix-shell
+      choose
+      discord
+      fd
+      hyperfine
+      lutris
+      mcomix
+      obsidian
+      ouch
+      qbittorrent
+      ripgrep-all
+      sad
+      thefuck
+      tokei
+      trashy
+      wezterm
+      wineWowPackages.waylandFull
+      xh
+      xplr
+    ];
+  };
+
 in {
   # Home Manager needs a bit of information about you and the
   # paths it should manage.
@@ -20,38 +66,7 @@ in {
   fonts.fontconfig.enable = true;
 
   # Packages to install for my user
-  home.packages = with pkgs; [
-    unstablePkgs.wezterm
-    thefuck
-    appimage-run
-    axel
-    bitwarden
-    git-crypt
-    obsidian
-    wl-clipboard
-    zoom-us
-    (nerdfonts.override {
-      fonts = [ "FiraCode" "JetBrainsMono" "UbuntuMono" ];
-    })
-    discord
-    teams
-    gnome3.gnome-tweaks
-    bandwhich
-    bingrep
-    choose
-    czkawka
-    diskonaut
-    duf
-    fd
-    gimp
-    glow
-    unstablePkgs.hyperfine
-    unstablePkgs.lutris
-    unstablePkgs.wineWowPackages.waylandFull
-    unstablePkgs.mcomix
-    szyszka
-    unstablePkgs.any-nix-shell
-  ];
+  home.packages = packages.stable ++ packages.unstable;
 
   # Programs with configuration in home manager
   programs = {
