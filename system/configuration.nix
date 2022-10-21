@@ -32,6 +32,14 @@
   # Set Charging Limit
   hardware.asus.battery.chargeUpto = 60;
 
+  hardware.opengl = {
+    enable = true;
+    extraPackages = with pkgs; [
+      libGL
+    ];
+    setLdLibraryPath = true;
+  };
+
   # Bootloader.
   boot.loader.efi.canTouchEfiVariables = true;
   boot.loader.efi.efiSysMountPoint = "/boot/efi";
@@ -111,6 +119,7 @@
   programs = {
     wireshark.enable = true;
     wireshark.package = pkgs.wireshark-qt;
+    nix-ld.enable = true;
   };
 
   # This value determines the NixOS release from which the default
