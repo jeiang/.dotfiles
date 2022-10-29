@@ -99,13 +99,10 @@
   users.users.aidanp = {
     isNormalUser = true;
     description = "Aidan Pinard";
-    extraGroups = [ "networkmanager" "wheel" "docker" "wireshark" "dialout" ];
+    extraGroups = [ "networkmanager" "wheel" "docker" "wireshark" "dialout" "libvirtd" ];
     packages = with pkgs; [ fortune ];
   };
   
-  # Enable Docker
-  virtualisation.docker.enable = true;
-
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
@@ -120,7 +117,14 @@
     wireshark.enable = true;
     wireshark.package = pkgs.wireshark-qt;
     nix-ld.enable = true;
+    dconf.enable = true;
   };
+
+  # Enable and other virtualization
+  virtualisation.docker.enable = true;
+  virtualisation.virtualbox.host.enable = true;
+  users.extraGroups.vboxusers.members = [ "aidanp" ];
+  virtualisation.libvirtd.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
