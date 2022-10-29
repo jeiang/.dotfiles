@@ -600,7 +600,7 @@ in
     pinentryFlavor = "gnome3";
     enableFishIntegration = true;
     enableSshSupport = true;
-    defaultCacheTtl = 60;
+    defaultCacheTtl = 1800;
   };
 
   # Other configuration
