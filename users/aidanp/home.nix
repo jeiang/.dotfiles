@@ -17,14 +17,17 @@ let
       czkawka
       diskonaut
       duf
+      file.out
       gimp
       git-crypt
       glow
       gnome3.gnome-tweaks
+      libtree
       szyszka
       teams
       wl-clipboard
       zoom-us
+      virt-manager
     ];
     unstable = with unstablePkgs; [
       any-nix-shell
@@ -37,7 +40,9 @@ let
       obsidian
       ouch
       qbittorrent
+      qview
       rargs
+      ripgrep
       ripgrep-all
       sad
       thefuck
