@@ -88,12 +88,9 @@ in
 
   # Programs with configuration in home manager
   programs = {
-    alacritty = { enable = true; };
+    alacritty.enable = true;
     aria2.enable = true;
-    exa = {
-      enable = true;
-      enableAliases = true;
-    };
+    exa.enable = true;
     direnv = {
       enable = true;
       nix-direnv.enable = true;
@@ -104,6 +101,15 @@ in
       shellInit = ''
         any-nix-shell fish --info-right | source
       '';
+      shellAliases = {
+        la = "exa -a";
+        ll = "exa -l";
+        lla = "exa -la";
+        ls = "exa";
+        lt = "exa -T";
+        lta = "exa -lTa";
+        cat = "bat";
+      };
       plugins = with pkgs; [
         {
           name = "done";
