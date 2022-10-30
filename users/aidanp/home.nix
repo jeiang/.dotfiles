@@ -69,11 +69,19 @@ in
   # Environment Variables
   home.sessionVariables = {
     MOZ_ENABLE_WAYLAND = 1;
-    PAGER = "bat";
+    EDITOR = "hx";
   };
 
   # Enable fonts to be installed as packages
   fonts.fontconfig.enable = true;
+
+  # Configuration through dconf
+  dconf.settings = {
+    "org/gnome/desktop/default-applications/terminal" = {
+      exec = "wezterm";
+      exec-args = "start --";
+    };
+  };
 
   # Packages to install for my user
   home.packages = packages.stable ++ packages.unstable;
