@@ -14,6 +14,7 @@ let
       bandwhich
       bingrep
       bitwarden
+      borgbackup
       czkawka
       diskonaut
       duf
@@ -109,6 +110,8 @@ in
         lt = "exa -T";
         lta = "exa -lTa";
         cat = "bat";
+        rm = "trash put"; # don't completely delete
+        cd = "z"; # autojump
       };
       plugins = with pkgs; [
         {
