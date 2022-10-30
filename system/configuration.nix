@@ -36,6 +36,7 @@
   boot.extraModprobeConfig = ''
     options hid_apple fnmode=2 
   '';
+  boot.supportedFilesystems = [ "ntfs" ];
 
   # Set Charging Limit
   hardware.asus.battery.chargeUpto = 60;
