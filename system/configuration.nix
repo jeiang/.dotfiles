@@ -3,8 +3,11 @@
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
 { config, pkgs, ... }:
+let 
 
-{
+  unstable = import <nixpkgs-unstable> { };
+
+in {
   nixpkgs.config.packageOverrides = pkgs: {
     nur = import (builtins.fetchTarball
       {
@@ -31,7 +34,7 @@
     ];
 
   # Kernel Stuff
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.kernelPackages = unstable.linuxPackages_xanmod_latest;
   boot.kernelModules = [ "hid-apple" ];
   boot.extraModprobeConfig = ''
     options hid_apple fnmode=2 
