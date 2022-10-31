@@ -36,6 +36,7 @@ in {
   # Kernel Stuff
   boot.kernelPackages = unstable.linuxPackages_xanmod_latest;
   boot.kernelModules = [ "hid-apple" ];
+  boot.kernelParams = [ "module_blacklist=nouveau" ];
   boot.extraModprobeConfig = ''
     options hid_apple fnmode=2 
   '';
