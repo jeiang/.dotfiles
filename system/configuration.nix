@@ -3,22 +3,7 @@
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
 { config, pkgs, ... }:
-let 
-
-  unstable = import <nixpkgs-unstable> { };
-
-in {
-  nixpkgs.config.packageOverrides = pkgs: {
-    nur = import (builtins.fetchTarball
-      {
-        url = "https://github.com/nix-community/NUR/archive/117eeb43bca6f66f68d2ec2365b5950683096bc4.tar.gz";
-        sha256 = "0w9z6x7yiiyvp13fb1z3v5xwkqk8jlla1zbdnzq2djb6z1h4aw8c";
-      }
-    ) {
-      inherit pkgs;
-    };
-  };
-
+{
   # Nix Settings
   nix.gc = {
     automatic = true;
@@ -36,15 +21,15 @@ in {
       auto-optimise-store = true;
     };
   };
-  
+
   imports =
-    [ # Include the results of the hardware scan.
+    [
+      # Include the results of the hardware scan.
       ./hardware-configuration.nix
-      ./hardware/battery.nix
     ];
 
   # Kernel Stuff
-  boot.kernelPackages = unstable.linuxPackages_xanmod_latest;
+  boot.kernelPackages = pkgs.linuxPackages_xanmod_latest;
   boot.kernelModules = [ "hid-apple" ];
   boot.kernelParams = [ "module_blacklist=nouveau" ];
   boot.extraModprobeConfig = ''
@@ -74,7 +59,7 @@ in {
   };
 
   # Filesystems
-  fileSystems."/mnt/asahi" ={ 
+  fileSystems."/mnt/asahi" = {
     device = "/dev/disk/by-label/asahi";
     fsType = "ext4";
   };
@@ -125,9 +110,6 @@ in {
     extraGroups = [ "networkmanager" "wheel" "docker" "wireshark" "dialout" "libvirtd" ];
     packages = with pkgs; [ fortune ];
   };
-  
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
 
   # Packages installed in system profile.
   environment.systemPackages = with pkgs; [
