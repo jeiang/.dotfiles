@@ -24,7 +24,7 @@ local launch_menu = {
 
 local config = {
   font = wezterm.font('JetBrains Mono'),
-  color_scheme = 'Gigavolt (base16)',
+  color_scheme = 'Seti UI (base16)',
   default_prog = { 'fish' },
   launch_menu = launch_menu,
   animation_fps = 60,
