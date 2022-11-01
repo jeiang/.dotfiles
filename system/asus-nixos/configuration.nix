@@ -1,23 +1,27 @@
 # Edit this configuration file to define what should be installed on
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
-
-{ inputs, lib, config, pkgs, ... }: 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-      # Filesystems were removed from hardware scan. Included here for custom setup 
-      ./filesystems.nix
-      # Modified asus battery modules from nixos-hardware. Battery is BAT1 not BAT0 on ASUS TUF FA506IV
-      ./hardware/battery.nix
-    ];
+  inputs,
+  lib,
+  config,
+  pkgs,
+  ...
+}: {
+  imports = [
+    # Include the results of the hardware scan.
+    ./hardware-configuration.nix
+    # Filesystems were removed from hardware scan. Included here for custom setup
+    ./filesystems.nix
+    # Modified asus battery modules from nixos-hardware. Battery is BAT1 not BAT0 on ASUS TUF FA506IV
+    ./hardware/battery.nix
+  ];
 
   # Config for flakes from https://github.com/Misterio77/nix-starter-configs
   nix = {
     # This will add each flake input as a registry
     # To make nix3 commands consistent with your flake
-    registry = lib.mapAttrs (_: value: { flake = value; }) inputs;
+    registry = lib.mapAttrs (_: value: {flake = value;}) inputs;
 
     # This will additionally add your inputs to the system's legacy channels
     # Making legacy nix commands consistent as well, awesome!
@@ -44,15 +48,15 @@
 
   # Boot & Kernel
   # For Keychron Keyboard
-  boot.kernelModules = [ "hid-apple" ];
+  boot.kernelModules = ["hid-apple"];
   # Disable Nvidia GPU for MOAR BATTERY LIFE
-  boot.kernelParams = [ "module_blacklist=nouveau" ];
+  boot.kernelParams = ["module_blacklist=nouveau"];
   # Use Fn Keys on Keychron Keyboard
   boot.extraModprobeConfig = ''
-    options hid_apple fnmode=2 
+    options hid_apple fnmode=2
   '';
   # Enable BTRFS and NTFS
-  boot.supportedFilesystems = [ "ntfs" "btrfs" ];
+  boot.supportedFilesystems = ["ntfs" "btrfs"];
   # Use GRUB w/ OSProber (in case I decide to dualboot)
   boot.loader.efi.canTouchEfiVariables = true;
   boot.loader.efi.efiSysMountPoint = "/boot/efi";
@@ -107,7 +111,7 @@
   networking.hostName = "asus-nixos";
 
   # Networking
-  networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
+  networking.networkmanager.enable = true; # Easiest to use and most distros use this by default.
 
   # Set your time zone.
   time.timeZone = "America/Port_of_Spain";
@@ -121,7 +125,7 @@
   # Enable the GNOME Desktop Environment.
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.desktopManager.gnome.enable = true;
-  
+
   # Configure keymap in X11
   services.xserver = {
     layout = "us";
@@ -154,7 +158,7 @@
       "libvirtd"
     ];
     initialPassword = "password1";
-    packages = with pkgs; [ fortune cowsay ];
+    packages = with pkgs; [fortune cowsay];
   };
 
   # Install system wide packages
@@ -173,7 +177,7 @@
     nix-ld.enable = true;
     dconf.enable = true;
   };
- 
+
   # Setting up /etc & /var bindings for persistence
   environment.etc = {
     nixos.source = "/persist/etc/nixos";
@@ -192,9 +196,9 @@
   ];
   # Disable sudo lecture every boot because of rollback to blank
   security.sudo.extraConfig = ''
-   Defaults lecture = never
+    Defaults lecture = never
   '';
-  
+
   # Virtualization
   virtualisation = {
     docker.enable = true;
@@ -205,10 +209,10 @@
     # TODO ENABLE and setup persistence
     # libvirtd.enable = true;
   };
-  
+
   # Set Charging Limit
   hardware.asus.battery.chargeUpto = 60;
-  
+
   # OpenGL
   hardware.opengl = {
     enable = true;
@@ -231,4 +235,3 @@
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "22.11"; # Did you read the comment?
 }
-

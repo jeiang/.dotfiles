@@ -11,47 +11,73 @@
 
     # NUR
     nur.url = github:nix-community/NUR;
+
+    # Theming
     # nix-colors.url = "github:misterio77/nix-colors";
+
+    # Impermanence
+    impermanence.url = "github:nix-community/impermanence";
+
+    # Formatter
+    alejandra.url = "github:kamadorueda/alejandra/3.0.0";
+    alejandra.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { nixpkgs, home-manager, nur, ... }@inputs: rec {
+  outputs = {
+    nixpkgs,
+    home-manager,
+    nur,
+    impermanence,
+    alejandra,
+    ...
+  } @ inputs: rec {
+    formatter = nixpkgs.lib.genAttrs ["x86_64-linux" "x86_64-darwin"] (
+      system:
+        alejandra.defaultPackage.${system}
+    );
+
     # This instantiates nixpkgs for each system listed
     # Allowing you to configure it (e.g. allowUnfree)
     # Our configurations will use these instances
-    legacyPackages = nixpkgs.lib.genAttrs [ "x86_64-linux" "x86_64-darwin" ] (system:
-      import inputs.nixpkgs {
-        inherit system;
+    legacyPackages = nixpkgs.lib.genAttrs ["x86_64-linux" "x86_64-darwin"] (
+      system:
+        import inputs.nixpkgs {
+          inherit system;
 
-        # NOTE: Using `nixpkgs.config` in your NixOS config won't work
-        # Instead, you should set nixpkgs configs here
-        # (https://nixos.org/manual/nixpkgs/stable/#idm140737322551056)
-        config.allowUnfree = true;
-        
-        overlays = [
-          # Add nur to pkgs
-          nur.overlay
-        ];
-      }
+          # NOTE: Using `nixpkgs.config` in your NixOS config won't work
+          # Instead, you should set nixpkgs configs here
+          # (https://nixos.org/manual/nixpkgs/stable/#idm140737322551056)
+          config.allowUnfree = true;
+
+          overlays = [
+            # Add nur to pkgs
+            nur.overlay
+          ];
+        }
     );
 
     nixosConfigurations = {
-      asus-nixos = nixpkgs.lib.nixosSystem {
+      asus-nixos = nixpkgs.lib.nixosSystem rec {
         pkgs = legacyPackages.x86_64-linux;
-        specialArgs = { inherit inputs; }; # Pass flake inputs to our config
+        specialArgs = {inherit inputs;}; # Pass flake inputs to our config
         # > Our main nixos configuration file <
-        modules = [ 
+        modules = [
           nur.nixosModules.nur
+          impermanence.nixosModule
           ./system/asus-nixos/configuration.nix
         ];
       };
     };
 
     homeConfigurations = {
-      "aidanp@asus-nixos" = home-manager.lib.homeManagerConfiguration {
+      "aidanp@asus-nixos" = home-manager.lib.homeManagerConfiguration rec {
         pkgs = legacyPackages.x86_64-linux;
-        extraSpecialArgs = { inherit inputs; }; # Pass flake inputs to our config
+        extraSpecialArgs = {inherit inputs;}; # Pass flake inputs to our config
         # > Our main home-manager configuration file <
-        modules = [ ./users/aidanp/home.nix ];
+        modules = [
+          impermanence.home-manager.impermanence
+          ./users/aidanp/home.nix
+        ];
       };
     };
   };
