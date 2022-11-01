@@ -20,13 +20,23 @@ in {
   };
 
   # Nix Settings
-  nix.settings.auto-optimise-store = true;
   nix.gc = {
     automatic = true;
     dates = "weekly";
     options = "--delete-older-than 14d";
   };
 
+  # Prepping Config to Nix Flake Migration
+  nix = {
+    settings = {
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
+      auto-optimise-store = true;
+    };
+  };
+  
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
