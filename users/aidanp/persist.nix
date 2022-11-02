@@ -1,6 +1,9 @@
 # Persistence via impermanence
 
 { inputs, lib, config, pkgs, ... }: {
+  imports = [
+    (inputs.impermanence + "/home-manager.nix")
+  ];
   home.persistence."/persist/home/aidanp" = {
     directories = [
       "Desktop"

@@ -19,13 +19,13 @@
     impermanence.url = "github:nix-community/impermanence";
 
     # Nix Formatter
-    nixfmt.url = "github:serokell/nixfmt";
+    nixpkgs-fmt.url = "github:nix-community/nixpkgs-fmt";
   };
 
   outputs =
-    { nixpkgs, home-manager, nur, impermanence, nixfmt, ... }@inputs: rec {
+    { nixpkgs, home-manager, nur, impermanence, nixpkgs-fmt, ... }@inputs: rec {
       formatter = nixpkgs.lib.genAttrs [ "x86_64-linux" "x86_64-darwin" ]
-        (system: nixfmt.packages.${system}.nixfmt);
+        (system: nixpkgs-fmt.defaultPackage.${system});
 
       # This instantiates nixpkgs for each system listed
       # Allowing you to configure it (e.g. allowUnfree)

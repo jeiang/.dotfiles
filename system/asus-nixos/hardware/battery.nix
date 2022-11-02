@@ -6,7 +6,8 @@ let
     echo ''${0:-100} > /sys/class/power_supply/BAT1/charge_control_end_threshold
   '';
   cfg = config.hardware.asus.battery;
-in {
+in
+{
   options.hardware.asus.battery = {
     chargeUpto = lib.mkOption {
       description =
