@@ -1,7 +1,5 @@
 # Programs to install and configure through Home Manager.
-
-{ inputs, lib, config, pkgs, ... }: 
-{
+{ inputs, lib, config, pkgs, ... }: {
   programs = {
     alacritty.enable = true;
     aria2.enable = true;
@@ -90,12 +88,16 @@
           };
           formatter = {
             command = "stylua";
-            args = [ 
-              "-" 
-              "--indent-type" "Spaces" 
-              "--indent-width" "2" 
-              "--line-endings" "Unix" 
-              "--quote-style" "AutoPreferSingle"
+            args = [
+              "-"
+              "--indent-type"
+              "Spaces"
+              "--indent-width"
+              "2"
+              "--line-endings"
+              "Unix"
+              "--quote-style"
+              "AutoPreferSingle"
             ];
           };
         }
@@ -125,7 +127,7 @@
             "(" = ")";
             "{" = "}";
             "[" = "]";
-            "\"" = "\"";
+            "\"" = ''"'';
             "`" = "`";
             "<" = ">";
           };
@@ -448,7 +450,8 @@
               url = "https://lib.rs/";
             };
             "Encypted Btrfs Root with Opt-in State on NixOS" = {
-              url = "https://mt-caret.github.io/blog/posts/2020-06-29-optin-state.html";
+              url =
+                "https://mt-caret.github.io/blog/posts/2020-06-29-optin-state.html";
             };
           };
         };

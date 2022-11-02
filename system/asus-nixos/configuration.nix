@@ -1,17 +1,17 @@
 # Edit this configuration file to define what should be installed on
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
-
-{ inputs, lib, config, pkgs, ... }: 
-{
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-      # Filesystems were removed from hardware scan. Included here for custom setup 
-      ./filesystems.nix
-      # Modified asus battery modules from nixos-hardware. Battery is BAT1 not BAT0 on ASUS TUF FA506IV
-      ./hardware/battery.nix
-    ];
+{ inputs, lib, config, pkgs, ... }: {
+  imports = [
+    # Include the results of the hardware scan.
+    ./hardware-configuration.nix
+    # Filesystems were removed from hardware scan. Included here for custom setup
+    ./filesystems.nix
+    # Modified asus battery modules from nixos-hardware. Battery is BAT1 not BAT0 on ASUS TUF FA506IV
+    ./hardware/battery.nix
+    # Persistence
+    ./persist.nix
+  ];
 
   # Config for flakes from https://github.com/Misterio77/nix-starter-configs
   nix = {
@@ -21,7 +21,8 @@
 
     # This will additionally add your inputs to the system's legacy channels
     # Making legacy nix commands consistent as well, awesome!
-    nixPath = lib.mapAttrsToList (key: value: "${key}=${value.to.path}") config.nix.registry;
+    nixPath = lib.mapAttrsToList (key: value: "${key}=${value.to.path}")
+      config.nix.registry;
   };
 
   # Enable flakes, dedup & gc weekly
@@ -49,7 +50,7 @@
   boot.kernelParams = [ "module_blacklist=nouveau" ];
   # Use Fn Keys on Keychron Keyboard
   boot.extraModprobeConfig = ''
-    options hid_apple fnmode=2 
+    options hid_apple fnmode=2
   '';
   # Enable BTRFS and NTFS
   boot.supportedFilesystems = [ "ntfs" "btrfs" ];
@@ -107,7 +108,8 @@
   networking.hostName = "asus-nixos";
 
   # Networking
-  networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
+  networking.networkmanager.enable =
+    true; # Easiest to use and most distros use this by default.
 
   # Set your time zone.
   time.timeZone = "America/Port_of_Spain";
@@ -121,7 +123,7 @@
   # Enable the GNOME Desktop Environment.
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.desktopManager.gnome.enable = true;
-  
+
   # Configure keymap in X11
   services.xserver = {
     layout = "us";
@@ -172,29 +174,14 @@
     };
     nix-ld.enable = true;
     dconf.enable = true;
+    fuse.userAllowOther = true;
   };
- 
-  # Setting up /etc & /var bindings for persistence
-  environment.etc = {
-    nixos.source = "/persist/etc/nixos";
-    "NetworkManager/system-connections".source = "/persist/etc/NetworkManager/system-connections";
-    adjtime.source = "/persist/etc/adjtime";
-    NIXOS.source = "/persist/etc/NIXOS";
-    machine-id.source = "/persist/etc/machine-id";
-    shadow.source = "/persist/etc/shadow";
-  };
-  systemd.tmpfiles.rules = [
-    "L /var/lib/NetworkManager/secret_key - - - - /persist/var/lib/NetworkManager/secret_key"
-    "L /var/lib/NetworkManager/seen-bssids - - - - /persist/var/lib/NetworkManager/seen-bssids"
-    "L /var/lib/NetworkManager/timestamps - - - - /persist/var/lib/NetworkManager/timestamps"
-    "L /var/lib/lxd - - - - /persist/var/lib/lxd"
-    "L /var/lib/docker - - - - /persist/var/lib/docker"
-  ];
+
   # Disable sudo lecture every boot because of rollback to blank
   security.sudo.extraConfig = ''
-   Defaults lecture = never
+    Defaults lecture = never
   '';
-  
+
   # Virtualization
   virtualisation = {
     docker.enable = true;
@@ -205,16 +192,14 @@
     # TODO ENABLE and setup persistence
     # libvirtd.enable = true;
   };
-  
+
   # Set Charging Limit
   hardware.asus.battery.chargeUpto = 60;
-  
+
   # OpenGL
   hardware.opengl = {
     enable = true;
-    extraPackages = with pkgs; [
-      libGL
-    ];
+    extraPackages = with pkgs; [ libGL ];
     setLdLibraryPath = true;
   };
 
@@ -231,4 +216,3 @@
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "22.11"; # Did you read the comment?
 }
-

@@ -1,5 +1,4 @@
-# Packages to install for current user. 
-
+# Packages to install for current user.
 { inputs, lib, config, pkgs, ... }: {
   home.packages = with pkgs; [
     (nerdfonts.override {
