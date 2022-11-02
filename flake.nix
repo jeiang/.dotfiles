@@ -52,8 +52,8 @@
           specialArgs = { inherit inputs; };
           modules = [
             nur.nixosModules.nur
-            impermanence.nixosModule
-            ./system/asus-nixos/configuration.nix
+            impermanence.nixosModules.impermanence
+            (import ./system/asus-nixos/configuration.nix)
             home-manager.nixosModules.home-manager
             {
               home-manager.useGlobalPkgs = true;
