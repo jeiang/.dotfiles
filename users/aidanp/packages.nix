@@ -1,14 +1,8 @@
 # Packages to install for current user.
-{
-  inputs,
-  lib,
-  config,
-  pkgs,
-  ...
-}: {
+{ inputs, lib, config, pkgs, ... }: {
   home.packages = with pkgs; [
     (nerdfonts.override {
-      fonts = ["FiraCode" "JetBrainsMono" "UbuntuMono"];
+      fonts = [ "FiraCode" "JetBrainsMono" "UbuntuMono" ];
     })
     any-nix-shell
     appimage-run

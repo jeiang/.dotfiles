@@ -1,11 +1,5 @@
 # Services configured through Home Manager
-{
-  inputs,
-  lib,
-  config,
-  pkgs,
-  ...
-}: {
+{ inputs, lib, config, pkgs, ... }: {
   services = {
     gpg-agent = {
       enable = true;

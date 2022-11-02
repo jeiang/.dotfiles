@@ -1,18 +1,13 @@
 # This is your home-manager configuration file
 # Use this to configure your home environment (it replaces ~/.config/nixpkgs/home.nix)
-{
-  inputs,
-  lib,
-  config,
-  pkgs,
-  ...
-}: {
+{ inputs, lib, config, pkgs, ... }: {
   imports = [
     # If you want to use home-manager modules from other flakes (such as nix-colors), use something like:
     # inputs.nix-colors.homeManagerModule
     ./programs.nix
     ./packages.nix
     ./services.nix
+    ./persist.nix
   ];
 
   # Information about the current user
@@ -39,9 +34,7 @@
   };
 
   # Manual configuration for other programs not handled by Home Manager
-  xdg.configFile = {
-    "wezterm".source = ./config/wezterm;
-  };
+  xdg.configFile = { "wezterm".source = ./config/wezterm; };
 
   # Nicely reload system units when changing configs
   systemd.user.startServices = "sd-switch";

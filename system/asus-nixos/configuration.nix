@@ -1,13 +1,7 @@
 # Edit this configuration file to define what should be installed on
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
-{
-  inputs,
-  lib,
-  config,
-  pkgs,
-  ...
-}: {
+{ inputs, lib, config, pkgs, ... }: {
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
@@ -21,11 +15,12 @@
   nix = {
     # This will add each flake input as a registry
     # To make nix3 commands consistent with your flake
-    registry = lib.mapAttrs (_: value: {flake = value;}) inputs;
+    registry = lib.mapAttrs (_: value: { flake = value; }) inputs;
 
     # This will additionally add your inputs to the system's legacy channels
     # Making legacy nix commands consistent as well, awesome!
-    nixPath = lib.mapAttrsToList (key: value: "${key}=${value.to.path}") config.nix.registry;
+    nixPath = lib.mapAttrsToList (key: value: "${key}=${value.to.path}")
+      config.nix.registry;
   };
 
   # Enable flakes, dedup & gc weekly
@@ -48,15 +43,15 @@
 
   # Boot & Kernel
   # For Keychron Keyboard
-  boot.kernelModules = ["hid-apple"];
+  boot.kernelModules = [ "hid-apple" ];
   # Disable Nvidia GPU for MOAR BATTERY LIFE
-  boot.kernelParams = ["module_blacklist=nouveau"];
+  boot.kernelParams = [ "module_blacklist=nouveau" ];
   # Use Fn Keys on Keychron Keyboard
   boot.extraModprobeConfig = ''
     options hid_apple fnmode=2
   '';
   # Enable BTRFS and NTFS
-  boot.supportedFilesystems = ["ntfs" "btrfs"];
+  boot.supportedFilesystems = [ "ntfs" "btrfs" ];
   # Use GRUB w/ OSProber (in case I decide to dualboot)
   boot.loader.efi.canTouchEfiVariables = true;
   boot.loader.efi.efiSysMountPoint = "/boot/efi";
@@ -111,7 +106,8 @@
   networking.hostName = "asus-nixos";
 
   # Networking
-  networking.networkmanager.enable = true; # Easiest to use and most distros use this by default.
+  networking.networkmanager.enable =
+    true; # Easiest to use and most distros use this by default.
 
   # Set your time zone.
   time.timeZone = "America/Port_of_Spain";
@@ -158,7 +154,7 @@
       "libvirtd"
     ];
     initialPassword = "password1";
-    packages = with pkgs; [fortune cowsay];
+    packages = with pkgs; [ fortune cowsay ];
   };
 
   # Install system wide packages
@@ -176,12 +172,14 @@
     };
     nix-ld.enable = true;
     dconf.enable = true;
+    fuse.userAllowOther = true;
   };
 
   # Setting up /etc & /var bindings for persistence
   environment.etc = {
     nixos.source = "/persist/etc/nixos";
-    "NetworkManager/system-connections".source = "/persist/etc/NetworkManager/system-connections";
+    "NetworkManager/system-connections".source =
+      "/persist/etc/NetworkManager/system-connections";
     adjtime.source = "/persist/etc/adjtime";
     NIXOS.source = "/persist/etc/NIXOS";
     machine-id.source = "/persist/etc/machine-id";
@@ -216,9 +214,7 @@
   # OpenGL
   hardware.opengl = {
     enable = true;
-    extraPackages = with pkgs; [
-      libGL
-    ];
+    extraPackages = with pkgs; [ libGL ];
     setLdLibraryPath = true;
   };
 
