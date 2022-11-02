@@ -7,7 +7,6 @@
     ./programs.nix
     ./packages.nix
     ./services.nix
-    #./persist.nix
   ];
 
   # Information about the current user
