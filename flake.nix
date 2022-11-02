@@ -20,6 +20,7 @@
 
     # Nix Formatter
     nixpkgs-fmt.url = "github:nix-community/nixpkgs-fmt";
+    nixpkgs-fmt.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =

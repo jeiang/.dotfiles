@@ -93,7 +93,9 @@
       "inputs": {
         "fenix": "fenix",
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": [
+          "nixpkgs"
+        ]
       },
       "locked": {
         "lastModified": 1667229616,
@@ -107,20 +109,6 @@
         "owner": "nix-community",
         "repo": "nixpkgs-fmt",
         "type": "github"
-      }
-    },
-    "nixpkgs_2": {
-      "locked": {
-        "lastModified": 1637502770,
-        "narHash": "sha256-C28tuj+AgsRh67iB/Lg9oladquLoC8eamraqndeaO4A=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "f508ae889415b51263ea1c20b6b4c0e0ecbfc0bd",
-        "type": "github"
-      },
-      "original": {
-        "id": "nixpkgs",
-        "type": "indirect"
       }
     },
     "nur": {
