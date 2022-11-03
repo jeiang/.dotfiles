@@ -16,6 +16,7 @@
       ".config/discord"
       ".config/fish"
       ".config/thefuck"
+      ".cache/nix-index"
       ".local/share/direnv"
       ".local/share/fish"
       ".local/share/gnome-shell"
