@@ -54,15 +54,10 @@
   '';
   # Enable BTRFS and NTFS
   boot.supportedFilesystems = [ "ntfs" "btrfs" ];
-  # Use GRUB w/ OSProber (in case I decide to dualboot)
+  # systemd-boot because grub is big dumb dumb sometimes
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.loader.efi.efiSysMountPoint = "/boot/efi";
-  boot.loader.grub = {
-    enable = true;
-    useOSProber = true;
-    device = "nodev";
-    efiSupport = true;
-  };
+  boot.loader.systemd-boot.enable = true;
+
   # Note `lib.mkBefore` is used instead of `lib.mkAfter` here.
   boot.initrd.postDeviceCommands = pkgs.lib.mkBefore ''
     mkdir -p /mnt
@@ -72,7 +67,7 @@
     mount -o subvol=/ /dev/mapper/enc /mnt
 
     # While we're tempted to just delete /root and create
-    # a new snapshot from /root-blank, /root is already
+    # a new snapshot from /@root, /root is already
     # populated at this point with a number of subvolumes,
     # which makes `btrfs subvolume delete` fail.
     # So, we remove them first.
@@ -96,12 +91,23 @@
     btrfs subvolume delete /mnt/root
 
     echo "restoring blank /root subvolume..."
-    btrfs subvolume snapshot /mnt/root-blank /mnt/root
+    btrfs subvolume snapshot /mnt/@root /mnt/root
+
+    # Assuming no subvolumes inside user home
+    echo "deleting /home/aidanp subvolume..." &&
+    btrfs subvolume delete /mnt/home/aidanp
+
+    echo "restoring blank /home/aidanp subvolume..." &&
+    btrfs subvolume snapshot /mnt/home/@aidanp /mnt/home/aidanp
+
+    # Because the image is restored by root, we don't have permissions
+    # for the home folder, which makes home manager act weird. So make
+    # aidanp own the folder like they should. aidanp uid = 1000.
+    chown 1000 /mnt/home/aidanp
 
     # Once we're done rolling back to a blank snapshot,
     # we can unmount /mnt and continue on the boot process.
     umount /mnt
-    rmdir /mnt
   '';
 
   # Define your hostname.
@@ -155,7 +161,6 @@
       "dialout"
       "libvirtd"
     ];
-    initialPassword = "password1";
     packages = with pkgs; [ fortune cowsay ];
   };
 
@@ -183,15 +188,15 @@
   '';
 
   # Virtualization
-  virtualisation = {
-    docker.enable = true;
-    lxd = {
-      enable = true;
-      recommendedSysctlSettings = true;
-    };
-    # TODO ENABLE and setup persistence
-    # libvirtd.enable = true;
-  };
+  #  virtualisation = {
+  #    docker.enable = true;
+  #    lxd = {
+  #      enable = true;
+  #      recommendedSysctlSettings = true;
+  #    };
+  #    # TODO ENABLE and setup persistence
+  #    # libvirtd.enable = true;
+  #  };
 
   # Set Charging Limit
   hardware.asus.battery.chargeUpto = 60;
