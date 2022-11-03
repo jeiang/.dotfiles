@@ -18,6 +18,13 @@
       # "/var/lib/docker"
       "/etc/NetworkManager/system-connections"
       "/etc/nixos"
+      "/var/lib/bluetooth"
+      {
+        directory = "/var/lib/colord";
+        user = "colord";
+        group = "colord";
+        mode = "u=rwx,g=rx,o=";
+      }
     ];
     files = [
       "/etc/machine-id"
