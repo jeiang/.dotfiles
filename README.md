@@ -19,3 +19,5 @@ Used as a basis for setting up the flake. (As well as understanding how flakes w
 - [ ] Add nix-autobahn.
 - [ ] Get renpy games working.
 - [ ] Get Rust Stuff working.
+- [ ] Config alacritty.
+- [ ] Fix gpg keys getting reset on reboot/generation switch.
