@@ -1,22 +1,24 @@
 # Sets up user persistence through impermanence
 
-{inputs, lib, config, pkgs, ...}: {
+{ inputs, lib, config, pkgs, ... }: {
   home.persistence."/persist/home/aidanp" = {
     directories = [
-      "Desktop"
-      "Documents"
-      "Downloads"
-      "Music"
-      "Pictures"
-      "Public"
-      "Templates"
-      "Videos"
+      { directory = "Desktop"; method = "symlink"; }
+      { directory = "Documents"; method = "symlink"; }
+      { directory = "Downloads"; method = "symlink"; }
+      { directory = "Music"; method = "symlink"; }
+      { directory = "Pictures"; method = "symlink"; }
+      { directory = "Public"; method = "symlink"; }
+      { directory = "Templates"; method = "symlink"; }
+      { directory = "Videos"; method = "symlink"; }
       ".dotfiles"
       ".esp"
-      ".gnupg"
       ".config/discord"
+      ".config/fish"
+      ".config/thefuck"
       ".local/share/direnv"
-      ".local/share/fish/generated_completions"
+      ".local/share/fish"
+      ".local/share/gnome-shell"
       ".local/share/keyrings"
       ".local/share/mcfly"
       ".local/share/zoxide"
@@ -24,10 +26,12 @@
       ".renpy"
       ".ssh"
     ];
-    files = [ 
-      ".local/share/fish/fish_history"
-      ".config/fish/fish_variables"
+    files = [
+      ".gnupg/pubring.kbx"
+      ".gnupg/trustdb.gpg"
+      ".config/monitors.xml"
     ];
     allowOther = true;
+
   };
 }

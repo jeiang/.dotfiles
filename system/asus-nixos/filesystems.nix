@@ -1,46 +1,41 @@
 { config, lib, pkgs, modulesPath, ... }: {
   fileSystems."/" = {
-    device = "/dev/disk/by-uuid/b396e6e1-b2dc-4b70-ace9-ac699496c981";
+    device = "/dev/disk/by-uuid/b060d466-a3f1-4b78-8ffa-745824bb4122";
     fsType = "btrfs";
     options = [ "subvol=root" "compress=zstd" "noatime" ];
   };
 
+  boot.initrd.luks.devices."enc".device = "/dev/disk/by-uuid/7bc5b4fe-9200-4bd4-b798-c2f61bca5d6e";
+
   fileSystems."/home" = {
-    device = "/dev/disk/by-uuid/b396e6e1-b2dc-4b70-ace9-ac699496c981";
+    device = "/dev/disk/by-uuid/b060d466-a3f1-4b78-8ffa-745824bb4122";
     fsType = "btrfs";
     options = [ "subvol=home" "compress=zstd" "noatime" ];
   };
 
   fileSystems."/nix" = {
-    device = "/dev/disk/by-uuid/b396e6e1-b2dc-4b70-ace9-ac699496c981";
+    device = "/dev/disk/by-uuid/b060d466-a3f1-4b78-8ffa-745824bb4122";
     fsType = "btrfs";
     options = [ "subvol=nix" "compress=zstd" "noatime" ];
   };
 
   fileSystems."/persist" = {
-    device = "/dev/disk/by-uuid/b396e6e1-b2dc-4b70-ace9-ac699496c981";
+    device = "/dev/disk/by-uuid/b060d466-a3f1-4b78-8ffa-745824bb4122";
     fsType = "btrfs";
     options = [ "subvol=persist" "compress=zstd" "noatime" ];
     neededForBoot = true;
   };
 
   fileSystems."/var/log" = {
-    device = "/dev/disk/by-uuid/b396e6e1-b2dc-4b70-ace9-ac699496c981";
+    device = "/dev/disk/by-uuid/b060d466-a3f1-4b78-8ffa-745824bb4122";
     fsType = "btrfs";
     options = [ "subvol=log" "compress=zstd" "noatime" ];
     neededForBoot = true;
   };
 
-  fileSystems."/boot/efi" = {
-    device = "/dev/disk/by-uuid/FCC9-97AA";
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-uuid/F758-D6B3";
     fsType = "vfat";
-  };
-
-  # Need to enable after adding lxd
-  fileSystems."/persist/lxd" = {
-    device = "/dev/disk/by-uuid/b396e6e1-b2dc-4b70-ace9-ac699496c981";
-    fsType = "btrfs";
-    options = [ "subvol=lxd" "compress=zstd" "noatime" ];
   };
 
   fileSystems."/persist/mnt/asahi" = {
@@ -49,5 +44,5 @@
   };
 
   swapDevices =
-    [{ device = "/dev/disk/by-uuid/017116f9-8774-4948-a7be-e7ba3fdceeb5"; }];
+    [{ device = "/dev/disk/by-uuid/5fcf8237-49a6-4c13-914c-099b3ee3f861"; }];
 }

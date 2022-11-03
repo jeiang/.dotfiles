@@ -7,6 +7,7 @@
     ./programs.nix
     ./packages.nix
     ./services.nix
+    ./persist.nix
   ];
 
   # Information about the current user
@@ -25,6 +26,7 @@
   fonts.fontconfig.enable = true;
 
   # Configuration through dconf
+  # TODO read the contents of ~/.config/dconf/user and encode here
   dconf.settings = {
     "org/gnome/desktop/default-applications/terminal" = {
       exec = "wezterm";
