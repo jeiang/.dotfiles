@@ -10,10 +10,12 @@ Used to setup my primary system using btrfs and have opt-in state. Encryption us
 - [Misterio77's minimal starter config](https://github.com/Misterio77/nix-starter-configs): 
 Used as a basis for setting up the flake. (As well as understanding how flakes work for system config.)
 - [Impermanence](https://github.com/nix-community/impermanence):  
-  Used to implement persistence for system files.
+  Used to implement persistence for most things.
   
 ## TODO
-- [ ] Implement Persistence for home.
+- [X] Implement Persistence for home.
+- [ ] Make a mini-tutorial on how I set up the systems (based on the other tutorials).
+- [ ] Get docker, libvirt & lxc working.
 - [ ] Add nix-autobahn.
 - [ ] Get renpy games working.
 - [ ] Get Rust Stuff working.

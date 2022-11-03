@@ -54,12 +54,17 @@
           modules = [
             nur.nixosModules.nur
             impermanence.nixosModules.impermanence
-            (import ./system/asus-nixos/configuration.nix)
             home-manager.nixosModules.home-manager
+            (import ./system/asus-nixos/configuration.nix)
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.aidanp = import ./users/aidanp/home.nix;
+              home-manager.users.aidanp = {
+                imports = [
+                  impermanence.nixosModules.home-manager.impermanence
+                  ./users/aidanp/home.nix
+                ];
+              };
             }
           ];
         };
