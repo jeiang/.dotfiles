@@ -76,6 +76,8 @@
       panel-run-dialog = [ "<Super>r" ];
       switch-to-workspace-left = [ "<Control><Super>Left" ];
       switch-to-workspace-right = [ "<Control><Super>Right" ];
+      switch-windows = [ "<Alt>Tab" ];
+      switch-windows-backward = [ "<Shift><Alt>Tab" ];
     };
     "org/gnome/evolution-data-server" = {
       migrated = true;
@@ -104,13 +106,14 @@
       show-screenshot-ui = [ "<Shift><Super>s" ];
     };
     "org/gnome/shell/world-clocks" = {
-      locations = [
-        "<(uint32 2, <('Newark', 'KEWR', true, [(0.71004357294259302, -1.294501002173553)], [(0.71097133761307574, -1.2945520181475889)])>)>, <(uint32 2"
-        "<('Bristol', 'EGGD', true, [(0.89680834149865551, -0.047414783830276794)], [(0.89797190015108252, -0.045087666525422676)])>)>"
-      ];
+      # TODO: Figure out how to add world clocks
+      locations = [ ];
     };
     "system/proxy" = {
       mode = "none";
+    };
+    "org/gtk/gtk4/settings/file-chooser" = {
+      show-hidden = true;
     };
   };
 
