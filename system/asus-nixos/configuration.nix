@@ -69,11 +69,6 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.loader.systemd-boot.enable = true;
 
-  boot.plymouth = {
-    enable = true;
-  };
-  boot.initrd.systemd.enable = true;
-
   # Note `lib.mkBefore` is used instead of `lib.mkAfter` here.
   boot.initrd.postDeviceCommands = pkgs.lib.mkBefore ''
     mkdir -p /mnt
