@@ -14,6 +14,7 @@
       { directory = ".local/share/Trash"; method = "symlink"; }
       ".dotfiles"
       ".esp"
+      ".cargo"
       ".config/discord"
       ".config/fish"
       ".config/thefuck"
