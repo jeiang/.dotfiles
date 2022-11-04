@@ -11,6 +11,7 @@
       { directory = "Public"; method = "symlink"; }
       { directory = "Templates"; method = "symlink"; }
       { directory = "Videos"; method = "symlink"; }
+      { directory = ".local/share/Trash"; method = "symlink"; }
       ".dotfiles"
       ".esp"
       ".config/discord"
@@ -33,6 +34,5 @@
       ".config/monitors.xml"
     ];
     allowOther = true;
-
   };
 }
