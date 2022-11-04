@@ -8,6 +8,6 @@
 
     # Disable helix because generated theme is less readable
     # than custom gruvbox
-    targets.helix = false;
+    targets.helix.enable = false;
   };
 }

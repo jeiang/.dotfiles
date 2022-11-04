@@ -13,7 +13,9 @@
     nur.url = "github:nix-community/NUR";
 
     # Theming
-    stylix.url = "github:danth/stylix";
+    # TODO: Switch back to danth/stylix after https://github.com/danth/stylix/pull/16
+    # gets merged
+    stylix.url = "github:jeiang/stylix";
     stylix.inputs = {
       home-manager.follows = "home-manager";
       nixpkgs.follows = "nixpkgs";
