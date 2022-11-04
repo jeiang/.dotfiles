@@ -52,6 +52,8 @@
       switch-to-workspace-right = [ "<Control><Super>Right" ];
       switch-windows = [ "<Alt>Tab" ];
       switch-windows-backward = [ "<Shift><Alt>Tab" ];
+      switch-applications = [ ];
+      switch-applications-backward = [ ];
     };
     "org/gnome/evolution-data-server" = {
       migrated = true;
