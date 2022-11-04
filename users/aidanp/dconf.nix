@@ -3,7 +3,7 @@
 { inputs, lib, config, pkgs, ...}: {
   dconf.settings = {
     "org/gnome/desktop/app-folders" = {
-      folder-children = [ "Utilities" "YaST" ];
+      folder-children = [ "Utilities" ];
     };
     "org/gnome/desktop/app-folders/folders/Utilities" = {
       apps = [ "gnome-abrt.desktop" "gnome-system-log.desktop" "nm-connection-editor.desktop" "org.gnome.baobab.desktop" "org.gnome.Connections.desktop" "org.gnome.DejaDup.desktop" "org.gnome.Dictionary.desktop" "org.gnome.DiskUtility.desktop" "org.gnome.eog.desktop" "org.gnome.Evince.desktop" "org.gnome.FileRoller.desktop" "org.gnome.fonts.desktop" "org.gnome.seahorse.Application.desktop" "org.gnome.tweaks.desktop" "org.gnome.Usage.desktop" "vinagre.desktop" ];
@@ -22,7 +22,7 @@
       two-finger-scrolling-enabled = true;
     };
     "org/gnome/desktop/search-providers" = {
-      sort-order = [ "org.gnome.Contacts.desktop" "org.gnome.Documents.desktop" "org.gnome.Nautilus.desktop" ];
+      sort-order = [ "org.gnome.Documents.desktop" "org.gnome.Nautilus.desktop" ];
     };
     "org/gnome/desktop/session" = {
       idle-delay = "uint32 300";
@@ -40,9 +40,6 @@
       switch-windows-backward = [ "<Shift><Alt>Tab" ];
       switch-applications = [ ];
       switch-applications-backward = [ ];
-    };
-    "org/gnome/evolution-data-server" = {
-      migrated = true;
     };
     "org/gnome/mutter" = {
       dynamic-workspaces = true;
