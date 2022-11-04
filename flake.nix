@@ -64,7 +64,7 @@
       nixosConfigurations = {
         asus-nixos = nixpkgs.lib.nixosSystem rec {
           pkgs = legacyPackages.x86_64-linux;
-          specialArgs = { 
+          specialArgs = {
             inherit inputs;
             inherit theme;
           };
