@@ -48,10 +48,17 @@
   nixpkgs.hostPlatform = "x86_64-linux";
 
   # Boot & Kernel
+  boot.kernelPackages = pkgs.linuxPackages_latest;
   # For Keychron Keyboard
   boot.kernelModules = [ "hid-apple" ];
   # Disable Nvidia GPU for MOAR BATTERY LIFE
-  boot.kernelParams = [ "module_blacklist=nouveau" ];
+  boot.kernelParams = [
+    "module_blacklist=nouveau"
+    "quiet"
+    "loglevel=3"
+    "systemd.show_status=auto"
+    "rd.udev.log_level=3"
+  ];
   # Use Fn Keys on Keychron Keyboard
   boot.extraModprobeConfig = ''
     options hid_apple fnmode=2
@@ -61,6 +68,11 @@
   # systemd-boot because grub is big dumb dumb sometimes
   boot.loader.efi.canTouchEfiVariables = true;
   boot.loader.systemd-boot.enable = true;
+
+  boot.plymouth = {
+    enable = true;
+  };
+  boot.initrd.systemd.enable = true;
 
   # Note `lib.mkBefore` is used instead of `lib.mkAfter` here.
   boot.initrd.postDeviceCommands = pkgs.lib.mkBefore ''
