@@ -13,7 +13,13 @@
     nur.url = "github:nix-community/NUR";
 
     # Theming
-    # nix-colors.url = "github:misterio77/nix-colors";
+    stylix.url = "github:danth/stylix";
+    stylix.inputs = {
+      home-manager.follows = "home-manager";
+      nixpkgs.follows = "nixpkgs";
+    };
+    base16-schemes.url = "github:tinted-theming/base16-schemes";
+    base16-schemes.flake = false;
 
     # Impermanence
     impermanence.url = "github:nix-community/impermanence";
@@ -24,7 +30,13 @@
   };
 
   outputs =
-    { nixpkgs, home-manager, nur, impermanence, nixpkgs-fmt, ... }@inputs: rec {
+    { nixpkgs, base16-schemes, home-manager, impermanence, nixpkgs-fmt, nur, stylix, ... }@inputs:
+    let
+
+      theme = "gruvbox-dark-hard";
+
+    in
+    rec {
       formatter = nixpkgs.lib.genAttrs [ "x86_64-linux" "x86_64-darwin" ]
         (system: nixpkgs-fmt.defaultPackage.${system});
 
@@ -50,11 +62,15 @@
       nixosConfigurations = {
         asus-nixos = nixpkgs.lib.nixosSystem rec {
           pkgs = legacyPackages.x86_64-linux;
-          specialArgs = { inherit inputs; };
+          specialArgs = { 
+            inherit inputs;
+            inherit theme;
+          };
           modules = [
-            nur.nixosModules.nur
-            impermanence.nixosModules.impermanence
             home-manager.nixosModules.home-manager
+            impermanence.nixosModules.impermanence
+            nur.nixosModules.nur
+            stylix.nixosModules.stylix
             (import ./system/asus-nixos/configuration.nix)
             {
               home-manager.useGlobalPkgs = true;
