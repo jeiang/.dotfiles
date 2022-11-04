@@ -2,10 +2,6 @@
 
 { inputs, lib, config, pkgs, ...}: {
   dconf.settings = {
-    "org/gnome/control-center" = {
-      last-panel = "network";
-      window-state = "(980, 640, false)";
-    };
     "org/gnome/desktop/app-folders" = {
       folder-children = [ "Utilities" "YaST" ];
     };
@@ -15,21 +11,11 @@
       name = "X-GNOME-Utilities.directory";
       translate = true;
     };
-    "org/gnome/desktop/app-folders/folders/YaST" = {
-      categories = [ "X-SuSE-YaST" ];
-      name = "suse-yast.directory";
-      translate = true;
-    };
-    "org/gnome/desktop/default-applications/terminal" = {
-      exec = "wezterm";
-      exec-args = "start --";
-    };
     "org/gnome/desktop/input-sources" = {
       sources = [ "('xkb' 'us')" ];
       xkb-options = [ "terminate:ctrl_alt_bksp" ];
     };
     "org/gnome/desktop/interface" = {
-      color-scheme = "prefer-dark";
       show-battery-percentage = true;
     };
     "org/gnome/desktop/peripherals/touchpad" = {
@@ -72,7 +58,7 @@
       www = [ "<Super>w" ];
     };
     "org/gnome/shell" = {
-      favorite-apps = [ "org.gnome.Nautilus.desktop" "org.wezfurlong.wezterm.desktop" "firefox.desktop" "Alacritty.desktop" ];
+      favorite-apps = [ "org.gnome.Nautilus.desktop" "firefox.desktop" "Alacritty.desktop" ];
       welcome-dialog-last-shown-version = "43.0";
     };
     "org/gnome/shell/app-switcher" = {
@@ -84,6 +70,9 @@
     "org/gnome/shell/world-clocks" = {
       # TODO: Figure out how to add world clocks
       locations = [ ];
+    };
+    "org/gnome/desktop/peripherals/keyboard" = {
+      "numlock-state" = true;
     };
     "system/proxy" = {
       mode = "none";

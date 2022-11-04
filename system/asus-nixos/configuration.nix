@@ -11,6 +11,8 @@
     ./hardware/battery.nix
     # Persistence
     ./persist.nix
+    # Theme
+    ./theme.nix
   ];
 
   # Config for flakes from https://github.com/Misterio77/nix-starter-configs
