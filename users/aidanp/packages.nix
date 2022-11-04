@@ -40,7 +40,6 @@
     tokei
     trashy
     virt-manager
-    wezterm
     wineWowPackages.waylandFull
     wl-clipboard
     xh

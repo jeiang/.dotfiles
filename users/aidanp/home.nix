@@ -25,7 +25,7 @@
   fonts.fontconfig.enable = true;
 
   # Manual configuration for other programs not handled by Home Manager
-  xdg.configFile = { "wezterm".source = ./config/wezterm; };
+  xdg.configFile = { };
 
   # Nicely reload system units when changing configs
   systemd.user.startServices = "sd-switch";
