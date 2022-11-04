@@ -7,6 +7,7 @@
     ./services.nix
     ./persist.nix
     ./dconf.nix
+    ./config.nix
   ];
 
   # Information about the current user
@@ -23,9 +24,6 @@
 
   # Enable fonts to be installed as packages
   fonts.fontconfig.enable = true;
-
-  # Manual configuration for other programs not handled by Home Manager
-  xdg.configFile = { };
 
   # Nicely reload system units when changing configs
   systemd.user.startServices = "sd-switch";

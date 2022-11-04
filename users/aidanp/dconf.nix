@@ -1,6 +1,6 @@
 # Configuration through dconf for current user
 
-{ inputs, lib, config, pkgs, ...}: {
+{ inputs, lib, config, pkgs, ... }: {
   dconf.settings = {
     "org/gnome/desktop/app-folders" = {
       folder-children = [ "Utilities" ];
