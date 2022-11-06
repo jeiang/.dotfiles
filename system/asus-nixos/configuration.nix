@@ -186,15 +186,15 @@
   '';
 
   # Virtualization
-  #  virtualisation = {
-  #    docker.enable = true;
-  #    lxd = {
-  #      enable = true;
-  #      recommendedSysctlSettings = true;
-  #    };
-  #    # TODO ENABLE and setup persistence
-  #    # libvirtd.enable = true;
-  #  };
+  virtualisation = {
+    docker.enable = true;
+    lxd = {
+      enable = true;
+      recommendedSysctlSettings = true;
+    };
+    # TODO ENABLE and setup persistence
+    # libvirtd.enable = true;
+  };
 
   # Set Charging Limit
   hardware.asus.battery.chargeUpto = 60;
