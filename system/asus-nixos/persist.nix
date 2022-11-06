@@ -2,10 +2,9 @@
 
 { inputs, lib, config, pkgs, ... }: {
   environment.etc = {
-    # impermanence can't handle these, so have to manage here.
-    "NIXOS" = {
-      source = "/persist/etc/NIXOS";
-    };
+    # This file is always empty for some reason, just set to to nothing here.
+    "NIXOS".text = "";
+    # impermanence can't handle this, so have to manage it here.
     "shadow" = {
       source = "/persist/etc/shadow";
     };
@@ -14,8 +13,8 @@
   environment.persistence."/persist" = {
     hideMounts = true;
     directories = [
-      # "/var/lib/lxd"
-      # "/var/lib/docker"
+      "/var/lib/lxd"
+      "/var/lib/docker"
       "/etc/NetworkManager/system-connections"
       "/etc/nixos"
       "/var/lib/bluetooth"
