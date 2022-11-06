@@ -192,8 +192,7 @@
       enable = true;
       recommendedSysctlSettings = true;
     };
-    # TODO ENABLE and setup persistence
-    # libvirtd.enable = true;
+    libvirtd.enable = true;
   };
 
   # Set Charging Limit

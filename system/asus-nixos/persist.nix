@@ -15,6 +15,7 @@
     directories = [
       "/var/lib/lxd"
       "/var/lib/docker"
+      "/var/lib/libvirt"
       "/etc/NetworkManager/system-connections"
       "/etc/nixos"
       "/var/lib/bluetooth"
