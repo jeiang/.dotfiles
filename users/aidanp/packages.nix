@@ -34,6 +34,7 @@
     ripgrep
     ripgrep-all
     sad
+    steam-run
     szyszka
     teams
     thefuck
