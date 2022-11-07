@@ -57,6 +57,7 @@
     "org/gnome/shell" = {
       favorite-apps = [ "org.gnome.Nautilus.desktop" "firefox.desktop" "Alacritty.desktop" ];
       welcome-dialog-last-shown-version = "43.0";
+      had-bluetooth-devices-setup = true;
     };
     "org/gnome/shell/app-switcher" = {
       current-workspace-only = true;
@@ -77,5 +78,8 @@
     "org/gtk/gtk4/settings/file-chooser" = {
       show-hidden = true;
     };
+    "org/gnome/nautilus/icon-view" = {
+      default-zoom-level = "extra-large";
+    }
   };
 }
