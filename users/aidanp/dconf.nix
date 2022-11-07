@@ -80,6 +80,6 @@
     };
     "org/gnome/nautilus/icon-view" = {
       default-zoom-level = "extra-large";
-    }
+    };
   };
 }
