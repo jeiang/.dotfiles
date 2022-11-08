@@ -127,6 +127,10 @@
   # Networking
   networking.networkmanager.enable =
     true; # Easiest to use and most distros use this by default.
+  networking.nameservers = [
+    "8.8.8.8"
+    "8.8.4.4"
+  ];
 
   # Set your time zone.
   time.timeZone = "America/Port_of_Spain";
