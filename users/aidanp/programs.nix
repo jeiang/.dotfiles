@@ -30,7 +30,12 @@
       };
       extraConfig = { init.defaultBranch = "main"; };
     };
-    gpg.enable = true;
+    gpg = {
+      enable = true;
+      # Impermanence handles this
+      mutableTrust = true;
+      mutableKeys = true;
+    };
     jq.enable = true;
     just = {
       enable = true;
