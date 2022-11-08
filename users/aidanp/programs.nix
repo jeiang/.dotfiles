@@ -1,8 +1,5 @@
 # Programs to install and configure through Home Manager.
 { inputs, lib, config, pkgs, ... }:
-let
-  inherit (inputs.stylix) palette;
-in
 {
   imports = [
     ./programs/firefox.nix
@@ -65,6 +62,11 @@ in
       enable = true;
       enableFishIntegration = true;
     };
+    nushell = {
+      enable = true;
+      configFile.source = ./config/nushell/config.nu;
+      envFile.source = ./config/nushell/env.nu;
+    };
     obs-studio.enable = true;
     ssh = {
       enable = true;
@@ -79,106 +81,35 @@ in
     };
     starship = {
       enable = true;
+      enableFishIntegration = false;
       settings = {
-        format =
-          "[](#${palette.base08})$username[](bg:#${palette.base09} fg:#${palette.base08})"
-          "$directory[](fg:#${palette.base09} bg:#${palette.base0A})"
-          "$git_branch$git_status[](fg:#${palette.base0A} bg:#${palette.base0B})"
-          "$c$elixir$elm$golang$haskell$java$julia$nodejs$nim$rust$scala[](fg:#${palette.base0B} bg:#${palette.base0C})"
-          "$docker_context[](fg:#${palette.base0C} bg:#${palette.base0D})"
-          "$time[ ](fg:#${palette.base0D})";
-        username = {
-          show_always = true;
-          style_user = "bg:#${palette.base08}";
-          style_root = "bg:#${palette.base08}";
-          format = "$user  = {($style)";
-        };
+        format = "$username$hostname$directory$git_branch$git_state$git_status$cmd_duration$line_break$python$character";
         directory = {
-          style = "bg:#${palette.base09}";
-          format = " $path  = {($style)";
-          truncation_length = 3;
-          truncation_symbol = "…/";
-          substitutions = {
-            "Documents" = " ";
-            "Downloads" = " ";
-            "Music" = " ";
-            "Pictures" = " ";
-          };
+          style = "blue";
         };
-        c = {
-          symbol = " ";
-          style = "bg:#${palette.base0B}";
-          format = " $symbol ($version)  = {($style)";
-        };
-        docker_context = {
-          symbol = " ";
-          style = "bg:#${palette.base0C}";
-          format = " $symbol $context  = {($style) $path";
-        };
-        elixir = {
-          symbol = " ";
-          style = "bg:#${palette.base0B}";
-          format = " $symbol ($version)  = {($style)";
-        };
-        elm = {
-          symbol = " ";
-          style = "bg:#${palette.base0B}";
-          format = " $symbol ($version)  = {($style)";
+        character = {
+          success_symbol = "[❯](purple)";
+          error_symbol = "[❯](red)";
+          vimcmd_symbol = "[❮](green)";
         };
         git_branch = {
-          symbol = "";
-          style = "bg:#${palette.base0A}";
-          format = " $symbol $branch  = {($style)";
+          format = "[$branch]($style)";
+          style = "bright-black";
         };
         git_status = {
-          style = "bg:#${palette.base0A}";
-          format = "$all_status$ahead_behind  = {($style)";
+          format = "[[(*$conflicted$untracked$modified$staged$renamed$deleted)](218) ($ahead_behind$stashed)]($style)";
+          style = "cyan";
+          conflicted = "​";
+          untracked = "​";
+          modified = "​";
+          staged = "​";
+          renamed = "​";
+          deleted = "​";
+          stashed = "≡";
         };
-        golang = {
-          symbol = " ";
-          style = "bg:#${palette.base0B}";
-          format = " $symbol ($version)  = {($style)";
-        };
-        haskell = {
-          symbol = " ";
-          style = "bg:#${palette.base0B}";
-          format = " $symbol ($version)  = {($style)";
-        };
-        java = {
-          symbol = " ";
-          style = "bg:#${palette.base0B}";
-          format = " $symbol ($version)  = {($style)";
-        };
-        julia = {
-          symbol = " ";
-          style = "bg:#${palette.base0B}";
-          format = " $symbol ($version)  = {($style)";
-        };
-        nodejs = {
-          symbol = "";
-          style = "bg:#${palette.base0B}";
-          format = " $symbol ($version)  = {($style)";
-        };
-        nim = {
-          symbol = " ";
-          style = "bg:#${palette.base0B}";
-          format = " $symbol ($version)  = {($style)";
-        };
-        rust = {
-          symbol = "";
-          style = "bg:#${palette.base0B}";
-          format = " $symbol ($version)  = {($style)";
-        };
-        scala = {
-          symbol = " ";
-          style = "bg:#${palette.base0B}";
-          format = " $symbol ($version)  = {($style)";
-        };
-        time = {
-          disabled = false;
-          time_format = "%R"; # Hour:Minute Format
-          style = "bg:#${palette.base0D}";
-          format = " ♥ $time  = {($style)";
+        git_state = {
+          format = "\([$state( $progress_current/$progress_total)]($style)\) ";
+          style = "bright-black";
         };
       };
     };
