@@ -18,7 +18,7 @@
     plugins = with pkgs; [
       {
         name = "done";
-        src = fishPlugins.done.src;
+        inherit (fishPlugins.done) src;
       }
       {
         name = "tide";
