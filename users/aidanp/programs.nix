@@ -6,7 +6,10 @@
     ./programs/fish.nix
   ];
   programs = {
-    alacritty.enable = true;
+    alacritty = {
+      enable = true;
+      settings.shell.program = "zellij";
+    };
     aria2.enable = true;
     exa.enable = true;
     direnv = {
