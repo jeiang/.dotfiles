@@ -39,7 +39,6 @@
       mutableTrust = true;
       mutableKeys = true;
     };
-    jq.enable = true;
     just = {
       enable = true;
       enableFishIntegration = true;

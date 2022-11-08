@@ -16,6 +16,7 @@
     discord
     diskonaut
     duf
+    eva
     fd
     file.out
     gimp
@@ -23,6 +24,7 @@
     glow
     gnome3.gnome-tweaks
     hyperfine
+    jql
     libtree
     lutris
     mcomix
@@ -33,6 +35,7 @@
     rargs
     ripgrep
     ripgrep-all
+    rm-improved # trashy & gio don't work well with impermanence
     sad
     steam-run
     szyszka
