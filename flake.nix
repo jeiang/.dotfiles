@@ -1,5 +1,5 @@
 {
-  description = "Your new nix config";
+  description = "aidanp nixos config.";
 
   inputs = {
     # Nixpkgs
@@ -9,15 +9,28 @@
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
-    # TODO: Add any other flake you might need
+    # NUR
+    nur.url = "github:nix-community/NUR";
+
+    # Hardware
     hardware.url = "github:nixos/nixos-hardware";
 
-    # Shameless plug: looking for a way to nixify your themes and make
-    # everything match nicely? Try nix-colors!
-    # nix-colors.url = "github:misterio77/nix-colors";
+    # Theming
+    stylix.url = "github:danth/stylix";
+    stylix.inputs = {
+      home-manager.follows = "home-manager";
+      nixpkgs.follows = "nixpkgs";
+    };
+
+    # Impermanence
+    impermanence.url = "github:nix-community/impermanence";
+
+    # Nix Formatter
+    nixpkgs-fmt.url = "github:nix-community/nixpkgs-fmt";
+    nixpkgs-fmt.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, home-manager, ... }@inputs:
+  outputs = { self, nixpkgs, home-manager, impermanence, nur, nixpkgs-fmt, stylix, ... }@inputs:
     let
       inherit (self) outputs;
       forAllSystems = nixpkgs.lib.genAttrs [
@@ -29,17 +42,36 @@
       ];
     in
     rec {
+      formatter = forAllSystems (system: nixpkgs-fmt.defaultPackage.${system});
+
       # Your custom packages
       # Acessible through 'nix build', 'nix shell', etc
-      packages = forAllSystems (system:
+      customPackages = forAllSystems (system:
         let pkgs = nixpkgs.legacyPackages.${system};
         in import ./pkgs { inherit pkgs; }
       );
+
       # Devshell for bootstrapping
       # Acessible through 'nix develop' or 'nix-shell' (legacy)
       devShells = forAllSystems (system:
         let pkgs = nixpkgs.legacyPackages.${system};
         in import ./shell.nix { inherit pkgs; }
+      );
+
+      legacyPackages = forAllSystems (system:
+        import inputs.nixpkgs {
+          inherit system;
+
+          # NOTE: Using `nixpkgs.config` in your NixOS config won't work
+          # Instead, you should set nixpkgs configs here
+          # (https://nixos.org/manual/nixpkgs/stable/#idm140737322551056)
+          config.allowUnfree = true;
+
+          overlays = [
+            # Add nur to pkgs
+            nur.overlay
+          ];
+        }
       );
 
       # Your custom packages and modifications, exported as overlays
@@ -50,26 +82,40 @@
       # Reusable home-manager modules you might want to export
       # These are usually stuff you would upstream into home-manager
       homeManagerModules = import ./modules/home-manager;
+      # These are scripts that may be used in the configuration
+      scripts = import ./scripts;
 
       nixosConfigurations = {
-        # FIXME replace with your hostname
-        your-hostname = nixpkgs.lib.nixosSystem {
+        asus-nixos = nixpkgs.lib.nixosSystem rec {
+          pkgs = legacyPackages.x86_64-linux;
           specialArgs = { inherit inputs outputs; };
           modules = [
+            home-manager.nixosModules.home-manager
+            impermanence.nixosModules.impermanence
+            nur.nixosModules.nur
+            stylix.nixosModules.stylix
+
             # > Our main nixos configuration file <
             ./nixos/configuration.nix
-          ];
-        };
-      };
 
-      homeConfigurations = {
-        # FIXME replace with your username@hostname
-        "your-username@your-hostname" = home-manager.lib.homeManagerConfiguration {
-          pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
-          extraSpecialArgs = { inherit inputs outputs; };
-          modules = [
-            # > Our main home-manager configuration file <
-            ./home-manager/home.nix
+            # System specific configuration
+            ./nixos/system/asus-nixos
+
+            # Theme stuff
+            ./theming
+
+            # Home manager configuration through NixOS module
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.extraSpecialArgs = { inherit inputs outputs; };
+              home-manager.users.aidanp = {
+                imports = [
+                  impermanence.nixosModules.home-manager.impermanence
+                  ./home-manager/home.nix
+                ];
+              };
+            }
           ];
         };
       };

@@ -1,0 +1,81 @@
+{ inputs, outputs, lib, config, pkgs, ... }: {
+  imports = [
+    ./alacritty.nix
+    ./aria2.nix
+    ./bat.nix
+    ./bottom.nix
+    ./direnv.nix
+    ./exa.nix
+    ./firefox.nix
+    ./fish.nix
+    ./fzf.nix
+    ./git.nix
+    ./gpg.nix
+    ./helix.nix
+    ./just.nix
+    ./mcfly.nix
+    ./mpv.nix
+    ./navi.nix
+    ./nix-index.nix
+    ./nushell.nix
+    ./obs-studio.nix
+    ./ssh.nix
+    ./starship.nix
+    ./tealdeer.nix
+    ./wezterm.nix
+    ./zellij.nix
+    ./zoxide.nix
+  ];
+  
+  home.packages = with pkgs; [
+    (nerdfonts.override {
+      fonts = [ "FiraCode" "JetBrainsMono" "UbuntuMono" ];
+    })
+    any-nix-shell
+    appimage-run
+    axel
+    bandwhich
+    bingrep
+    bitwarden
+    borgbackup
+    choose
+    czkawka
+    discord
+    diskonaut
+    duf
+    eva
+    fd
+    file.out
+    gimp
+    git-crypt
+    glow
+    gnome3.gnome-tweaks
+    hyperfine
+    jql
+    libtree
+    lutris
+    mcomix
+    obsidian
+    ouch
+    qbittorrent
+    qview
+    rargs
+    ripgrep
+    ripgrep-all
+    rm-improved # trashy & gio don't work well with impermanence
+    sad
+    steam-run
+    szyszka
+    teams
+    thefuck
+    tokei
+    trashy
+    virt-manager
+    wineWowPackages.waylandFull
+    wl-clipboard
+    xh
+    xplr
+    zenith
+    zoom-us
+  ];
+}
