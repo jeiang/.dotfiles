@@ -22,7 +22,9 @@
     ./ssh.nix
     ./starship.nix
     ./tealdeer.nix
+    ./vscode.nix
     ./wezterm.nix
+    ./vscode.nix
     ./zellij.nix
     ./zoxide.nix
   ];
