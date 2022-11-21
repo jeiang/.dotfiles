@@ -44,10 +44,11 @@
     options = [ "subvol=lxd" "compress=zstd" "noatime" ];
   };
 
-  fileSystems."/persist/mnt/asahi" = {
-    device = "/dev/disk/by-label/asahi";
-    fsType = "ext4";
-  };
+#  fileSystems."/persist/mnt/asahi" = {
+#    device = "/dev/disk/by-label/asahi";
+#    fsType = "btrfs";
+#    options = [ "subvol=root" "compress=zstd" "noatime" ];
+#  };
 
   swapDevices =
     [{ device = "/dev/disk/by-uuid/5fcf8237-49a6-4c13-914c-099b3ee3f861"; }];
