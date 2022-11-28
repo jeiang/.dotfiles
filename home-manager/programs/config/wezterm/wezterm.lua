@@ -1,16 +1,14 @@
 local wezterm = require('wezterm')
 
-wezterm.on('bell', function(window, pane)
-  window:toast_notification('wezterm',
-    'Bell was rung by `' .. pane:get_title() .. '`!')
-end)
-
-
 -- Configuration Settings
 local launch_menu = {
   {
     label = 'Fish Shell',
     args = { 'fish' },
+  },
+  {
+    label = 'Zellij',
+    args = { 'zellij' },
   },
   {
     label = 'System Utilization',
@@ -25,7 +23,7 @@ local launch_menu = {
 local config = {
   font = wezterm.font('JetBrains Mono'),
   color_scheme = 'Seti UI (base16)',
-  default_prog = { 'fish' },
+  default_prog = { 'zellij' },
   launch_menu = launch_menu,
   animation_fps = 60,
   visual_bell = {

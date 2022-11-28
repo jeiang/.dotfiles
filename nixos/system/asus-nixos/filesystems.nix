@@ -34,15 +34,15 @@
   };
 
   fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/F758-D6B3";
+    device = "/dev/disk/by-label/boot";
     fsType = "vfat";
   };
 
-  fileSystems."/persist/lxd" = {
-    device = "/dev/disk/by-uuid/b060d466-a3f1-4b78-8ffa-745824bb4122";
-    fsType = "btrfs";
-    options = [ "subvol=lxd" "compress=zstd" "noatime" ];
-  };
+#  fileSystems."/persist/lxd" = {
+#    device = "/dev/disk/by-uuid/b060d466-a3f1-4b78-8ffa-745824bb4122";
+#    fsType = "btrfs";
+#    options = [ "subvol=lxd" "compress=zstd" "noatime" ];
+#  };
 
 #  fileSystems."/persist/mnt/asahi" = {
 #    device = "/dev/disk/by-label/asahi";
@@ -51,5 +51,5 @@
 #  };
 
   swapDevices =
-    [{ device = "/dev/disk/by-uuid/5fcf8237-49a6-4c13-914c-099b3ee3f861"; }];
+    [{ device = "/dev/disk/by-partlabel/hillwillow_swap"; }];
 }
