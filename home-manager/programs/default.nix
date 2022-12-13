@@ -12,7 +12,6 @@
     ./git.nix
     ./gpg.nix
     ./helix.nix
-    ./just.nix
     ./mcfly.nix
     ./mpv.nix
     ./navi.nix
@@ -54,6 +53,7 @@
     gnome3.gnome-tweaks
     hyperfine
     jql
+    just
     libtree
     lutris
     mcomix
