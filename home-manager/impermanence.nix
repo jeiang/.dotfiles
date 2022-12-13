@@ -9,12 +9,12 @@
       { directory = "Public"; method = "symlink"; }
       { directory = "Templates"; method = "symlink"; }
       { directory = "Videos"; method = "symlink"; }
-      { directory = ".local/share/Trash"; method = "symlink"; }
       ".dotfiles"
       ".esp"
       ".cargo"
       ".config/discord"
       ".config/fish"
+      ".config/qBittorrent"
       ".config/thefuck"
       ".cache/nix-index"
       ".local/share/direnv"
@@ -22,14 +22,13 @@
       ".local/share/gnome-shell"
       ".local/share/keyrings"
       ".local/share/mcfly"
+      ".local/share/qBittorrent"
       ".local/share/zoxide"
       ".mozilla"
       ".renpy"
       ".ssh"
     ];
     files = [
-      ".gnupg/pubring.kbx"
-      ".gnupg/trustdb.gpg"
       ".config/monitors.xml"
       ".config/mimeapps.list"
     ];
