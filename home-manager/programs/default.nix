@@ -8,6 +8,7 @@
     ./exa.nix
     ./firefox.nix
     ./fish.nix
+    ./foot.nix
     ./fzf.nix
     ./git.nix
     ./gpg.nix
@@ -27,7 +28,7 @@
     ./zellij.nix
     ./zoxide.nix
   ];
-  
+
   home.packages = with pkgs; [
     (nerdfonts.override {
       fonts = [ "FiraCode" "JetBrainsMono" "UbuntuMono" ];
