@@ -54,7 +54,7 @@
       www = [ "<Super>w" ];
     };
     "org/gnome/shell" = {
-      favorite-apps = [ "org.gnome.Nautilus.desktop" "firefox.desktop" "Alacritty.desktop" ];
+      favorite-apps = [ "org.gnome.Nautilus.desktop" "firefox.desktop" "foot.desktop" ];
       welcome-dialog-last-shown-version = "43.0";
       had-bluetooth-devices-setup = true;
     };

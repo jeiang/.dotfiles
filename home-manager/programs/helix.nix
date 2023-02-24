@@ -37,6 +37,19 @@
           ];
         };
       }
+      {
+        name = "python";
+        roots = [ "pyproject.toml" ];
+        language-server = {
+          command = "pyright-langserver";
+          args = [ "--stdio" ];
+        };
+        config = { };
+        formatter = {
+          command = "black";
+          args = [ "-q" "-" ];
+        };
+      }
     ];
     settings = {
       # Builtin theme
