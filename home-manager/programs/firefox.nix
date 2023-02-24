@@ -4,16 +4,6 @@
     package = pkgs.wrapFirefox pkgs.firefox-unwrapped {
       extraPolicies = { ExtensionSettings = { }; };
     };
-    extensions = with pkgs.nur.repos.rycee.firefox-addons; [
-      bitwarden
-      canvasblocker
-      cookies-txt
-      darkreader
-      violentmonkey
-      wayback-machine
-      ublock-origin
-      stylus
-    ];
     profiles = {
       main = {
         id = 0;
@@ -57,7 +47,20 @@
             url =
               "https://e-courier.ca/aQ?is=Zjkl33oH3Y8e&ue=aidan.pinard@my.uwi.edu";
           };
+          "Translated Novels Archive (server.elscione.com)" = {
+            url = "https://server.elscione.com/";
+          };
         };
+        extensions = with pkgs.nur.repos.rycee.firefox-addons; [
+          bitwarden
+          canvasblocker
+          cookies-txt
+          darkreader
+          violentmonkey
+          wayback-machine
+          ublock-origin
+          stylus
+        ];
       };
       secondary = {
         id = 1;
@@ -127,6 +130,16 @@
               "https://mt-caret.github.io/blog/posts/2020-06-29-optin-state.html";
           };
         };
+        extensions = with pkgs.nur.repos.rycee.firefox-addons; [
+          bitwarden
+          canvasblocker
+          cookies-txt
+          darkreader
+          violentmonkey
+          wayback-machine
+          ublock-origin
+          stylus
+        ];
       };
     };
   };

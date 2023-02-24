@@ -24,7 +24,6 @@
     ./tealdeer.nix
     ./vscode.nix
     ./wezterm.nix
-    ./vscode.nix
     ./zellij.nix
     ./zoxide.nix
   ];
@@ -33,6 +32,7 @@
     (nerdfonts.override {
       fonts = [ "FiraCode" "JetBrainsMono" "UbuntuMono" ];
     })
+    amberol
     any-nix-shell
     appimage-run
     axel
@@ -48,6 +48,7 @@
     eva
     fd
     file.out
+    foliate
     gimp
     git-crypt
     glow
@@ -60,16 +61,20 @@
     mcomix
     obsidian
     ouch
+    pandoc
     qbittorrent
     qview
     rargs
     ripgrep
     ripgrep-all
     rm-improved # trashy & gio don't work well with impermanence
+    rnr
     sad
+    sccache
     steam-run
     szyszka
     teams
+    texlive.combined.scheme-small
     thefuck
     tokei
     trashy

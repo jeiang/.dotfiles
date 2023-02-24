@@ -83,6 +83,8 @@
     nix-ld.enable = true;
     dconf.enable = true;
     fuse.userAllowOther = true;
+    # For completions
+    fish.enable = true;
   };
 
   # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion

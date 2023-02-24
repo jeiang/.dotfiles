@@ -1,12 +1,11 @@
 { inputs, outputs, lib, config, pkgs, ... }: {
   programs.foot = {
     enable = true;
-    server.enable = true;
     settings = {
       main = {
         box-drawings-uses-font-glyphs = "yes";
         shell = "zellij";
-        font = "JetBrainsMono Nerd Font Mono:size=12";
+        font = "JetBrainsMono Nerd Font Mono:size=9";
         workers = 16;
         dpi-aware = "yes";
       };

@@ -175,4 +175,10 @@ default_shell "fish"
 // TODO: generate a theme file from stylix
 theme "catppuccin-mocha"
 
-copy_on_select false
+mouse_mode false
+
+ui {
+    pane_frames {
+        rounded_corners true
+    }
+}
