@@ -175,6 +175,8 @@ default_shell "fish"
 // TODO: generate a theme file from stylix
 theme "catppuccin-mocha"
 
+scrollback_editor "hx"
+
 mouse_mode false
 
 ui {
