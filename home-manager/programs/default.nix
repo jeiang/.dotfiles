@@ -27,6 +27,7 @@
     duf
     eva
     fd
+    felix-fm
     file.out
     foliate
     gimp
