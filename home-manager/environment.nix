@@ -6,5 +6,5 @@
     GRAVEYARD = "/persist/home/aidanp/Trash";
     CARGO_REGISTRIES_CRATES_IO_PROTOCOL = "sparse";
     RUSTC_WRAPPER = "sccache";
-      };
-  }
+  };
+}

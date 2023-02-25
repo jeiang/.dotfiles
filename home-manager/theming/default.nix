@@ -17,5 +17,6 @@
         };
       };
     };
+    targets.helix.enable = false;
   };
 }

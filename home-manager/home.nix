@@ -8,6 +8,7 @@
     ./impermanence.nix
     ./services
     ./programs
+    ./theming
   ];
 
   # Information about the current user
