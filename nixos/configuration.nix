@@ -37,12 +37,13 @@
       "wheel"
       "networkmanager"
       "docker"
-      "lxd"
-      "wireshark"
       "dialout"
-      "libvirtd"
     ];
     packages = with pkgs; [ fortune cowsay ];
+
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHltrv4lBSa4cdCOrrQliIh2eiEohARVSKlCiz6RUKSb aidan@aidanpinard.co"
+    ];
   };
 
   # Install system wide packages
@@ -67,25 +68,18 @@
   # Virtualization
   virtualisation = {
     docker.enable = true;
-    lxd = {
-      enable = true;
-      recommendedSysctlSettings = true;
-    };
-    libvirtd.enable = true;
   };
 
   # Programs with system-wide configuration
   programs = {
-    wireshark = {
-      enable = true;
-      package = pkgs.wireshark-qt;
-    };
     nix-ld.enable = true;
     dconf.enable = true;
     fuse.userAllowOther = true;
     # For completions
     fish.enable = true;
   };
+
+  services.openssh.enable = true;
 
   # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion
   system.stateVersion = "22.05";
