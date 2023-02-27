@@ -53,7 +53,7 @@
     ];
     settings = {
       # Builtin theme
-      theme = "catppuccin_mocha";
+      theme = "ayu_dark";
       editor = {
         shell = [ "fish" "-c" ];
         idle-timeout = 400;
