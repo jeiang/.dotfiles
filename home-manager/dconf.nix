@@ -54,6 +54,7 @@
       www = [ "<Super>w" ];
     };
     "org/gnome/shell" = {
+      enabled-extensions = [ "user-theme@gnome-shell-extensions.gcampax.github.com" ];
       favorite-apps = [ "org.gnome.Nautilus.desktop" "firefox.desktop" "Alacritty.desktop" ];
       welcome-dialog-last-shown-version = "43.0";
       had-bluetooth-devices-setup = true;
