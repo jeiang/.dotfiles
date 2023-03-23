@@ -15,6 +15,7 @@
     amberol
     any-nix-shell
     appimage-run
+    asciinema
     axel
     bandwhich
     bingrep
@@ -26,6 +27,7 @@
     diskonaut
     duf
     eva
+    erdtree
     fd
     felix-fm
     file.out
@@ -43,6 +45,7 @@
     obsidian
     ouch
     pandoc
+    procs
     qbittorrent
     qview
     rargs
@@ -70,7 +73,11 @@
   programs = {
     alacritty = {
       enable = true;
-      settings = { shell = { program = "zellij"; }; };
+      settings = {
+        shell = {
+          program = "zellij";
+        };
+      };
     };
     aria2.enable = true;
     bat.enable = true;

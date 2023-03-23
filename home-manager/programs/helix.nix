@@ -37,23 +37,10 @@
           ];
         };
       }
-      {
-        name = "python";
-        roots = [ "pyproject.toml" ];
-        language-server = {
-          command = "pyright-langserver";
-          args = [ "--stdio" ];
-        };
-        config = { };
-        formatter = {
-          command = "black";
-          args = [ "-q" "-" ];
-        };
-      }
     ];
     settings = {
       # Builtin theme
-      theme = "ayu_dark";
+      theme = "suru-dark-hard";
       editor = {
         shell = [ "fish" "-c" ];
         idle-timeout = 400;
@@ -79,9 +66,33 @@
           "[" = "]";
           "\"" = ''"'';
           "`" = "`";
-          "<" = ">";
         };
         indent-guides = { render = true; };
+        auto-format = true;
+      };
+    };
+    themes = {
+      suru = (builtins.fromTOML (builtins.readFile ./helix-suru-theme.toml));
+      suru-dark-hard = {
+        inherits = "suru";
+        palette = {
+          black = "#080808";
+          bg0 = "#141414";
+          bg1 = "#222222";
+          bg2 = "#262626";
+          bg3 = "#2b2b2b";
+          bg4 = "#555555";
+          bg5 = "#454545";
+          fg = "#e3dfd5";
+          red = "#f32417";
+          yellow = "#edb433";
+          green = "#46a926";
+          violet = "#d85eca";
+          turquoise = "#2daaaa";
+          purple = "#9f76e4";
+          grey = "#7b858e";
+          grey_dim = "#4e4e4e";
+        };
       };
     };
   };
