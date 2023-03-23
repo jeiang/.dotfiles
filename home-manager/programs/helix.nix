@@ -39,8 +39,7 @@
       }
     ];
     settings = {
-      # Builtin theme
-      theme = "suru-dark-hard";
+      theme = "kanabox-dark-hard";
       editor = {
         shell = [ "fish" "-c" ];
         idle-timeout = 400;
@@ -72,7 +71,17 @@
       };
     };
     themes = {
-      suru = (builtins.fromTOML (builtins.readFile ./helix-suru-theme.toml));
+      kanabox = (builtins.fromTOML (builtins.readFile ./config/helix/themes/kanabox.toml));
+      kanabox-dark-hard = {
+        inherits = "kanabox";
+
+        palette = {
+          "sumiInk0" = "#03030A";
+          "sumiInk1" = "#0C0C15";
+          "sumiInk1_5" = "#2A2A37";
+        };
+      };
+      suru = (builtins.fromTOML (builtins.readFile ./config/helix/themes/suru.toml));
       suru-dark-hard = {
         inherits = "suru";
         palette = {
