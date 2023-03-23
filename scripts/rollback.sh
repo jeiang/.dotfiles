@@ -2,7 +2,7 @@ mkdir -p /mnt
 
 # We first mount the btrfs root to /mnt
 # so we can manipulate btrfs subvolumes.
-mount -o subvol=/ /dev/mapper/enc /mnt
+mount -o subvol=/ /dev/mapper/hillwillow /mnt
 
 # While we're tempted to just delete /root and create
 # a new snapshot from /@root, /root is already

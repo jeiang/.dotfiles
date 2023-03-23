@@ -2,6 +2,7 @@
   home.persistence."/persist/home/aidanp" = {
     directories = [
       { directory = "Desktop"; method = "symlink"; }
+      { directory = "Games"; method = "symlink"; }
       { directory = "Documents"; method = "symlink"; }
       { directory = "Downloads"; method = "symlink"; }
       { directory = "Music"; method = "symlink"; }

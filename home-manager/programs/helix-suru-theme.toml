@@ -1,0 +1,100 @@
+# Author: Wei-Ying Chen <alexchen.info@gmail.com>
+# Based on the Suru palette from https://snwh.org/suru/guidelines
+
+"type" = "turquoise"
+"constant" = "purple"
+"constant.numeric" = "purple"
+"constant.character.escape" = "yellow"
+"string" = "green"
+"comment" = "grey"
+"variable" = "fg"
+"variable.builtin" = "yellow"
+"variable.parameter" = "fg"
+"variable.other.member" = "fg"
+"label" = "yellow"
+"punctuation" = "grey"
+"punctuation.delimiter" = "grey"
+"punctuation.bracket" = "fg"
+"keyword" = "red"
+"keyword.storage.modifier" = "yellow"
+"operator" = "yellow"
+"function" = "violet"
+"function.builtin" = "turquoise"
+"function.macro" = "purple"
+"tag" = "green"
+"namespace" = "turquoise"
+"attribute" = "purple"
+"constructor" = "turquoise"
+"module" = "turquoise"
+"special" = "yellow"
+
+"markup.heading.marker" = "grey"
+"markup.heading.1" = { fg = "red", modifiers = ["bold"] }
+"markup.heading.2" = { fg = "yellow", modifiers = ["bold"] }
+"markup.heading.3" = { fg = "green", modifiers = ["bold"] }
+"markup.heading.4" = { fg = "violet", modifiers = ["bold"] }
+"markup.heading.5" = { fg = "turquoise", modifiers = ["bold"] }
+"markup.heading.6" = { fg = "fg", modifiers = ["bold"] }
+"markup.list" = "red"
+"markup.bold" = { modifiers = ["bold"] }
+"markup.italic" = { modifiers = ["italic"] }
+"markup.strikethrough" = { modifiers = ["crossed_out"] }
+"markup.link.url" = { fg = "turquoise", modifiers = ["underlined"] }
+"markup.link.text" = "purple"
+"markup.quote" = "grey"
+"markup.raw" = "violet"
+
+"diff.plus" = "violet"
+"diff.delta" = "yellow"
+"diff.minus" = "red"
+
+"ui.background" = { bg = "bg0" }
+"ui.cursor" = { modifiers = ['reversed'] }
+"ui.cursor.match" = { fg = "yellow", bg = "yellow" }
+"ui.cursor.insert" = { fg = "black", bg = "grey" }
+"ui.cursor.select" = { fg = "bg0", bg = "turquoise" }
+"ui.selection" = { bg = "bg5" }
+"ui.selection.primary" = { bg = "bg4" }
+"ui.linenr" = "grey"
+"ui.linenr.selected" = "fg"
+"ui.cursorline.primary" = { bg = "bg1" }
+"ui.statusline" = { fg = "fg", bg = "bg3" }
+"ui.statusline.inactive" = { fg = "grey", bg = "bg1" }
+"ui.popup" = { fg = "grey", bg = "bg2" }
+"ui.window" = { fg = "grey", bg = "bg0" }
+"ui.help" = { fg = "fg", bg = "bg1" }
+"ui.text" = "fg"
+"ui.text.focus" = "violet"
+"ui.menu" = { fg = "fg", bg = "bg2" }
+"ui.menu.selected" = { fg = "bg0", bg = "violet" }
+"ui.virtual.whitespace" = { fg = "grey_dim" }
+"ui.virtual.ruler" = { bg = "grey_dim" }
+
+info = { fg = "violet" }
+hint = { fg = "turquoise" }
+warning = { fg = "yellow" }
+error = { fg = "red" }
+
+"diagnostic.info" = { underline = { style = "curl", color = "violet" } }
+"diagnostic.hint" = { underline = { style = "curl", color = "turquoise" } }
+"diagnostic.warning" = { underline = { style = "curl", color = "yellow" } }
+"diagnostic.error" = { underline = { style = "curl", color = "red" } }
+
+[palette]
+black = "#181818"
+bg0 = "#242424"
+bg1 = "#333333"
+bg2 = "#363636"
+bg3 = "#3b3b3b"
+bg4 = "#555555"
+bg5 = "#4d4d4d"
+fg = "#e3dfd5"
+red = "#f34f17"
+yellow = "#fda463"
+green = "#46a926"
+violet = "#d85eca"
+turquoise = "#2daaaa"
+purple = "#8f76e4"
+grey = "#7b858e"
+grey_dim = "#5e5e5e"
+

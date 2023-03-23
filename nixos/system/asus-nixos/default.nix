@@ -47,11 +47,13 @@
   boot.initrd.postDeviceCommands = pkgs.lib.mkBefore outputs.scripts.rollback;
 
   # Networking
-  networking.networkmanager.enable = true;
-  networking.nameservers = [
-    "8.8.8.8"
-    "8.8.4.4"
-  ];
+  networking = {
+    networkmanager.enable = true;
+    nameservers = [
+      "8.8.8.8"
+      "8.8.4.4"
+    ];
+  };
 
   # Set your time zone.
   time.timeZone = "America/Port_of_Spain";
@@ -71,6 +73,9 @@
     alsa.support32Bit = true;
     pulse.enable = true;
   };
+
+  # Power Management
+  powerManagement.powertop.enable = true;
 
   # Set Charging Limit
   hardware.asus.battery.chargeUpto = 60;
