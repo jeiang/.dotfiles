@@ -70,6 +70,8 @@
           overlays = [
             # Add nur to pkgs
             nur.overlay
+            outputs.overlays.additions
+            outputs.overlays.modifications
           ];
         }
       );
