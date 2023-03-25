@@ -66,7 +66,6 @@
     wl-clipboard
     xh
     xplr
-    zenith
     zoom-us
   ];
 
@@ -81,6 +80,14 @@
     };
     aria2.enable = true;
     bat.enable = true;
+    bottom = {
+      enable = true;
+      settings = {
+        left_legend = true;
+        tree = true;
+        group_processes = true;
+      };
+    };
     direnv = {
       enable = true;
       nix-direnv.enable = true;
