@@ -6,6 +6,7 @@
     ./helix.nix
     ./ssh.nix
     ./starship.nix
+    ./wezterm.nix
   ];
 
   home.packages = with pkgs; [
@@ -70,14 +71,6 @@
   ];
 
   programs = {
-    alacritty = {
-      enable = true;
-      settings = {
-        shell = {
-          program = "zellij";
-        };
-      };
-    };
     aria2.enable = true;
     bat.enable = true;
     bottom = {
