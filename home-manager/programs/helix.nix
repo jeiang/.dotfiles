@@ -1,4 +1,5 @@
 { inputs, outputs, lib, config, pkgs, ... }: {
+  stylix.targets.helix.enable = false;
   programs.helix = {
     enable = true;
     languages = [

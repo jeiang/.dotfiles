@@ -20,7 +20,7 @@
       };
 
       # Patch is for an older version of wezterm
-      patches = [];
+      patches = [ ];
 
       cargoDeps = oldAttrs.cargoDeps.overrideAttrs (final.lib.const {
         name = "${pname}-${version}-vendor.tar.gz";
@@ -39,7 +39,7 @@
     #   };
 
     #   nativeBuildInputs = [ final.installShellFiles ];
-      
+
     #   # TODO: completions??
     #   postInstall = ''
     #     installShellCompletion --cmd rip \
@@ -47,7 +47,7 @@
     #       --fish <($out/bin/rip complete fish) \
     #       --zsh <($out/bin/rip complete zsh)
     #   '';
-      
+
     #   # Because of the version change, this needs to change as well
     #   # See https://nixos.wiki/wiki/Overlays#Rust_packages
     #   cargoDeps = oldAttrs.cargoDeps.overrideAttrs (final.lib.const {
