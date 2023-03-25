@@ -179,8 +179,4 @@ scrollback_editor "hx"
 
 mouse_mode false
 
-ui {
-    pane_frames {
-        rounded_corners true
-    }
-}
+pane_frames false
