@@ -88,7 +88,7 @@
       scripts = import ./scripts;
 
       nixosConfigurations = {
-        asus-nixos = nixpkgs.lib.nixosSystem rec {
+        asus-nixos = nixpkgs.lib.nixosSystem {
           pkgs = legacyPackages.x86_64-linux;
           specialArgs = { inherit inputs outputs; };
           modules = [
