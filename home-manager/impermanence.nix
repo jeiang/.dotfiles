@@ -11,7 +11,6 @@
       { directory = "Templates"; method = "symlink"; }
       { directory = "Videos"; method = "symlink"; }
       ".dotfiles"
-      ".esp"
       ".cargo"
       ".config/discord"
       ".config/fish"
