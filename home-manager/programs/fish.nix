@@ -20,15 +20,6 @@
         inherit (fishPlugins.done) src;
       }
       {
-        name = "tide";
-        src = pkgs.fetchFromGitHub {
-          owner = "IlanCosman";
-          repo = "tide";
-          rev = "6833806ba2eaa1a2d72a5015f59c284f06c1d2db";
-          sha256 = "vi4sYoI366FkIonXDlf/eE2Pyjq7E/kOKBrQS+LtE+M=";
-        };
-      }
-      {
         name = "bang-bang";
         src = pkgs.fetchFromGitHub {
           owner = "oh-my-fish";
