@@ -14,8 +14,8 @@ in
     fonts = rec {
       serif = sansSerif;
       sansSerif = {
-        name = "Overpass";
-        package = pkgs.overpass;
+        name = "Ubuntu";
+        package = pkgs.ubuntu_font_family;
       };
       monospace = {
         name = "JetBrainsMono Nerd Font Mono";
