@@ -1,0 +1,25 @@
+// Layout for using rust
+
+layout {
+    tab name="Rust" split_direction="vertical" {
+        pane {
+            command "hx"
+            args "."
+            size "80%"
+            focus true
+        }
+        pane {
+            size "20%"
+            split_direction "horizontal"
+            pane {
+                name "Trunk"
+                command "trunk"
+                args "serve"
+            }
+            pane {
+                name "..."
+            }
+        }
+    }
+}
+
