@@ -9,4 +9,5 @@ rec {
   ## Or in files, containing functions that take {lib}
   #foo = callLibs ./foo.nix;
   ## In configs, they can be used under "lib.our"
+  replaceStrings = a: f: builtins.replaceStrings (builtins.attrNames a) (builtins.attrValues a) (builtins.readFile f);
 })
