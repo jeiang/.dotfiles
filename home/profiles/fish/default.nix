@@ -10,6 +10,14 @@
       # Only use cd -> z if zoxide has generated the binding
       cd = lib.mkIf (config.programs.zoxide.enable && config.programs.zoxide.enableFishIntegration) "z"; # autojump
     };
+    shellAbbrs = {
+      # home manager doesn't support setting cursor position
+      gcm = "git commit -m";
+      gad = "git add .";
+      gco = "git checkout";
+      snsf = "sudo nixos-rebuild switch --flake";
+      snbf = "sudo nixos-rebuild boot --flake";
+    };
     plugins = with pkgs; [
       {
         name = "done";

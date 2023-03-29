@@ -1,7 +1,7 @@
 # Things I want to do for cornn flaek
 
 High Priority is stuff I need to do before I can merge into main (i.e. everything "just works", if barely). Low priority
-is nice to haves. Mid is the same as low, but I want it before low.
+is nice to haves or misc improvements for later. Mid is the same as low, but I want it before low.
 
 ## High Priority
 
@@ -22,6 +22,8 @@ is nice to haves. Mid is the same as low, but I want it before low.
 
 ## Low Priority
 
+- [ ] Anything which uses fetchFromGitHub etc, should be moved to nvfetcher.toml
+  - [ ] fish plugins
 - [ ] Firefox: Add addons such as `tabs2txt` & `Image Seach Options` using [Mozilla Add-ons to Nix].
 - [ ] SSDM theme: make an SDDM module for stylix? See [instructions on GitHub] and [this SDDM theme].
 - [ ] Hyprland: make a hyprland module for stylix?
