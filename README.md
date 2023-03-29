@@ -30,14 +30,6 @@ I saw a guy name his flake frosted flakes, and cornn flaek just popped into my h
   hexa answered.
 - [JavaCafe01]: I saw the frosted flakes and immediately thought `cornn flaek`.
 
-## TODO
-
-- Firefox: Add addons such as `tabs2txt` & `Image Seach Options` using [Mozilla Add-ons to Nix].
-- SSDM theme: make an SDDM module for stylix? See [instructions on GitHub] and [this SDDM theme].
-- Hyprland: make a hyprland module for stylix?
-- Impermanence: Get it working less jankily??
-- Agenix: GPG Private Keys?
-
 <!-- Links -->
 
 [Wil Taylor]: https://linktr.ee/nixos
