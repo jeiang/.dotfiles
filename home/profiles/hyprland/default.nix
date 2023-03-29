@@ -3,6 +3,8 @@ let
   hypr-conf-keys = {
     "{{mako}}" = "${pkgs.mako}/bin/mako";
     "{{hyprpaper}}" = "${pkgs.hyprpaper}/bin/hyprpaper";
+    "{{wezterm}}" = "${pkgs.wezterm}/bin/wezterm";
+    "{{firefox}}" = "${pkgs.firefox}/bin/firefox";
   };
   hyprpaper-conf-keys = {
     "{{wallpaper}}" = "${config.stylix.image}";
@@ -21,8 +23,10 @@ in
   ];
 
   xdg.configFile."hypr/hyprpaper.conf" = {
-    # TODO: hyprctl hyprpaper ??reload??
     onChange = ''
+      pkill hyprpaper
+      hyprpaper 2> /dev/null > /dev/null &
+      disown
     '';
     text = lib.our.replaceStrings hyprpaper-conf-keys ./hyprpaper.conf;
   };
