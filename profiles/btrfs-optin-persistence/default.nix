@@ -1,5 +1,7 @@
 { pkgs, config, ... }:
 let
+  systemdPhase1 = config.boot.initrd.systemd.enable;
+
   encrypted-device = "/dev/disk/by-uuid/5f63dd70-3bb5-4c7d-b592-80ec4c011fb1";
   hostname = config.networking.hostName;
   unencrypted-device = "/dev/mapper/${hostname}";
@@ -15,27 +17,21 @@ let
     btrfs subvolume list -o /mnt/root |
       cut -f9 -d' ' |
       while read subvolume; do
-        echo "deleting /$subvolume subvolume..."
         btrfs subvolume delete "/mnt/$subvolume"
       done &&
-      echo "deleting /root subvolume..." &&
       btrfs subvolume delete /mnt/root
 
-    echo "restoring blank /root subvolume..."
     btrfs subvolume snapshot /mnt/@blank /mnt/root
 
     # Wiping home
     btrfs subvolume list -o /mnt/home/aidanp |
       cut -f9 -d' ' |
       while read subvolume; do
-        echo "deleting /$subvolume subvolume..."
         btrfs subvolume delete "/mnt/$subvolume"
       done &&
-      echo "deleting /home/aidanp subvolume..." &&
       btrfs subvolume delete /mnt/home/aidanp
 
-    echo "restoring blank /home/aidanp subvolume..." &&
-      btrfs subvolume snapshot /mnt/home/@blank /mnt/home/aidanp
+    btrfs subvolume snapshot /mnt/home/@blank /mnt/home/aidanp
 
     # TODO: when generic over users, use uid here
     chown 1000 /mnt/home/aidanp
@@ -58,7 +54,21 @@ in
     "/home/aidanp/.ssh/id_rsa"
   ];
 
-  boot.initrd.postDeviceCommands = pkgs.lib.mkBefore wipe-script;
+  boot.initrd.postDeviceCommands = pkgs.lib.mkBefore (pkgs.lib.optionalString (!systemdPhase1) wipe-script);
+  # https://discourse.nixos.org/t/impermanence-vs-systemd-initrd-w-tpm-unlocking/25167/2
+  boot.initrd.systemd = pkgs.lib.mkIf systemdPhase1 {
+    initrdBin = with pkgs; [ coreutils btrfs-progs ];
+    services.btrfs-rollback = {
+      description = "Rollback BTRFS root subvolume to a pristine state";
+      wantedBy = [ "initrd.target" ];
+      # LUKS/TPM process
+      after = [ "systemd-cryptsetup@hillwillow.service" ];
+      before = [ "sysroot.mount" ];
+      unitConfig.DefaultDependencies = "no";
+      serviceConfig.Type = "oneshot";
+      script = wipe-script;
+    };
+  };
 
   # Filesystems
   boot.initrd.luks.devices.${hostname}.device = encrypted-device;

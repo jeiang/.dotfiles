@@ -109,7 +109,7 @@
             suites = with profiles; rec {
               base = [ nixos cachix users.root ];
               bootable-iso = base ++ [ users.nixos ];
-              laptop = [ profiles.hyprland profiles.stylix users.aidanp btrfs-optin-persistence swap-partition ] ++ base;
+              laptop = [ profiles.hyprland profiles.stylix users.aidanp btrfs-optin-persistence plymouth swap-partition ] ++ base;
             };
           };
           hostDefaults = {
