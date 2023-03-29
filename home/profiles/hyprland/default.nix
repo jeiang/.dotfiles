@@ -1,19 +1,11 @@
 { pkgs, lib, config, ... }:
 let
-  screenshot-script = pkgs.writeScriptBin "screenshot" ''
-    # xdg wack so...
-    # normally grim $(xdg-user-dir PICTURES)/$(date +'%s_grim.png')
-    mkdir -p ~/Pictures
-    file=~/Pictures/$(date +'screenshot_%Y-%d-%m-%T.png')
-    ${pkgs.grim}/bin/grim -g "$(${pkgs.slurp}/bin/slurp)" "$file"
-    cat $file | ${pkgs.wl-clipboard}/bin/wl-copy
-  '';
   hypr-conf-keys = {
     "{{mako}}" = "${pkgs.mako}/bin/mako";
     "{{hyprpaper}}" = "${pkgs.hyprpaper}/bin/hyprpaper";
     "{{wezterm}}" = "${pkgs.wezterm}/bin/wezterm";
     "{{firefox}}" = "${pkgs.firefox}/bin/firefox";
-    "{{screenshot}}" = "${screenshot-script}/bin/screenshot";
+    "{{grimblast}}" = "${pkgs.grimblast}/bin/grimblast";
   };
   hyprpaper-conf-keys = {
     "{{wallpaper}}" = "${config.stylix.image}";
@@ -31,12 +23,16 @@ in
     hyprpaper
     grim
     slurp
+    grimblast
   ];
 
   xdg.configFile."hypr/hyprpaper.conf" = {
+    # Reload hyprpaper
     onChange = ''
       pkill hyprpaper
-      hyprpaper 2> /dev/null > /dev/null &
+      log=$(mktemp -q -t hyprpaper-XXXXXX.log)
+      err=$(mktemp -q -t hyprpaper-errors-XXXXXX.log)
+      hyprpaper 2> "$log" > "$err" &
       disown
     '';
     text = lib.our.replaceStrings hyprpaper-conf-keys ./hyprpaper.conf;
