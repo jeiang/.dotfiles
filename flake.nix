@@ -47,6 +47,8 @@
     hyprland.url = "github:hyprwm/Hyprland";
     hyprpaper.url = "github:hyprwm/hyprpaper";
     hyprpaper.inputs.nixpkgs.follows = "nixpkgs";
+    hyprcontrib.url = "github:hyprwm/contrib";
+    hyprcontrib.inputs.nixpkgs.follows = "nixpkgs";
 
     impermanence.url = "github:nix-community/impermanence";
     impermanence.flake = false;
@@ -64,6 +66,7 @@
     , stylix
     , hyprland
     , hyprpaper
+    , hyprcontrib
     , impermanence
     , ...
     } @ inputs:
@@ -93,6 +96,7 @@
           agenix.overlays.default
           nvfetcher.overlays.default
           hyprpaper.overlays.default
+          hyprcontrib.overlays.default
           nur.overlay
 
           (import ./pkgs)
@@ -144,7 +148,7 @@
           importables = rec {
             profiles = digga.lib.rakeLeaves ./home/profiles;
             suites = with profiles; rec {
-              base = [ direnv git ];
+              base = [ direnv git xdg ];
               terminal = [ bottom fish gpg helix nushell terminal-utils ssh starship zellij ];
               gui-stuff = [ wezterm firefox ];
               wm = [ profiles.hyprland ];
