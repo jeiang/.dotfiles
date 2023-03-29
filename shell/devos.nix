@@ -28,6 +28,14 @@ in
 {
   imports = [ "${extraModulesPath}/git/hooks.nix" ./hooks ];
 
+  name = "boul of cornn flaek";
+
+  motd = ''
+    {45}󱄅{reset} {208}Time for breakfast{reset}  {45}󱄅{reset}
+    {45}󱄅{reset}     {208}cornn flaek{reset}     {45}󱄅{reset}
+    $(type -p menu &>/dev/null && menu)
+  '';
+
   packages = [
     nixpkgs-fmt
     nodePackages.prettier
