@@ -1,20 +1,30 @@
-{ pkgs, lib, ... }:
+{ pkgs, lib, config, ... }:
 let
-  keys = {
+  hypr-conf-keys = {
     "{{mako}}" = "${pkgs.mako}/bin/mako";
-    "{{polkit}}" = "${pkgs.libsForQt5.polkit-kde-agent}/libexec/polkit-kde-authentication-agent-1";
+    "{{hyprpaper}}" = "${pkgs.hyprpaper}/bin/hyprpaper";
   };
-  extraConfig = lib.our.replaceStrings keys ./hypr.conf;
+  hyprpaper-conf-keys = {
+    "{{wallpaper}}" = "${config.stylix.image}";
+  };
 in
 {
-  home.packages = with pkgs; [
-    wl-clipboard
-  ];
-
   wayland.windowManager.hyprland = {
     enable = true;
     package = null; # Use nixos version
-    inherit extraConfig;
+    extraConfig = lib.our.replaceStrings hypr-conf-keys ./hyprland.conf;
+  };
+
+  home.packages = with pkgs; [
+    wl-clipboard
+    hyprpaper
+  ];
+
+  xdg.configFile."hypr/hyprpaper.conf" = {
+    # TODO: hyprctl hyprpaper ??reload??
+    onChange = ''
+    '';
+    text = lib.our.replaceStrings hyprpaper-conf-keys ./hyprpaper.conf;
   };
 
   # Notifications

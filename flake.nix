@@ -45,6 +45,8 @@
     stylix.inputs.home-manager.follows = "home-manager";
 
     hyprland.url = "github:hyprwm/Hyprland";
+    hyprpaper.url = "github:hyprwm/hyprpaper";
+    hyprpaper.inputs.nixpkgs.follows = "nixpkgs";
 
     impermanence.url = "github:nix-community/impermanence";
     impermanence.flake = false;
@@ -61,6 +63,7 @@
     , nur
     , stylix
     , hyprland
+    , hyprpaper
     , impermanence
     , ...
     } @ inputs:
@@ -89,6 +92,7 @@
 
           agenix.overlays.default
           nvfetcher.overlays.default
+          hyprpaper.overlays.default
           nur.overlay
 
           (import ./pkgs)
