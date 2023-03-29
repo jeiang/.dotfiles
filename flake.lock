@@ -282,6 +282,26 @@
         "type": "github"
       }
     },
+    "hyprcontrib": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1679036674,
+        "narHash": "sha256-2s3Hfq56jL8ePyc3+calPT34FNMK2zksqwPhIxAq20o=",
+        "owner": "hyprwm",
+        "repo": "contrib",
+        "rev": "1af47a008e850c595aeddc83bb3f04fd81935caa",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hyprwm",
+        "repo": "contrib",
+        "type": "github"
+      }
+    },
     "hyprland": {
       "inputs": {
         "hyprland-protocols": "hyprland-protocols",
@@ -465,6 +485,7 @@
         "blank": "blank",
         "digga": "digga",
         "home-manager": "home-manager",
+        "hyprcontrib": "hyprcontrib",
         "hyprland": "hyprland",
         "hyprpaper": "hyprpaper",
         "impermanence": "impermanence",
