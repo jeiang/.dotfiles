@@ -6,4 +6,5 @@ fetch.github = "mlvzk/manix"
 [wezterm]
 src.git = "https://github.com/wez/wezterm"
 fetch.github = "wez/wezterm"
+cargo_locks = [ "./Cargo.lock" ]
 git.fetchSubmodules = true
