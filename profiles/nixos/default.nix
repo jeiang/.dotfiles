@@ -107,6 +107,13 @@
     openFirewall = lib.mkDefault false;
   };
 
+  # OpenGL
+  hardware.opengl = {
+    enable = true;
+    extraPackages = with pkgs; [ libGL ];
+    setLdLibraryPath = true;
+  };
+
   # Service that makes Out of Memory Killer more effective
   services.earlyoom.enable = true;
 }
