@@ -1,9 +1,24 @@
 { hmUsers
 , self
 , config
+, pkgs
+, lib
 , ...
-}: {
-  home-manager.users = { inherit (hmUsers) aidanp; };
+}:
+let
+  face = pkgs.fetchurl {
+    url = "https://files.catbox.moe/uazs8x.png";
+    sha256 = "190yfdpdcbgxgpnyivnfj2q34f882fvsj1innyfd95ihpafjr3jy";
+  };
+  hmConf = {
+    home.file.".face".source = lib.mkAfter face;
+  };
+  aidanp = lib.mkMerge [ hmUsers.aidanp hmConf ];
+in
+{
+  home-manager.users = {
+    inherit aidanp;
+  };
 
   age.secrets.aidanp-password.file = "${self}/secrets/aidanp-password.age";
 
