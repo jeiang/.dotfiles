@@ -1,20 +1,11 @@
 final: prev: {
-  # As of Mar 29, 2023, nixpkgs-unstable does not include openssl
-  # Once unstable is up to date, then :thumbs-up: change as needed
-  wezterm = with final; rustPlatform.buildRustPackage rec {
+  # I am a complete derp and did not realize that i was not overriding...
+  # anyways just inherit the rest of stuff from old (prob won't need patches)
+  wezterm = with final; rustPlatform.buildRustPackage {
     inherit (prev.sources.wezterm) pname version src;
-
-    # didnt seem to work when build :shrug:, did it get overridden or something??
-    postPatch = ''
-      echo ${version} > .tag
-      # tests are failing with: Unable to exchange encryption keys
-      # all 37 tests in wezterm-ssh (under e2e::sftp) fail with no such file or directory
-      rm -r wezterm-ssh/tests
-    '';
-
-    nativeBuildInputs = (prev.wezterm.nativeBuildInputs or [ ]) ++ (with final; [ openssl openssl.dev ]);
-    buildInputs = (prev.wezterm.buildInputs or [ ]) ++ (with final; [ openssl ]);
-
     cargoLock = prev.sources.wezterm.cargoLock."./Cargo.lock";
+
+    # yoinked from https://github.com/NixOS/nixpkgs/blob/147e04f2c892ba12f90ee5ece40832229f98cce9/pkgs/applications/terminal-emulators/wezterm/default.nix
+    inherit (prev.wezterm) postPatch nativeBuildInputs buildInputs buildFeatures postInstall preFixup passthru meta;
   };
 }
