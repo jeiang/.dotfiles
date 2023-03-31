@@ -31,7 +31,7 @@ let
       done &&
       btrfs subvolume delete /mnt/home/aidanp
 
-    btrfs subvolume snapshot /mnt/home/@blank /mnt/home/aidanp
+    btrfs subvolume snapshot /mnt/@blank /mnt/home/aidanp
 
     # TODO: when generic over users, use uid here
     chown 1000 /mnt/home/aidanp

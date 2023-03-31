@@ -25,6 +25,9 @@ is nice to haves or misc improvements for later. Mid is the same as low, but I w
   - [ ] Transparency
   - [ ] More useful keybinds
   - [ ] Sleep on close screen
+  - [ ] Numlock remembering
+  - [ ] Better screen workspaces (e.g. screen 1 has 1 - 5, screen 2 has 6 - 10 )
+  - [ ] switches (hyprland switches, something something screen close)
 - [ ] Bluetooth
 - [ ] Hibernate and all that jazz
 - [ ] power profiles daemon
