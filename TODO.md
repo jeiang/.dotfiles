@@ -21,6 +21,9 @@ is nice to haves or misc improvements for later. Mid is the same as low, but I w
 
 ## Mid Priority (Longer term??)
 
+- [ ] Wezterm add additional fallback fonts (including font awesome 6)
+  - [ ] [Use this to add custom fonts](https://www.adaltas.com/en/2022/03/29/nix-package-creation-install-font/)
+- [ ] [Swayidle](https://github.com/swaywm/swayidle/issues/129)
 - [ ] Better Hyprland conf
   - [ ] Transparency
   - [ ] More useful keybinds
@@ -34,6 +37,8 @@ is nice to haves or misc improvements for later. Mid is the same as low, but I w
 
 ## Low Priority (Longer Longer term)
 
+- [ ] Fish history editor (based on [this blog post](https://jordanelver.co.uk/blog/2020/05/29/history-deleting-helper-for-fish-shell/))
+  - [ ] make it multiline (and use exact)
 - [ ] Anything which uses fetchFromGitHub etc, should be moved to nvfetcher.toml
 - [ ] Create some sort of minimal submodule to generate a string for hyprland conf (especially shortcuts & exec-once)
 - [ ] additional styling for mako
