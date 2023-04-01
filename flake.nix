@@ -95,6 +95,7 @@
 
           agenix.overlays.default
           nvfetcher.overlays.default
+          hyprland.overlays.default
           hyprpaper.overlays.default
           hyprcontrib.overlays.default
           nur.overlay
@@ -151,7 +152,7 @@
               base = [ direnv git xdg ];
               terminal = [ bottom fish gpg helix nushell terminal-utils ssh starship zellij ];
               gui-stuff = [ wezterm firefox ];
-              wm = [ profiles.hyprland ];
+              wm = [ profiles.hyprland waybar ];
               full = [ misc-packages mpv obs ] ++ base ++ terminal ++ wm ++ gui-stuff;
             };
           };

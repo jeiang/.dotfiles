@@ -1,0 +1,64 @@
+/* TODO: add color overrides from stylix + better sizes */
+window#waybar {
+  background-color: #141b1e;
+  font-family: JetBrainsMono Nerd Font;
+}
+
+#workspaces {
+margin: 10px;
+  margin-top: 4px;
+  padding: 7px;
+  padding-left: 4px;
+  border-radius: 50px;
+  background-color: #232a2d;
+  font-size: 12px;
+}
+
+#workspaces button {
+  color: #dadada;
+  padding: 2px 7px;
+}
+
+#workspaces button:hover {
+  background: #FFB4F4;
+}
+
+#workspaces button.active {
+  color: #59C2FF;
+}
+
+#custom-power-menu {
+    color: #141b1e;
+    background-color: #e57474;
+    font-family: "Font Awesome 6 Free";
+    font-size: 15px;
+    border-radius: 10px;
+    padding: 10px 0px;
+    margin: 0px 10px;
+    margin-bottom: 5px;
+}
+
+#clock {
+    color: #dadada;
+    font-size: 1.2em;
+    margin-bottom: 8px;
+}
+
+#custom-separator {
+    color: #dadada;
+}
+
+#memory {
+    color: #dadada;
+    font-size: 17px;
+}
+
+#custom-launcher {
+    font-family: "Font Awesome 6 Free";
+    border-radius: 50px;
+    margin: 10px;
+    font-size: 1.5em;
+    padding: 7px;
+    background-color: #232a2d;
+    color: #dadada;
+}
