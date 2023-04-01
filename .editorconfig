@@ -24,6 +24,10 @@ charset = unset
 indent_style = unset
 indent_size = unset
 
+[*.yuck]
+indent_style = unset
+indent_size = unset
+
 [*.py]
 indent_size = 4
 

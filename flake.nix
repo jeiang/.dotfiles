@@ -151,7 +151,7 @@
               base = [ direnv git xdg ];
               terminal = [ bottom fish gpg helix nushell terminal-utils ssh starship zellij ];
               gui-stuff = [ wezterm firefox ];
-              wm = [ profiles.hyprland ];
+              wm = [ profiles.hyprland eww ];
               full = [ misc-packages mpv obs ] ++ base ++ terminal ++ wm ++ gui-stuff;
             };
           };
