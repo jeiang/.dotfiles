@@ -256,7 +256,7 @@
       :width "30%"
       :height "15%"
       :anchor "center center")
-  :wm-ignore true
+  :stacking "overlay"
   (powermenucontent))
 
 (deflisten workspaces_listen "./scripts/workspaces.sh")
@@ -268,10 +268,10 @@
   :geometry (geometry
       :height "100%"
       :width "350px"
-      :x "48px"
+      :x "0px"
       :y "0px"
       :anchor "left center")
-  :stacking "fg"
+  :stacking "overlay"
   :class "dashboard"
   (dashboard))
 
@@ -280,6 +280,7 @@
   :exclusive true
   :geometry (geometry
       :height "100%"
+      ;; pink dots appear at the left, fix this
       :x "-4px"
       :y "0px"
       :width "52px"
