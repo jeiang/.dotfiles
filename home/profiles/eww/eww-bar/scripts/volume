@@ -1,6 +1,0 @@
-#! /usr/bin/env nix-shell
-#! nix-shell -i fish -p fish
-
-for number in ""
-  echo $number
-end

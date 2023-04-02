@@ -1,10 +1,9 @@
 { pkgs, lib, ... }:
 let
+  colors = { };
   overrides = { };
 in
 {
-  # dont use this
-
   home.packages = with pkgs; [
     eww-wayland
 
@@ -12,9 +11,12 @@ in
       fonts = [ "JetBrainsMono" ];
     })
     font-awesome # 6, not included in nf
+    brightnessctl
+    libnotify
   ];
 
   # EWW bar
-  xdg.configFile."eww/bar/eww.yuck".text = lib.replaceStrings overrides ./eww/eww.yuck;
-  xdg.configFile."eww/bar/eww.scss".text = lib.replaceStrings overrides ./eww/eww.scss;
+  xdg.configFile."eww/eww.yuck".text = lib.our.replaceStrings overrides ./bar/eww.yuck;
+  xdg.configFile."eww/eww.scss".text = lib.our.replaceStrings colors ./bar/eww.scss;
+  xdg.configFile."eww/scripts".source = ./bar/scripts;
 }
