@@ -1,5 +1,5 @@
 #!/usr/bin/env nix-shell
-#! nix-shell -i fish -p fish lua
+#! nix-shell -i fish -p fish
 
 function battery
   set charging_icons "󰢟" "󰢜" "󰂆" "󰂇" "󰂈" "󰢝" "󰂉" "󰢞" "󰂊" "󰂋" "󰂅"
@@ -68,45 +68,14 @@ function wifi
   echo "{\"icon\": \"$icon\", \"status\": \"$net_status\"}"
 end
 
-function workspaces
-  # lua ./scripts/workspaces.lua
-  function generate_workspaces
-    set active_workspaces (hyprctl monitors | grep active | sed 's/()/(1)/g' | sort | awk 'NR>1{print $1}' RS='(' FS=')' | sort -n)
-    set workspaces (hyprctl workspaces | grep ID | sed 's/()/(1)/g' | sort | awk 'NR>1{print $1}' RS='(' FS=')' | sort -n)
-
-    echo -n '(box :orientation "v" :spacing 1 :space-evenly "true" '
-    for i in $workspaces
-      if contains $i $active_workspaces > /dev/null 2>&1
-        echo -n "(button :class \"active\" :onclick \"hyprctl dispatch workspace $i\" \"\") "
-      else
-        echo -n "(button :class \"inactive\" :onclick \"hyprctl dispatch workspace $i\" \"\") "
-      end
-    end
-    echo ")"
-    return
-  end
-
-  generate_workspaces
-
-  set hypr_socket "UNIX-CONNECT:/tmp/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
-
-  socat - $hypr_socket | while read -l line
-    # detect when the focused monitor or workspace changes
-    # (changing monitor focus changes workspace as well)
-    if string match -r '(workspace|focusedmon).*' $line > /dev/null 2>&1
-      generate_workspaces
-    end
-  end
-end
-
 switch $argv[1]
   case 'battery'
-    battery $argv[2..-1]
+    battery
     return
   case 'wifi'
-    wifi $argv[2..-1]
-    return
+    wifi
   case 'workspaces'
-    workspaces $argv[2..-1]
+    # semi arbitrary relative path
+    ./scripts/workspaces.lua
     return
 end
