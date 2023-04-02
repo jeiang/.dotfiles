@@ -104,8 +104,7 @@
 )
 
 ;; ━━━ WIFI ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;(defvar wifi "{}")
-(defpoll wifi :interval "30s" "./scripts/wifi.sh")
+(defpoll wifi :interval "30s" "./scripts/launch.fish wifi")
 
 (defwidget wifi []
  (box :vexpand false :hexpand false :orientation "v"
@@ -118,8 +117,7 @@
 )
 
 ;; ━━━ BATTERY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;(defvar battery "{}")
-(defpoll battery :interval "60s" "./scripts/battery.sh")
+(defpoll battery :interval "60s" "./scripts/launch.fish battery")
 
 (defwidget battery []
    (label :text {battery.icon}
@@ -208,6 +206,7 @@
              :marks true
              :value bright-level
              :onchange "brightnessctl set {}%"))))
+
 (defwidget launch []
   (button		:class "reg-btn launchbutton"
                 :hexpand true
@@ -259,9 +258,8 @@
   :stacking "overlay"
   (powermenucontent))
 
-(deflisten workspaces_listen "./scripts/workspaces.sh")
-(defwidget workspaces []
-  (literal :content workspaces_listen))
+(deflisten workspaces_listen "./scripts/launch.fish workspaces")
+(defwidget workspaces [] (literal :content workspaces_listen))
 
 (defwindow dashboard
   :monitor 1
