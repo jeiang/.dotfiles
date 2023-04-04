@@ -37,11 +37,11 @@
             (scale :min 1 :max 101 :width 315 :class "brightness_slider" :value brightness :onchange "brightnessctl set {}%" :height 10)
         )
         (box :space-evenly false
-          (label :class "slider_icon" :text {volume_listen.speaker_icon})
+          (button :class "slider_icon" :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle" {volume_listen.speaker_icon})
           (scale :min 1 :max 101 :width 315 :class "volume_slider" :value {volume_listen.speaker} :onchange "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ {}%")
         )
         (box :space-evenly false
-          (label :class "slider_icon" :text {volume_listen.mic_icon})
+          (button :class "slider_icon" :onclick "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle" {volume_listen.mic_icon})
           (scale :min 1 :max 101 :width 315 :class "micvolume_slider" :value {volume_listen.mic} :onchange "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SOURCE@ {}%")
         )
       )
