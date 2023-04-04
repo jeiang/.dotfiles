@@ -219,5 +219,5 @@
       :y "0px"
       :width "52px"
       :anchor "left center")
-  :stacking "overlay"
+  :stacking "bg"
   (bar))
