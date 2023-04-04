@@ -19,9 +19,8 @@
   )
 )
 
-(defpoll brightness :interval "999h" :initial 0 `brightnessctl -m | awk -F, '{print substr($4, 0, length($4)-1)}'`)
-(defpoll volume :interval "999h" :initial 0 `wpctl get-volume @DEFAULT_AUDIO_SOURCE@ | awk '{print $2}`)
-(defpoll micvolume :interval "999h" :initial 0 `wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{print $2}`)
+(defpoll brightness :interval "30s" :initial 0 `brightnessctl -m | awk -F, '{print substr($4, 0, length($4)-1)}'`)
+(deflisten volume_listen "./scripts/launch.fish volume")
 
 ;; TODO: make an audio switcher
 
@@ -38,12 +37,12 @@
             (scale :min 1 :max 101 :width 315 :class "brightness_slider" :value brightness :onchange "brightnessctl set {}%" :height 10)
         )
         (box :space-evenly false
-          (label :class "slider_icon" :text "墳")
-          (scale :min 1 :max 101 :width 315 :class "volume_slider" :value volume :onchange "wpctl set-volume @DEFAULT_AUDIO_SINK@ -l 1.0 {}")
+          (label :class "slider_icon" :text {volume_listen.speaker_icon})
+          (scale :min 1 :max 101 :width 315 :class "volume_slider" :value {volume_listen.speaker} :onchange "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ {}%")
         )
         (box :space-evenly false
-          (label :class "slider_icon" :text "")
-          (scale :min 1 :max 101 :width 315 :class "micvolume_slider" :value micvolume :onchange "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ -l 1.0 {}")
+          (label :class "slider_icon" :text {volume_listen.mic_icon})
+          (scale :min 1 :max 101 :width 315 :class "micvolume_slider" :value {volume_listen.mic} :onchange "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SOURCE@ {}%")
         )
       )
       (box :class "sysinfo_box" :orientation "h" :vexpand true :spacing 15
@@ -127,42 +126,6 @@
     )
 )
 
-
-;; ━━━ VOLUME ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-(defvar volume-level 50)
-(defvar volume-muted false)
-
-(defwindow volume
-  :monitor 1
-  :geometry (geometry :y "100px" :x "0px" :width "250px" :height "200px" :anchor "center bottom")
-  :windowtype "dock"
-  :wm-ignore true
-  :stacking "fg"
-
-  (box :class "volume-window"
-       :orientation "v"
-       :space-evenly "false"
-    (box :class "volume-widget"
-         :orientation "h"
-         :space-evenly false
-         :spacing 10
-        (label :text {volume-muted ? "" :
-                    volume-level == 0 ? "" :
-                    volume-level < 32 ? "" :
-                    volume-level < 65 ? "" :
-                    ""}
-             :class 'volume-icon ${volume-muted ? "volume-icon-muted" : ""}'
-      )
-      (scale :class 'volume-slider ${volume-muted ? "volume-slider-muted" : ""}'
-             :hexpand "true"
-             :min 0
-             :max 1
-             :height 8
-             :marks true
-             :value volume-level
-             :onchange "wpctl set-volume @DEFAULT_AUDIO_SINK@ -l 1.0 {}"))))
-
 ;; ━━━ TIME ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 (defpoll hour :interval "10s" "date +%H")
 (defpoll minute :interval "10s" "date +%M")
@@ -179,33 +142,6 @@
     )
   )
 )
-
-(defvar bright-level 50)
-(defvar bright-muted false)
-(defwindow brightness
-  :monitor 1
-  :geometry (geometry :y "-60px" :x "60px" :width "300px" :height "150px" :anchor "bottom left")
-  :wm-ignore true
-  :stacking "fg"
-
-  (box :class "volume-window"
-       :orientation "v"
-       :space-evenly "false"
-    (box :class "volume-widget"
-         :orientation "h"
-         :space-evenly false
-         :spacing 10
-      (label :text ""
-             :class 'volume-icon'
-      )
-      (scale :class 'volume-slider'
-             :hexpand "true"
-             :min 0
-             :max 100
-             :height 8
-             :marks true
-             :value bright-level
-             :onchange "brightnessctl set {}%"))))
 
 (defwidget launch []
   (button		:class "reg-btn launchbutton"
