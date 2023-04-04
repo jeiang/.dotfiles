@@ -78,4 +78,7 @@ switch $argv[1]
     # semi arbitrary relative path
     ./scripts/workspaces.lua
     return
+  case 'volume'
+    ./scripts/volume.lua
+    return
 end

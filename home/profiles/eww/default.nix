@@ -13,7 +13,6 @@ in
     font-awesome # 6, not included in nf
     brightnessctl
     libnotify
-    socat
   ];
 
   # EWW bar
