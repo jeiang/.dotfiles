@@ -56,18 +56,18 @@ local function handle_workspace_change()
     local active_workspaces = get_workspaces(true)
     local all_workspaces = get_workspaces(false)
     if all_workspaces then
-        local box = "(box :orientation \"v\" :spacing 1 :space-evenly \"true\" "
+        local box = '(eventbox :onscroll "echo {} | sed -e \\"s/up/-1/g\\" -e \\"s/down/+1/g\\" | xargs hyprctl dispatch workspace" (box :orientation \"v\" :spacing 1 :space-evenly \"true\" '
 
         for workspace in sortedPairs(all_workspaces) do
             if active_workspaces and active_workspaces[workspace] ~= nil then
                 box = box .. "(button :class \"active\" :onclick \"hyprctl dispatch workspace " ..
-                    workspace .. " \" \"\")"
+                    workspace .. " \" \"●\")"
             else
                 box = box ..
-                    "(button :class \"inactive\" :onclick \"hyprctl dispatch workspace " .. workspace .. " \" \"\")"
+                    "(button :class \"inactive\" :onclick \"hyprctl dispatch workspace " .. workspace .. " \" \"●\")"
             end
         end
-        box = box .. ")"
+        box = box .. "))"
         print(box)
     end
 end
