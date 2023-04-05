@@ -39,6 +39,7 @@
     bandwhich
     bingrep
     choose
+    cached-nix-shell
     duf
     eva
     erdtree
