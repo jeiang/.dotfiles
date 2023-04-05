@@ -21,6 +21,8 @@ let
     "{{grimblast}}" = "${pkgs.grimblast}/bin/grimblast";
     "{{eww}}" = "${pkgs.eww-wayland}/bin/eww";
     "{{connect-monitor}}" = "${monitor-connect-script}/bin/handle-monitor-connect";
+    "{{wl-paste}}" = "${pkgs.wl-clipboard}/bin/wl-paste";
+    "{{cliphist}}" = "${pkgs.cliphist}/bin/cliphist";
   };
   hyprpaper-conf-keys = {
     "{{wallpaper}}" = "${config.stylix.image}";
