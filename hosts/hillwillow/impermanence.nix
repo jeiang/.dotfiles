@@ -44,7 +44,6 @@
         ".cache/nix"
         ".cache/nix-index"
         ".cache/sccache"
-        ".cache/tofi-drun"
         ".local/share/direnv"
         ".local/share/fish"
         ".local/share/mcfly"
@@ -54,6 +53,9 @@
         ".renpy"
         { directory = ".ssh"; mode = "0700"; }
         { directory = ".local/share/keyrings"; mode = "0700"; }
+      ];
+      files = [
+        ".cache/tofi-drun"
       ];
     };
   };
