@@ -18,6 +18,7 @@ let
     nvfetcher-bin
     nixos-generators
     nil
+    lua-language-server
     helix
     ;
 
@@ -42,6 +43,7 @@ in
     shfmt
     editorconfig-checker
     nil
+    lua-language-server
     helix
   ];
 

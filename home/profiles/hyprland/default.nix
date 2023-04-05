@@ -24,6 +24,7 @@ in
     grim
     slurp
     grimblast
+    brightnessctl
   ];
 
   xdg.configFile."hypr/hyprpaper.conf" = {

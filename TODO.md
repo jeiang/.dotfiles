@@ -23,6 +23,7 @@ is nice to haves or misc improvements for later. Mid is the same as low, but I w
 
 - [ ] Wezterm add additional fallback fonts (including font awesome 6)
   - [ ] [Use this to add custom fonts](https://www.adaltas.com/en/2022/03/29/nix-package-creation-install-font/)
+- [ ] [Swayidle](https://github.com/swaywm/swayidle/issues/129)
 - [ ] Better Hyprland conf
   - [ ] Transparency
   - [ ] More useful keybinds
