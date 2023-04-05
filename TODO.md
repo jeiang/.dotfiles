@@ -1,23 +1,24 @@
 # Things I want to do for cornn flaek
 
-High Priority is stuff I need to do before I can merge into main (i.e. everything "just works", if barely). Low priority
-is nice to haves or misc improvements for later. Mid is the same as low, but I want it before low.
-
 ## Quick & Easy (do whenever)
 
-- [ ] Switch to flameshot w/ grim
 - [ ] Hyprpicker
+
+## Bugfixes
+
+- [ ]
 
 ## High Priority (i.e do now)
 
 - [ ] Clipboard manager
-- [ ] App launcher, either bemenu (supported by stylix) or [tofi](https://github.com/philj56/tofi), but i would have to
-      write a thing for it
 - [ ] [osd??](https://github.com/ErikReider/SwayOSD) found this, but idk about theming
 - [ ] [Waylock](https://github.com/ifreund/waylock)
 - [ ] [Wayprompt??](https://git.sr.ht/~leon_plickat/wayprompt) perhaps use for pinentry?
 - [ ] module for [zram](https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/config/zram.nix), edit swap to be
       host-agnostic as well (i.e use labels) & make it priority 10 (so zram swap will be 5 > 10 used before hardware swap)
+- [ ] Using base16.nix (like done in tofi), expose stylix colors to other apps
+  - [ ] Theme Eww
+  - [ ] Theme Hyprland
 
 ## Mid Priority (Longer term??)
 
@@ -28,18 +29,23 @@ is nice to haves or misc improvements for later. Mid is the same as low, but I w
   - [ ] Transparency
   - [ ] More useful keybinds
   - [ ] Sleep on close screen
-  - [ ] Numlock remembering
+  - [x] Numlock remembering
   - [ ] Better screen workspaces (e.g. screen 1 has 1 - 5, screen 2 has 6 - 10 )
     - [ ] See [this wiki article](https://wiki.hyprland.org/FAQ/#how-do-i-move-my-favorite-workspaces-to-a-new-monitor-when-i-plug-it-in) about workspace switching
   - [ ] switches (hyprland switches, something something screen close)
 - [ ] Bluetooth
 - [ ] Hibernate and all that jazz
 - [ ] power profiles daemon
-- [ ] Create an audio source switcher
-  - [ ] Using eww + a lua script, generate a window with buttons, and when upon one being selected, close the window
+- [ ] Eww misc
+  - [ ] Scripts/Windows: Using a script + deflisten + windows, when state is changed, create a window for x seconds then
+        close, or create a window which is closed after input.
+    - [ ] Create an audio source switcher
+    - [ ] Create a notifier that shows when a new audio source/sink is added
+    - [ ] Brightness & Audio popup thing
 
 ## Low Priority (Longer Longer term)
 
+- [ ] Make desktop files for programs which have guis
 - [ ] Fish history editor (based on [this blog post](https://jordanelver.co.uk/blog/2020/05/29/history-deleting-helper-for-fish-shell/))
   - [ ] make it multiline (and use exact)
 - [ ] Anything which uses fetchFromGitHub etc, should be moved to nvfetcher.toml
@@ -48,7 +54,6 @@ is nice to haves or misc improvements for later. Mid is the same as low, but I w
 - [ ] fish plugins
 - [ ] Firefox: Add addons such as `tabs2txt` & `Image Seach Options` using [Mozilla Add-ons to Nix].
 - [ ] SSDM theme: make an SDDM module for stylix? See [instructions on GitHub] and [this SDDM theme].
-- [ ] Hyprland: make a hyprland module for stylix?
 - [ ] Impermanence: Get it working less jankily??
 - [ ] Agenix: GPG Private Keys?
 
@@ -63,3 +68,11 @@ is nice to haves or misc improvements for later. Mid is the same as low, but I w
 - [x] Stylix
 - [x] Plymouth
 - [x] Firefox & Other Apps
+- [x] App launcher, either bemenu (supported by stylix) or [tofi](https://github.com/philj56/tofi), but i would have to
+      write a thing for it
+  - Used tofi
+
+## Abandoned
+
+- [x] Switch to flameshot w/ grim
+  - Tried, doesn't work
