@@ -6,6 +6,7 @@ let
     "{{wezterm}}" = "${pkgs.wezterm}/bin/wezterm";
     "{{firefox}}" = "${pkgs.firefox}/bin/firefox";
     "{{grimblast}}" = "${pkgs.grimblast}/bin/grimblast";
+    "{{eww}}" = "${pkgs.eww-wayland}/bin/eww";
   };
   hyprpaper-conf-keys = {
     "{{wallpaper}}" = "${config.stylix.image}";

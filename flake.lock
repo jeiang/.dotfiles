@@ -24,7 +24,6 @@
     "base16": {
       "inputs": {
         "nixpkgs": [
-          "stylix",
           "nixpkgs"
         ]
       },
@@ -482,6 +481,7 @@
     "root": {
       "inputs": {
         "agenix": "agenix",
+        "base16": "base16",
         "blank": "blank",
         "digga": "digga",
         "home-manager": "home-manager",
@@ -498,7 +498,9 @@
     },
     "stylix": {
       "inputs": {
-        "base16": "base16",
+        "base16": [
+          "base16"
+        ],
         "coricamu": "coricamu",
         "flake-compat": "flake-compat_2",
         "home-manager": [
