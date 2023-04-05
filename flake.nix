@@ -54,7 +54,6 @@
     hyprcontrib.inputs.nixpkgs.follows = "nixpkgs";
 
     impermanence.url = "github:nix-community/impermanence";
-    impermanence.flake = false;
   };
 
   outputs =
@@ -133,7 +132,7 @@
               hyprland.nixosModules.default
               stylix.nixosModules.stylix
               base16.nixosModule
-              impermanence.nixosModules.impermanence
+              impermanence.nixosModule
             ];
           };
           hosts = {
