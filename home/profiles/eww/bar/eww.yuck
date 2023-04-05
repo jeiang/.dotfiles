@@ -62,11 +62,6 @@
 ;; ━━━ WIDGETS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ;; ━━━ MEMORY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-(defwidget dashbutton[]
-  (button :class "reg-btn dashbutton" :onclick "${EWW_CMD} open dashboard --toggle" "舘")
-)
-
-;; ━━━ MEMORY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 (defwidget mem [icon thickness]
   (box :vexpand "false" :hexpand "false"
     (circular-progress  :value {EWW_RAM.used_mem_perc}
@@ -144,9 +139,17 @@
 )
 
 (defwidget launch []
-  (button		:class "reg-btn launchbutton"
-                :hexpand true
+  (eventbox :cursor "hand"
+    (button		:class "reg-btn launchbutton"
                 :onclick "tofi-drun | xargs hyprctl dispatch exec -- &" "")
+  )
+)
+
+(defwidget dashbutton[]
+  (eventbox :cursor "hand"
+    (button       :class "reg-btn dashbutton"
+                  :onclick "${EWW_CMD} open dashboard --toggle" "舘")
+  )
 )
 
 (defwidget powerbutton []
