@@ -60,7 +60,6 @@ in
 
     clip-to-padding = false
 
-    drun-launch = true
     # for input hx runs wezterm start hx
     terminal = ${pkgs.wezterm}/bin/wezterm start
   '';
