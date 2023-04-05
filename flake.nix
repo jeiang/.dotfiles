@@ -40,8 +40,11 @@
 
     nur.url = "github:nix-community/NUR";
 
+    base16.url = "github:SenchoPens/base16.nix";
+    base16.inputs.nixpkgs.follows = "nixpkgs";
     stylix.url = "github:danth/stylix";
     stylix.inputs.nixpkgs.follows = "nixpkgs";
+    stylix.inputs.base16.follows = "base16";
     stylix.inputs.home-manager.follows = "home-manager";
 
     hyprland.url = "github:hyprwm/Hyprland";
@@ -64,6 +67,7 @@
     , nvfetcher
     , nur
     , stylix
+    , base16
     , hyprland
     , hyprpaper
     , hyprcontrib
@@ -128,6 +132,7 @@
               agenix.nixosModules.age
               hyprland.nixosModules.default
               stylix.nixosModules.stylix
+              base16.nixosModule
               impermanence.nixosModules.impermanence
             ];
           };
@@ -144,6 +149,7 @@
           imports = [ (digga.lib.importExportableModules ./home/modules) ];
           modules = [
             hyprland.homeManagerModules.default
+            base16.homeManagerModule
           ];
           importables = rec {
             profiles = digga.lib.rakeLeaves ./home/profiles;
@@ -151,7 +157,7 @@
               base = [ direnv git xdg ];
               terminal = [ bottom fish gpg helix nushell terminal-utils ssh starship zellij ];
               gui-stuff = [ wezterm firefox ];
-              wm = [ profiles.hyprland eww ];
+              wm = [ profiles.hyprland eww tofi ];
               full = [ misc-packages mpv obs ] ++ base ++ terminal ++ wm ++ gui-stuff;
             };
           };
