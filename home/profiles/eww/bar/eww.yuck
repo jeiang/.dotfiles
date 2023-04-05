@@ -1,0 +1,223 @@
+(defwidget bar []
+  (centerbox :orientation "v" :hexpand false
+    (box :valign "start" :hexpand false :vexpand true :orientation "v" :space-evenly false
+      (launch)
+      (dashbutton)
+      (powerbutton)
+    )
+
+    (workspaces :halign "center" :vexpand true :hexpand false :orientation "v")
+
+    (box :valign "end" :hexpand false :vexpand true :orientation "v" :space-evenly false
+      (battery)
+      (wifi)
+      (mem  :thickness 4 :icon "")
+      (cpu  :thickness 4 :icon "")
+      (disk :thickness 4 :icon "")
+      (time)
+    )
+  )
+)
+
+(defpoll brightness :interval "30s" :initial 0 `brightnessctl -m | awk -F, '{print substr($4, 0, length($4)-1)}'`)
+(deflisten volume_listen "./scripts/launch.fish volume")
+
+;; TODO: make an audio switcher
+
+(defwidget dashboard []
+  (box :orientation "v"
+    (box :class "info_box" :orientation "v" :space-evenly false
+      (box :class "calendar_box"
+        (calendar :width 200 :class "cal")
+      )
+
+      (box :class "slider_box" :orientation "v" :vexpand false :hexpand false
+        (box :space-evenly false
+            (label :class "slider_icon" :text "")
+            (scale :min 1 :max 101 :width 315 :class "brightness_slider" :value brightness :onchange "brightnessctl set {}%" :height 10)
+        )
+        (box :space-evenly false
+          (button :class "slider_icon" :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle" {volume_listen.speaker_icon})
+          (scale :min 1 :max 101 :width 315 :class "volume_slider" :value {volume_listen.speaker} :onchange "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ {}%")
+        )
+        (box :space-evenly false
+          (button :class "slider_icon" :onclick "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle" {volume_listen.mic_icon})
+          (scale :min 1 :max 101 :width 315 :class "micvolume_slider" :value {volume_listen.mic} :onchange "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SOURCE@ {}%")
+        )
+      )
+      (box :class "sysinfo_box" :orientation "h" :vexpand true :spacing 15
+        (mem :thickness 12 :icon "")
+        (cpu :thickness 12 :icon "")
+        (disk :thickness 12 :icon "")
+      )
+    )
+    (box :class "notification_box")
+  )
+)
+
+;; Variables
+(defvar time false)
+(defvar cal false)
+
+;; ━━━ WIDGETS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+;; ━━━ MEMORY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(defwidget dashbutton[]
+  (button :class "reg-btn dashbutton" :onclick "${EWW_CMD} open dashboard --toggle" "舘")
+)
+
+;; ━━━ MEMORY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(defwidget mem [icon thickness]
+  (box :vexpand "false" :hexpand "false"
+    (circular-progress  :value {EWW_RAM.used_mem_perc}
+                        :class "membar"
+                        :thickness {thickness}
+                        :start-at 75
+        (label :class "iconmem" :text {icon})
+    )
+  )
+)
+
+;; ━━━ CPU ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(defwidget cpu [icon thickness]
+  (box :vexpand "false" :hexpand "false"
+    (circular-progress  :value {EWW_CPU.avg}
+                        :class "cpubar"
+                        :thickness {thickness}
+                        :start-at 75
+      (label :class "iconcpu" :text {icon})
+    )
+  )
+)
+
+;; ━━━ DISK ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(defwidget disk [icon thickness]
+  (box :vexpand "false" :hexpand "false"
+    (circular-progress  :value {EWW_DISK["/"].used_perc}
+                        :class "diskbar"
+                        :thickness {thickness}
+                        :start-at 75
+      (label :class "icondisk" :text {icon})
+    )
+  )
+)
+
+;; ━━━ WIFI ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(defpoll wifi :interval "30s" "./scripts/launch.fish wifi")
+
+(defwidget wifi []
+ (box :vexpand false :hexpand false :orientation "v"
+   (label :text {wifi.icon}
+          :limit-width 10
+          :tooltip {wifi.status}
+          :class "wifi"
+    )
+  )
+)
+
+;; ━━━ BATTERY ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(defpoll battery :interval "60s" "./scripts/launch.fish battery")
+
+(defwidget battery []
+   (label :text {battery.icon}
+          :limit-width 10
+          :tooltip "${battery.status}: ${battery.percent}"
+          :class "battery"
+    )
+)
+
+;; ━━━ TIME ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(defpoll hour :interval "10s" "date +%H")
+(defpoll minute :interval "10s" "date +%M")
+(defpoll dateVar :interval "600s" "date '+%A %d.%m.%y'")
+
+(defwidget time []
+  (eventbox :cursor "hand"  :hexpand false :vexpand false
+    :tooltip "${dateVar}"
+    (box :orientation "v" :hexpand false :vexpand false :space-evenly false :class "clock"
+        (button		:class "date"
+                  :onclick ""	"${hour}")
+        (button		:class "date"
+                  :onclick ""	"${minute}")
+    )
+  )
+)
+
+(defwidget launch []
+  (button		:class "reg-btn launchbutton"
+                :hexpand true
+                ;;  :onclick "wofi --show run --xoffset=1670 --yoffset=12 --width=230px --height=984 --style=$HOME/.config/wofi.css --term=footclient --prompt=Run &" "")
+                :onclick "notify-send -e -u low 'Launcher was clicked' 'Not yet implemented'")
+)
+
+(defwidget powerbutton []
+  (eventbox :cursor "hand"
+    (button		:class "reg-btn powerbutton"
+                :onclick "${EWW_CMD} open powermenu --toggle &"	"")
+  )
+)
+
+(defwidget powermenucontent []
+  (box :orientation "h"
+    :class "powermenu-container"
+    (box :class "shutdown-btn-box"
+       :orientation "h"
+        (button :class "btn"
+            :tooltip "Shutdown"
+            :onclick "${EWW_CMD} close powermenu && shutdown now"
+        "⏻")
+    )
+    (box :class "reboot-btn-box"
+       :orientation "h"
+    (button :class "btn"
+            :tooltip "Reboot"
+            :onclick "${EWW_CMD} close powermenu && reboot"
+      "")
+    )
+    (box :class "exit-btn-box"
+       :orientation "h"
+    (button :class "btn"
+            :tooltip "Suspend"
+            :onclick "systemctl suspend"
+      "")
+    )
+  )
+)
+
+(defwindow powermenu
+  :monitor 1
+  :geometry (geometry :x "0%"
+      :y "0%"
+      :width "30%"
+      :height "15%"
+      :anchor "center center")
+  :stacking "overlay"
+  (powermenucontent))
+
+(deflisten workspaces_listen "./scripts/launch.fish workspaces")
+(defwidget workspaces [] (literal :content workspaces_listen))
+
+(defwindow dashboard
+  :monitor 1
+  :geometry (geometry
+      :height "100%"
+      :width "350px"
+      :x "0px"
+      :y "0px"
+      :anchor "left center")
+  :stacking "overlay"
+  :class "dashboard"
+  (dashboard))
+
+(defwindow bar
+  :monitor 1
+  :exclusive true
+  :geometry (geometry
+      :height "100%"
+      ;; pink dots appear at the left, fix this
+      :x "-4px"
+      :y "0px"
+      :width "52px"
+      :anchor "left center")
+  :stacking "bg"
+  (bar))

@@ -1,1 +1,0 @@
-Use https://github.com/jeiang/rip instead of normal rip, create a custom package
