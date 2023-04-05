@@ -4,23 +4,26 @@
 
 - [ ] Hyprpicker
 
-## Bugfixes
+## Bugs to Fix
 
-- [ ]
+- [ ] Eww bar gets closed when monitor is attached/detached
+- [ ] After clicking the app launcher button on eww bar, subsequent left clicks anywhere on the bar will open the app
+      launcher, instead of the normal action
+  - Workaround: right click on the bar and normal state is restored
 
-## High Priority (i.e do now)
+## High Priority
 
 - [ ] Clipboard manager
-- [ ] [osd??](https://github.com/ErikReider/SwayOSD) found this, but idk about theming
+- [ ] [sway osd](https://github.com/ErikReider/SwayOSD) found this, but idk about theming
 - [ ] [Waylock](https://github.com/ifreund/waylock)
-- [ ] [Wayprompt??](https://git.sr.ht/~leon_plickat/wayprompt) perhaps use for pinentry?
+- [ ] [Wayprompt](https://git.sr.ht/~leon_plickat/wayprompt) perhaps use for pinentry?
 - [ ] module for [zram](https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/config/zram.nix), edit swap to be
       host-agnostic as well (i.e use labels) & make it priority 10 (so zram swap will be 5 > 10 used before hardware swap)
 - [ ] Using base16.nix (like done in tofi), expose stylix colors to other apps
   - [ ] Theme Eww
   - [ ] Theme Hyprland
 
-## Mid Priority (Longer term??)
+## Mid Priority
 
 - [ ] Switch to config/opts model, or some way to indicate when a program is active (so that dependencies are not
       hard coded)
@@ -45,7 +48,7 @@
     - [ ] Create a notifier that shows when a new audio source/sink is added
     - [ ] Brightness & Audio popup thing
 
-## Low Priority (Longer Longer term)
+## Low Priority
 
 - [ ] Make desktop files for programs which have guis
 - [ ] Fish history editor (based on [this blog post](https://jordanelver.co.uk/blog/2020/05/29/history-deleting-helper-for-fish-shell/))
