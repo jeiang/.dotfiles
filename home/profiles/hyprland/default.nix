@@ -1,5 +1,18 @@
 { pkgs, lib, config, ... }:
 let
+  monitor-connect-script = pkgs.writeScriptBin "handle_monitor_connect" ''
+    function handle {
+      if [[ $${1:0:12} == "monitoradded" ]]; then
+        hyprctl dispatch moveworkspacetomonitor "1 1"
+        hyprctl dispatch moveworkspacetomonitor "2 1"
+        hyprctl dispatch moveworkspacetomonitor "3 1"
+        hyprctl dispatch moveworkspacetomonitor "4 1"
+        hyprctl dispatch moveworkspacetomonitor "5 1"
+      fi
+    }
+
+    ${pkgs.socat}/bin/socat - "UNIX-CONNECT:$(readlink -f /tmp/hypr/*/.socket2.sock)" | while read line; do handle $line; done
+  '';
   hypr-conf-keys = {
     "{{mako}}" = "${pkgs.mako}/bin/mako";
     "{{hyprpaper}}" = "${pkgs.hyprpaper}/bin/hyprpaper";
@@ -7,6 +20,7 @@ let
     "{{firefox}}" = "${pkgs.firefox}/bin/firefox";
     "{{grimblast}}" = "${pkgs.grimblast}/bin/grimblast";
     "{{eww}}" = "${pkgs.eww-wayland}/bin/eww";
+    "{{connect-monitor}}" = "${monitor-connect-script}/bin/handle-monitor-connect";
   };
   hyprpaper-conf-keys = {
     "{{wallpaper}}" = "${config.stylix.image}";
