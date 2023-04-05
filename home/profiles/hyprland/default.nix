@@ -59,4 +59,11 @@ in
     enable = true;
     defaultTimeout = 5000; # disappears after 5 secs
   };
+
+  # cursor theme
+  home.pointerCursor = {
+    gtk.enable = true;
+    package = pkgs.nur.repos.ruixi-rebirth.catppuccin-cursors;
+    name = "Catppuccin-cursor";
+  };
 }
