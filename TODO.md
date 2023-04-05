@@ -22,6 +22,8 @@
 
 ## Mid Priority (Longer term??)
 
+- [ ] Switch to config/opts model, or some way to indicate when a program is active (so that dependencies are not
+      hard coded)
 - [ ] Wezterm add additional fallback fonts (including font awesome 6)
   - [ ] [Use this to add custom fonts](https://www.adaltas.com/en/2022/03/29/nix-package-creation-install-font/)
 - [ ] [Swayidle](https://github.com/swaywm/swayidle/issues/129)
