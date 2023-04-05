@@ -40,6 +40,7 @@
         ".config/fish"
         ".config/qBittorrent"
         ".config/thefuck"
+        ".cache/bat"
         ".cache/cached-nix-shell"
         ".cache/nix"
         ".cache/nix-index"
