@@ -1,5 +1,5 @@
-# Ignore direnv output
-.direnv
-
-# Ignore result from nixos-rebuild build when testing
 result
+.direnv
+doc/index.html
+
+pkgs/_sources/.shake*
