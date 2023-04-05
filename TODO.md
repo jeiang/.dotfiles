@@ -30,10 +30,13 @@ is nice to haves or misc improvements for later. Mid is the same as low, but I w
   - [ ] Sleep on close screen
   - [ ] Numlock remembering
   - [ ] Better screen workspaces (e.g. screen 1 has 1 - 5, screen 2 has 6 - 10 )
+    - [ ] See [this wiki article](https://wiki.hyprland.org/FAQ/#how-do-i-move-my-favorite-workspaces-to-a-new-monitor-when-i-plug-it-in) about workspace switching
   - [ ] switches (hyprland switches, something something screen close)
 - [ ] Bluetooth
 - [ ] Hibernate and all that jazz
 - [ ] power profiles daemon
+- [ ] Create an audio source switcher
+  - [ ] Using eww + a lua script, generate a window with buttons, and when upon one being selected, close the window
 
 ## Low Priority (Longer Longer term)
 
