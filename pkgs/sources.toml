@@ -8,3 +8,8 @@ src.git = "https://github.com/wez/wezterm"
 fetch.github = "wez/wezterm"
 cargo_locks = [ "./Cargo.lock" ]
 git.fetchSubmodules = true
+
+[joshuto]
+src.git = "https://github.com/kamiyaa/joshuto"
+fetch.github = "kamiyaa/joshuto"
+cargo_locks = [ "./Cargo.lock" ]

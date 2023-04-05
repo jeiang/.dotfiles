@@ -1,4 +1,29 @@
 {
+  "joshuto": {
+    "cargoLocks": {
+      "./Cargo.lock": [
+        "./joshuto-1a7f79a66e5828cdb19910652677d03a12b66d6b/./Cargo.lock",
+        {}
+      ]
+    },
+    "date": "2023-03-31",
+    "extract": null,
+    "name": "joshuto",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "kamiyaa",
+      "repo": "joshuto",
+      "rev": "1a7f79a66e5828cdb19910652677d03a12b66d6b",
+      "sha256": "sha256-u9jzPTu+HDyG+lKEIl09Ul5t8SLqEkpJ0Gb6KZx6Bgo=",
+      "type": "github"
+    },
+    "version": "1a7f79a66e5828cdb19910652677d03a12b66d6b"
+  },
   "manix": {
     "cargoLocks": null,
     "date": "2021-04-20",
@@ -22,15 +47,14 @@
   "wezterm": {
     "cargoLocks": {
       "./Cargo.lock": [
-        "./wezterm-e38a06d640857cb2b65c91a5bc3470827221c9ef/./Cargo.lock",
+        "./wezterm-b2b5c64affb016adc3ed76c9361d7d129aaa6f62/./Cargo.lock",
         {
           "image-0.24.5": "sha256-fTajVwm88OInqCPZerWcSAm1ga46ansQ3EzAmbT58Js=",
-          "libssh-rs-0.1.7": "sha256-pLaWKk/iGy7FfoVafpPYzErnKudxeIWzssWv2Zlm58s=",
           "xcb-imdkit-0.2.0": "sha256-QOT9HLlA26DVPUF4ViKH2ckexUsu45KZMdJwoUhW+hA="
         }
       ]
     },
-    "date": "2023-03-29",
+    "date": "2023-04-04",
     "extract": null,
     "name": "wezterm",
     "passthru": null,
@@ -42,10 +66,10 @@
       "name": null,
       "owner": "wez",
       "repo": "wezterm",
-      "rev": "e38a06d640857cb2b65c91a5bc3470827221c9ef",
-      "sha256": "sha256-w43jvdQ7jhvnRiQVw4jukyAkaICPwuaX9jDpDwgsaac=",
+      "rev": "b2b5c64affb016adc3ed76c9361d7d129aaa6f62",
+      "sha256": "sha256-6AnLTE7PzBL3L8tFGxugaZJmZqIFwtniMEjYInkBO1o=",
       "type": "github"
     },
-    "version": "e38a06d640857cb2b65c91a5bc3470827221c9ef"
+    "version": "b2b5c64affb016adc3ed76c9361d7d129aaa6f62"
   }
 }
