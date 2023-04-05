@@ -1,14 +1,9 @@
-#!/usr/bin/env nix-shell
+#!/usr/bin/env cached-nix-shell
 --[[
-#!nix-shell -i lua -p lua5_3_compat lua53Packages.luaposix
+#!nix-shell -i lua -p lua5_3_compat lua53Packages.luaposix lua53Packages.dkjson
 ]]
 -- Constants
-BUF_SIZE = 2 ^ 13
-
-HYPRCTL_GET_WORKSPACES =
-"hyprctl workspaces | grep ID | sed 's/()/(1)/g' | sort | awk 'NR>1{print $1}' RS='(' FS=')' | sort -n"
-HYPRCTL_GET_ACTIVE_WORKSPACES =
-"hyprctl monitors | grep active | sed 's/()/(1)/g' | sort | awk 'NR>1{print $1}' RS='(' FS=')' | sort -n"
+local json = require("dkjson")
 
 -- Functions
 local function sortedPairs(t, sort)
@@ -32,6 +27,9 @@ local function sortedPairs(t, sort)
 end
 
 
+local HYPRCTL_GET_WORKSPACES = "hyprctl workspaces -j"
+local HYPRCTL_GET_ACTIVE_WORKSPACES = "hyprctl monitors -j"
+
 local function get_workspaces(active)
     local aw = nil
     if active then
@@ -40,25 +38,38 @@ local function get_workspaces(active)
         aw = io.popen(HYPRCTL_GET_WORKSPACES, "r")
     end
     if not aw then return nil end
-    local workspaces = aw:read("*a")
-    local ids = {}
-    for str in string.gmatch(workspaces, "(%d+)") do
-        local workspace_num = tonumber(str)
-        if workspace_num then
-            ids[workspace_num] = true
-        end
+    local output = aw:read("*a")
+
+    local workspaces, _, err = json.decode(output, 1, nil)
+    if err then
+        return nil
+    else
+        return workspaces
     end
-    aw:close()
-    return ids
 end
 
 local function handle_workspace_change()
-    local active_workspaces = get_workspaces(true)
+    local monitors = get_workspaces(true)
+    local active_workspaces = {}
+
+    if monitors then
+        for i = 1, #monitors do
+            active_workspaces[monitors[i].activeWorkspace.id] = true
+        end
+    end
+
     local all_workspaces = get_workspaces(false)
     if all_workspaces then
-        local box = '(eventbox :onscroll "echo {} | sed -e \\"s/up/-1/g\\" -e \\"s/down/+1/g\\" | xargs hyprctl dispatch workspace" (box :orientation \"v\" :spacing 1 :space-evenly \"true\" '
+        local box =
+        '(eventbox :onscroll "echo {} | sed -e \\"s/up/-1/g\\" -e \\"s/down/+1/g\\" | xargs hyprctl dispatch workspace" (box :orientation \"v\" :spacing 1 :space-evenly \"true\" '
 
-        for workspace in sortedPairs(all_workspaces) do
+        local workspace_ids = {}
+
+        for i = 1, #all_workspaces do
+            workspace_ids[all_workspaces[i].id] = true
+        end
+
+        for workspace in sortedPairs(workspace_ids) do
             if active_workspaces and active_workspaces[workspace] ~= nil then
                 box = box .. "(button :class \"active\" :onclick \"hyprctl dispatch workspace " ..
                     workspace .. " \" \"●\")"
@@ -87,6 +98,8 @@ assert(socket.connect(fd, { family = socket.AF_UNIX, path = SOCKET }))
 
 -- Initialize workspaces
 handle_workspace_change()
+
+local BUF_SIZE = 2 ^ 13
 
 while true do
     -- Detect when hyprland says they did something
