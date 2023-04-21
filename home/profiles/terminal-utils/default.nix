@@ -60,6 +60,7 @@
     rnr
     sad
     tokei
+    wthrr
     xh
   ];
 }
