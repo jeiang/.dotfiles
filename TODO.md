@@ -3,6 +3,7 @@
 ## Quick & Easy (do whenever)
 
 - [ ] Hyprpicker
+- [ ] wthrr config declarative
 
 ## Bugs to Fix
 
@@ -13,7 +14,6 @@
 
 ## High Priority
 
-- [ ] Clipboard manager
 - [ ] [sway osd](https://github.com/ErikReider/SwayOSD) found this, but idk about theming
 - [ ] [Waylock](https://github.com/ifreund/waylock)
 - [ ] [Wayprompt](https://git.sr.ht/~leon_plickat/wayprompt) perhaps use for pinentry?
@@ -22,6 +22,7 @@
 - [ ] Using base16.nix (like done in tofi), expose stylix colors to other apps
   - [ ] Theme Eww
   - [ ] Theme Hyprland
+- [ ] Clean up system stuff & add a wsl config using [NixOS-WSL](https://github.com/nix-community/NixOS-WSL)
 
 ## Mid Priority
 
