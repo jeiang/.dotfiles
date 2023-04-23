@@ -37,6 +37,7 @@
         "Templates"
         "Videos"
         ".cargo"
+        ".config/cachix"
         ".config/discord"
         ".config/fish"
         ".config/qBittorrent"
