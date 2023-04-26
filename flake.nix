@@ -118,7 +118,7 @@
             suites = with profiles; rec {
               base = [ nixos cachix users.root ];
               bootable-iso = base ++ [ users.nixos ];
-              laptop = [ profiles.hyprland profiles.stylix users.aidanp btrfs-optin-persistence plymouth swap-partition ] ++ base;
+              laptop = [ profiles.hyprland profiles.stylix users.aidanp btrfs-optin-persistence plymouth swap-partition bluetooth ] ++ base;
             };
           };
           hostDefaults = {
@@ -159,7 +159,8 @@
               terminal = [ bottom fish gpg helix nushell terminal-utils ssh starship zellij ];
               gui-stuff = [ wezterm firefox ];
               wm = [ profiles.hyprland eww tofi cliphist ];
-              full = [ misc-packages mpv obs ] ++ base ++ terminal ++ wm ++ gui-stuff;
+              misc = [ misc-packages mpv obs ];
+              full = base ++ terminal ++ wm ++ gui-stuff ++ misc;
             };
           };
           users = {
@@ -172,6 +173,7 @@
               imports = suites.full;
 
               # Nicely reload system units when changing configs if dbus is enabled
+              # TODO: make this system agnostic
               systemd.user.startServices =
                 let
                   dbus-enabled = self.outputs.nixosConfigurations.hillwillow.config.services.dbus.enable;
