@@ -84,7 +84,7 @@
         channels = {
           nixpkgs = {
             imports = [ (digga.lib.importOverlays ./overlays) ];
-            overlays = [ ];
+            overlays = [ nur.overlay ];
           };
         };
 
