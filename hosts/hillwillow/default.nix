@@ -57,6 +57,7 @@
 
   # Power Management
   powerManagement.powertop.enable = true;
+  services.power-profiles-daemon.enable = true;
 
   # Set Charging Limit
   hardware.asus.battery.chargeUpto = 60;
