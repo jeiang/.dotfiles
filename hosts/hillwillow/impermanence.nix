@@ -56,7 +56,6 @@
         ".mozilla"
         ".renpy"
         { directory = ".ssh"; mode = "0700"; }
-        { directory = ".local/share/keyrings"; mode = "0700"; }
       ];
       files = [
         ".cache/tofi-drun"
