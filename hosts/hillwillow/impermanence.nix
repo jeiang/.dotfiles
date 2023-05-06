@@ -13,6 +13,7 @@
     directories = [
       "/etc/NetworkManager/system-connections"
       "/var/lib/bluetooth"
+      "/var/lib/docker"
     ];
     files = [
       "/etc/ssh/ssh_host_ed25519_key"
