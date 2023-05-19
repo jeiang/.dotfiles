@@ -56,6 +56,9 @@
     hyprcontrib.inputs.nixpkgs.follows = "nixpkgs";
 
     impermanence.url = "github:nix-community/impermanence";
+
+    devenv.url = "github:cachix/devenv/latest";
+    devenv.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
@@ -73,6 +76,7 @@
     , hyprpaper
     , hyprcontrib
     , impermanence
+    , devenv
     , ...
     } @ inputs:
     digga.lib.mkFlake
@@ -96,6 +100,10 @@
             lib = prev.lib.extend (lfinal: lprev: {
               our = self.lib;
             });
+          })
+
+          (_: _: {
+            devenv = devenv.packages.x86_64-linux.devenv;
           })
 
           agenix.overlays.default

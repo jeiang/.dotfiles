@@ -40,6 +40,8 @@
     bingrep
     choose
     cached-nix-shell
+    cachix
+    devenv
     duf
     eva
     erdtree
