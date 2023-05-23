@@ -42,6 +42,25 @@
           ];
         };
       }
+      {
+        name = "java";
+        scope = "source.java";
+        injection-regex = "java";
+        file-types = [ "java" ];
+        auto-format = true;
+        roots = [ "build.xml" "mvnw" "pom.xml" "settings.gradle" "settings.gradle.kts" ];
+        indent = { tab-width = 2; unit = "  "; };
+        language-server = {
+          command = "jdtls";
+          # TODO: set a user specific cache location
+          args = [
+            "-configuration"
+            "/home/aidanp/.cache/jdtls/config"
+            "-data"
+            "/home/aidanp/.cache/jdtls/workspace"
+          ];
+        };
+      }
     ];
     settings = {
       theme = "kanabox-dark-hard";
