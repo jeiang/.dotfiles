@@ -26,8 +26,8 @@
   '';
   # Enable BTRFS and NTFS
   boot.supportedFilesystems = [ "ntfs" "btrfs" ];
-  # Note `lib.mkBefore` is used instead of `lib.mkAfter` here.
-  # boot.initrd.postDeviceCommands = pkgs.lib.mkBefore outputs.scripts.rollback;
+  # In case of crash (happened at least twice)
+  boot.crashDump.enable = true;
 
   # Networking
   networking.networkmanager.enable = true;
