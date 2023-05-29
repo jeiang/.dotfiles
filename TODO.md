@@ -4,6 +4,8 @@
 
 - [ ] Hyprpicker
 - [ ] wthrr config declarative
+- [ ] use bees (see [this](https://dataswamp.org/~solene/2022-08-16-btrfs-deduplication-with-bees.html) and
+      [this](https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/services/misc/bees.nix)) for dedup btrfs
 
 ## Bugs to Fix
 
