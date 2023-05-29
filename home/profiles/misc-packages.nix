@@ -17,7 +17,6 @@
     qbittorrent
     qview
     sccache
-    steam-run
     szyszka
     texlive.combined.scheme-small
     zoom-us
