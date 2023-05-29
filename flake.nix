@@ -176,7 +176,7 @@
               terminal = [ bottom fish gpg helix nushell terminal-utils ssh starship zellij ];
               gui-stuff = [ wezterm firefox ];
               wm = [ profiles.hyprland eww tofi cliphist ];
-              misc = [ misc-packages mpv obs ];
+              misc = [ misc-packages mpv obs games ];
               full = base ++ terminal ++ wm ++ gui-stuff ++ misc;
             };
           };
