@@ -18,9 +18,11 @@ I saw a guy name his flake frosted flakes, and cornn flaek just popped into my h
 
 ## Acknowledgements
 
+I have used tutorials/configs from the below people (and maybe a few others which I have forgotten).
+
 - [Wil Taylor]: I used his tutorials for my initial setup, and it got me into nix/NixOS.
 - [mt-caret]: Used a tutorial from them for setting up an encrypted btrfs w/ NixOS & impermanence.
-- [Misterio77]: Used his flake configs before this, and fiddling with them helped me understand nix better. (Also clued
+- [Mysterio77]: Used his flake configs before this, and fiddling with them helped me understand nix better. (Also clued
   me into btrfs wipe w/ systemd stage 1 through his personal flake.)
 - [Lord Valen] & [Divnix]: Divnix for Digga (used to make this flake) and Lord Valen for the minimal flake config I used
   for this setup.
@@ -37,8 +39,5 @@ I saw a guy name his flake frosted flakes, and cornn flaek just popped into my h
 [Lord Valen]: https://github.com/Lord-Valen
 [Divnix]: https://github.com/divnix
 [danth]: https://github.com/danth
-[Mozilla Add-ons to Nix]: https://git.sr.ht/~rycee/mozilla-addons-to-nix/
-[instructions on GitHub]: https://github.com/MarianArlt/kde-plasma-chili/issues/1#issuecomment-614935624
-[this SDDM theme]: https://github.com/michaelpj/nixos-config/blob/e5be6d0f0e431748c0a8c532f9776c14e67ed8c9/nixpkgs/pkgs/sddm-themes.nix
 [hexa & kjhoerr]: https://discourse.nixos.org/t/impermanence-vs-systemd-initrd-w-tpm-unlocking/25167/2
 [JavaCafe01]: https://github.com/JavaCafe01/frostedflakes
