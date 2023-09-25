@@ -1,18 +1,27 @@
 # Things I want to do for cornn flaek
 
+## Rebuild system away from digga
+
+- [ ] Add overlays for packages so i can just do pkgs.whatever
+  - [ ] Devenv
+  - [ ] Hyprland (and derivative stuff)
+  - [ ] Cachix
+- [ ] Get back to a semi working state
+- [ ] Get waybar (instead of eww)
+- [ ] Figure out all the things i need waybar to do that it doesn't do natively
+  - [ ] Do it in zig
+- [ ] make a zig ipc thingy which parses things and automatically manages screens
+- [ ] Hyprland external monitor main (laptop)
+- [ ] Get back stylix
+- [ ] Nvfetcher for fetch from github
+  - [ ] Wezterm latest branch
+
 ## Quick & Easy (do whenever)
 
 - [ ] Hyprpicker
 - [ ] wthrr config declarative
 - [ ] use bees (see [this](https://dataswamp.org/~solene/2022-08-16-btrfs-deduplication-with-bees.html) and
       [this](https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/services/misc/bees.nix)) for dedup btrfs
-
-## Bugs to Fix
-
-- [ ] Eww bar gets closed when monitor is attached/detached
-- [ ] After clicking the app launcher button on eww bar, subsequent left clicks anywhere on the bar will open the app
-      launcher, instead of the normal action
-  - Workaround: right click on the bar and normal state is restored
 
 ## High Priority
 
@@ -22,7 +31,6 @@
 - [ ] module for [zram](https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/config/zram.nix), edit swap to be
       host-agnostic as well (i.e use labels) & make it priority 10 (so zram swap will be 5 > 10 used before hardware swap)
 - [ ] Using base16.nix (like done in tofi), expose stylix colors to other apps
-  - [ ] Theme Eww
   - [ ] Theme Hyprland
 - [ ] Clean up system stuff & add a wsl config using [NixOS-WSL](https://github.com/nix-community/NixOS-WSL)
 
@@ -39,17 +47,14 @@
   - [ ] Sleep on close screen
   - [x] Numlock remembering
   - [ ] Better screen workspaces (e.g. screen 1 has 1 - 5, screen 2 has 6 - 10 )
-    - [ ] See [this wiki article](https://wiki.hyprland.org/FAQ/#how-do-i-move-my-favorite-workspaces-to-a-new-monitor-when-i-plug-it-in) about workspace switching
+    - [ ] See
+          [this wiki article](https://wiki.hyprland.org/FAQ/#how-do-i-move-my-favorite-workspaces-to-a-new-monitor-when-i-plug-it-in)
+          about workspace switching
+      - [ ] Zig???
   - [ ] switches (hyprland switches, something something screen close)
 - [ ] Bluetooth
 - [ ] Hibernate and all that jazz
 - [ ] power profiles daemon
-- [ ] Eww misc
-  - [ ] Scripts/Windows: Using a script + deflisten + windows, when state is changed, create a window for x seconds then
-        close, or create a window which is closed after input.
-    - [ ] Create an audio source switcher
-    - [ ] Create a notifier that shows when a new audio source/sink is added
-    - [ ] Brightness & Audio popup thing
 
 ## Low Priority
 
@@ -62,12 +67,12 @@
 - [ ] fish plugins
 - [ ] Firefox: Add addons such as `tabs2txt` & `Image Seach Options` using [Mozilla Add-ons to Nix].
 - [ ] SSDM theme: make an SDDM module for stylix? See [instructions on GitHub] and [this SDDM theme].
+  - [ ] Automatically generate?
 - [ ] Impermanence: Get it working less jankily??
 - [ ] Agenix: GPG Private Keys?
+- [ ] Spotify?
 
 ## In Progress
-
-- [ ] Ewww
 
 ## Done ✓
 

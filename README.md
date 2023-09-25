@@ -4,7 +4,8 @@
 
 ![cornn flaek](assets/cornn-flaek.jpg "Cornn Flaek")
 
-This repository is home to the nix code that builds my systems. Currently just my laptop.
+This repository is home to the nix code that builds my systems. Currently just my laptop. Uses [this template] based on
+[flake.parts].
 
 ## Why Nix?
 
@@ -33,11 +34,13 @@ I have used tutorials/configs from the below people (and maybe a few others whic
 
 <!-- Links -->
 
-[Wil Taylor]: https://linktr.ee/nixos
-[mt-caret]: https://github.com/mt-caret
-[Mysterio77]: https://github.com/Misterio77
-[Lord Valen]: https://github.com/Lord-Valen
-[Divnix]: https://github.com/divnix
 [danth]: https://github.com/danth
+[divnix]: https://github.com/divnix
+[flake.parts]: https://flake.parts/
 [hexa & kjhoerr]: https://discourse.nixos.org/t/impermanence-vs-systemd-initrd-w-tpm-unlocking/25167/2
-[JavaCafe01]: https://github.com/JavaCafe01/frostedflakes
+[javacafe01]: https://github.com/JavaCafe01/frostedflakes
+[lord valen]: https://github.com/Lord-Valen
+[mt-caret]: https://github.com/mt-caret
+[mysterio77]: https://github.com/Misterio77
+[this template]: https://zero-to-flakes.com/nixos-flake/templates
+[wil taylor]: https://linktr.ee/nixos
