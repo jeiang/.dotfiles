@@ -68,6 +68,7 @@
     rnr
     sad
     tokei
+    wl-clipboard
     wthrr
     xh
     zenith
