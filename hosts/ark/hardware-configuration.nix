@@ -27,11 +27,6 @@ in {
   };
   networking = {
     useDHCP = lib.mkDefault true;
-    interfaces = {
-      eno1.useDHCP = lib.mkDefault true;
-      enp0s20f0u9.useDHCP = lib.mkDefault true;
-      wlp0s20f3.useDHCP = lib.mkDefault true;
-    };
   };
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
