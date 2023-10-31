@@ -44,7 +44,7 @@
             self.systemModules.greetd
             self.systemModules.network
             self.systemModules.nix
-            # self.systemModules.plymouth
+            self.systemModules.plymouth
             self.systemModules.security
 
             # Users

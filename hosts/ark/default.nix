@@ -19,6 +19,7 @@
       "systemd.show_status=auto"
       "rd.udev.log_level=3"
     ];
+    initrd.systemd.enable = true;
     # Use Fn Keys on Keychron Keyboard
     extraModprobeConfig = ''
       options hid_apple fnmode=2
