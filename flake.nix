@@ -3,198 +3,122 @@
 
   outputs = inputs @ {
     self,
-    nixpkgs,
     flake-parts,
     nixos-flake,
     devenv,
     treefmt-nix,
-    nixos-generators,
+    nur,
+    nix-gaming,
     ...
   }:
     flake-parts.lib.mkFlake {inherit inputs;} {
+      systems = ["x86_64-linux"];
       imports = [
         nixos-flake.flakeModule
         devenv.flakeModule
         treefmt-nix.flakeModule
       ];
-      systems = ["x86_64-linux"];
-      perSystem = {pkgs, ...}: {
+
+      perSystem = {...}: {
         imports = [
           ./devenv
         ];
-
-        packages = {
-          bootstrap-iso = nixos-generators.nixosGenerate {
-            system = "x86_64-linux";
-            format = "install-iso";
-            specialArgs = {inherit inputs pkgs;};
-            modules = [
-              ./hosts/core
-              ./hosts/bootstrap-iso.nix
-
-              ./modules/network.nix
-              ./modules/nix.nix
-
-              ({_}: {
-                # if needed, expose inputs to home manager
-                home-manager.extraSpecialArgs = {inherit inputs;};
-              })
-
-              # Setup home-manager in NixOS config
-              self.nixosModules.home-manager
-            ];
-          };
-        };
       };
-      flake = let
-        mainUser = "aidanp";
-      in {
+
+      flake = {
         # Configurations for Linux (NixOS) machines
-        nixosConfigurations.hillwillow = self.nixos-flake.lib.mkLinuxSystem {
+        nixosConfigurations.ark = self.nixos-flake.lib.mkLinuxSystem {
           nixpkgs.hostPlatform = "x86_64-linux";
+          _module.args = {
+            inherit inputs;
+            inherit (self) homeModules;
+          };
           imports = [
+            # Basic config
             ./hosts/core
-            ./hosts/hillwillow
+            ./hosts/ark
+            self.systemModules.bluetooth
+            self.systemModules.desktop
+            self.systemModules.doas
+            self.systemModules.gamemode
+            self.systemModules.greetd
+            self.systemModules.network
+            self.systemModules.nix
+            # self.systemModules.plymouth
+            self.systemModules.security
 
-            ./modules/bluetooth.nix
-            ./modules/desktop.nix
-            ./modules/doas.nix
-            ./modules/gamemode.nix
-            ./modules/network.nix
-            ./modules/nix.nix
-            ./modules/nvidia.nix
-            ./modules/plymouth.nix
-            ./modules/sddm.nix
-            ./modules/security.nix
+            # Users
+            ./users/aidanp
 
-            # TODO: move this to own folder
-            ({pkgs, ...}: {
-              # Common Users
-              users.users.${mainUser} = {
-                description = "Aidan Pinard";
-                isNormalUser = true;
-                shell = pkgs.fish;
-                uid = 1000; # ensure that uid is stable for rollback
-                extraGroups = [
-                  "wheel"
-                  "networkmanager"
-                ];
-              };
-              home-manager.users.${mainUser} = {
-                imports = [self.homeModules.default];
-                home.stateVersion = "23.05";
-              };
-            })
-
-            ({_}: {
-              # if needed, expose inputs to home manager
-              home-manager.extraSpecialArgs = {inherit inputs;};
-            })
-            # Setup home-manager in NixOS config
+            # Modules
             self.nixosModules.home-manager
+            nur.nixosModules.nur
+            {nixpkgs.overlays = [nur.overlay];}
+            nix-gaming.nixosModules.pipewireLowLatency
+
+            # Misc Config
+            {
+              home-manager.extraSpecialArgs = {
+                inherit inputs;
+              };
+            }
           ];
         };
 
-        # home-manager configuration goes here.
-        homeModules.default = {...}: {
-          imports = [
-            ./home/firefox
-            ./home/fish.nix
-            ./home/games
-            ./home/git.nix
-            ./home/gpg
-            ./home/helix
-            ./home/hyprland
-            ./home/misc.nix
-            ./home/mpv.nix
-            ./home/obs.nix
-            ./home/shell.nix
-            ./home/ssh.nix
-            ./home/starship.nix
-            ./home/tofi.nix
-            ./home/wezterm
-            ./home/xdg.nix
-            ./home/zellij
-          ];
-        };
+        homeModules = import ./modules/home {};
+        systemModules = import ./modules/system {};
       };
     };
 
   inputs = {
-    nixpkgs = {
-      url = "github:NixOS/nixpkgs/nixos-unstable";
-    };
-
-    nixos-hardware = {
-      url = "github:nixos/nixos-hardware";
-    };
-
+    # Principle inputs (updated by `nix run .#update`)
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nur.url = "github:nix-community/nur";
 
-    flake-parts = {
-      url = "github:hercules-ci/flake-parts";
-      inputs.nixpkgs-lib.follows = "nixpkgs";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    nixos-flake.url = "github:srid/nixos-flake";
+    devenv = {
+      url = "github:cachix/devenv";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    nixos-flake = {
-      url = "github:srid/nixos-flake";
-    };
-
-    devenv.url = "github:cachix/devenv";
-
     nix2container = {
       url = "github:nlewo/nix2container";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
     mk-shell-bin.url = "github:rrbutani/nix-mk-shell-bin";
-
-    hyprland = {
-      url = "github:hyprwm/Hyprland";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    hyprpaper = {
-      url = "github:hyprwm/hyprpaper";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    hyprcontrib = {
-      url = "github:hyprwm/contrib";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    agenix = {
-      url = "github:ryantm/agenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.home-manager.follows = "home-manager";
-    };
-
-    nix-gaming = {
-      url = "github:fufexan/nix-gaming";
-      inputs.flake-parts.follows = "flake-parts";
-    };
-
-    helix = {
-      url = "github:helix-editor/helix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    nixos-generators = {
-      url = "github:nix-community/nixos-generators";
+    hyprland = {
+      url = "github:hyprwm/Hyprland";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+    hyprpaper = {
+      url = "github:hyprwm/hyprpaper";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    hyprcontrib = {
+      url = "github:hyprwm/contrib";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    hyprportal = {
+      url = "github:hyprwm/xdg-desktop-portal-hyprland";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-gaming = {
+      url = "github:fufexan/nix-gaming";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
     };
   };
 
   nixConfig = {
+    allowUnfree = true;
     extra-experimental-features = "nix-command flakes";
     extra-substituters = [
       "https://nrdxp.cachix.org"

@@ -10,28 +10,33 @@
       name = "boul of cornn-flaek";
 
       packages = with pkgs; [
+        eza
+        ripgrep
         helix
         git
         nixUnstable
         config.treefmt.build.wrapper
       ];
-
-      languages.lua.enable = true;
-      languages.nix.enable = true;
-
-      pre-commit.hooks = {
-        editorconfig-checker.enable = true;
-        markdownlint.enable = true;
-        nil.enable = true;
-        statix.enable = true;
-        treefmt.enable = true;
+      languages = {
+        lua.enable = true;
+        nix.enable = true;
       };
+      pre-commit = {
+        hooks = {
+          editorconfig-checker.enable = true;
+          markdownlint.enable = true;
+          nil.enable = true;
+          statix.enable = true;
+          treefmt.enable = true;
+        };
+        settings = {
+          treefmt.package = config.treefmt.build.wrapper;
 
-      pre-commit.settings.treefmt.package = config.treefmt.build.wrapper;
-
-      pre-commit.settings.markdownlint.config = {
-        "MD013" = {
-          "line_length" = 120;
+          markdownlint.config = {
+            "MD013" = {
+              "line_length" = 120;
+            };
+          };
         };
       };
     };
