@@ -1,4 +1,4 @@
-{lib, ...}: {
+{ lib, ... }: {
   documentation.dev.enable = true;
 
   time.timeZone = lib.mkDefault "America/Port_of_Spain";
