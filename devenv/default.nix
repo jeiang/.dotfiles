@@ -1,6 +1,7 @@
 {
   pkgs,
   config,
+  inputs',
   ...
 }: {
   devenv.shells = rec {
@@ -10,12 +11,13 @@
       name = "boul of cornn-flaek";
 
       packages = with pkgs; [
-        eza
-        ripgrep
-        helix
-        git
-        nixUnstable
         config.treefmt.build.wrapper
+        eza
+        git
+        helix
+        inputs'.agenix.packages.default
+        nixUnstable
+        ripgrep
       ];
       languages = {
         lua.enable = true;
