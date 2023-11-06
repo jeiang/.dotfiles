@@ -1,0 +1,40 @@
+{pkgs, ...}: {
+  home.packages = with pkgs; [
+    any-nix-shell
+    asciinema
+    bandwhich
+    bingrep
+    bitwarden
+    borgbackup
+    cachix
+    choose
+    cliphist
+    discord
+    duf
+    erdtree
+    eza
+    fd
+    felix-fm
+    file
+    foliate
+    gimp
+    hyperfine
+    jq
+    libtree
+    mcomix
+    ouch
+    procs
+    qview
+    rargs
+    ripgrep
+    rm-improved
+    rnr
+    sad
+    sccache
+    tokei
+    wl-clipboard
+    wthrr
+    xh
+    zenith
+  ];
+}
