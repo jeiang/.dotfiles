@@ -1,212 +1,173 @@
 {
-  description = "My NixOS config.";
+  description = "Nix Flake to configure my computer(s).";
+
+  outputs = inputs @ {
+    self,
+    flake-parts,
+    nixos-flake,
+    devenv,
+    treefmt-nix,
+    nur,
+    nix-gaming,
+    impermanence,
+    agenix,
+    ...
+  }:
+    flake-parts.lib.mkFlake {inherit inputs;} {
+      systems = ["x86_64-linux"];
+      imports = [
+        nixos-flake.flakeModule
+        devenv.flakeModule
+        treefmt-nix.flakeModule
+      ];
+
+      perSystem = {...}: {
+        imports = [
+          ./devenv
+        ];
+      };
+
+      flake = {
+        # Configurations for Linux (NixOS) machines
+        nixosConfigurations.ark = self.nixos-flake.lib.mkLinuxSystem {
+          nixpkgs.hostPlatform = "x86_64-linux";
+          _module.args = {
+            inherit inputs;
+            inherit (self) homeModules;
+          };
+          imports = [
+            # Basic config
+            ./hosts/core
+            ./hosts/ark
+            self.systemModules.bluetooth
+            self.systemModules.desktop
+            self.systemModules.doas
+            self.systemModules.gamemode
+            self.systemModules.greetd
+            self.systemModules.impermanence
+            self.systemModules.network
+            self.systemModules.nix
+            self.systemModules.plymouth
+            self.systemModules.security
+            # TODO: move to a module
+            {
+              age.secrets = {
+                # TODO: scan all files in secrets folder, get files with age extension and
+                # expose them as their file name
+                aidanp-password.file = ./secrets/aidanp-password.age;
+                root-password.file = ./secrets/root-password.age;
+              };
+              age.identityPaths = [
+                "/persist/etc/ssh/ssh_host_ed25519_key"
+                "/persist/etc/ssh/ssh_host_rsa_key"
+                # TODO: expose these keys somewhere?
+                # "/persist/home/aidanp/.ssh/id_ed25519"
+                # "/persist/home/aidanp/.ssh/id_rsa"
+              ];
+            }
+
+            # Users
+            # TODO: add a root user dir
+            ({config, ...}: {
+              users.users.root = {
+                hashedPasswordFile = config.age.secrets.root-password.path;
+              };
+            })
+            ./users/aidanp
+
+            # Modules
+            self.nixosModules.home-manager
+            impermanence.nixosModules.impermanence
+            nur.nixosModules.nur
+            {nixpkgs.overlays = [nur.overlay];}
+            nix-gaming.nixosModules.pipewireLowLatency
+            agenix.nixosModules.default
+
+            # Misc Config
+            {
+              home-manager.extraSpecialArgs = {
+                inherit inputs;
+              };
+            }
+          ];
+        };
+
+        homeModules = import ./modules/home {};
+        systemModules = import ./modules/system {};
+      };
+    };
+
+  inputs = {
+    # Principle inputs (updated by `nix run .#update`)
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nur.url = "github:nix-community/nur";
+
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    nixos-flake.url = "github:srid/nixos-flake";
+    devenv = {
+      url = "github:cachix/devenv";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix2container = {
+      url = "github:nlewo/nix2container";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    mk-shell-bin.url = "github:rrbutani/nix-mk-shell-bin";
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    hyprland = {
+      url = "github:hyprwm/Hyprland";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    hyprpaper = {
+      url = "github:hyprwm/hyprpaper";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    hyprcontrib = {
+      url = "github:hyprwm/contrib";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    hyprportal = {
+      url = "github:hyprwm/xdg-desktop-portal-hyprland";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-gaming = {
+      url = "github:fufexan/nix-gaming";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
+    };
+    impermanence.url = "github:nix-community/impermanence";
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
+  };
 
   nixConfig = {
+    allowUnfree = true;
     extra-experimental-features = "nix-command flakes";
     extra-substituters = [
       "https://nrdxp.cachix.org"
       "https://nix-community.cachix.org"
       "https://hyprland.cachix.org"
       "https://jeiang.cachix.org"
+      "https://nix-gaming.cachix.org"
+      "https://helix.cachix.org"
     ];
     extra-trusted-public-keys = [
       "nrdxp.cachix.org-1:Fc5PSqY2Jm1TrWfm88l6cvGWwz3s93c6IOifQWnhNW4="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
       "jeiang.cachix.org-1:Ax2onCzp6V74ORnjlTAbZsDmlLeMMzDOzzcC2qHfJKg="
+      "nix-gaming.cachix.org-1:nbjlureqMbRAxR1gJ/f3hxemL9svXaZF/Ees8vCUUs4="
+      "helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="
     ];
   };
-
-  inputs = {
-    blank.url = "github:divnix/blank";
-
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixos-hardware.url = "github:nixos/nixos-hardware";
-
-    home-manager.url = "github:nix-community/home-manager";
-    home-manager.inputs.nixpkgs.follows = "nixpkgs";
-
-    digga.url = "github:divnix/digga";
-    digga.inputs.nixpkgs.follows = "nixpkgs";
-    digga.inputs.nixlib.follows = "nixpkgs";
-    digga.inputs.home-manager.follows = "home-manager";
-    digga.inputs.darwin.follows = "blank";
-    digga.inputs.deploy.follows = "blank";
-    digga.inputs.flake-compat.follows = "blank";
-
-    agenix.url = "github:ryantm/agenix";
-    agenix.inputs.nixpkgs.follows = "nixpkgs";
-
-    nvfetcher.url = "github:berberman/nvfetcher";
-    nvfetcher.inputs.nixpkgs.follows = "nixpkgs";
-
-    nur.url = "github:nix-community/NUR";
-
-    base16.url = "github:SenchoPens/base16.nix";
-    base16.inputs.nixpkgs.follows = "nixpkgs";
-    stylix.url = "github:danth/stylix";
-    stylix.inputs.nixpkgs.follows = "nixpkgs";
-    stylix.inputs.base16.follows = "base16";
-    stylix.inputs.home-manager.follows = "home-manager";
-
-    hyprland.url = "github:hyprwm/Hyprland";
-    hyprpaper.url = "github:hyprwm/hyprpaper";
-    hyprpaper.inputs.nixpkgs.follows = "nixpkgs";
-    hyprcontrib.url = "github:hyprwm/contrib";
-    hyprcontrib.inputs.nixpkgs.follows = "nixpkgs";
-
-    impermanence.url = "github:nix-community/impermanence";
-
-    devenv.url = "github:cachix/devenv/latest";
-    devenv.inputs.nixpkgs.follows = "nixpkgs";
-  };
-
-  outputs =
-    { self
-    , nixpkgs
-    , nixos-hardware
-    , home-manager
-    , digga
-    , agenix
-    , nvfetcher
-    , nur
-    , stylix
-    , base16
-    , hyprland
-    , hyprpaper
-    , hyprcontrib
-    , impermanence
-    , devenv
-    , ...
-    } @ inputs:
-    digga.lib.mkFlake
-      {
-        inherit self inputs;
-
-        channelsConfig = { allowUnfree = true; };
-
-        channels = {
-          nixpkgs = {
-            imports = [ (digga.lib.importOverlays ./overlays) ];
-            overlays = [ nur.overlay ];
-          };
-        };
-
-        lib = import ./lib { lib = digga.lib // nixpkgs.lib; };
-
-        sharedOverlays = [
-          (final: prev: {
-            __dontExport = true;
-            lib = prev.lib.extend (lfinal: lprev: {
-              our = self.lib;
-            });
-          })
-
-          (_: _: {
-            devenv = devenv.packages.x86_64-linux.devenv;
-          })
-
-          agenix.overlays.default
-          nvfetcher.overlays.default
-          hyprpaper.overlays.default
-          hyprcontrib.overlays.default
-          nur.overlay
-
-          (import ./pkgs)
-        ];
-
-        nixos = {
-          imports = [ (digga.lib.importHosts ./hosts) ];
-          importables = rec {
-            profiles =
-              digga.lib.rakeLeaves ./profiles
-              // {
-                users = digga.lib.rakeLeaves ./users;
-              };
-            suites = with profiles; rec {
-              base = [ nixos cachix users.root ];
-              bootable-iso = base ++ [ users.nixos ];
-              laptop = [
-                profiles.hyprland
-                profiles.stylix
-                users.aidanp
-                btrfs-optin-persistence
-                plymouth
-                swap-partition
-                bluetooth
-                docker
-              ] ++ base;
-            };
-          };
-          hostDefaults = {
-            system = "x86_64-linux";
-            channelName = "nixpkgs";
-            imports = [ (digga.lib.importExportableModules ./modules) ];
-            modules = [
-              { lib.our = self.lib; }
-              digga.nixosModules.bootstrapIso
-              digga.nixosModules.nixConfig
-              home-manager.nixosModules.home-manager
-              agenix.nixosModules.age
-              hyprland.nixosModules.default
-              stylix.nixosModules.stylix
-              base16.nixosModule
-              impermanence.nixosModule
-            ];
-          };
-          hosts = {
-            hillwillow = {
-              modules = [
-                nixos-hardware.nixosModules.asus-battery
-              ];
-            };
-          };
-        };
-
-        home = {
-          imports = [ (digga.lib.importExportableModules ./home/modules) ];
-          modules = [
-            hyprland.homeManagerModules.default
-            base16.homeManagerModule
-          ];
-          importables = rec {
-            profiles = digga.lib.rakeLeaves ./home/profiles;
-            suites = with profiles; rec {
-              base = [ direnv git xdg ];
-              terminal = [ bottom fish gpg helix nushell terminal-utils ssh starship zellij ];
-              gui-stuff = [ wezterm firefox ];
-              wm = [ profiles.hyprland eww tofi cliphist ];
-              misc = [ misc-packages mpv obs games ];
-              full = base ++ terminal ++ wm ++ gui-stuff ++ misc;
-            };
-          };
-          users = {
-            nixos = { suites, ... }: {
-              imports = suites.base ++ suites.terminal;
-
-              home.stateVersion = "23.05";
-            };
-            aidanp = { suites, ... }: {
-              imports = suites.full;
-
-              # Nicely reload system units when changing configs if dbus is enabled
-              # TODO: make this system agnostic
-              systemd.user.startServices =
-                let
-                  dbus-enabled = self.outputs.nixosConfigurations.hillwillow.config.services.dbus.enable;
-                in
-                if dbus-enabled then "sd-switch" else "suggest";
-
-              home.stateVersion = "23.05";
-            };
-          };
-        };
-
-        devshell = ./shell;
-
-        homeConfigurations = digga.lib.mkHomeConfigurations self.nixosConfigurations;
-      } // {
-      # Manually skip checks for darwin. I have no plans to use mac
-      checks.x86_64-darwin = { };
-    };
 }
