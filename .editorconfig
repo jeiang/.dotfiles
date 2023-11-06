@@ -16,6 +16,12 @@ insert_final_newline = unset
 trim_trailing_whitespace = unset
 indent_size = unset
 
+[**/_sources/**]
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_size = unset
+
 [*.py]
 indent_size = 4
 

@@ -3,6 +3,8 @@
 
   outputs = inputs @ {
     self,
+    nixpkgs,
+    nvfetcher,
     flake-parts,
     nixos-flake,
     devenv,
@@ -21,7 +23,14 @@
         treefmt-nix.flakeModule
       ];
 
-      perSystem = {...}: {
+      perSystem = {system, ...}: {
+        _module.args.pkgs = import nixpkgs {
+          inherit system;
+          overlays = [
+            agenix.overlays.default
+            nvfetcher.overlays.default
+          ];
+        };
         imports = [
           ./devenv
         ];
@@ -147,6 +156,10 @@
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
+    };
+    nvfetcher = {
+      url = "github:berberman/nvfetcher";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
