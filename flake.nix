@@ -9,6 +9,7 @@
     treefmt-nix,
     nur,
     nix-gaming,
+    impermanence,
     agenix,
     ...
   }:
@@ -43,6 +44,7 @@
             self.systemModules.doas
             self.systemModules.gamemode
             self.systemModules.greetd
+            self.systemModules.impermanence
             self.systemModules.network
             self.systemModules.nix
             self.systemModules.plymouth
@@ -75,6 +77,7 @@
 
             # Modules
             self.nixosModules.home-manager
+            impermanence.nixosModules.impermanence
             nur.nixosModules.nur
             {nixpkgs.overlays = [nur.overlay];}
             nix-gaming.nixosModules.pipewireLowLatency
@@ -139,6 +142,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
     };
+    impermanence.url = "github:nix-community/impermanence";
     agenix = {
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";

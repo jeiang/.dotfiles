@@ -15,4 +15,5 @@ _: {
   wezterm = import ./wezterm;
   xdg = import ./xdg;
   zellij = import ./zellij;
+  impermanence = import ./impermanence;
 }

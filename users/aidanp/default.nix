@@ -28,6 +28,7 @@ in {
       gpg
       helix
       hyprland
+      impermanence
       misc
       mpv
       obs
