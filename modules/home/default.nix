@@ -6,6 +6,7 @@ _: {
   gpg = import ./gpg;
   helix = import ./helix;
   hyprland = import ./hyprland;
+  impermanence = import ./impermanence;
   misc = import ./misc;
   mpv = import ./mpv;
   obs = import ./obs;
@@ -15,5 +16,4 @@ _: {
   wezterm = import ./wezterm;
   xdg = import ./xdg;
   zellij = import ./zellij;
-  impermanence = import ./impermanence;
 }

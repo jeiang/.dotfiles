@@ -1,5 +1,4 @@
 {
-  # TODO: make a custom config
   programs.starship = {
     enable = true;
     enableTransience = true;

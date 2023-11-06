@@ -4,11 +4,11 @@ let
     bitwarden
     cookies-txt
     darkreader
+    rust-search-extension
+    stylus
+    ublock-origin
     violentmonkey
     wayback-machine
-    ublock-origin
-    stylus
-    rust-search-extension
   ];
 in
 {
