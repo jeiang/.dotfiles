@@ -3,10 +3,10 @@
     bat = {
       enable = true;
       extraPackages = with pkgs.bat-extras; [
-        batman
         batdiff
-        batman
         batgrep
+        batman
+        batman
         batwatch
       ];
     };

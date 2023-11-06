@@ -9,7 +9,8 @@
     # Boot & Kernel
     loader.systemd-boot.enable = true;
     loader.efi.canTouchEfiVariables = true;
-    # boot.kernelPackages = pkgs.linuxKernel.kernels.linux_xanmod_latest;
+    # kernelPackages = pkgs.linuxKernel.kernels.linux_xanmod_latest;
+
     # For Keychron Keyboard
     kernelModules = [ "hid-apple" ];
     kernelParams = [
