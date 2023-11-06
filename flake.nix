@@ -9,6 +9,7 @@
     treefmt-nix,
     nur,
     nix-gaming,
+    agenix,
     ...
   }:
     flake-parts.lib.mkFlake {inherit inputs;} {
@@ -46,8 +47,30 @@
             self.systemModules.nix
             self.systemModules.plymouth
             self.systemModules.security
+            # TODO: move to a module
+            {
+              age.secrets = {
+                # TODO: scan all files in secrets folder, get files with age extension and
+                # expose them as their file name
+                aidanp-password.file = ./secrets/aidanp-password.age;
+                root-password.file = ./secrets/root-password.age;
+              };
+              age.identityPaths = [
+                "/persist/etc/ssh/ssh_host_ed25519_key"
+                "/persist/etc/ssh/ssh_host_rsa_key"
+                # TODO: expose these keys somewhere?
+                # "/persist/home/aidanp/.ssh/id_ed25519"
+                # "/persist/home/aidanp/.ssh/id_rsa"
+              ];
+            }
 
             # Users
+            # TODO: add a root user dir
+            ({config, ...}: {
+              users.users.root = {
+                hashedPasswordFile = config.age.secrets.root-password.path;
+              };
+            })
             ./users/aidanp
 
             # Modules
@@ -55,6 +78,7 @@
             nur.nixosModules.nur
             {nixpkgs.overlays = [nur.overlay];}
             nix-gaming.nixosModules.pipewireLowLatency
+            agenix.nixosModules.default
 
             # Misc Config
             {
@@ -114,6 +138,11 @@
       url = "github:fufexan/nix-gaming";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
+    };
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
     };
   };
 

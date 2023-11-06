@@ -15,6 +15,9 @@
   # graphics drivers / HW accel
   hardware.opengl.enable = true;
 
+  # Users
+  users.mutableUsers = false;
+
   # enable programs
   programs = {
     less.enable = true;

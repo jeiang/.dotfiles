@@ -27,6 +27,9 @@
     # Enable BTRFS and NTFS
     supportedFilesystems = ["ntfs" "btrfs"];
   };
+
+  networking.hostName = "ark";
+
   # Boot Console
   console.font = "${pkgs.terminus_font}/share/consolefonts/ter-u28n.psf.gz";
 

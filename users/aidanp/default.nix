@@ -2,6 +2,7 @@
   pkgs,
   inputs,
   homeModules,
+  config,
   ...
 }: let
   username = "aidanp";
@@ -10,6 +11,7 @@ in {
     description = "Aidan Pinard";
     isNormalUser = true;
     shell = pkgs.fish;
+    hashedPasswordFile = config.age.secrets.aidanp-password.path;
     uid = 1000; # ensure that uid is stable for rollback
     extraGroups = [
       "wheel"
