@@ -181,9 +181,9 @@
         style = "italic bright-blue";
         format = "([⎪$ahead_behind$staged$modified$untracked$renamed$deleted$conflicted$stashed⎥]($style))";
         conflicted = "[◪◦](italic bright-magenta)";
-        ahead = "[▲│[$${count}](bold white)│](italic green)";
-        behind = "[▽│[$${count}](bold white)│](italic red)";
-        diverged = "[◇ ▲┤[$${ahead_count}](regular white)│▽┤[$${behind_count}](regular white)│](italic bright-magenta)";
+        ahead = "[▲│[\${count}](bold white)│](italic green)";
+        behind = "[▽│[\${count}](bold white)│](italic red)";
+        diverged = "[◇ ▲┤[\${ahead_count}](regular white)│▽┤[\${behind_count}](regular white)│](italic bright-magenta)";
         untracked = "[◌◦](italic bright-yellow)";
         stashed = "[◦◫◦](italic white)";
         modified = "[●◦](italic yellow)";
@@ -194,11 +194,11 @@
 
       deno = {
         format = " deno [∫ $version](blue italic)";
-        version_format = "$${major}.$${minor}";
+        version_format = "\${major}.\${minor}";
       };
 
       lua = {
-        format = " lua [$${symbol}$${version}]($style)";
+        format = " lua [\${symbol}\${version}]($style)";
         symbol = "⨀ ";
         style = "italic bright-yellow";
       };
@@ -206,42 +206,42 @@
       nodejs = {
         format = " node [◫ ($version)](italic bright-green)";
         detect_files = [ "package-lock.json" "yarn.lock" ];
-        version_format = "$${major}.$${minor}";
+        version_format = "\${major}.\${minor}";
       };
 
       python = {
-        format = " py [$${symbol}$${version}]($style)";
+        format = " py [\${symbol}\${version}]($style)";
         symbol = "[⌉](italic bright-blue)⌊ ";
-        version_format = "$${major}.$${minor}";
+        version_format = "\${major}.\${minor}";
         style = "italic bright-yellow";
       };
 
       ruby = {
-        format = " rb [$${symbol}$${version}]($style)";
+        format = " rb [\${symbol}\${version}]($style)";
         symbol = "◆ ";
-        version_format = "$${major}.$${minor}";
+        version_format = "\${major}.\${minor}";
         style = "italic red";
       };
 
       rust = {
         format = " rs [$symbol$version]($style)";
         symbol = "⊃ ";
-        version_format = "$${major}.$${minor}";
+        version_format = "\${major}.\${minor}";
         style = "italic red";
       };
 
       package = {
         format = " pkg [$symbol$version]($style)";
-        version_format = "$${major}.$${minor}";
+        version_format = "\${major}.\${minor}";
         symbol = "◫ ";
         style = "bright-yellow italic";
       };
 
       swift = {
-        format = " sw [$${symbol}$${version}]($style)";
+        format = " sw [\${symbol}\${version}]($style)";
         symbol = "◁ ";
         style = "italic bright-red";
-        version_format = "$${major}.$${minor}";
+        version_format = "\${major}.\${minor}";
       };
 
       aws = {
@@ -297,7 +297,7 @@
 
       java = {
         symbol = "∪ ";
-        format = " java [$${symbol}($${version} )]($style)";
+        format = " java [\${symbol}(\${version} )]($style)";
       };
 
       julia = {
@@ -307,7 +307,7 @@
 
       memory_usage = {
         symbol = "▪▫▪ ";
-        format = " mem [$${ram}( $${swap})]($style)";
+        format = " mem [\${ram}( \${swap})]($style)";
       };
 
       nim = {
