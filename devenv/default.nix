@@ -1,7 +1,6 @@
 {
   pkgs,
   config,
-  inputs',
   ...
 }: {
   devenv.shells = rec {
@@ -15,8 +14,10 @@
         eza
         git
         helix
-        inputs'.agenix.packages.default
+        agenix
+        nix-prefetch-scripts
         nixUnstable
+        nvfetcher
         ripgrep
       ];
       languages = {

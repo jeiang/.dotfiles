@@ -60,6 +60,11 @@
   nixpkgs = {
     config.allowUnfree = true;
     overlays = [
+      inputs.nur.overlay
+      inputs.agenix.overlays.default
+      inputs.nvfetcher.overlays.default
+      (import ./pkgs)
+      (import ./overlays/wezterm.nix)
       (
         _: prev: {
           steam = prev.steam.override {
