@@ -1,9 +1,9 @@
-{
-  pkgs,
-  lib,
-  config,
-  ...
-}: let
+{ pkgs
+, lib
+, config
+, ...
+}:
+let
   isSystemdPhase1 = config.boot.initrd.systemd.enable;
   hostname = config.networking.hostName;
   # TODO: use builtins.mapAttrs users.user to generate home wipers dynamically for users
@@ -38,17 +38,18 @@
     # Unmount
     umount /mnt
   '';
-in {
+in
+{
   boot.initrd.postDeviceCommands = lib.mkBefore (lib.optionalString (!isSystemdPhase1) wipe-script);
   # https://discourse.nixos.org/t/impermanence-vs-systemd-initrd-w-tpm-unlocking/25167/2
   boot.initrd.systemd = lib.mkIf isSystemdPhase1 {
-    initrdBin = with pkgs; [coreutils btrfs-progs];
+    initrdBin = with pkgs; [ coreutils btrfs-progs ];
     services.btrfs-rollback = {
       description = "Rollback BTRFS root subvolume to a pristine state";
-      wantedBy = ["initrd.target"];
+      wantedBy = [ "initrd.target" ];
       # LUKS/TPM process
-      after = ["systemd-cryptsetup@${hostname}.service"];
-      before = ["sysroot.mount"];
+      after = [ "systemd-cryptsetup@${hostname}.service" ];
+      before = [ "sysroot.mount" ];
       unitConfig.DefaultDependencies = "no";
       serviceConfig.Type = "oneshot";
       script = wipe-script;
@@ -78,19 +79,19 @@ in {
       "/var/lib/NetworkManager/timestamps"
       {
         file = "/etc/ssh/ssh_host_ed25519_key";
-        parentDirectory = {mode = "u=rw,g=,o=";};
+        parentDirectory = { mode = "u=rw,g=,o="; };
       }
       {
         file = "/etc/ssh/ssh_host_ed25519_key.pub";
-        parentDirectory = {mode = "u=rw,g=r,o=r";};
+        parentDirectory = { mode = "u=rw,g=r,o=r"; };
       }
       {
         file = "/etc/ssh/ssh_host_rsa_key";
-        parentDirectory = {mode = "u=rw,g=,o=";};
+        parentDirectory = { mode = "u=rw,g=,o="; };
       }
       {
         file = "/etc/ssh/ssh_host_rsa_key.pub";
-        parentDirectory = {mode = "u=rw,g=r,o=r";};
+        parentDirectory = { mode = "u=rw,g=r,o=r"; };
       }
     ];
   };

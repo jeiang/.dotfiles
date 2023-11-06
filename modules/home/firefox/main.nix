@@ -1,4 +1,5 @@
-{pkgs, ...}: let
+{ pkgs, ... }:
+let
   extensions = with pkgs.nur.repos.rycee.firefox-addons; [
     bitwarden
     cookies-txt
@@ -9,7 +10,8 @@
     stylus
     rust-search-extension
   ];
-in {
+in
+{
   programs.firefox = {
     profiles = {
       main = {
@@ -19,20 +21,20 @@ in {
           "Baka-Tsuki" = {
             url = "https://www.baka-tsuki.org/project/index.php?title=Category:Light_novel_(English)";
           };
-          "Amazon.com" = {url = "https://www.amazon.com/";};
-          "YouTube" = {url = "https://www.youtube.com/";};
-          "AnimeBytes" = {url = "https://animebytes.tv/torrents.php";};
-          "Google Translate" = {url = "https://translate.google.com/";};
-          "Nyaa.si" = {url = "https://nyaa.si/";};
+          "Amazon.com" = { url = "https://www.amazon.com/"; };
+          "YouTube" = { url = "https://www.youtube.com/"; };
+          "AnimeBytes" = { url = "https://animebytes.tv/torrents.php"; };
+          "Google Translate" = { url = "https://translate.google.com/"; };
+          "Nyaa.si" = { url = "https://nyaa.si/"; };
           "HDQWalls Anime 1920x1080 Wallpapers" = {
             url = "http://hdqwalls.com/category/anime-wallpapers/1920x1080";
           };
-          "[pixiv]" = {url = "https://www.pixiv.net/";};
-          "regex101" = {url = "https://regex101.com/";};
+          "[pixiv]" = { url = "https://www.pixiv.net/"; };
+          "regex101" = { url = "https://regex101.com/"; };
           "`printf` cheat sheet" = {
             url = "https://alvinalexander.com/programming/printf-format-cheat-sheet/";
           };
-          "OneDrive" = {url = "https://onedrive.live.com/";};
+          "OneDrive" = { url = "https://onedrive.live.com/"; };
           "Wuxiaworld – Chinese fantasy novels and light novels!" = {
             url = "http://www.wuxiaworld.com/";
           };

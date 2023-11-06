@@ -1,10 +1,10 @@
-{pkgs, ...}: {
+{ pkgs, ... }: {
   security.doas = {
     enable = true;
     wheelNeedsPassword = false;
     extraRules = [
       {
-        groups = ["wheel"];
+        groups = [ "wheel" ];
         persist = true;
         keepEnv = true;
       }

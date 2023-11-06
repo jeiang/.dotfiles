@@ -1,29 +1,29 @@
 {
   description = "Nix Flake to configure my computer(s).";
 
-  outputs = inputs @ {
-    self,
-    nixpkgs,
-    nvfetcher,
-    flake-parts,
-    nixos-flake,
-    devenv,
-    treefmt-nix,
-    nur,
-    nix-gaming,
-    impermanence,
-    agenix,
-    ...
-  }:
-    flake-parts.lib.mkFlake {inherit inputs;} {
-      systems = ["x86_64-linux"];
+  outputs =
+    inputs @ { self
+    , nixpkgs
+    , nvfetcher
+    , flake-parts
+    , nixos-flake
+    , devenv
+    , treefmt-nix
+    , nur
+    , nix-gaming
+    , impermanence
+    , agenix
+    , ...
+    }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [ "x86_64-linux" ];
       imports = [
         nixos-flake.flakeModule
         devenv.flakeModule
         treefmt-nix.flakeModule
       ];
 
-      perSystem = {system, ...}: {
+      perSystem = { system, ... }: {
         _module.args.pkgs = import nixpkgs {
           inherit system;
           overlays = [
@@ -77,7 +77,7 @@
 
             # Users
             # TODO: add a root user dir
-            ({config, ...}: {
+            ({ config, ... }: {
               users.users.root = {
                 hashedPasswordFile = config.age.secrets.root-password.path;
               };
@@ -88,7 +88,7 @@
             self.nixosModules.home-manager
             impermanence.nixosModules.impermanence
             nur.nixosModules.nur
-            {nixpkgs.overlays = [nur.overlay];}
+            { nixpkgs.overlays = [ nur.overlay ]; }
             nix-gaming.nixosModules.pipewireLowLatency
             agenix.nixosModules.default
 
@@ -101,8 +101,8 @@
           ];
         };
 
-        homeModules = import ./modules/home {};
-        systemModules = import ./modules/system {};
+        homeModules = import ./modules/home { };
+        systemModules = import ./modules/system { };
       };
     };
 

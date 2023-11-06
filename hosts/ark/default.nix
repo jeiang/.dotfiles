@@ -1,7 +1,6 @@
-{
-  pkgs,
-  inputs,
-  ...
+{ pkgs
+, inputs
+, ...
 }: {
   imports = [
     ./hardware-configuration.nix
@@ -12,7 +11,7 @@
     loader.efi.canTouchEfiVariables = true;
     # boot.kernelPackages = pkgs.linuxKernel.kernels.linux_xanmod_latest;
     # For Keychron Keyboard
-    kernelModules = ["hid-apple"];
+    kernelModules = [ "hid-apple" ];
     kernelParams = [
       "quiet"
       "loglevel=3"
@@ -25,7 +24,7 @@
       options hid_apple fnmode=2
     '';
     # Enable BTRFS and NTFS
-    supportedFilesystems = ["ntfs" "btrfs"];
+    supportedFilesystems = [ "ntfs" "btrfs" ];
   };
 
   networking.hostName = "ark";

@@ -1,12 +1,13 @@
-{
-  pkgs,
-  inputs,
-  homeModules,
-  config,
-  ...
-}: let
+{ pkgs
+, inputs
+, homeModules
+, config
+, ...
+}:
+let
   username = "aidanp";
-in {
+in
+{
   users.users.${username} = {
     description = "Aidan Pinard";
     isNormalUser = true;

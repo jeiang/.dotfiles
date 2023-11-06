@@ -1,10 +1,10 @@
-{pkgs, ...}: {
-  imports = [./main.nix ./secondary.nix];
+{ pkgs, ... }: {
+  imports = [ ./main.nix ./secondary.nix ];
 
   programs.firefox = {
     enable = true;
     package = pkgs.wrapFirefox pkgs.firefox-unwrapped {
-      extraPolicies = {ExtensionSettings = {};};
+      extraPolicies = { ExtensionSettings = { }; };
     };
   };
 }

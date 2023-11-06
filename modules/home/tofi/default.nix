@@ -1,4 +1,5 @@
-{pkgs, ...}: let
+{ pkgs, ... }:
+let
   # TODO: stylix
   # colors = config.lib.base16.mkSchemeAttrs config.stylix.base16Scheme;
   colors = {
@@ -20,10 +21,11 @@
     "base0F" = "e6b673";
   };
   jetbrainsmono-nf = pkgs.nerdfonts.override {
-    fonts = ["JetBrainsMono"];
+    fonts = [ "JetBrainsMono" ];
   };
   font = "${jetbrainsmono-nf}/share/fonts/truetype/NerdFonts/JetBrains Mono Regular Nerd Font Complete Mono.ttf";
-in {
+in
+{
   home.packages = with pkgs; [
     tofi
   ];

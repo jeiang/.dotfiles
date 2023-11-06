@@ -71,6 +71,6 @@
       "sysv"
       "ufs"
     ];
-    kernelModules = ["tcp_bbr"];
+    kernelModules = [ "tcp_bbr" ];
   };
 }

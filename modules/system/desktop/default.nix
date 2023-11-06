@@ -1,4 +1,4 @@
-{pkgs, ...}: {
+{ pkgs, ... }: {
   fonts = {
     packages = with pkgs; [
       # icon fonts
@@ -12,7 +12,7 @@
       roboto
 
       # nerdfonts
-      (nerdfonts.override {fonts = ["FiraCode" "JetBrainsMono"];})
+      (nerdfonts.override { fonts = [ "FiraCode" "JetBrainsMono" ]; })
     ];
 
     # causes more issues than it solves
@@ -23,10 +23,10 @@
     # the reason there's Noto Color Emoji everywhere is to override DejaVu's
     # B&W emojis that would sometimes show instead of some Color emojis
     fontconfig.defaultFonts = {
-      serif = ["Roboto Serif" "Noto Color Emoji"];
-      sansSerif = ["Roboto" "Noto Color Emoji"];
-      monospace = ["JetBrainsMono Nerd Font" "Noto Color Emoji"];
-      emoji = ["Noto Color Emoji"];
+      serif = [ "Roboto Serif" "Noto Color Emoji" ];
+      sansSerif = [ "Roboto" "Noto Color Emoji" ];
+      monospace = [ "JetBrainsMono Nerd Font" "Noto Color Emoji" ];
+      emoji = [ "Noto Color Emoji" ];
     };
   };
 
@@ -79,7 +79,7 @@
     upower.enable = true;
 
     # needed for GNOME services outside of GNOME Desktop
-    dbus.packages = [pkgs.gcr];
+    dbus.packages = [ pkgs.gcr ];
   };
 
   security = {

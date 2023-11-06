@@ -1,7 +1,6 @@
-{
-  pkgs,
-  config,
-  ...
+{ pkgs
+, config
+, ...
 }: {
   devenv.shells = rec {
     default = sysdev;
@@ -48,12 +47,15 @@
   treefmt = {
     projectRootFile = "flake.nix";
     programs = {
-      alejandra.enable = true;
       deadnix.enable = true;
+      nixpkgs-fmt.enable = true;
       prettier.enable = true;
       shellcheck.enable = true;
       stylua.enable = true;
       taplo.enable = true;
     };
+    settings.formatter.nixpkgs-fmt.excludes = [
+      "**/_sources/**"
+    ];
   };
 }
