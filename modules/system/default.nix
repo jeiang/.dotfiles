@@ -9,4 +9,5 @@ _: {
   nix = import ./nix;
   plymouth = import ./plymouth;
   security = import ./security;
+  steam = import ./steam;
 }
