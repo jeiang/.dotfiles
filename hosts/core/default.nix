@@ -29,5 +29,5 @@
   # compresses half the ram for use as swap
   zramSwap.enable = true;
 
-  system.stateVersion = lib.mkDefault "23.05"; # Did you read the comment?
+  system.stateVersion = lib.mkDefault "23.11"; # Did you read the comment?
 }
