@@ -60,6 +60,7 @@
     overlays = [
       inputs.agenix.overlays.default
       inputs.hyprcontrib.overlays.default
+      inputs.hyprland.overlays.default
       inputs.nur.overlay
       inputs.nvfetcher.overlays.default
 
