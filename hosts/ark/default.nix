@@ -7,8 +7,13 @@
   ];
   boot = {
     # Boot & Kernel
-    loader.systemd-boot.enable = true;
-    loader.efi.canTouchEfiVariables = true;
+    loader = {
+      systemd-boot = {
+        enable = true;
+        consoleMode = "max";
+      };
+      efi.canTouchEfiVariables = true;
+    };
     # kernelPackages = pkgs.linuxKernel.kernels.linux_xanmod_latest;
 
     # For Keychron Keyboard
@@ -19,6 +24,7 @@
       "systemd.show_status=auto"
       "rd.udev.log_level=3"
     ];
+    # Systemd in stage 1
     initrd.systemd.enable = true;
     # Use Fn Keys on Keychron Keyboard
     extraModprobeConfig = ''
