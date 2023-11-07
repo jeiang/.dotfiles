@@ -32,6 +32,7 @@
     files = [
       ".config/cachix/config.dhall"
       ".config/fish/fish_variables"
+      ".local/share/nix/trusted-settings.json"
       ".ssh/id_ed25519"
       ".ssh/id_ed25519.pub"
       ".ssh/id_rsa"
