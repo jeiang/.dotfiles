@@ -58,6 +58,7 @@
             self.systemModules.nix
             self.systemModules.plymouth
             self.systemModules.security
+            self.systemModules.steam
             ./secrets
 
             # Users
