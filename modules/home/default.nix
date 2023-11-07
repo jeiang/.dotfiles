@@ -1,7 +1,7 @@
 _: {
   firefox = import ./firefox;
   fish = import ./fish;
-  games = import ./games;
+  gaming = import ./gaming;
   git = import ./git;
   gpg = import ./gpg;
   helix = import ./helix;
