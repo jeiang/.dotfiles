@@ -1,5 +1,4 @@
 { pkgs
-, inputs
 , homeModules
 , config
 , ...
@@ -21,7 +20,6 @@ in
   };
   home-manager.users.${username} = {
     imports = with homeModules; [
-      inputs.hyprland.homeManagerModules.default
       firefox
       fish
       games
