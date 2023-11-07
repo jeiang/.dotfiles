@@ -4,6 +4,10 @@
 
 ### High Priority
 
+- Steam
+
+- High Res boot screen
+
 - Set up Stylix
 
   - Use a library which exposes colors (such as base-16.nix) and manually theme programs not already supported
@@ -13,14 +17,6 @@
     - Hyprland
 
     - Mako (notifications)
-
-- Add overlays
-
-  - Add overlays for packages exposed by inputs
-
-  - Add overlays dir using nvfetcher (like prior digga config)
-
-  - Replace all references to fetchfromgithub with nvfetcher
 
 - Set up an App Launcher
 
@@ -39,12 +35,6 @@
 ### Low Priority
 
 - Create a client for hyprland that listens to the IPC and manages events
-
-- Set up Wezterm
-
-  - Wezterm is currently broken on Hyprland
-
-  - Add more fallback fonts
 
 - Programs to set up/add
 
@@ -89,5 +79,19 @@
 ## In Progress
 
 ## Done
+
+- Add overlays
+
+  - Add overlays for packages exposed by inputs
+
+  - Add overlays dir using nvfetcher (like prior digga config)
+
+  - Replace all references to fetchfromgithub with nvfetcher
+
+- Set up Wezterm
+
+  - ~~Wezterm is currently broken on Hyprland~~ (No longer broken)
+
+  - Add more fallback fonts
 
 ## Rejected
