@@ -7,6 +7,7 @@
       ".cache/nix"
       ".cache/nix-index"
       ".config/discord"
+      ".config/fish"
       "cornn-flaek"
       "Desktop"
       "Documents"
@@ -28,10 +29,13 @@
         directory = ".local/share/Steam";
         method = "symlink";
       }
+      {
+        directory = ".local/share/lutris";
+        method = "symlink";
+      }
     ];
     files = [
       ".config/cachix/config.dhall"
-      ".config/fish/fish_variables"
       ".local/share/nix/trusted-settings.json"
       ".ssh/id_ed25519"
       ".ssh/id_ed25519.pub"

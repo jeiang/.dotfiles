@@ -22,7 +22,7 @@ in
     imports = with homeModules; [
       firefox
       fish
-      games
+      gaming
       git
       gpg
       helix

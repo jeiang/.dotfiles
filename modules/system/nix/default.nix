@@ -64,9 +64,15 @@
       inputs.nur.overlay
       inputs.nvfetcher.overlays.default
 
+      # Expose inputs for overlays
+      (_: _: {
+        inputs' = inputs;
+      })
+
       (import ./pkgs)
-      (import ./overlays/wezterm.nix)
+      (import ./overlays/nix-gaming.nix)
       (import ./overlays/steam.nix)
+      (import ./overlays/wezterm.nix)
     ];
   };
 }

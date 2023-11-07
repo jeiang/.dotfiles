@@ -4,10 +4,6 @@
 
 ### High Priority
 
-- Steam
-
-- High Res boot screen
-
 - Set up Stylix
 
   - Use a library which exposes colors (such as base-16.nix) and manually theme programs not already supported
@@ -93,5 +89,9 @@
   - ~~Wezterm is currently broken on Hyprland~~ (No longer broken)
 
   - Add more fallback fonts
+
+- Steam
+
+- High Res boot screen
 
 ## Rejected

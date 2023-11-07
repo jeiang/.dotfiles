@@ -69,6 +69,7 @@
             agenix.nixosModules.default
             impermanence.nixosModules.impermanence
             nix-gaming.nixosModules.pipewireLowLatency
+            nix-gaming.nixosModules.steamCompat
             nur.nixosModules.nur
             self.nixosModules.home-manager
 
