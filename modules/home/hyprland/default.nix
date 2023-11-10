@@ -158,14 +158,21 @@
           wl-clipboard = "${pkgs.wl-clipboard}/bin/wl-paste";
           cliphist = "${pkgs.cliphist}/bin/cliphist";
           mako = "${pkgs.mako}/bin/mako";
+          swww = "${pkgs.swww}/bin/swww";
         in
         [
+          # TODO: make a program to cycle through automatically + w/ keybinds
+          "${swww} init"
           "${mako}"
           "${wl-clipboard} --type text --watch ${cliphist} store" #Stores only text data
           "${wl-clipboard} --type image --watch ${cliphist} store" #Stores only image data
         ];
     };
   };
+
+  home.packages = with pkgs; [
+    swww
+  ];
 
   # Notifications
   services.mako = {
