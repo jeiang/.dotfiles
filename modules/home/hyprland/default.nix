@@ -172,6 +172,7 @@
 
   home.packages = with pkgs; [
     swww
+    xwaylandvideobridge
   ];
 
   # Notifications
