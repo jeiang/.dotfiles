@@ -13,8 +13,5 @@ _: prev: {
         xorg.libXinerama
         xorg.libXScrnSaver
       ];
-    extraProfile = ''
-      export GDK_SCALE=2
-    '';
   };
 }
