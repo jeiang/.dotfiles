@@ -6,6 +6,7 @@
       ".cache/bat"
       ".cache/nix"
       ".cache/nix-index"
+      ".cache/swww"
       ".config/discord"
       ".config/fish"
       "cornn-flaek"
