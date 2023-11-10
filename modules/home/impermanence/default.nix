@@ -19,6 +19,7 @@
       ".local/share/zoxide"
       ".mozilla"
       "Music"
+      ".parallel"
       "Pictures"
       "Programming"
       "Public"

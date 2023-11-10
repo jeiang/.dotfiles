@@ -23,6 +23,7 @@
     libtree
     mcomix
     ouch
+    parallel
     procs
     qview
     rargs
