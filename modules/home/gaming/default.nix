@@ -1,5 +1,6 @@
 { pkgs, ... }: {
   home.packages = [
+    pkgs.nwjs
     pkgs.openttd
     (pkgs.lutris.override {
       extraLibraries = pkgs: with pkgs; [
@@ -10,6 +11,9 @@
         mangohud
         proton-ge
         wine-tkg
+        p7zip
+        protontricks
+        gnome.zenity
       ];
     })
   ];

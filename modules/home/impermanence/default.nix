@@ -4,11 +4,14 @@
     allowOther = true;
     directories = [
       ".cache/bat"
+      ".cache/lutris"
       ".cache/nix"
       ".cache/nix-index"
       ".cache/swww"
       ".config/discord"
       ".config/fish"
+      ".config/lutris"
+      ".config/modorganizer2"
       "cornn-flaek"
       "Desktop"
       "Documents"
