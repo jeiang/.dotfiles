@@ -9,6 +9,7 @@
     cachix
     choose
     cliphist
+    devenv
     discord
     duf
     erdtree

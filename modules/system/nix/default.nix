@@ -70,7 +70,9 @@
       })
 
       (import ./pkgs)
+      (import ./overlays/devenv.nix)
       (import ./overlays/nix-gaming.nix)
+      (import ./overlays/nwjs.nix)
       (import ./overlays/steam.nix)
       (import ./overlays/wezterm.nix)
     ];
