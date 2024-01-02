@@ -59,6 +59,7 @@
     config.allowUnfree = true;
     overlays = [
       inputs.agenix.overlays.default
+      inputs.helix.overlays.default
       inputs.hyprcontrib.overlays.default
       inputs.hyprland.overlays.default
       inputs.nur.overlay

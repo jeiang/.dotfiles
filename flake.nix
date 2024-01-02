@@ -7,6 +7,7 @@
     , devenv
     , flake-parts
     , impermanence
+    , helix
     , nix-gaming
     , nixos-flake
     , nixpkgs
@@ -29,6 +30,7 @@
           overlays = [
             agenix.overlays.default
             nvfetcher.overlays.default
+            helix.overlays.default
           ];
         };
         imports = [
@@ -98,6 +100,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     flake-parts.url = "github:hercules-ci/flake-parts";
+    helix = {
+      url = "github:helix-editor/helix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
