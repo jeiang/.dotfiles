@@ -20,6 +20,7 @@
     foliate
     gimp
     hyperfine
+    jetbrains.idea-ultimate
     jq
     libtree
     mcomix
