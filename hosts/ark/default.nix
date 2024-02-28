@@ -38,6 +38,17 @@
   };
 
   networking.hostName = "ark";
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 111 2049 4000 4001 4002 20048 ];
+    allowedTCPPortRanges = [
+      {
+        from = 8000;
+        to = 8100;
+      }
+    ];
+    allowedUDPPorts = [ 111 2049 4000 4001 4002 20048 ];
+  };
 
   # Boot Console
   console.font = "${pkgs.terminus_font}/share/consolefonts/ter-u28n.psf.gz";
