@@ -15,6 +15,9 @@
       efi.canTouchEfiVariables = true;
     };
     kernelPackages = pkgs.linuxPackages_xanmod_latest;
+    kernel.sysctl = {
+      "vm.swappiness" = 10;
+    };
 
     # For Keychron Keyboard
     kernelModules = [ "hid-apple" ];
