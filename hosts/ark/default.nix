@@ -55,6 +55,19 @@
     };
   };
 
+  virtualisation.docker = {
+    enable = true;
+    storageDriver = "btrfs";
+    rootless = {
+      enable = true;
+      setSocketVariable = true;
+    };
+    daemon.settings = {
+      data-root = "/persist/docker";
+    };
+  };
+  users.extraGroups.docker.members = [ "aidanp" ];
+
   xdg.portal = {
     enable = true;
     extraPortals = [
