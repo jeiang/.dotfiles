@@ -21,7 +21,12 @@
   services = {
     openssh = {
       enable = true;
-      settings.UseDns = true;
+      settings = {
+        UseDns = true;
+        # require public key authentication for better security
+        PasswordAuthentication = false;
+        KbdInteractiveAuthentication = false;
+      };
     };
 
     # DNS resolver
