@@ -20,6 +20,7 @@
     foliate
     gimp
     hyperfine
+    ivpn
     jetbrains.idea-ultimate
     jq
     libtree
