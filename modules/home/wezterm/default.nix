@@ -19,6 +19,8 @@ let
       config = wezterm.config_builder()
     end
 
+    config.enable_wayland = false
+
     config.default_prog = { "${pkgs.zellij}/bin/zellij" }
 
     config.animation_fps = 60
