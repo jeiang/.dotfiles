@@ -31,5 +31,6 @@
 
     # DNS resolver
     resolved.enable = true;
+    ivpn.enable = true;
   };
 }
