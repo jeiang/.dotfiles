@@ -68,6 +68,7 @@
       alsa.support32Bit = true;
       jack.enable = true;
       pulse.enable = true;
+      wireplumber.enable = true;
 
       # see https://github.com/fufexan/nix-gaming/#pipewire-low-latency
       lowLatency.enable = true;
