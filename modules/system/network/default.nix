@@ -9,8 +9,8 @@
       dns = "systemd-resolved";
       wifi.powersave = true;
 
-      ethernet.macAddress = "random";
-      wifi.macAddress = "random";
+      # ethernet.macAddress = "random";
+      # wifi.macAddress = "random";
     };
     nameservers = [
       "8.8.8.8"
