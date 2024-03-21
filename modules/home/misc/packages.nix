@@ -28,6 +28,7 @@
     ouch
     parallel
     procs
+    qbittorrent
     qview
     rargs
     ripgrep
