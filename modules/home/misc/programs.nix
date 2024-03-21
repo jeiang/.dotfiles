@@ -26,6 +26,11 @@
       fuzzySearchFactor = 2;
     };
     nix-index.enable = true;
-    zoxide.enable = true;
+    zoxide = {
+      enable = true;
+      options = [
+        "--cmd" "cd"
+      ];
+    };
   };
 }
