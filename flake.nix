@@ -1,167 +1,81 @@
 {
-  description = "Nix Flake to configure my computer(s).";
-
-  outputs =
-    inputs @ { self
-    , agenix
-    , devenv
-    , flake-parts
-    , impermanence
-    , helix
-    , nix-gaming
-    , nixos-flake
-    , nixpkgs
-    , nur
-    , nvfetcher
-    , treefmt-nix
-    , ...
-    }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [ "x86_64-linux" ];
+  outputs = inputs:
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [ "x86_64-linux" "aarch64-darwin" ];
       imports = [
-        nixos-flake.flakeModule
-        devenv.flakeModule
-        treefmt-nix.flakeModule
+        inputs.nixos-flake.flakeModule
+        inputs.treefmt-nix.flakeModule
+        inputs.devenv.flakeModule
+        ./users
       ];
 
-      perSystem = { system, ... }: {
-        _module.args.pkgs = import nixpkgs {
-          inherit system;
-          overlays = [
-            agenix.overlays.default
-            nvfetcher.overlays.default
-            helix.overlays.default
-          ];
-        };
-        imports = [
-          ./devenv
-        ];
-      };
-
-      flake = {
-        # Configurations for Linux (NixOS) machines
-        nixosConfigurations.ark = self.nixos-flake.lib.mkLinuxSystem {
-          nixpkgs.hostPlatform = "x86_64-linux";
-          _module.args = {
-            inherit inputs;
-            inherit (self) homeModules;
+      perSystem = { pkgs, config, ... }: {
+        treefmt.config = {
+          projectRootFile = "flake.nix";
+          programs = {
+            nixpkgs-fmt.enable = true;
+            deadnix.enable = true;
+            prettier.enable = true;
+            shellcheck.enable = true;
+            stylua.enable = true;
+            taplo.enable = true;
           };
-          imports = [
-            # Basic config
-            ./hosts/core
-            ./hosts/ark
-            self.systemModules.bluetooth
-            self.systemModules.desktop
-            self.systemModules.doas
-            self.systemModules.gamemode
-            self.systemModules.greetd
-            self.systemModules.impermanence
-            self.systemModules.network
-            self.systemModules.nix
-            self.systemModules.plymouth
-            self.systemModules.security
-            self.systemModules.steam
-            ./secrets
-
-            # Users
-            ./users/aidanp
-            ./users/root.nix
-
-            # Modules
-            agenix.nixosModules.default
-            impermanence.nixosModules.impermanence
-            nix-gaming.nixosModules.pipewireLowLatency
-            nix-gaming.nixosModules.steamCompat
-            nur.nixosModules.nur
-            self.nixosModules.home-manager
-
-            # Misc Config
-            {
-              home-manager.extraSpecialArgs = {
-                inherit inputs;
-              };
-            }
-          ];
         };
-
-        homeModules = import ./modules/home { };
-        systemModules = import ./modules/system { };
+        formatter = config.treefmt.build.wrapper;
+        devenv.shells = {
+          default = {
+            name = "sysconf-dev";
+            packages = with pkgs; [
+              config.treefmt.build.wrapper
+              eza
+              git
+              helix
+              nixUnstable
+              ripgrep
+            ];
+            languages = {
+              lua.enable = true;
+              nix.enable = true;
+            };
+            pre-commit = {
+              hooks = {
+                editorconfig-checker.enable = true;
+                markdownlint.enable = true;
+                nil.enable = true;
+                statix.enable = true;
+                treefmt.enable = true;
+              };
+              settings = {
+                treefmt.package = config.treefmt.build.wrapper;
+                markdownlint.config = {
+                  "MD013" = {
+                    "line_length" = 120;
+                  };
+                };
+              };
+            };
+          };
+        };
       };
+      flake = { };
     };
 
   inputs = {
-    agenix = {
-      url = "github:ryantm/agenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.home-manager.follows = "home-manager";
-    };
-    devenv = {
-      url = "github:cachix/devenv";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    flake-parts.url = "github:hercules-ci/flake-parts";
-    helix = {
-      url = "github:helix-editor/helix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    home-manager = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    hyprcontrib = {
-      url = "github:hyprwm/contrib";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    hyprland = {
-      url = "github:hyprwm/Hyprland";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    hyprpaper = {
-      url = "github:hyprwm/hyprpaper";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    hyprportal = {
-      url = "github:hyprwm/xdg-desktop-portal-hyprland";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    impermanence.url = "github:nix-community/impermanence";
-    mk-shell-bin.url = "github:rrbutani/nix-mk-shell-bin";
-    nix2container = {
-      url = "github:nlewo/nix2container";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    nix-gaming = {
-      url = "github:fufexan/nix-gaming";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-parts.follows = "flake-parts";
-    };
-    nixos-flake.url = "github:srid/nixos-flake";
+    # Principle inputs (updated by `nix run .#update`)
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nur.url = "github:nix-community/nur";
-    nvfetcher = {
-      url = "github:berberman/nvfetcher";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    treefmt-nix = {
-      url = "github:numtide/treefmt-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
+    nix-darwin.url = "github:lnl7/nix-darwin/master";
+    nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
+    home-manager.url = "github:nix-community/home-manager";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
-  nixConfig = {
-    allowUnfree = true;
-    extra-experimental-features = "nix-command flakes";
-    extra-substituters = [
-      "https://helix.cachix.org"
-      "https://hyprland.cachix.org"
-      "https://jeiang.cachix.org"
-      "https://nix-community.cachix.org"
-    ];
-    extra-trusted-public-keys = [
-      "helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="
-      "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
-      "jeiang.cachix.org-1:Ax2onCzp6V74ORnjlTAbZsDmlLeMMzDOzzcC2qHfJKg="
-      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-    ];
+    # Utility inputs
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    nixos-flake.url = "github:srid/nixos-flake";
+
+    # Devshell
+    treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
+    devenv.url = "github:cachix/devenv";
+    devenv.inputs.nixpkgs.follows = "nixpkgs";
   };
 }

@@ -31,6 +31,7 @@ I have used tutorials/configs from the below people (and maybe a few others whic
 - [hexa & kjhoerr]: kjhoerr asked a question for something I had wanted to do for a while (same partial tutorial too).
   hexa answered.
 - [JavaCafe01]: I saw the frosted flakes and immediately thought `cornn flaek`.
+- [srid]: I used his `nixos-flake` as a base for this flake.
 
 <!-- Links -->
 
@@ -44,3 +45,4 @@ I have used tutorials/configs from the below people (and maybe a few others whic
 [mysterio77]: https://github.com/Misterio77
 [this template]: https://zero-to-flakes.com/nixos-flake/templates
 [wil taylor]: https://linktr.ee/nixos
+[srid]: https://github.com/srid
