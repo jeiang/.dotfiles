@@ -29,6 +29,7 @@
     parallel
     procs
     qbittorrent
+    qbittorrent-nox
     qview
     rargs
     ripgrep
