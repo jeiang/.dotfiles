@@ -32,6 +32,11 @@
               helix
               nixUnstable
               ripgrep
+              just
+              sops
+              age
+              ssh-to-age
+              nixos-rebuild
             ];
             languages = {
               lua.enable = true;
@@ -77,5 +82,9 @@
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
     devenv.url = "github:cachix/devenv";
     devenv.inputs.nixpkgs.follows = "nixpkgs";
+
+    # Encrypted secrets
+    sops-nix.url = "github:Mic92/sops-nix";
+    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 }

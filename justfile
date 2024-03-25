@@ -12,8 +12,8 @@ remote-build host:
 
 # Run this after editing .sops.yaml
 sops-updatekeys:
-    sops updatekeys secrets.json
+    sops updatekeys secrets.yaml
 
 # Edit or view the secrets
 sops-edit:
-    sops secrets.json
+    sops secrets.yaml

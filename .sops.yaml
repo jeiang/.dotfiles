@@ -1,0 +1,11 @@
+keys:
+  - &zakkart-aidanp age1jrc3th7qj8w29efm4vmtqel3zckrmjn7hcu3wl3ktzrxjdjdhfcqee8233
+  - &linux-aidanp age10l7xezvc3c7splszdgxlrcpefpvsqdslgmr8hufrzyfqehnttv4qktwrer
+  - &solder-system age1m6uvyajwzumnn7sf2eaasekwl6e3cugrvcsqyus3gsjrus4k6alq8reknm
+creation_rules:
+  - path_regex: secrets.yaml$
+    key_groups:
+      - age:
+          - *zakkart-aidanp
+          - *linux-aidanp
+          - *solder-system
