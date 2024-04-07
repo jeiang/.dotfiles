@@ -16,6 +16,10 @@
       dates = "weekly";
       options = "--delete-older-than 7d";
     };
+    optimise = {
+        automatic = true;
+        dates = [ "03:45" ];
+    };
 
     # pin the registry to avoid downloading and evaling a new nixpkgs version every time
     registry = lib.mapAttrs (_: v: { flake = v; }) inputs;
