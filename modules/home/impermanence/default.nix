@@ -7,7 +7,6 @@
       ".cache/lutris"
       ".cache/nix"
       ".cache/nix-index"
-      ".cache/swww"
       ".config/discord"
       ".config/fish"
       ".config/lutris"
