@@ -1,8 +1,9 @@
 default:
     @just --list
 
+# Format all files
 fmt:
-    treefmt
+    nix fmt
 
 remote-build host:
     nixos-rebuild switch --fast --use-remote-sudo \
