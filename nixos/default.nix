@@ -1,7 +1,4 @@
-{ flake, ... }:
-let
-  inherit (flake) inputs;
-in
+{ inputs, ... }:
 {
   flake.nixosModules = {
     # Common nixos/nix-darwin configuration shared between Linux and macOS.
