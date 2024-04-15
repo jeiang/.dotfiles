@@ -8,7 +8,8 @@
         inputs.devenv.flakeModule
         ./users
         ./devenv.nix
-        ./modules
+        ./nixos
+        ./home
       ];
       flake = {
         nixosConfigurations = {
@@ -43,8 +44,8 @@
     mk-shell-bin.url = "github:rrbutani/nix-mk-shell-bin";
 
     # Encrypted secrets
-    sops-nix.url = "github:Mic92/sops-nix";
-    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
+    agenix.url = "github:ryantm/agenix";
+    agenix.inputs.nixpkgs.follows = "nixpkgs";
 
     # Disks and partitions
     disko.url = "github:nix-community/disko";

@@ -1,5 +1,5 @@
 _: {
-  perSystem = { pkgs, config, ... }: {
+  perSystem = { pkgs, config, inputs', ... }: {
     treefmt.config = {
       projectRootFile = "flake.nix";
       programs = {
@@ -23,9 +23,7 @@ _: {
           nixUnstable
           ripgrep
           just
-          sops
-          age
-          ssh-to-age
+          inputs'.agenix.packages.default
           nixos-rebuild
           editorconfig-checker
         ];

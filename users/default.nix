@@ -20,6 +20,13 @@ let
           Authorized SSH public keys
         '';
       };
+      hashedPasswordFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        description = ''
+          The full path to a file that contains the hash of the user’s password.
+        '';
+      };
+      # TODO: add home manager config options here
     };
   };
   peopleSubmodule = lib.types.submodule {

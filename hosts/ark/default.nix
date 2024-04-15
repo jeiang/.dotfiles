@@ -1,5 +1,4 @@
 { flake, modulesPath, lib, pkgs, ... }:
-
 let
   inherit (flake) inputs;
   inherit (inputs) self;
@@ -7,19 +6,20 @@ in
 {
   imports = [
     (modulesPath + "/installer/scan/not-detected.nix")
-    self.nixosModules.default
-    inputs.disko.nixosModules.disko
+    self.nixosModules.common
+    self.nixosModules.linux
     ./filesystems.nix
   ];
 
+  # misc static system info
   system.stateVersion = "24.05";
   networking.hostName = "ark";
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   powerManagement.cpuFreqGovernor = lib.mkDefault "powersave";
   hardware.cpu.intel.updateMicrocode = true;
 
+  # Boot & Kernel
   boot = {
-    # Boot & Kernel
     loader = {
       systemd-boot = {
         enable = true;
@@ -50,7 +50,6 @@ in
     # Enable BTRFS and NTFS
     supportedFilesystems = [ "ntfs" "btrfs" ];
   };
-
   # Boot Console
   console.font = "${pkgs.terminus_font}/share/consolefonts/ter-u28n.psf.gz";
 
@@ -62,4 +61,7 @@ in
 
   # NVME SSD
   services.fstrim.enable = true;
+
+  # Root Config
+  # users.users.root.hashedPasswordFile = config.age.secrets.ark-root-password.path;
 }

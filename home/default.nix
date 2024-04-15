@@ -6,12 +6,12 @@
       home.stateVersion = "24.05";
       imports = [ ];
     };
-    common-macos = {
+    macos = {
       imports = [
         self.homeModules.common
       ];
     };
-    common-linux = {
+    linux = {
       imports = [
         self.homeModules.common
       ];
