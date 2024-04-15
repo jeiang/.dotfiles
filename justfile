@@ -5,11 +5,12 @@ default:
 fmt:
     nix fmt
 
-remote-build host:
+remote-build host user=`printf $USER`:
+    @printf "Building on {{host}}...\nUser: %s\n" "{{user}}"
     nixos-rebuild switch --fast --use-remote-sudo \
         --flake .#{{host}} \
-        --target-host $USER@{{host}} \
-        --build-host $USER@{{host}}
+        --target-host {{user}}@{{host}} \
+        --build-host {{user}}@{{host}}
 
 # Run this after editing .sops.yaml
 sops-updatekeys:

@@ -13,7 +13,7 @@
       flake = {
         nixosConfigurations = {
           ark = self.nixos-flake.lib.mkLinuxSystem ./hosts/ark;
-          solder = self.nixos-flake.lib.mkLinuxSystem ./hosts/solder;
+          # solder = self.nixos-flake.lib.mkLinuxSystem ./hosts/solder;
         };
         darwinConfigurations = {
           zakkart = self.nixos-flake.lib.mkDarwinSystem ./hosts/zakkart;
