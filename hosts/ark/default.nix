@@ -6,7 +6,6 @@ in
 {
   imports = [
     (modulesPath + "/installer/scan/not-detected.nix")
-    self.nixosModules.common
     self.nixosModules.linux
     ./filesystems.nix
   ];
@@ -63,5 +62,5 @@ in
   services.fstrim.enable = true;
 
   # Root Config
-  # users.users.root.hashedPasswordFile = config.age.secrets.ark-root-password.path;
+  # users.users.root.hashedPasswordFile = self.age.secrets.ark-root-password.path;
 }

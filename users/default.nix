@@ -22,6 +22,7 @@ let
       };
       hashedPasswordFile = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
+        default = null;
         description = ''
           The full path to a file that contains the hash of the user’s password.
         '';
