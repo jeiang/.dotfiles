@@ -1,5 +1,5 @@
 _: {
-  perSystem = { pkgs, config, inputs', ... }: {
+  perSystem = { pkgs, config, ... }: {
     treefmt.config = {
       projectRootFile = "flake.nix";
       programs = {
@@ -23,10 +23,14 @@ _: {
           nixUnstable
           ripgrep
           just
-          inputs'.agenix.packages.default
+          sops
+          age
+          ssh-to-age
           nixos-rebuild
           editorconfig-checker
+          nh
         ];
+        env.FLAKE = ./.;
         languages = {
           lua.enable = true;
           nix.enable = true;

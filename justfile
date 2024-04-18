@@ -4,6 +4,11 @@ default:
 # Format all files
 fmt:
     nix fmt
+    statix fix
+
+# Check for nix errors
+check:
+    nix flake check --impure --all-systems
 
 remote-build host user=`printf $USER`:
     @printf "Building on {{host}}...\nUser: %s\n" "{{user}}"
