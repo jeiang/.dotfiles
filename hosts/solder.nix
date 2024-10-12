@@ -58,7 +58,7 @@
   environment.systemPackages = with pkgs; [
     helix
     git
-    # (writeScriptBin "sudo" ''exec doas "$@"'')
+    (writeScriptBin "sudo" ''exec doas "$@"'')
   ];
   programs = {
     fish.enable = true;
@@ -108,7 +108,7 @@
       acceptTerms = true;
       defaults.email = "aidan@aidanpinard.co";
     };
-    sudo.enable = true;
+    sudo.enable = false;
     doas = {
       enable = true;
       wheelNeedsPassword = false;
