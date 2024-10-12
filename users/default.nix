@@ -1,0 +1,3 @@
+{
+  aidanp = import ./aidanp.nix;
+}
