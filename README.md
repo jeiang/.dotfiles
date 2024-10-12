@@ -4,14 +4,7 @@
 
 ![cornn flaek](assets/cornn-flaek.jpg "Cornn Flaek")
 
-This repository is home to the nix code that builds my systems. Currently just my laptop. Uses [this template] based on
-[flake.parts].
-
-## Why Nix?
-
-Nix allows for easy to manage, collaborative, reproducible deployments. This means that once something is setup and
-configured once, it works forever. If someone else shares their configuration, anyone can make use of it. Also, if it
-breaks, its pretty quick and easy to get back to up and running.
+This repository is home to the nix code that builds my systems. Currently just my server.
 
 ## Why the name?
 
@@ -31,16 +24,20 @@ I have used tutorials/configs from the below people (and maybe a few others whic
 - [hexa & kjhoerr]: kjhoerr asked a question for something I had wanted to do for a while (same partial tutorial too).
   hexa answered.
 - [JavaCafe01]: I saw the frosted flakes and immediately thought `cornn flaek`.
+- [srid]: I used his `nixos-flake` as a base for this flake.
+- [Vimjoyer]: Used some of his Youtube videos as a reference (e.g. setting up sops).
+- [Ryan Yin]: Helped me remove some of the unnecessary stuff that I had in the repo when I was reworking.
 
 <!-- Links -->
 
 [danth]: https://github.com/danth
 [divnix]: https://github.com/divnix
-[flake.parts]: https://flake.parts/
 [hexa & kjhoerr]: https://discourse.nixos.org/t/impermanence-vs-systemd-initrd-w-tpm-unlocking/25167/2
 [javacafe01]: https://github.com/JavaCafe01/frostedflakes
 [lord valen]: https://github.com/Lord-Valen
 [mt-caret]: https://github.com/mt-caret
 [mysterio77]: https://github.com/Misterio77
-[this template]: https://zero-to-flakes.com/nixos-flake/templates
 [wil taylor]: https://linktr.ee/nixos
+[srid]: https://github.com/srid
+[Vimjoyer]: https://www.youtube.com/@vimjoyer
+[Ryan Yin]: https://nixos-and-flakes.thiscute.world/
