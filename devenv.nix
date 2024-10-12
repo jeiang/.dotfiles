@@ -20,7 +20,7 @@ _: {
           eza
           git
           helix
-          nixUnstable
+          nixVersions.latest
           ripgrep
           just
           sops
@@ -35,21 +35,21 @@ _: {
           lua.enable = true;
           nix.enable = true;
         };
-        pre-commit = {
-          hooks = {
-            editorconfig-checker.enable = true;
-            markdownlint.enable = true;
-            nil.enable = true;
-            statix.enable = true;
-            treefmt.enable = true;
-          };
-          settings = {
-            treefmt.package = config.treefmt.build.wrapper;
-            markdownlint.config = {
+        pre-commit.hooks = {
+          editorconfig-checker.enable = true;
+          markdownlint = {
+            enable = true;
+            settings.configuration = {
               "MD013" = {
                 "line_length" = 120;
               };
             };
+          };
+          nil.enable = true;
+          statix.enable = true;
+          treefmt = {
+            enable = true;
+            package = config.treefmt.build.wrapper;
           };
         };
       };

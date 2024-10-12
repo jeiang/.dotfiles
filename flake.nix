@@ -1,37 +1,35 @@
 {
-  outputs = inputs:
-    inputs.flake-parts.lib.mkFlake { inherit inputs; }
+  description = "System configuration.";
+
+  outputs = { treefmt-nix, devenv, nixpkgs, flake-parts, ... }@inputs:
+    flake-parts.lib.mkFlake { inherit inputs; }
       {
         systems = [ "x86_64-linux" "aarch64-darwin" ];
         imports = [
-          inputs.treefmt-nix.flakeModule
-          inputs.devenv.flakeModule
+          treefmt-nix.flakeModule
+          devenv.flakeModule
           ./devenv.nix
         ];
-        perSystem = _: { };
         flake =
           let
-            lib = import ./lib.nix { inherit inputs; };
+            modules = import ./modules;
+            users = import ./users;
+            home = import ./home;
           in
           {
-            nixosConfigurations = {
-              ark = lib.mkNixos ./hosts/ark;
-              # solder = lib.mkNixos ./hosts/solder;
+            nixosConfigurations.solder = nixpkgs.lib.nixosSystem {
+              system = "x86_64-linux";
+              specialArgs = { inherit inputs modules users home; };
+              modules = [
+                ./hosts/solder.nix
+              ];
             };
-            darwinConfigurations = {
-              zakkart = lib.mkDarwin ./hosts/zakkart;
-            };
-
-            nixosModules = { };
-            darwinModules = { };
           };
       };
 
   inputs = {
     # Principal inputs
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nix-darwin.url = "github:lnl7/nix-darwin/master";
-    nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -54,5 +52,9 @@
     # Disks and partitions
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs";
+
+    # Misc Packages
+    helix.url = "github:helix-editor/helix";
+    helix.inputs.nixpkgs.follows = "nixpkgs";
   };
 }

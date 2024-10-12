@@ -8,12 +8,13 @@ fmt:
 
 # Check for nix errors
 check:
-    nix flake check --impure --all-systems
+    # Allow unsupported for MacOS w/ devenv, see https://github.com/cachix/devenv/issues/1455
+    NIXPKGS_ALLOW_UNSUPPORTED_SYSTEM=1 nix flake check --impure --all-systems
 
-remote-build host user=`printf $USER`:
+remote-build host system user=`printf $USER`:
     @printf "Building on {{host}}...\nUser: %s\n" "{{user}}"
     nixos-rebuild switch --fast --use-remote-sudo \
-        --flake .#{{host}} \
+        --flake .#{{system}} \
         --target-host {{user}}@{{host}} \
         --build-host {{user}}@{{host}}
 
