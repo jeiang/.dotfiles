@@ -42,25 +42,36 @@ in
     };
   };
 
-  disko.devices.disk.main = {
-    device = "/dev/sda";
-    type = "disk";
-    content = {
-      type = "gpt";
-      partitions = {
-        root = {
-          size = "100%";
-          content = {
-            type = "filesystem";
-            format = "ext4";
-            mountpoint = "/";
+  disko.devices.disk = {
+    main = {
+      device = "/dev/sda";
+      type = "disk";
+      content = {
+        type = "gpt";
+        partitions = {
+          root = {
+            size = "100%";
+            content = {
+              type = "filesystem";
+              format = "ext4";
+              mountpoint = "/";
+            };
           };
         };
-        plainSwap = {
-          size = "4G";
-          content = {
-            type = "swap";
-            discardPolicy = "both";
+      };
+    };
+    swap = {
+      device = "/dev/sdb";
+      type = "disk";
+      content = {
+        type = "gpt";
+        partitions = {
+          plainSwap = {
+            size = "4G";
+            content = {
+              type = "swap";
+              discardPolicy = "both";
+            };
           };
         };
       };
