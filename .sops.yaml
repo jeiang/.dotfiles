@@ -1,5 +1,6 @@
 keys:
   - &solder-system age1m6uvyajwzumnn7sf2eaasekwl6e3cugrvcsqyus3gsjrus4k6alq8reknm
+  - &solder-installer age1a53gmk90690hgah2uf92u6syv0d39wmfmpdgp5eaj2hxgyz6u30s00h79z
   - &aidanp-gpg A23C4EC9045EB889D82D17A4D980BA361E9FA4E3
 creation_rules:
   - path_regex: secrets.yaml$
@@ -8,3 +9,4 @@ creation_rules:
           - *aidanp-gpg
         age:
           - *solder-system
+          - *solder-installer
