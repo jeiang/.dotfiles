@@ -128,16 +128,17 @@ in
     };
   };
 
-  systemd.services.website = {
-    enable = true;
-    description = "Personal Website";
-    environment = {
-      SERVER_PORT = "${website-port}";
-    };
-    serviceConfig = {
-      ExecStart = "${inputs.website.packages.x86_64-linux.default}/bin/website";
-    };
-  };
+  # disable temp
+  # systemd.services.website = {
+  #   enable = true;
+  #   description = "Personal Website";
+  #   environment = {
+  #     SERVER_PORT = "${website-port}";
+  #   };
+  #   serviceConfig = {
+  #     ExecStart = "${inputs.website.packages.x86_64-linux.default}/bin/website";
+  #   };
+  # };
 
   security = {
     acme = {
