@@ -22,6 +22,10 @@ build system="":
     @printf "Building locally..." "{{system}}"
     nixos-rebuild switch --fast --flake .#{{system}}
 
+build-iso:
+    @printf "Generating installer image"
+    nix build .#nixosConfigurations.installer.config.system.build.isoImage
+
 # Run this after editing .sops.yaml
 sops-updatekeys:
     sops updatekeys secrets.yaml

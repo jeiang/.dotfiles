@@ -47,12 +47,33 @@ in
     type = "disk";
     content = {
       type = "gpt";
-      partitions.root = {
-        size = "100%";
-        content = {
-          type = "filesystem";
-          format = "ext4";
-          mountpoint = "/";
+      partitions = {
+        root = {
+          size = "100%";
+          content = {
+            type = "btrfs";
+            extraArgs = [ "-f" ];
+            subvolumes = {
+              "/rootfs" = {
+                mountpoint = "/";
+              };
+              "/home" = {
+                mountOptions = [ "compress=zstd" "noatime" ];
+                mountpoint = "/home";
+              };
+              "/nix" = {
+                mountOptions = [ "compress=zstd" "noatime" ];
+                mountpoint = "/nix";
+              };
+            };
+          };
+        };
+        plainSwap = {
+          size = "4G";
+          content = {
+            type = "swap";
+            discardPolicy = "both";
+          };
         };
       };
     };
