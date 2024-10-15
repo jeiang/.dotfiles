@@ -1,5 +1,5 @@
 keys:
-  - &solder-system age1a53gmk90690hgah2uf92u6syv0d39wmfmpdgp5eaj2hxgyz6u30s00h79z
+  - &solder-system age19n36a0l20fv374dmld7zknxv825q3wmes399q4r47deuggewwqgsw37m9k
   - &aidanp-gpg A23C4EC9045EB889D82D17A4D980BA361E9FA4E3
 creation_rules:
   - path_regex: secrets.yaml$
