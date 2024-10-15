@@ -51,21 +51,9 @@ in
         root = {
           size = "100%";
           content = {
-            type = "btrfs";
-            extraArgs = [ "-f" ];
-            subvolumes = {
-              "/rootfs" = {
-                mountpoint = "/";
-              };
-              "/home" = {
-                mountOptions = [ "compress=zstd" "noatime" ];
-                mountpoint = "/home";
-              };
-              "/nix" = {
-                mountOptions = [ "compress=zstd" "noatime" ];
-                mountpoint = "/nix";
-              };
-            };
+            type = "filesystem";
+            format = "ext4";
+            mountpoint = "/";
           };
         };
         plainSwap = {
