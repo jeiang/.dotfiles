@@ -18,6 +18,10 @@ remote-build host system user=`printf $USER`:
         --target-host {{user}}@{{host}} \
         --build-host {{user}}@{{host}}
 
+build system="":
+    @printf "Building locally..." "{{system}}"
+    nixos-rebuild switch --fast --flake .#{{system}}
+
 # Run this after editing .sops.yaml
 sops-updatekeys:
     sops updatekeys secrets.yaml
