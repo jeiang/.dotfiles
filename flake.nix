@@ -56,5 +56,14 @@
     # Misc Packages
     helix.url = "github:helix-editor/helix";
     helix.inputs.nixpkgs.follows = "nixpkgs";
+
+    # My Stuff
+    gradle2nix.url = "github:tadfisher/gradle2nix/v2"; # website
+    gradle2nix.inputs.nixpkgs.follows = "nixpkgs";
+    website = {
+      url = "github:jeiang/website/9aecfd696e3f4f06e9f4d802b31ebb8d7f1da48f";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.gradle2nix.follows = "gradle2nix";
+    };
   };
 }
