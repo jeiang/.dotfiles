@@ -1,4 +1,4 @@
-{ modules, users, inputs, config, modulesPath, pkgs, ... }:
+{ modules, users, config, modulesPath, pkgs, ... }:
 let
   website-port = "8080";
 in
@@ -8,7 +8,6 @@ in
     modules.nix
     modules.home-manager
     users.aidanp
-    inputs.disko.nixosModules.disko
     (modulesPath + "/profiles/qemu-guest.nix") # hardware-configuration.nix
   ];
 
@@ -42,41 +41,14 @@ in
     };
   };
 
-  disko.devices.disk = {
-    main = {
+  fileSystems."/" =
+    {
       device = "/dev/sda";
-      type = "disk";
-      content = {
-        type = "gpt";
-        partitions = {
-          root = {
-            size = "100%";
-            content = {
-              type = "filesystem";
-              format = "ext4";
-              mountpoint = "/";
-            };
-          };
-        };
-      };
+      fsType = "ext4";
     };
-    swap = {
-      device = "/dev/sdb";
-      type = "disk";
-      content = {
-        type = "gpt";
-        partitions = {
-          plainSwap = {
-            size = "4G";
-            content = {
-              type = "swap";
-              discardPolicy = "both";
-            };
-          };
-        };
-      };
-    };
-  };
+
+  swapDevices =
+    [{ device = "/dev/sdb"; }];
 
   # packages
   environment.systemPackages = with pkgs; [

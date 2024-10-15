@@ -1,4 +1,4 @@
-{ modulesPath, pkgs, inputs, ... }: {
+{ modulesPath, pkgs, ... }: {
   imports = [ (modulesPath + "/installer/cd-dvd/installation-cd-minimal.nix") ];
 
   systemd.services.sshd.wantedBy = pkgs.lib.mkForce [ "multi-user.target" ];
@@ -10,6 +10,5 @@
   environment.systemPackages = with pkgs; [
     helix
     git
-    inputs.disko.packages.x86_64-linux.default
   ];
 }
