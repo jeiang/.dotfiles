@@ -1,4 +1,8 @@
-{ modules, users, inputs, config, modulesPath, pkgs, ... }: {
+{ modules, users, inputs, config, modulesPath, pkgs, ... }:
+let
+  website-port = "8080";
+in
+{
   imports = [
     modules.sops
     modules.nix
@@ -87,12 +91,12 @@
         "aidanpinard.co" = {
           addSSL = true;
           enableACME = true;
-          locations."/".proxyPass = "http://localhost:8080";
+          locations."/".proxyPass = "http://localhost:${website-port}";
         };
         "pinard.co.tt" = {
           addSSL = true;
           enableACME = true;
-          locations."/".proxyPass = "http://localhost:8080";
+          locations."/".proxyPass = "http://localhost:${website-port}";
         };
         "xtra-foods.com" = {
           addSSL = true;
@@ -100,6 +104,17 @@
           locations."/".proxyPass = "http://localhost:8081/";
         };
       };
+    };
+  };
+
+  systemd.services.website = {
+    enable = true;
+    description = "Personal Website";
+    environment = {
+      SERVER_PORT = "${website-port}";
+    };
+    serviceConfig = {
+      ExecStart = "${inputs.website.packages.x86_64-linux.default}/bin/website";
     };
   };
 
