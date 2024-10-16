@@ -43,12 +43,12 @@ in
 
   fileSystems."/" =
     {
-      device = "/dev/sda";
+      device = "/dev/sda1";
       fsType = "ext4";
     };
 
   swapDevices =
-    [{ device = "/dev/sdb"; }];
+    [{ device = "/dev/sdb1"; }];
 
   # packages
   environment.systemPackages = with pkgs; [
