@@ -1,8 +1,10 @@
-{ pkgs, inputs, ... }:
-let
-  home-modules = import ./modules;
-in
 {
+  pkgs,
+  inputs,
+  ...
+}: let
+  home-modules = import ./modules;
+in {
   imports = with home-modules; [
     fish
     git

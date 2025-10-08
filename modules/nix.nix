@@ -3,8 +3,7 @@
   lib,
   inputs,
   ...
-}:
-{
+}: {
   nix = {
     # auto garbage collect
     gc = {
@@ -14,10 +13,10 @@
     };
     optimise = {
       automatic = true;
-      dates = [ "03:45" ];
+      dates = ["03:45"];
     };
     # pin the registry to avoid downloading and evaling a new nixpkgs version every time
-    registry = lib.mapAttrs (_: v: { flake = v; }) inputs;
+    registry = lib.mapAttrs (_: v: {flake = v;}) inputs;
 
     # set the path for channels compat
     nixPath = lib.mapAttrsToList (key: _: "${key}=flake:${key}") config.nix.registry;

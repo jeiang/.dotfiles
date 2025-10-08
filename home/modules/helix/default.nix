@@ -11,7 +11,7 @@
           "-c"
         ];
         idle-timeout = 400;
-        rulers = [ 120 ];
+        rulers = [120];
         color-modes = true;
         cursorline = true;
         statusline = {
@@ -21,7 +21,7 @@
             "diagnostics"
             "file-name"
           ];
-          center = [ "file-type" ];
+          center = ["file-type"];
           right = [
             "selections"
             "file-encoding"

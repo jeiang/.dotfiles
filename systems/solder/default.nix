@@ -1,8 +1,8 @@
-{ ... }:
-{
+_: {
   imports = [
     ./disko-config.nix
     ./networking.nix
+    ./web-services.nix
   ];
 
   facter.reportPath = ./facter.json;
