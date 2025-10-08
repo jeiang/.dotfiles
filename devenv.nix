@@ -1,47 +1,55 @@
 _: {
-  perSystem = { pkgs, config, ... }: {
-    treefmt.config = {
-      projectRootFile = "flake.nix";
-      programs = {
-        nixpkgs-fmt.enable = true;
-        deadnix.enable = true;
-      };
-    };
-    formatter = config.treefmt.build.wrapper;
-    devenv.shells = {
-      default = {
-        name = "sysconf-dev";
-        packages = with pkgs; [
-          config.treefmt.build.wrapper
-          git
-          helix
-          nixVersions.latest
-          just
-          sops
-          nh
-        ];
-        env.FLAKE = ./.;
-        languages = {
-          nix.enable = true;
+  perSystem =
+    {
+      pkgs,
+      config,
+      inputs',
+      ...
+    }:
+    {
+      treefmt.config = {
+        projectRootFile = "flake.nix";
+        programs = {
+          nixfmt.enable = true;
+          deadnix.enable = true;
         };
-        pre-commit.hooks = {
-          editorconfig-checker.enable = true;
-          markdownlint = {
-            enable = true;
-            settings.configuration = {
-              "MD013" = {
-                "line_length" = 120;
+      };
+      formatter = config.treefmt.build.wrapper;
+      devenv.shells = {
+        default = {
+          name = "system";
+          packages = with pkgs; [
+            config.treefmt.build.wrapper
+            inputs'.deploy-rs.packages.deploy-rs
+            git
+            helix
+            nixVersions.latest
+            just
+            sops
+            nh
+          ];
+          env.FLAKE = ./.;
+          languages = {
+            nix.enable = true;
+          };
+          git-hooks.hooks = {
+            editorconfig-checker.enable = true;
+            markdownlint = {
+              enable = true;
+              settings.configuration = {
+                "MD013" = {
+                  "line_length" = 120;
+                };
               };
             };
-          };
-          nil.enable = true;
-          statix.enable = true;
-          treefmt = {
-            enable = true;
-            package = config.treefmt.build.wrapper;
+            nil.enable = true;
+            statix.enable = true;
+            treefmt = {
+              enable = true;
+              package = config.treefmt.build.wrapper;
+            };
           };
         };
       };
     };
-  };
 }

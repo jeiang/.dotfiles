@@ -1,0 +1,3 @@
+[[language]]
+name = "nix"
+formatter = { command = "nixfmt", args = [ "--filename=%{buffer_name}" ] }

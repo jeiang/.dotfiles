@@ -1,5 +1,6 @@
 {
-  sops = import ./sops.nix;
   nix = import ./nix.nix;
-  home-manager = ./home-manager.nix;
-}
+  sops = import ./sops.nix;
+  shared = import ./shared-config.nix;
+  home-manager = import ./home-manager.nix;
+# }

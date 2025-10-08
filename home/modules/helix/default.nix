@@ -6,23 +6,40 @@
     settings = {
       theme = "kanabox-dark-hard";
       editor = {
-        shell = [ "fish" "-c" ];
+        shell = [
+          "fish"
+          "-c"
+        ];
         idle-timeout = 400;
         rulers = [ 120 ];
         color-modes = true;
         cursorline = true;
         statusline = {
-          left = [ "mode" "spinner" "diagnostics" "file-name" ];
+          left = [
+            "mode"
+            "spinner"
+            "diagnostics"
+            "file-name"
+          ];
           center = [ "file-type" ];
-          right = [ "selections" "file-encoding" "position-percentage" "position" ];
+          right = [
+            "selections"
+            "file-encoding"
+            "position-percentage"
+            "position"
+          ];
           separator = "|";
         };
-        lsp = { display-messages = true; };
+        lsp = {
+          display-messages = true;
+        };
         cursor-shape = {
           insert = "bar";
           select = "underline";
         };
-        file-picker = { max-depth = 8; };
+        file-picker = {
+          max-depth = 8;
+        };
         auto-pairs = {
           "(" = ")";
           "{" = "}";
@@ -30,7 +47,9 @@
           "\"" = ''"'';
           "`" = "`";
         };
-        indent-guides = { render = true; };
+        indent-guides = {
+          render = true;
+        };
         auto-format = true;
       };
     };

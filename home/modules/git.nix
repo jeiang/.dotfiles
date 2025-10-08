@@ -8,7 +8,7 @@
 
     difftastic = {
       enable = true;
-      display = "inline";
+      options.display = "inline";
     };
     userName = "Aidan Pinard";
     userEmail = "aidan@aidanpinard.co";
@@ -16,7 +16,9 @@
       key = "C48B088F4FFBBDF0";
       signByDefault = true;
     };
-    extraConfig = { init.defaultBranch = "main"; };
+    extraConfig = {
+      init.defaultBranch = "main";
+    };
 
     aliases = {
       a = "add -p";

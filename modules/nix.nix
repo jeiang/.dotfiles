@@ -1,4 +1,10 @@
-{ config, lib, inputs, ... }: {
+{
+  config,
+  lib,
+  inputs,
+  ...
+}:
+{
   nix = {
     # auto garbage collect
     gc = {
@@ -19,7 +25,10 @@
     settings = {
       auto-optimise-store = true;
       builders-use-substitutes = true;
-      experimental-features = [ "nix-command" "flakes" ];
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
       flake-registry = "/etc/nix/registry.json";
 
       # for direnv GC roots
@@ -38,7 +47,10 @@
         "jeiang.cachix.org-1:Ax2onCzp6V74ORnjlTAbZsDmlLeMMzDOzzcC2qHfJKg="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       ];
-      trusted-users = [ "root" "@wheel" ];
+      trusted-users = [
+        "root"
+        "@wheel"
+      ];
     };
   };
 

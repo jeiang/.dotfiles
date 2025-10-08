@@ -1,4 +1,4 @@
-default:
+idefault:
     @just --list
 
 # Format all files
@@ -7,24 +7,15 @@ fmt:
     statix fix
 
 # Check for nix errors
-check:
+check extraArgs="":
     # Allow unsupported for MacOS w/ devenv, see https://github.com/cachix/devenv/issues/1455
-    NIXPKGS_ALLOW_UNSUPPORTED_SYSTEM=1 nix flake check --impure --all-systems
+    NIXPKGS_ALLOW_UNSUPPORTED_SYSTEM=1 nix flake check --impure --all-systems {{extraArgs}}
 
-remote-build host system user=`printf $USER`:
-    @printf "Building on {{host}}...\nUser: %s\n" "{{user}}"
-    nixos-rebuild switch --fast --use-remote-sudo \
-        --flake .#{{system}} \
-        --target-host {{user}}@{{host}} \
-        --build-host {{user}}@{{host}}
+clean-deploy system address:
+    nix run github:nix-community/nixos-anywhere -- --generate-hardware-config nixos-facter ./systems/{{system}}/facter.json  --flake .#{{system}} --target-host root@{{address}}
 
-build system="":
-    @printf "Building locally..." "{{system}}"
-    nixos-rebuild switch --fast --flake .#{{system}}
-
-build-iso:
-    @printf "Generating installer image"
-    nix build .#nixosConfigurations.installer.config.system.build.isoImage
+deploy system profile="":
+    nix run github:serokell/deploy-rs .#{{system}}{{ if profile == "" { "" } else { "." + profile } }} -- -- --impure
 
 # Run this after editing .sops.yaml
 sops-updatekeys:

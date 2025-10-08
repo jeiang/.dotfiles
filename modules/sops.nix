@@ -1,7 +1,9 @@
-{ inputs, ... }: {
+{ inputs, ... }:
+{
   imports = [
     inputs.sops-nix.nixosModules.sops
   ];
+
   sops = {
     defaultSopsFile = ../secrets.yaml;
     defaultSopsFormat = "yaml";
@@ -14,10 +16,6 @@
       "passwords/aidanp" = {
         neededForUsers = true;
       };
-      "passwords/solder-root" = {
-        neededForUsers = true;
-      };
-      "linode/longview-token" = { };
     };
   };
 }

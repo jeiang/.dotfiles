@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 let
   home-modules = import ./modules;
 in
@@ -8,35 +8,35 @@ in
     git
     starship
     helix
+    inputs.nix-index-database.homeModules.nix-index
   ];
-  home.stateVersion = "24.05";
 
-  home.packages = with pkgs;
-    [
-      btop
-      fd
-      bandwhich
-      bingrep
-      cachix
-      choose
-      devenv
-      duf
-      erdtree
-      file
-      hyperfine
-      ivpn
-      jq
-      libtree
-      ouch
-      parallel
-      procs
-      rargs
-      ripgrep
-      rnr
-      sad
-      tokei
-      xh
-    ];
+  home.stateVersion = "25.05";
+
+  home.packages = with pkgs; [
+    btop
+    fd
+    bandwhich
+    bingrep
+    cachix
+    choose
+    devenv
+    duf
+    erdtree
+    felix-fm
+    file
+    hyperfine
+    jq
+    libtree
+    ouch
+    parallel
+    procs
+    ripgrep
+    rnr
+    sad
+    tokei
+    xh
+  ];
 
   programs = {
     bat = {
@@ -55,10 +55,14 @@ in
     };
     eza = {
       enable = true;
-      icons = true;
+      icons = "auto";
       git = true;
     };
     fzf.enable = true;
+    gpg = {
+      enable = true;
+      mutableKeys = true;
+    };
     mcfly = {
       enable = true;
       fuzzySearchFactor = 2;
@@ -66,7 +70,19 @@ in
     nix-index.enable = true;
     ssh = {
       enable = true;
-      compression = true;
+      enableDefaultConfig = false;
+      matchBlocks."*" = {
+        forwardAgent = false;
+        addKeysToAgent = "no";
+        compression = true;
+        serverAliveInterval = 0;
+        serverAliveCountMax = 3;
+        hashKnownHosts = false;
+        userKnownHostsFile = "~/.ssh/known_hosts";
+        controlMaster = "no";
+        controlPath = "~/.ssh/master-%r@%n:%p";
+        controlPersist = "no";
+      };
     };
     zoxide = {
       enable = true;

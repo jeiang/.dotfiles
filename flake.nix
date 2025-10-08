@@ -1,74 +1,99 @@
 {
   description = "System configuration.";
 
-  outputs = { treefmt-nix, devenv, nixpkgs, flake-parts, ... }@inputs:
-    flake-parts.lib.mkFlake { inherit inputs; }
-      {
-        systems = [ "x86_64-linux" "aarch64-darwin" ];
-        imports = [
-          treefmt-nix.flakeModule
-          devenv.flakeModule
-          ./devenv.nix
-        ];
-        flake =
-          let
-            modules = import ./modules;
-            users = import ./users;
-            home = import ./home;
-          in
-          {
-            nixosConfigurations = {
-              solder = nixpkgs.lib.nixosSystem {
-                system = "x86_64-linux";
-                specialArgs = { inherit inputs modules users home; };
-                modules = [
-                  ./hosts/solder.nix
-                ];
-              };
-              installer = nixpkgs.lib.nixosSystem {
-                system = "x86_64-linux";
-                specialArgs = { inherit inputs; };
-                modules = [
-                  ./hosts/installer.nix
-                ];
-              };
+  nixConfig = {
+    extra-trusted-public-keys = "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=";
+    extra-substituters = "https://devenv.cachix.org";
+  };
+
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-parts,
+      deploy-rs,
+      ...
+    }@inputs:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = import inputs.systems;
+      imports = [
+        inputs.treefmt-nix.flakeModule
+        inputs.devenv.flakeModule
+        inputs.home-manager.flakeModules.home-manager
+        ./devenv.nix
+      ];
+      flake =
+        let
+          modules = import ./modules;
+          users = import ./users;
+          home = import ./home;
+          sharedModules = [
+            inputs.disko.nixosModules.disko
+            inputs.nixos-facter-modules.nixosModules.facter
+            inputs.home-manager.nixosModules.home-manager
+            modules.nix
+            modules.sops
+            modules.home-manager
+            modules.shared
+          ];
+        in
+        {
+          nixosConfigurations = {
+            solder = nixpkgs.lib.nixosSystem {
+              system = "x86_64-linux";
+              specialArgs = { inherit inputs; };
+              modules = [
+                ./systems/solder
+                users.root
+                users.aidanp
+                home.aidanp
+              ]
+              ++ sharedModules;
             };
           };
-      };
+
+          deploy.nodes.solder = {
+            hostname = "aidanpinard.co";
+            profiles.system = {
+              user = "root";
+              path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.solder;
+            };
+          };
+
+          checks = builtins.mapAttrs (_system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
+        };
+    };
 
   inputs = {
-    # Principal inputs
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:cachix/devenv-nixpkgs/rolling";
+    systems.url = "github:nix-systems/default";
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
     # Utility inputs
     flake-parts.url = "github:hercules-ci/flake-parts";
+    nixos-facter-modules.url = "github:numtide/nixos-facter-modules";
+    deploy-rs.url = "github:serokell/deploy-rs";
+    nix-index-database.url = "github:nix-community/nix-index-database";
+    nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
 
-    # Dev Shell
-    treefmt-nix.url = "github:numtide/treefmt-nix";
-    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
+    # devenv
     devenv.url = "github:cachix/devenv";
     devenv.inputs.nixpkgs.follows = "nixpkgs";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
     nix2container.url = "github:nlewo/nix2container";
     nix2container.inputs.nixpkgs.follows = "nixpkgs";
     mk-shell-bin.url = "github:rrbutani/nix-mk-shell-bin";
 
-    # Encrypted secrets
+    # system config
+    disko.url = "github:nix-community/disko";
+    disko.inputs.nixpkgs.follows = "nixpkgs";
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
 
-    # Misc Packages
+    # Packages
     helix.url = "github:helix-editor/helix";
     helix.inputs.nixpkgs.follows = "nixpkgs";
-
-    # My Stuff
-    gradle2nix.url = "github:tadfisher/gradle2nix/v2"; # website
-    gradle2nix.inputs.nixpkgs.follows = "nixpkgs";
-    website = {
-      url = "github:jeiang/website/9aecfd696e3f4f06e9f4d802b31ebb8d7f1da48f";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.gradle2nix.follows = "gradle2nix";
-    };
   };
 }
