@@ -13,7 +13,7 @@
     userName = "Aidan Pinard";
     userEmail = "aidan@aidanpinard.co";
     signing = {
-      key = "C48B088F4FFBBDF0";
+      key = "873303932BA126487999C4C0C48B088F4FFBBDF0";
       signByDefault = true;
     };
     extraConfig = {
