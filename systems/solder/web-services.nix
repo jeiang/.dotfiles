@@ -103,7 +103,7 @@
       Group = "website";
       DynamicUser = true;
       ExecStart = "${website}/bin/website";
-      Restart = "unless-stopped";
+      Restart = "on-failure";
       MemoryHigh = "100M";
       MemoryMax = "200M";
     };
