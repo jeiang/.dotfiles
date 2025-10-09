@@ -10,8 +10,7 @@ fmt:
 
 # Check for nix errors
 check extraArgs="":
-    # Allow unsupported for MacOS w/ devenv, see https://github.com/cachix/devenv/issues/1455
-    NIXPKGS_ALLOW_UNSUPPORTED_SYSTEM=1 nix flake check --impure --all-systems {{extraArgs}}
+    nix flake check --impure {{extraArgs}}
 
 clean-deploy system address:
     nix run github:nix-community/nixos-anywhere -- --generate-hardware-config nixos-facter ./systems/{{system}}/facter.json  --flake .#{{system}} --target-host root@{{address}}

@@ -93,5 +93,7 @@
     # Packages & Apps
     helix.url = "github:helix-editor/helix";
     helix.inputs.nixpkgs.follows = "nixpkgs";
+    ### WARNING: DO NOT FOLLOW NIXPKGS. Gradle builds are broken for this package due to bad dependencies.
+    website.url = "github:jeiang/website";
   };
 }

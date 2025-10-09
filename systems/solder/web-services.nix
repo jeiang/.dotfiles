@@ -1,4 +1,9 @@
-{config, ...}: {
+{
+  config,
+  inputs,
+  pkgs,
+  ...
+}: {
   services = {
     blocky = {
       enable = true;
@@ -67,6 +72,40 @@
           password_file = config.sops.secrets."lldap/mail-pw".path;
         };
       };
+    };
+  };
+
+  systemd.services.website = {
+    enable = true;
+    description = "jeiang.dev website";
+    wants = ["network-online.target"];
+    after = ["network-online.target"];
+    wantedBy = ["multi-user.target"];
+    environment = {
+      SERVER_PORT = "8080";
+    };
+    serviceConfig = let
+      src = inputs.website.packages.${pkgs.system}.default;
+      website =
+        pkgs.runCommand "website" {
+          buildInputs = with pkgs; [makeWrapper jdk21_headless];
+        } ''
+          mkdir $out
+          ln -s ${src}/* $out
+          # Except the bin folder
+          rm $out/bin
+          mkdir $out/bin
+
+          makeWrapper ${src}/bin/website $out/bin/website --set JAVA_HOME ${pkgs.jdk21_headless}
+        '';
+    in {
+      User = "website";
+      Group = "website";
+      DynamicUser = true;
+      ExecStart = "${website}/bin/website";
+      Restart = "unless-stopped";
+      MemoryHigh = "100M";
+      MemoryMax = "200M";
     };
   };
 
