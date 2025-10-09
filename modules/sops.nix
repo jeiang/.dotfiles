@@ -15,6 +15,18 @@
       "passwords/aidanp" = {
         neededForUsers = true;
       };
+      "lldap/jwt" = {
+        owner = "lldap";
+      };
+      "lldap/seed" = {
+        owner = "lldap";
+      };
+      "lldap/admin-pw" = {
+        owner = "lldap";
+      };
+      "lldap/mail-pw" = {
+        owner = "lldap";
+      };
     };
   };
 }
