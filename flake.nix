@@ -6,60 +6,19 @@
     extra-substituters = "https://devenv.cachix.org";
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    flake-parts,
-    deploy-rs,
-    ...
-  } @ inputs:
+  outputs = {flake-parts, ...} @ inputs:
     flake-parts.lib.mkFlake {inherit inputs;} {
       systems = import inputs.systems;
       imports = [
-        inputs.treefmt-nix.flakeModule
         inputs.devenv.flakeModule
-        inputs.home-manager.flakeModules.home-manager
+        inputs.treefmt-nix.flakeModule
         ./devenv.nix
+        ./deploy.nix
+        inputs.home-manager.flakeModules.home-manager
+        ./modules
+        ./users
+        ./systems/solder
       ];
-      flake = let
-        modules = import ./modules;
-        users = import ./users;
-        home = import ./home;
-        sharedModules = [
-          inputs.disko.nixosModules.disko
-          inputs.nixos-facter-modules.nixosModules.facter
-          inputs.home-manager.nixosModules.home-manager
-          modules.nix
-          modules.sops
-          modules.home-manager
-          modules.shared
-        ];
-      in {
-        nixosConfigurations = {
-          solder = nixpkgs.lib.nixosSystem {
-            system = "x86_64-linux";
-            specialArgs = {inherit inputs;};
-            modules =
-              [
-                ./systems/solder
-                users.root
-                users.aidanp
-                home.aidanp
-              ]
-              ++ sharedModules;
-          };
-        };
-
-        deploy.nodes.solder = {
-          hostname = "aidanpinard.co";
-          profiles.system = {
-            user = "root";
-            path = deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.solder;
-          };
-        };
-
-        checks = builtins.mapAttrs (_system: deployLib: deployLib.deployChecks self.deploy) deploy-rs.lib;
-      };
     };
 
   inputs = {
