@@ -1,5 +1,20 @@
-{
+{inputs, ...}: {
   home.sessionVariables.EDITOR = "hx";
+  xdg.configFile."helix/runtime/queries/nix/injections.scm" = {
+    text =
+      (builtins.readFile "${inputs.helix}/runtime/queries/nix/injections.scm")
+      + ''
+        ; caddyfile injection query for writeText
+        ; pkgs.writeText name content
+        ((apply_expression
+          function: (apply_expression function: (_) @_func)
+          argument: (indented_string_expression (string_fragment) @injection.content))
+        (#match? @_func "(^|\\.)writeText$")
+        (#match? @injection.content "^[\\s\\n]*# Caddyfile")
+        (#set! injection.language "caddyfile")
+        (#set! injection.combined))
+      '';
+  };
 
   programs.helix = {
     enable = true;

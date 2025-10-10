@@ -45,7 +45,87 @@
     };
     caddy = {
       enable = true;
-      configFile = ./Caddyfile;
+      configFile = pkgs.writeText "Caddyfile" ''
+        # Caddyfile
+        {
+          email aidan@aidanpinard.co
+          servers {
+            protocols h1 h2 h2c h3
+          }
+          default_sni aidanpinard.co
+          log default {
+            output stdout
+            format json
+          }
+        }
+
+        (compression) {
+          encode zstd gzip
+        }
+
+        (auth) {
+          forward_auth authelia:80 {
+            uri /api/authz/forward-auth
+            copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+          }
+        }
+
+        (logging) {
+          log output-file {
+            output file /var/log/caddy/access.log {
+              roll_size 10mb
+              roll_keep 5
+              roll_keep_for 48h
+            }
+            format json
+          }
+          log console-output {
+            output stdout
+            format json
+          }
+        }
+
+        (security_headers) {
+          header * {
+            Strict-Transport-Security "max-age=3600; includeSubDomains; preload"
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "SAMEORIGIN"
+            X-XSS-Protection "1; mode=block"
+            -Server
+            Referrer-Policy strict-origin-when-cross-origin
+          }
+        }
+
+        jeiang.dev, aidanpinard.co, pinard.co.tt {
+          import compression
+          import logging
+          import security_headers
+          reverse_proxy localhost:8080
+        }
+
+        github.jeiang.dev {
+          redir * https://github.com/jeiang permanent
+        }
+
+        auth.jeiang.dev {
+          import logging
+          reverse_proxy authelia:80
+        }
+
+        ldap.jeiang.dev {
+          import compression
+          import security_headers
+          import logging
+          reverse_proxy localhost:17170
+        }
+
+        dns.jeiang.dev {
+          import compression
+          import logging
+
+          reverse_proxy localhost:8000
+        }
+      '';
       enableReload = true;
     };
     lldap = {
@@ -73,6 +153,50 @@
         };
       };
     };
+    # netbird = let
+    #   clientId = "netbird";
+    #   ssoDomain = "auth.jeiang.dev";
+    # in {
+    #   enable = true;
+    #   useRoutingFeatures = "both";
+    #   server = {
+    #     enable = true;
+    #     domain = "netbird.jeiang.dev";
+    #     signal = {
+    #       enable = true;
+    #       port = 8012;
+    #       metricsPort = 9091;
+    #     };
+    #     coturn = {
+    #       enable = true;
+    #       domain = config.services.netbird.server.domain;
+    #       user = "netbird";
+    #       passwordFile = config.sops.secrets."netbird/coturn-pw".path;
+    #     };
+    #     dashboard = {
+    #       enable = true;
+    #       domain = config.services.netbird.server.domain;
+    #       settings = {
+    #         NETBIRD_MGMT_API_ENDPOINT = "https://netbird.jeiang.dev:443";
+    #         NETBIRD_MGMT_GRPC_API_ENDPOINT = "https://netbird.jeiang.dev:443";
+    #         AUTH_AUDIENCE = clientId;
+    #         AUTH_CLIENT_ID = clientId;
+    #         AUTH_CLIENT_SECRET = config.sops.secrets."netbird/coturn-pw".path;
+    #         AUTH_AUTHORITY = "https://${ssoDomain}";
+    #         USE_AUTH0 = "false";
+    #         AUTH_SUPPORTED_SCOPES = "openid offline_access profile email groups";
+    #         AUTH_REDIRECT_URI = "/peers";
+    #         AUTH_SILENT_REDIRECT_URI = "/add-peers";
+    #         NETBIRD_TOKEN_SOURCE = "idToken";
+    #         NGINX_SSL_PORT = "443";
+    #       };
+    #     };
+    #     management = {
+    #       port = 23461;
+    #       oidcConfigEndpoint = "https://${ssoDomain}/.well-known/openid-configuration";
+    #     };
+    #   };
+    # };
   };
 
   systemd.services.website = {
@@ -108,14 +232,22 @@
       MemoryMax = "200M";
     };
   };
-
-  users.users = {
-    lldap = {
-      isSystemUser = true;
-      group = "lldap";
+  users = {
+    users = {
+      lldap = {
+        isSystemUser = true;
+        group = "lldap";
+      };
+      netbird = {
+        isSystemUser = true;
+        group = "netbird";
+      };
+    };
+    groups = {
+      lldap = {};
+      netbird = {};
     };
   };
-  users.groups.lldap = {};
 
   networking.firewall.allowedTCPPorts = [80 443];
   networking.firewall.allowedUDPPorts = [443];

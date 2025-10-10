@@ -18,6 +18,7 @@
         ./modules
         ./users
         ./systems/solder
+        ./overlays
       ];
     };
 

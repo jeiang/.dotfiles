@@ -1,10 +1,13 @@
 {
-  config,
   lib,
   inputs,
   ...
 }: {
-  nix = {
+  nix = let
+    # pin the registry to avoid downloading and evaling a new nixpkgs version every time
+    registry = lib.mapAttrs (_: v: {flake = v;}) inputs;
+  in {
+    inherit registry;
     # auto garbage collect
     gc = {
       automatic = true;
@@ -15,11 +18,9 @@
       automatic = true;
       dates = ["03:45"];
     };
-    # pin the registry to avoid downloading and evaling a new nixpkgs version every time
-    registry = lib.mapAttrs (_: v: {flake = v;}) inputs;
 
     # set the path for channels compat
-    nixPath = lib.mapAttrsToList (key: _: "${key}=flake:${key}") config.nix.registry;
+    nixPath = lib.mapAttrsToList (key: _: "${key}=flake:${key}") registry;
 
     settings = {
       auto-optimise-store = true;

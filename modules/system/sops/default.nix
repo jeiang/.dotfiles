@@ -27,6 +27,12 @@
       "lldap/mail-pw" = {
         owner = "lldap";
       };
+      "netbird/coturn-pw" = {
+        owner = "netbird";
+      };
+      "netbird/auth-client-secret" = {
+        owner = "netbird";
+      };
     };
   };
 }
