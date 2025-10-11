@@ -5,8 +5,7 @@
   ...
 }: let
   websitePort = "8080";
-  autheliaUnixSocket = "/var/run/authelia.sock";
-  autheliaUnixSocketUmask = "0227";
+  autheliaAddress = "localhost:8081";
   netbirdAuthClientId = "netbird";
   authDomain = "auth.jeiang.dev";
 in {
@@ -62,6 +61,14 @@ in {
             output stdout
             format json
           }
+          log default-file {
+            output file /var/log/caddy/caddy.log {
+              roll_size 10mb
+              roll_keep 100
+              roll_keep_for 30d
+            }
+            format json
+          }
         }
 
         (compression) {
@@ -72,8 +79,8 @@ in {
           log output-file {
             output file /var/log/caddy/access.log {
               roll_size 10mb
-              roll_keep 5
-              roll_keep_for 48h
+              roll_keep 100
+              roll_keep_for 30d
             }
             format json
           }
@@ -95,7 +102,7 @@ in {
         }
 
         (auth) {
-          forward_auth unix/${autheliaUnixSocket}|${autheliaUnixSocketUmask} {
+          forward_auth ${autheliaAddress} {
             uri /api/authz/forward-auth
             copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
           }
@@ -123,7 +130,7 @@ in {
 
         ${authDomain} {
           import logging
-          reverse_proxy unix/${autheliaUnixSocket}|${autheliaUnixSocketUmask}
+          reverse_proxy ${autheliaAddress}
         }
 
         ldap.jeiang.dev {
@@ -185,11 +192,12 @@ in {
       settings = {
         theme = "light";
         server = {
-          address = "unix://${autheliaUnixSocket}?umask=${autheliaUnixSocketUmask}";
+          address = "tcp://${autheliaAddress}";
         };
         log = {
           level = "debug";
           keep_stdout = true;
+          file_path = "/var/lib/authelia-main/authelia.log";
         };
         totp = {
           issuer = "jeiang.dev";
@@ -221,6 +229,10 @@ in {
                 "group:admin"
                 "group:monitoring"
               ];
+            }
+            {
+              domain = "test.jeiang.dev";
+              policy = "two_factor";
             }
           ];
         };
@@ -286,7 +298,7 @@ in {
         };
         storage = {
           local = {
-            path = "/var/db/authelia/db.sqlite3";
+            path = "/var/lib/authelia-main/db.sqlite3";
           };
         };
         notifier = {
@@ -479,7 +491,7 @@ in {
     "10-authelia-dirs" = {
       "/var/db/authelia" = {
         d = {
-          mode = "0755";
+          mode = "0777";
           user = "authelia-main";
           group = "authelia-main";
         };
