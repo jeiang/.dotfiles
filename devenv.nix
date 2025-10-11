@@ -25,11 +25,11 @@ _: {
           just
           sops
           nh
-          nixd
         ];
         env.FLAKE = ./.;
         languages = {
           nix.enable = true;
+          nix.lsp.package = pkgs.nixd;
         };
         git-hooks.hooks = {
           editorconfig-checker.enable = true;

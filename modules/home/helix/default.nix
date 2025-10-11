@@ -8,11 +8,11 @@
         ; pkgs.writeText name content
         ((apply_expression
           function: (apply_expression function: (_) @_func)
-          argument: (indented_string_expression (string_fragment) @injection.content))
-        (#match? @_func "(^|\\.)writeText$")
-        (#match? @injection.content "^[\\s\\n]*# Caddyfile")
-        (#set! injection.language "caddyfile")
-        (#set! injection.combined))
+            argument: (indented_string_expression (string_fragment) @injection.content))
+          (#match? @_func "(^|\\.)writeText$")
+          (#match? @injection.content "^[\\s\\n]*# Caddyfile")
+          (#set! injection.language "caddyfile")
+          (#set! injection.combined))
       '';
   };
 

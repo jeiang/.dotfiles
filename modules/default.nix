@@ -15,6 +15,7 @@ in {
     sops = import ./system/sops;
     shared = import ./system/shared-config.nix;
     home-manager = import ./system/home-manager.nix;
+    web-services = import ./system/web-services.nix;
   };
   flake.homeModules = {
     fish = import ./home/fish.nix;

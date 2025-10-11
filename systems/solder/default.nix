@@ -19,10 +19,10 @@
         }
         ./disko-config.nix
         ./networking.nix
-        ./web-services.nix
         inputs.disko.nixosModules.disko
         inputs.nixos-facter-modules.nixosModules.facter
         inputs.home-manager.nixosModules.home-manager
+        self.nixosModules.web-services
         self.nixosModules.nix
         self.nixosModules.sops
         self.nixosModules.home-manager

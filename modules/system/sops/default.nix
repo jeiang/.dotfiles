@@ -12,27 +12,7 @@
     ];
 
     secrets = {
-      "passwords/aidanp" = {
-        neededForUsers = true;
-      };
-      "lldap/jwt" = {
-        owner = "lldap";
-      };
-      "lldap/seed" = {
-        owner = "lldap";
-      };
-      "lldap/admin-pw" = {
-        owner = "lldap";
-      };
-      "lldap/mail-pw" = {
-        owner = "lldap";
-      };
-      "netbird/coturn-pw" = {
-        owner = "netbird";
-      };
-      "netbird/auth-client-secret" = {
-        owner = "netbird";
-      };
+      "passwords/aidanp".neededForUsers = true;
     };
   };
 }
