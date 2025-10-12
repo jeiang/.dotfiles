@@ -1,7 +1,6 @@
 # Example to create a bios compatible gpt partition
-{ lib, ... }:
-{
-  boot.loader.grub.devices = lib.mkForce [ "/dev/sda" ];
+{lib, ...}: {
+  boot.loader.grub.devices = lib.mkForce ["/dev/sda"];
   disko.devices = {
     disk.disk1 = {
       device = lib.mkDefault "/dev/sda";

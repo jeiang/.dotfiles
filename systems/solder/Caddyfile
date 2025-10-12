@@ -1,0 +1,78 @@
+{
+  email aidan@aidanpinard.co
+  servers {
+    protocols h1 h2 h2c h3
+  }
+  default_sni aidanpinard.co
+  log default {
+    output stdout
+    format json
+  }
+}
+
+(compression) {
+  encode zstd gzip
+}
+
+(auth) {
+  forward_auth authelia:80 {
+    uri /api/authz/forward-auth
+    copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+  }
+}
+
+(logging) {
+  log output-file {
+    output file /var/log/caddy/access.log {
+      roll_size 10mb
+      roll_keep 5
+      roll_keep_for 48h
+    }
+    format json
+  }
+  log console-output {
+    output stdout
+    format json
+  }
+}
+
+(security_headers) {
+  header * {
+    Strict-Transport-Security "max-age=3600; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "SAMEORIGIN"
+    X-XSS-Protection "1; mode=block"
+    -Server
+    Referrer-Policy strict-origin-when-cross-origin
+  }
+}
+
+jeiang.dev, aidanpinard.co, pinard.co.tt {
+  import compression
+  import logging
+  import security_headers
+  reverse_proxy localhost:8080
+}
+
+github.jeiang.dev {
+  redir * https://github.com/jeiang permanent
+}
+
+auth.jeiang.dev {
+  import logging
+  reverse_proxy authelia:80
+}
+
+ldap.jeiang.dev {
+  import compression
+  import security_headers
+  import logging
+  reverse_proxy localhost:17170
+}
+
+dns.jeiang.dev {
+  import compression
+  import logging
+
+  reverse_proxy localhost:8000
+}

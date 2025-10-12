@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   security = {
     sudo.enable = false;
     doas = {
@@ -7,7 +6,7 @@
       wheelNeedsPassword = false;
       extraRules = [
         {
-          users = [ "aidanp" ];
+          users = ["aidanp"];
           keepEnv = true;
           persist = true;
         }
@@ -16,17 +15,15 @@
   };
   environment = {
     shellAliases.sudo = "doas";
-    systemPackages =
-      let
-        sudo-alias = pkgs.writeShellApplication {
-          name = "sudo";
-          text = ''
-            doas "$@"
-          '';
-        };
-      in
-      [
-        sudo-alias
-      ];
+    systemPackages = let
+      sudo-alias = pkgs.writeShellApplication {
+        name = "sudo";
+        text = ''
+          doas "$@"
+        '';
+      };
+    in [
+      sudo-alias
+    ];
   };
 }
