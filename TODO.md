@@ -3,15 +3,15 @@
 ## Server Stuff
 
 - [ ] Actual Budget
-- [ ] Authelia
+- [X] Authelia
 - [ ] Docuseal
 - [ ] Stirling PDF
 - [ ] Ntfy
 - [ ] Prometheus w/ Perses
-- [ ] Netbird
-- [ ] Docuseal
+- [X] Netbird
 
 ## Other Stuff
 
 - [ ] Create aidanp-graphical profile for desktop
 - [ ] Setup NixOS for personal desktop
+- [ ] Refactor web services into individual modules
