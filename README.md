@@ -12,19 +12,19 @@ I saw a guy name his flake frosted flakes, and cornn flaek just popped into my h
 
 ## Acknowledgements
 
-I have used tutorials/configs from the below people (and maybe a few others which I have forgotten).
+I have used tutorials/configs from the below people (and maybe a few others which I have forgotten). This is updated as I rework and re-make this setup.
 
 - [Wil Taylor]: I used his tutorials for my initial setup, and it got me into nix/NixOS.
 - [mt-caret]: Used a tutorial from them for setting up an encrypted btrfs w/ NixOS & impermanence.
 - [Mysterio77]: Used his flake configs before this, and fiddling with them helped me understand nix better. (Also clued
   me into btrfs wipe w/ systemd stage 1 through his personal flake.)
-- [Lord Valen] & [Divnix]: Divnix for Digga (used to make this flake) and Lord Valen for the minimal flake config I used
+- [Lord Valen] & [Divnix]: Divnix for Digga (used to make a prior version of this flake) and Lord Valen for the config that was used
   for this setup.
 - [danth]: Stylix is amazing, and I hope it supports even more stuff.
 - [hexa & kjhoerr]: kjhoerr asked a question for something I had wanted to do for a while (same partial tutorial too).
   hexa answered.
 - [JavaCafe01]: I saw the frosted flakes and immediately thought `cornn flaek`.
-- [srid]: I used his `nixos-flake` as a base for this flake.
+- [srid]: I used his `nixos-flake` as a base for a prior version of this flake.
 - [Vimjoyer]: Used some of his Youtube videos as a reference (e.g. setting up sops).
 - [Ryan Yin]: Helped me remove some of the unnecessary stuff that I had in the repo when I was reworking.
 
