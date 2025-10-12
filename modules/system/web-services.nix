@@ -342,8 +342,19 @@ in {
       };
     };
     netbird = {
-      enable = false;
       useRoutingFeatures = "both";
+      services.netbird.clients.default = {
+        port = 51820;
+        name = "netbird";
+        systemd.name = "netbird";
+        interface = "wt0";
+        hardened = false;
+        environment = {
+          NB_MANAGEMENT_URL = "https://netbird.jeiang.dev";
+          NB_SETUP_KEY = "544D3A08-7CD2-4C72-8FF9-06C2445F18B0";
+          NB_DISABLE_PROFILES = "true";
+        };
+      };
       server = {
         enable = true;
         domain = "netbird.jeiang.dev";
