@@ -50,6 +50,9 @@ in {
       };
     };
     caddy = {
+      # TODO: put all dns records on porkbun & use
+      # https://caddy.community/t/how-to-use-dns-provider-modules-in-caddy-2/8148 and
+      # https://wiki.nixos.org/wiki/Caddy#Plug-ins for configuring wildcard domains
       enable = true;
       user = "caddy";
       group = "caddy";
