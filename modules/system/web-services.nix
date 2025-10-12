@@ -15,7 +15,7 @@ in {
       enable = true;
       settings = {
         ports = {
-          dns = 53;
+          dns = 553;
           http = 8000;
         };
         upstreams = {
@@ -342,19 +342,27 @@ in {
       };
     };
     netbird = {
-      useRoutingFeatures = "both";
-      services.netbird.clients.default = {
-        port = 51820;
-        name = "netbird";
-        systemd.name = "netbird";
-        interface = "wt0";
-        hardened = false;
-        environment = {
-          NB_MANAGEMENT_URL = "https://netbird.jeiang.dev";
-          NB_SETUP_KEY = "544D3A08-7CD2-4C72-8FF9-06C2445F18B0";
-          NB_DISABLE_PROFILES = "true";
+      enable = true;
+      clients.default.config = let
+        urlConfig = {
+          Scheme = "https";
+          Opaque = "";
+          User = null;
+          Host = "netbird.jeiang.dev:443";
+          Path = "";
+          RawPath = "";
+          OmitHost = false;
+          ForceQuery = false;
+          RawQuery = "";
+          Fragment = "";
+          RawFragment = "";
         };
+      in {
+        # Set Management URL for netbird configuration file
+        ManagementURL = urlConfig;
+        AdminUrl = urlConfig;
       };
+      useRoutingFeatures = "both";
       server = {
         enable = true;
         domain = "netbird.jeiang.dev";
@@ -476,6 +484,27 @@ in {
     };
   };
   systemd.services = {
+    # netbird login before service starts
+    netbird-login = let
+      defaultClient = config.services.netbird.clients.default;
+    in {
+      description = "Login to self hosted netbird instance";
+      before = [config.systemd.services.${defaultClient.service.name}.name];
+      after = ["network.target"];
+      wantedBy = ["multi-user.target"];
+      inherit (config.systemd.services.${defaultClient.service.name}) preStart;
+      serviceConfig = {
+        ExecStart = "${lib.getExe config.services.netbird.package} login --management-url https://netbird.jeiang.dev --setup-key-file ${config.sops.secrets."netbird/client-setup-key".path}";
+        User = defaultClient.user.name;
+        Group = defaultClient.user.group;
+        RuntimeDirectory = defaultClient.dir.baseName;
+        RuntimeDirectoryMode = "0755";
+        ConfigurationDirectory = defaultClient.dir.baseName;
+        StateDirectory = defaultClient.dir.baseName;
+        StateDirectoryMode = "0700";
+        WorkingDirectory = defaultClient.dir.state;
+      };
+    };
     # Override the default user for coturn, there is no exposed option for it
     coturn.serviceConfig = {
       User = lib.mkForce "netbird";
@@ -545,6 +574,7 @@ in {
     "netbird/datastore-key".owner = "netbird";
     "netbird/coturn/salt".owner = "netbird";
     "netbird/auth-client-secret".owner = "netbird";
+    "netbird/client-setup-key".owner = "netbird";
     "authelia/ldap-pw".owner = "authelia-main";
     "authelia/mail/password".owner = "authelia-main";
     "authelia/mail/username".owner = "authelia-main";
@@ -555,7 +585,11 @@ in {
     "authelia/oidc/issuer-key".owner = "authelia-main";
     "authelia/oidc/clients/netbird".owner = "authelia-main";
   };
-
-  networking.firewall.allowedTCPPorts = [80 443];
-  networking.firewall.allowedUDPPorts = [443];
+  networking.firewall = {
+    allowedTCPPorts = [80 443];
+    allowedUDPPorts = [443];
+    trustedInterfaces = [
+      config.services.netbird.clients.default.interface
+    ];
+  };
 }
