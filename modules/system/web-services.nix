@@ -2,6 +2,7 @@
   config,
   inputs,
   pkgs,
+  lib,
   ...
 }: let
   websitePort = "8080";
@@ -50,44 +51,31 @@ in {
     };
     caddy = {
       enable = true;
-      configFile = pkgs.writeText "Caddyfile" ''
-        {
-          email aidan@aidanpinard.co
-          servers {
-            protocols h1 h2 h2c h3
-          }
-          default_sni aidanpinard.co
-          log default {
-            output stdout
-            format json
-          }
-          log default-file {
-            output file /var/log/caddy/caddy.log {
-              roll_size 10mb
-              roll_keep 100
-              roll_keep_for 30d
-            }
-            format json
-          }
+      user = "caddy";
+      group = "caddy";
+      email = "aidan@aidanpinard.co";
+      logFormat = ''
+        output stdout
+        format json
+        level DEBUG
+      '';
+      globalConfig = ''
+        servers {
+          protocols h1 h2 h2c h3
         }
-
+        default_sni aidanpinard.co
+        log default-file {
+          output file /var/log/caddy/caddy.log {
+            roll_size 10mb
+            roll_keep 100
+            roll_keep_for 30d
+          }
+          format json
+        }
+      '';
+      extraConfig = ''
         (compression) {
           encode zstd gzip
-        }
-
-        (logging) {
-          log output-file {
-            output file /var/log/caddy/access.log {
-              roll_size 10mb
-              roll_keep 100
-              roll_keep_for 30d
-            }
-            format json
-          }
-          log console-output {
-            output stdout
-            format json
-          }
         }
 
         (security_headers) {
@@ -107,47 +95,88 @@ in {
             copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
           }
         }
-
-        test.jeiang.dev {
-          import compression
-          import logging
-          import security_headers
-          import auth
-
-          respond "works (thumbs up)"
-        }
-
-        jeiang.dev, aidanpinard.co, pinard.co.tt {
-          import compression
-          import logging
-          import security_headers
-          reverse_proxy localhost:${websitePort}
-        }
-
-        github.jeiang.dev {
-          redir * https://github.com/jeiang permanent
-        }
-
-        ${authDomain} {
-          import logging
-          reverse_proxy ${autheliaAddress}
-        }
-
-        ldap.jeiang.dev {
-          import compression
-          import security_headers
-          import logging
-          reverse_proxy localhost:${toString config.services.lldap.settings.http_port}
-        }
-
-        dns.jeiang.dev {
-          import compression
-          import logging
-
-          reverse_proxy localhost:${toString config.services.blocky.settings.ports.http}
-        }
       '';
-      enableReload = true;
+      virtualHosts = let
+        createLogFormat = hostName: {
+          logFormat = ''
+            output file ${config.services.caddy.logDir}/access-${hostName}.log {
+              roll_size 10mb
+              roll_keep 100
+              roll_keep_for 30d
+            }
+          '';
+        };
+      in {
+        "main" = rec {
+          hostName = "jeiang.dev";
+          serverAliases = ["aidanpinard.co" "pinard.co.tt"];
+          inherit (createLogFormat hostName) logFormat;
+          extraConfig = ''
+            import compression
+            import security_headers
+            reverse_proxy localhost:${websitePort}
+          '';
+        };
+        "github" = rec {
+          hostName = "github.jeiang.dev";
+          inherit (createLogFormat hostName) logFormat;
+          extraConfig = ''
+            import compression
+            import security_headers
+            redir * https://github.com/jeiang permanent
+          '';
+        };
+        "authelia" = rec {
+          hostName = authDomain;
+          inherit (createLogFormat hostName) logFormat;
+          extraConfig = ''
+            import compression
+            reverse_proxy ${autheliaAddress}
+          '';
+        };
+        "lldap" = rec {
+          hostName = "ldap.jeiang.dev";
+          inherit (createLogFormat hostName) logFormat;
+          extraConfig = ''
+            import compression
+            import security_headers
+            reverse_proxy localhost:${toString config.services.lldap.settings.http_port}
+          '';
+        };
+        "blocky-dns-over-https" = rec {
+          hostName = "dns.jeiang.dev";
+          inherit (createLogFormat hostName) logFormat;
+          extraConfig = ''
+            import compression
+            reverse_proxy localhost:${toString config.services.blocky.settings.ports.http}
+          '';
+        };
+        "netbird" = rec {
+          hostName = "netbird.jeiang.dev";
+          inherit (createLogFormat hostName) logFormat;
+          extraConfig = ''
+            import security_headers
+
+            # reverse_proxy /relay* relay:80
+            reverse_proxy /signalexchange.SignalExchange/* h2c://localhost:${toString config.services.netbird.server.signal.port}
+            reverse_proxy /api/* localhost:${toString config.services.netbird.server.management.port}
+            reverse_proxy /management.ManagementService/* h2c://localhost:${toString config.services.netbird.server.management.port}
+
+            root ${config.services.netbird.server.dashboard.finalDrv}
+            # Handle WASM files with specific content type
+            @wasm-files path /netbird.wasm /ironrdp-pkg/ironrdp_web_bg.wasm
+            handle @wasm-files {
+              header Content-Type application/wasm
+            }
+
+            # Try files with fallback
+            try_files {path} {path}.html {path}/
+
+            # Serve static files
+            file_server
+          '';
+        };
+      };
     };
     lldap = {
       enable = true;
@@ -197,7 +226,7 @@ in {
         log = {
           level = "debug";
           keep_stdout = true;
-          file_path = "/var/lib/authelia-main/authelia.log";
+          file_path = "/var/log/authelia-main/authelia.log";
         };
         totp = {
           issuer = "jeiang.dev";
@@ -316,28 +345,29 @@ in {
       enable = false;
       useRoutingFeatures = "both";
       server = {
-        enable = false;
+        enable = true;
         domain = "netbird.jeiang.dev";
         signal = {
-          enable = false;
+          enable = true;
           port = 8012;
           metricsPort = 9091;
         };
         coturn = {
-          enable = false;
+          enable = true;
           inherit (config.services.netbird.server) domain;
           user = "netbird";
           passwordFile = config.sops.secrets."netbird/coturn/password".path;
         };
         dashboard = {
-          enable = false;
+          enable = true;
           inherit (config.services.netbird.server) domain;
           settings = {
-            NETBIRD_MGMT_API_ENDPOINT = "https://netbird.jeiang.dev:443";
-            NETBIRD_MGMT_GRPC_API_ENDPOINT = "https://netbird.jeiang.dev:443";
             AUTH_AUDIENCE = netbirdAuthClientId;
             AUTH_CLIENT_ID = netbirdAuthClientId;
-            AUTH_CLIENT_SECRET = config.sops.secrets."netbird/auth-client-secret".path;
+            # IDK how to have this read at check time
+            # seems to be exposed in the frontend js anyways so...
+            # see https://github.com/netbirdio/netbird/issues/4188
+            AUTH_CLIENT_SECRET = lib.mkForce "_SqWC1arJ_Aeh40Leu9UnnXabG0MtFMqa0.HdJK5~8~TEZhX4KGNYHzKvnkezDO1JoNHEKWz";
             AUTH_AUTHORITY = "https://${authDomain}";
             USE_AUTH0 = "false";
             AUTH_SUPPORTED_SCOPES = "openid offline_access profile email groups";
@@ -350,7 +380,8 @@ in {
         management = {
           port = 23461;
           oidcConfigEndpoint = "https://${authDomain}/.well-known/openid-configuration";
-          disableSingleAccountMode = true;
+          disableSingleAccountMode = false;
+          singleAccountModeDomain = "netbird.jeiang.dev";
           dnsDomain = "jeiang.vpn";
           disableAnonymousMetrics = true;
           settings = {
@@ -361,7 +392,7 @@ in {
                 Audience = netbirdAuthClientId;
                 AuthorizationEndpoint = "";
                 ClientID = netbirdAuthClientId;
-                ClientSecret = config.sops.secrets."netbird/auth-client-secret".path;
+                ClientSecret._secret = config.sops.secrets."netbird/auth-client-secret".path;
                 TokenEndpoint = "https://${authDomain}/api/oidc/token";
                 DeviceAuthEndpoint = "https://${authDomain}/api/oidc/device-authorization";
                 Domain = authDomain;
@@ -369,7 +400,7 @@ in {
                 DisablePromptLogin = false;
                 LoginFlag = 0;
                 Scope = "openid profile email";
-                UseIDToken = false;
+                UseIDToken = true;
               };
             };
             DisableDefaultPolicy = true;
@@ -393,17 +424,18 @@ in {
             };
             PKCEAuthorizationFlow = {
               ProviderConfig = {
-                Audience = netbirdAuthClientId;
-                AuthorizationEndpoint = "https://${authDomain}/api/oidc/authorization";
                 ClientID = netbirdAuthClientId;
-                ClientSecret = config.sops.secrets."netbird/auth-client-secret".path;
-                DisablePromptLogin = false;
+                ClientSecret._secret = config.sops.secrets."netbird/auth-client-secret".path;
                 Domain = "";
-                LoginFlag = 0;
-                RedirectURLs = ["http://localhost:53000"];
-                Scope = "openid profile email";
+                Audience = netbirdAuthClientId;
                 TokenEndpoint = "https://${authDomain}/api/oidc/token";
+                DeviceAuthEndpoint = "";
+                AuthorizationEndpoint = "https://${authDomain}/api/oidc/authorization";
+                Scope = "openid profile email";
                 UseIDToken = true;
+                RedirectURLs = ["http://localhost:53000"];
+                DisablePromptLogin = false;
+                LoginFlag = 0;
               };
             };
             Stuns = [
@@ -432,46 +464,52 @@ in {
       };
     };
   };
-
-  systemd.services.website = {
-    enable = true;
-    description = "jeiang.dev website";
-    wants = ["network-online.target"];
-    after = ["network-online.target"];
-    wantedBy = ["multi-user.target"];
-    environment = {
-      SERVER_PORT = websitePort;
+  systemd.services = {
+    # Override the default user for coturn, there is no exposed option for it
+    coturn.serviceConfig = {
+      User = lib.mkForce "netbird";
+      Group = lib.mkForce "netbird";
     };
-    serviceConfig = let
-      src = inputs.website.packages.${pkgs.system}.default;
-      website =
-        pkgs.runCommand "website" {
-          buildInputs = with pkgs; [makeWrapper jdk21_headless];
-        } ''
-          mkdir $out
-          ln -s ${src}/* $out
-          # Except the bin folder
-          rm $out/bin
-          mkdir $out/bin
+    # Allow authelia to write to logs directory
+    authelia-main.serviceConfig = {
+      LogsDirectory = "authelia-main";
+    };
+    website = {
+      enable = true;
+      description = "jeiang.dev website";
+      wants = ["network-online.target"];
+      after = ["network-online.target"];
+      wantedBy = ["multi-user.target"];
+      environment = {
+        SERVER_PORT = websitePort;
+      };
+      serviceConfig = let
+        src = inputs.website.packages.${pkgs.system}.default;
+        website =
+          pkgs.runCommand "website" {
+            buildInputs = with pkgs; [makeWrapper jdk21_headless];
+          } ''
+            mkdir $out
+            ln -s ${src}/* $out
+            # Except the bin folder
+            rm $out/bin
+            mkdir $out/bin
 
-          makeWrapper ${src}/bin/website $out/bin/website --set JAVA_HOME ${pkgs.jdk21_headless}
-        '';
-    in {
-      User = "website";
-      Group = "website";
-      DynamicUser = true;
-      ExecStart = "${website}/bin/website";
-      Restart = "on-failure";
-      MemoryHigh = "100M";
-      MemoryMax = "200M";
+            makeWrapper ${src}/bin/website $out/bin/website --set JAVA_HOME ${pkgs.jdk21_headless}
+          '';
+      in {
+        User = "website";
+        Group = "website";
+        DynamicUser = true;
+        ExecStart = "${website}/bin/website";
+        Restart = "on-failure";
+        MemoryHigh = "100M";
+        MemoryMax = "200M";
+      };
     };
   };
   users = {
     users = {
-      authelia = {
-        isSystemUser = true;
-        group = "authelia";
-      };
       lldap = {
         isSystemUser = true;
         group = "lldap";
@@ -485,17 +523,6 @@ in {
       lldap = {};
       netbird = {};
       authelia = {};
-    };
-  };
-  systemd.tmpfiles.settings = {
-    "10-authelia-dirs" = {
-      "/var/db/authelia" = {
-        d = {
-          mode = "0777";
-          user = "authelia-main";
-          group = "authelia-main";
-        };
-      };
     };
   };
   sops.secrets = {
