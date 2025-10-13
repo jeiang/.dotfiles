@@ -23,6 +23,7 @@
           roll_keep 100
           roll_keep_for 30d
         }
+        exclude http.log.access
         format json
       }
     '';

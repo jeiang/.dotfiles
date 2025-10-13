@@ -9,6 +9,7 @@ in {
   services = {
     caddy.virtualHosts."netbird" = rec {
       hostName = "netbird.jeiang.dev";
+      logFormat = null;
       extraConfig = ''
         import logging ${hostName}
         import security_headers
@@ -210,6 +211,12 @@ in {
     };
   };
   systemd.services = {
+    # reload netbird service whenever the system config changes
+    ${config.services.netbird.clients.default.service.name} = {
+      # caddy needs to be started before the client can access the management server
+      requires = [config.systemd.services.caddy.name];
+      after = [config.systemd.services.caddy.name];
+    };
     # netbird login before service starts
     netbird-login = let
       defaultClient = config.services.netbird.clients.default;

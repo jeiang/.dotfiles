@@ -137,6 +137,7 @@ in {
     caddy.virtualHosts = {
       "authelia" = rec {
         hostName = authDomain;
+        logFormat = null;
         extraConfig = ''
           import logging ${hostName}
           import compression
@@ -145,6 +146,7 @@ in {
       };
       "lldap" = rec {
         hostName = "ldap.jeiang.dev";
+        logFormat = null;
         extraConfig = ''
           import logging ${hostName}
           import compression

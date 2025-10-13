@@ -7,6 +7,7 @@
 in {
   services.caddy.virtualHosts.main = rec {
     hostName = "jeiang.dev";
+    logFormat = null;
     serverAliases = ["aidanpinard.co" "pinard.co.tt"];
     extraConfig = ''
       import logging ${hostName}
