@@ -22,7 +22,12 @@
         inputs.disko.nixosModules.disko
         inputs.nixos-facter-modules.nixosModules.facter
         inputs.home-manager.nixosModules.home-manager
-        self.nixosModules.web-services
+        self.nixosModules.authelia
+        self.nixosModules.blocky
+        self.nixosModules.caddy
+        self.nixosModules.netbird
+        self.nixosModules.website
+        # self.nixosModules.security
         self.nixosModules.nix
         self.nixosModules.sops
         self.nixosModules.home-manager

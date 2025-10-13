@@ -15,7 +15,11 @@ in {
     sops = import ./system/sops;
     shared = import ./system/shared-config.nix;
     home-manager = import ./system/home-manager.nix;
-    web-services = import ./system/web-services.nix;
+    caddy = import ./system/caddy.nix;
+    blocky = import ./system/blocky.nix;
+    netbird = import ./system/netbird.nix;
+    website = import ./system/website.nix;
+    authelia = import ./system/authelia.nix;
   };
   flake.homeModules = {
     fish = import ./home/fish.nix;
