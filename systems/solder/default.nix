@@ -27,7 +27,7 @@
         self.nixosModules.caddy
         self.nixosModules.netbird
         self.nixosModules.website
-        # self.nixosModules.security
+        self.nixosModules.security
         self.nixosModules.nix
         self.nixosModules.sops
         self.nixosModules.home-manager
@@ -39,6 +39,7 @@
 
     deploy.nodes.solder = {
       hostname = "aidanpinard.co";
+      sudo = "doas -u";
       profiles.system = {
         user = "root";
         path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.solder;

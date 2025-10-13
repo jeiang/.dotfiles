@@ -1,16 +1,9 @@
 {pkgs, ...}: {
   security = {
-    sudo.enable = false;
+    # sudo.enable = false;
     doas = {
       enable = true;
       wheelNeedsPassword = false;
-      extraRules = [
-        {
-          users = ["aidanp"];
-          keepEnv = true;
-          persist = true;
-        }
-      ];
     };
   };
   environment = {

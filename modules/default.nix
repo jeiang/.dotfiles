@@ -20,6 +20,7 @@ in {
     netbird = import ./system/netbird.nix;
     website = import ./system/website.nix;
     authelia = import ./system/authelia.nix;
+    security = import ./system/security.nix;
   };
   flake.homeModules = {
     fish = import ./home/fish.nix;
