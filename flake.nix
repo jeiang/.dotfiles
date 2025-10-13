@@ -31,7 +31,8 @@
     # Utility inputs
     flake-parts.url = "github:hercules-ci/flake-parts";
     nixos-facter-modules.url = "github:numtide/nixos-facter-modules";
-    deploy-rs.url = "github:serokell/deploy-rs";
+    # TODO: revert to serokell once https://github.com/serokell/deploy-rs/issues/340 is fixed
+    deploy-rs.url = "github:jeiang/deploy-rs";
     nix-index-database.url = "github:nix-community/nix-index-database";
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
 
