@@ -21,6 +21,7 @@ in {
     website = import ./system/website.nix;
     authelia = import ./system/authelia.nix;
     security = import ./system/security.nix;
+    hyprland = import ./system/hyprland.nix;
   };
   flake.homeModules = {
     fish = import ./home/fish.nix;
@@ -32,5 +33,7 @@ in {
     starship = import ./home/starship;
     zellij = import ./home/zellij;
     ssh = import ./home/ssh.nix;
+    hyprland = import ./home/hyprland;
+    graphical = import ./home/graphical.nix;
   };
 }

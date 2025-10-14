@@ -1,4 +1,8 @@
 {
+  # suppress error: evaluation warning: mdadm: Neither MAILADDR nor PROGRAM has been set. This will cause the `mdmon` service to crash.
+  boot.swraid.mdadmConf = ''
+    MAILADDR=nobody@nowhere
+  '';
   disko.devices = {
     disk = {
       one = {

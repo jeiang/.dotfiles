@@ -26,47 +26,45 @@
       ];
     };
     home-manager.users.aidanp = {
-      imports = [
-        localFlake.homeModules.fish
-        localFlake.homeModules.git
-        localFlake.homeModules.ssh
-        localFlake.homeModules.starship
-        localFlake.homeModules.helix
-        inputs.nix-index-database.homeModules.nix-index
-      ];
-      home.stateVersion = "25.05";
-      home.packages = with pkgs;
-        [
-          btop
-          fd
-          bandwhich
-          bingrep
-          cachix
-          choose
-          devenv
-          duf
-          erdtree
-          felix-fm
-          file
-          hyperfine
-          jq
-          libtree
-          ouch
-          parallel
-          procs
-          ripgrep
-          rnr
-          sad
-          tokei
-          xh
-        ]
-        ++ (
+      imports = let
+        guiImports =
           if config.users.aidanp.graphical
-          then [
-            discord
-          ]
-          else []
-        );
+          then [localFlake.homeModules.graphical localFlake.homeModules.hyprland]
+          else [];
+      in
+        [
+          localFlake.homeModules.fish
+          localFlake.homeModules.git
+          localFlake.homeModules.ssh
+          localFlake.homeModules.starship
+          localFlake.homeModules.helix
+          inputs.nix-index-database.homeModules.nix-index
+        ]
+        ++ guiImports;
+      home.stateVersion = "25.05";
+      home.packages = with pkgs; [
+        btop
+        fd
+        bandwhich
+        bingrep
+        cachix
+        choose
+        devenv
+        duf
+        erdtree
+        file
+        hyperfine
+        jq
+        libtree
+        ouch
+        parallel
+        procs
+        ripgrep
+        rnr
+        sad
+        tokei
+        xh
+      ];
       programs = {
         bat = {
           enable = true;
@@ -92,6 +90,13 @@
           enable = true;
           mutableKeys = true;
         };
+        ghostty = {
+          enable = config.users.aidanp.graphical;
+          settings = {
+            theme = "Kanagawa Dragon";
+            # TODO: add jetbrains fonts
+          };
+        };
         mcfly = {
           enable = true;
           fuzzySearchFactor = 2;
@@ -103,6 +108,14 @@
             "--cmd"
             "cd"
           ];
+        };
+        yazi = {
+          enable = true;
+          initLua = ''
+            require("zoxide"):setup {
+              update_db = true,
+            }
+          '';
         };
       };
     };

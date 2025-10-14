@@ -27,6 +27,8 @@
         self.nixosModules.shared
         self.nixosModules.user-root
         self.nixosModules.user-aidanp
+        # enable wm + gui apps
+        {users.aidanp.graphical = true;}
       ];
     };
   };

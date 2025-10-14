@@ -64,6 +64,7 @@
         inputs' = inputs;
       })
       inputs.helix.overlays.default
+      inputs.nur.overlays.default
     ];
   };
 }
