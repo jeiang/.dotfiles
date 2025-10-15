@@ -1,11 +1,6 @@
 {
   programs.git = {
     enable = true;
-
-    extraConfig = {
-      pull.rebase = false;
-    };
-
     difftastic = {
       enable = true;
       options.display = "inline";
@@ -18,6 +13,11 @@
     };
     extraConfig = {
       init.defaultBranch = "main";
+      safe.directory = [
+        "/home/aidanp/cornn-flaek"
+      ];
+      push.autoSetupRemote = "true";
+      pull.rebase = false;
     };
 
     aliases = {

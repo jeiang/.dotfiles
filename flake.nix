@@ -18,6 +18,7 @@
         ./modules
         ./users
         ./systems/solder
+        ./systems/artemis
         ./overlays
       ];
     };
@@ -56,5 +57,10 @@
     helix.inputs.nixpkgs.follows = "nixpkgs";
     ### WARNING: DO NOT FOLLOW NIXPKGS. Gradle builds are broken for this package due to bad dependencies.
     website.url = "github:jeiang/website";
+    nur.url = "github:nix-community/NUR";
+    nur.inputs = {
+      nixpkgs.follows = "nixpkgs";
+      flake-parts.follows = "flake-parts";
+    };
   };
 }

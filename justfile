@@ -1,4 +1,4 @@
-idefault:
+default:
     @just --list
 
 # Format all files
@@ -24,4 +24,17 @@ sops-updatekeys:
 
 # Edit or view the secrets
 sops-edit:
-    sops $(fd "secrets.(yaml|env|ini|json)" | fzf)
+    sops $(fd "secrets.([^.]+.)?(yaml|env|ini|json)" | fzf)
+
+sops-create path:
+    sops {{path}}
+
+disko-format system sudo="sudo":
+  {{sudo}} disko -f .#{{system}} --mode destroy,format,mount
+
+install system sudo="sudo":
+  {{sudo}} nixos-install --flake .#{{system}}
+
+nixos action system="" sudo="sudo":
+  {{sudo}} nixos-rebuild {{action}} --flake .#{{system}}
+

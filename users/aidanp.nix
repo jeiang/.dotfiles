@@ -26,17 +26,31 @@
       ];
     };
     home-manager.users.aidanp = {
-      imports = [
-        localFlake.homeModules.fish
-        localFlake.homeModules.git
-        localFlake.homeModules.ssh
-        localFlake.homeModules.starship
-        localFlake.homeModules.helix
-        inputs.nix-index-database.homeModules.nix-index
-      ];
-      home.stateVersion = "25.05";
-      home.packages = with pkgs;
+      imports = let
+        guiImports =
+          if config.users.aidanp.graphical
+          then [localFlake.homeModules.graphical localFlake.homeModules.hyprland]
+          else [];
+      in
         [
+          localFlake.homeModules.fish
+          localFlake.homeModules.git
+          localFlake.homeModules.ssh
+          localFlake.homeModules.starship
+          localFlake.homeModules.helix
+          inputs.nix-index-database.homeModules.nix-index
+        ]
+        ++ guiImports;
+      sops = {
+        defaultSopsFile = ./secrets.aidanp.yaml;
+        age.keyFile = "${config.home-manager.users.aidanp.home.homeDirectory}/.config/sops/age/keys.txt";
+      };
+      home = {
+        stateVersion = "25.05";
+        file = {
+          ".face.icon".source = ./aidanp.png;
+        };
+        packages = with pkgs; [
           btop
           fd
           bandwhich
@@ -46,7 +60,6 @@
           devenv
           duf
           erdtree
-          felix-fm
           file
           hyperfine
           jq
@@ -59,14 +72,13 @@
           sad
           tokei
           xh
-        ]
-        ++ (
-          if config.users.aidanp.graphical
-          then [
-            discord
-          ]
-          else []
-        );
+          # https://nixos.wiki/wiki/NixOS_Generations_Trimmer
+          (writeShellScriptBin "trim-generations" (builtins.readFile (fetchurl {
+            url = "https://gist.githubusercontent.com/MaxwellDupre/3077cd229490cf93ecab08ef2a79c852/raw/ccb39ba6304ee836738d4ea62999f4451fbc27f7/trim-generations.sh";
+            sha256 = "sha256-kIWTg8FSpNtDyEFr4/I54+GpGjiV2zWPO6WZQU4gEZ8=";
+          })))
+        ];
+      };
       programs = {
         bat = {
           enable = true;
@@ -92,6 +104,13 @@
           enable = true;
           mutableKeys = true;
         };
+        ghostty = {
+          enable = config.users.aidanp.graphical;
+          settings = {
+            theme = "Kanagawa Dragon";
+            # TODO: add jetbrains fonts
+          };
+        };
         mcfly = {
           enable = true;
           fuzzySearchFactor = 2;
@@ -103,6 +122,21 @@
             "--cmd"
             "cd"
           ];
+        };
+        yazi = {
+          enable = true;
+          initLua = ''
+            require("zoxide"):setup {
+              update_db = true,
+            }
+          '';
+        };
+      };
+      services.gpg-agent = {
+        enable = true;
+        pinentry = {
+          package = pkgs.pinentry-qt;
+          program = "pinentry-qt";
         };
       };
     };

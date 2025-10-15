@@ -19,7 +19,11 @@ _: {
         packages = with pkgs; [
           config.treefmt.build.wrapper
           inputs'.deploy-rs.packages.deploy-rs
+          inputs'.disko.packages.disko-install
+          ssh-to-age
           git
+          fd
+          fzf
           helix
           nixVersions.latest
           just
