@@ -1,79 +1,91 @@
 {
-  # suppress error: evaluation warning: mdadm: Neither MAILADDR nor PROGRAM has been set. This will cause the `mdmon` service to crash.
-  boot.swraid.mdadmConf = ''
-    MAILADDR=nobody@nowhere
-  '';
+  boot.loader.efi.canTouchEfiVariables = true;
   disko.devices = {
     disk = {
-      one = {
+      nvme0 = {
         type = "disk";
-        device = "/dev/nvme0";
+        device = "/dev/nvme0n1";
         content = {
           type = "gpt";
           partitions = {
-            BOOT = {
-              size = "1M";
-              type = "EF02"; # for grub MBR
-            };
             ESP = {
-              size = "500M";
               type = "EF00";
+              size = "1024M";
+              name = "boot";
               content = {
-                type = "mdraid";
-                name = "boot";
+                type = "filesystem";
+                format = "vfat";
+                mountpoint = "/boot";
+                mountOptions = [
+                  "umask=0022"
+                  "iocharset=utf8"
+                  "rw"
+                ];
               };
             };
-            mdadm = {
+            empty = {
               size = "100%";
-              content = {
-                type = "mdraid";
-                name = "raid0";
-              };
             };
           };
         };
       };
-    };
-    mdadm = {
-      boot = {
-        type = "mdadm";
-        level = 1;
-        content = {
-          type = "filesystem";
-          format = "vfat";
-          mountpoint = "/boot";
-          mountOptions = ["umask=0077"];
-        };
-      };
-      raid0 = {
-        type = "mdadm";
-        level = 0;
+      nvme1 = {
+        type = "disk";
+        device = "/dev/nvme1n1";
         content = {
           type = "gpt";
-          partitions.primary = {
-            size = "100%";
-            content = let
-              mountOptions = ["compress-zstd" "noatime"];
-            in {
-              type = "btrfs";
-              extraArgs = ["-f"]; # Override existing partition
-              subvolumes = {
-                "/rootfs" = {
-                  inherit mountOptions;
-                  mountpoint = "/";
-                };
-                "/log" = {
-                  inherit mountOptions;
-                  mountpoint = "/var/log";
-                };
-                "/home" = {
-                  inherit mountOptions;
-                  mountpoint = "/home";
-                };
-                "/home/aidanp" = {};
-                "/nix" = {
-                  inherit mountOptions;
-                  mountpoint = "/nix";
+          partitions = {
+            empty = {
+              size = "100%";
+            };
+          };
+        };
+      };
+      nvme2 = {
+        type = "disk";
+        device = "/dev/nvme2n1";
+        content = {
+          type = "gpt";
+          partitions = {
+            root = {
+              size = "100%";
+              content = {
+                type = "btrfs";
+                extraArgs = [
+                  "-f"
+                  "-m raid0"
+                  "-d raid0"
+                  "/dev/nvme0n1p2"
+                  "/dev/nvme1n1p1"
+                  "/dev/nvme2n1p1"
+                ];
+                subvolumes = let
+                  mountOptions = [
+                    "rw"
+                    "ssd_spread"
+                    "commit=150"
+                    "compress=zstd"
+                    "noatime"
+                    "discard=async"
+                  ];
+                in {
+                  "/rootfs" = {
+                    inherit mountOptions;
+                    mountpoint = "/";
+                  };
+                  "/log" = {
+                    inherit mountOptions;
+                    mountpoint = "/var/log";
+                  };
+                  "/home" = {
+                    inherit mountOptions;
+                    mountpoint = "/home";
+                  };
+                  "/home/aidanp" = {};
+                  "/nix" = {
+                    inherit mountOptions;
+                    mountpoint = "/nix";
+                  };
                 };
               };
             };

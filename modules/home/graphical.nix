@@ -1,7 +1,17 @@
 {pkgs, ...}: {
   home.packages = with pkgs; [
     discord
+    bitwarden-desktop
+    pwvucontrol
+    jetbrains-mono
+    nerd-fonts.jetbrains-mono
+    nerd-fonts.symbols-only
+    wl-clipboard
   ];
+
+  home.sessionVariables.SSH_AUTH_SOCK = "$HOME/.bitwarden-ssh-agent.sock";
+
+  fonts.fontconfig.enable = true;
 
   programs = {
     firefox = {

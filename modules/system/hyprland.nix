@@ -1,8 +1,4 @@
-{
-  pkgs,
-  config,
-  ...
-}: {
+{pkgs, ...}: {
   security.pam.services.hyprlock = {};
   programs = {
     hyprlock.enable = true;
@@ -18,7 +14,7 @@
       useTextGreeter = true;
       settings = {
         default_session = {
-          command = "${pkgs.tuigreet}/bin/tuigreet --cmd ${config.programs.uwsm.package} start -- hyprland.desktop";
+          command = "${pkgs.tuigreet}/bin/tuigreet --cmd uwsm start -- hyprland-uwsm.desktop";
         };
       };
     };

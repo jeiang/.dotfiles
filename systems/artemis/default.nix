@@ -10,12 +10,14 @@
       modules = [
         {
           facter.reportPath = ./facter.json;
-          boot.loader.grub.enable = true;
+          boot.loader.systemd-boot.enable = true;
           boot.tmp.cleanOnBoot = true;
           networking.hostName = "artemis";
+          time.timeZone = "America/Port_of_Spain";
           # set the correct ip for ipv6
           system.stateVersion = "25.05";
         }
+        ./networking.nix
         ./disko-config.nix
         inputs.disko.nixosModules.disko
         inputs.nixos-facter-modules.nixosModules.facter
@@ -27,6 +29,7 @@
         self.nixosModules.shared
         self.nixosModules.user-root
         self.nixosModules.user-aidanp
+        self.nixosModules.hyprland
         # enable wm + gui apps
         {users.aidanp.graphical = true;}
       ];
