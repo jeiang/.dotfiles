@@ -1,6 +1,13 @@
 # Example to create a bios compatible gpt partition
 {lib, ...}: {
   boot.loader.grub.devices = lib.mkForce ["/dev/sda"];
+  # not managed by disko
+  filesystems."/mnt/Mumei" = {
+    device = "/dev/disk/by-label/Mumei";
+    neededForBoot = false;
+    fsType = "ntfs-3g";
+    options = ["rw" "uid=1000"];
+  };
   disko.devices = {
     disk.disk1 = {
       device = lib.mkDefault "/dev/sda";

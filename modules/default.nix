@@ -23,6 +23,7 @@ in {
     authelia = import ./system/authelia.nix;
     security = import ./system/security.nix;
     hyprland = import ./system/hyprland.nix;
+    steam = import ./system/steam.nix;
   };
   flake.homeModules = {
     fish = import ./home/fish.nix;

@@ -10,8 +10,11 @@
       modules = [
         {
           facter.reportPath = ./facter.json;
-          boot.loader.systemd-boot.enable = true;
-          boot.tmp.cleanOnBoot = true;
+          boot = {
+            loader.systemd-boot.enable = true;
+            supportedFilesystems = ["ntfs"];
+            tmp.cleanOnBoot = true;
+          };
           networking.hostName = "artemis";
           time.timeZone = "America/Port_of_Spain";
           # set the correct ip for ipv6
@@ -30,6 +33,7 @@
         self.nixosModules.user-root
         self.nixosModules.user-aidanp
         self.nixosModules.hyprland
+        self.nixosModules.steam
         # enable wm + gui apps
         {users.aidanp.graphical = true;}
       ];
