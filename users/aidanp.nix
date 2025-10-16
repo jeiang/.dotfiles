@@ -25,6 +25,7 @@
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDX/1mgkG5030b8C3eAZN2vBcoYvS9d+/OTtRf0f6XJJ"
       ];
     };
+    sops.secrets."keys/aidanp-sops".owner = "aidanp";
     home-manager.users.aidanp = {
       imports = let
         guiImports =
@@ -34,6 +35,7 @@
       in
         [
           localFlake.homeModules.fish
+          localFlake.homeModules.attic
           localFlake.homeModules.git
           localFlake.homeModules.ssh
           localFlake.homeModules.starship
@@ -43,7 +45,7 @@
         ++ guiImports;
       sops = {
         defaultSopsFile = ./secrets.aidanp.yaml;
-        age.keyFile = "${config.home-manager.users.aidanp.home.homeDirectory}/.config/sops/age/keys.txt";
+        age.keyFile = config.sops.secrets."keys/aidanp-sops".path;
       };
       home = {
         stateVersion = "25.05";

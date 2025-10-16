@@ -41,6 +41,7 @@
         "https://jeiang.cachix.org"
         "https://nix-community.cachix.org"
         "https://walker.cachix.org"
+        "https://attic.jeiang.dev/main"
       ];
       trusted-public-keys = [
         "helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="
@@ -48,6 +49,7 @@
         "jeiang.cachix.org-1:Ax2onCzp6V74ORnjlTAbZsDmlLeMMzDOzzcC2qHfJKg="
         "walker.cachix.org-1:fG8q+uAaMqhsMxWjwvk0IMb4mFPFLqHjuvfwQxE4oJM="
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+        "main:bDbTZZwnX3C+67tQxGUfZzNLNio6KTPyJrXpqjTXBWM="
       ];
       trusted-users = [
         "root"

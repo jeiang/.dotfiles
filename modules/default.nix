@@ -15,6 +15,7 @@ in {
     sops = import ./system/sops;
     shared = import ./system/shared-config.nix;
     home-manager = import ./system/home-manager.nix;
+    attic = import ./system/attic.nix;
     caddy = import ./system/caddy.nix;
     blocky = import ./system/blocky.nix;
     netbird = import ./system/netbird.nix;
@@ -25,6 +26,7 @@ in {
   };
   flake.homeModules = {
     fish = import ./home/fish.nix;
+    attic = import ./home/attic.nix;
     git = import ./home/git.nix;
     helix = importApply ./home/helix {
       localFlake = self;
