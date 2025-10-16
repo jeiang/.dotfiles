@@ -72,6 +72,7 @@
           ripgrep
           rnr
           sad
+          trashy
           tokei
           xh
           # https://nixos.wiki/wiki/NixOS_Generations_Trimmer
