@@ -50,7 +50,6 @@
           weather = {
             unit = "imperial";
             location = "Port of Spain";
-            # TODO: put this in sops
             key = config.sops.secrets."api_keys/hyprpanel/weather".path;
           };
         };

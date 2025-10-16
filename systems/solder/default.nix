@@ -21,6 +21,7 @@
         inputs.disko.nixosModules.disko
         inputs.nixos-facter-modules.nixosModules.facter
         inputs.home-manager.nixosModules.home-manager
+        self.nixosModules.attic
         self.nixosModules.authelia
         self.nixosModules.blocky
         self.nixosModules.caddy
