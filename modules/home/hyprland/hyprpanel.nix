@@ -1,4 +1,8 @@
-{config, ...}: {
+{
+  config,
+  pkgs,
+  ...
+}: {
   # needed for sops
   systemd.user.services.hyprpanel.unitConfig.after = ["sops-nix.service"];
   programs.hyprpanel = {
@@ -66,8 +70,13 @@
               icon = "";
             };
           };
-          powermenu = {
-            sleep = "hyprlock && systemctl suspend";
+          powermenu = let
+            sleeper = pkgs.writeShellScript "hyprpanel-sleep" ''
+              hyprlock &
+              systemctl suspend
+            '';
+          in {
+            sleep = "${sleeper}";
           };
         };
       };
