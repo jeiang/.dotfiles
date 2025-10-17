@@ -24,11 +24,9 @@
               "ram"
               "cputemp"
               "storage"
-              "netstat"
               "volume"
               "microphone"
               "network"
-              "bluetooth"
               "weather"
               "clock"
               "systray"
@@ -67,6 +65,9 @@
               tooltip = "Ghostty";
               icon = "";
             };
+          };
+          powermenu = {
+            sleep = "hyprlock && systemctl suspend";
           };
         };
       };

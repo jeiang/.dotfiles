@@ -15,7 +15,13 @@
     # for screensharing with xwayland apps
     kdePackages.xwaylandvideobridge
   ];
-  gtk.enable = true;
+  gtk = {
+    enable = true;
+    iconTheme = {
+      name = "Adwaita";
+      package = pkgs.adwaita-icon-theme;
+    };
+  };
   home.pointerCursor = {
     enable = true;
     name = "rose-pine-hyprcursor";
