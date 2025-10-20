@@ -1,5 +1,12 @@
 {
   boot.loader.efi.canTouchEfiVariables = true;
+  # not managed by disko
+  fileSystems."/mnt/Mumei" = {
+    device = "/dev/disk/by-label/Mumei";
+    neededForBoot = false;
+    fsType = "ntfs-3g";
+    options = ["rw" "uid=1000"];
+  };
   disko.devices = {
     disk = {
       nvme0 = {
