@@ -8,17 +8,63 @@
       system = "x86_64-linux";
       specialArgs = {inherit inputs;};
       modules = [
-        {
+        ({pkgs, ...}: {
           facter.reportPath = ./facter.json;
           boot = {
             loader.systemd-boot.enable = true;
             supportedFilesystems = ["ntfs"];
             tmp.cleanOnBoot = true;
           };
+          # setup a symlink to /dev/dri/egpu and /dev/dri/igpu for hyprland
+          services.udev.packages = let
+            name = "52-gpu-symlink.rules";
+            gpu-rules = pkgs.writeText name ''
+              KERNEL=="card*", KERNELS=="0000:03:00.0", SUBSYSTEM=="drm", SUBSYSTEMS=="pci", SYMLINK+="dri/egpu"
+              KERNEL=="card*", KERNELS=="0000:19:00.0", SUBSYSTEM=="drm", SUBSYSTEMS=="pci", SYMLINK+="dri/igpu"
+            '';
+            symlink-drv = pkgs.stdenv.mkDerivation {
+              name = "gpu-path-rules";
+              phases = ["installPhase"];
+
+              installPhase = ''
+                mkdir -p $out/lib/udev/rules.d
+                cp ${gpu-rules} $out/lib/udev/rules.d/${name}
+              '';
+            };
+          in [
+            symlink-drv
+          ];
           networking.hostName = "artemis";
           time.timeZone = "America/Port_of_Spain";
           # set the correct ip for ipv6
           system.stateVersion = "25.05";
+        })
+        {
+          # TODO: create user service to start the ui
+          # TEMP: netbird config until i modify the proper instance
+          services.netbird = {
+            enable = true;
+            clients.default.config = let
+              urlConfig = {
+                Scheme = "https";
+                Opaque = "";
+                User = null;
+                Host = "netbird.jeiang.dev:443";
+                Path = "";
+                RawPath = "";
+                OmitHost = false;
+                ForceQuery = false;
+                RawQuery = "";
+                Fragment = "";
+                RawFragment = "";
+              };
+            in {
+              # Set Management URL for netbird configuration file
+              ManagementURL = urlConfig;
+              AdminUrl = urlConfig;
+            };
+            useRoutingFeatures = "both";
+          };
         }
         ./networking.nix
         ./disko-config.nix

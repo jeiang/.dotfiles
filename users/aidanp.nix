@@ -53,7 +53,7 @@
           ".face.icon".source = ./aidanp.png;
         };
         packages = with pkgs; [
-          btop
+          btop-rocm
           fd
           bandwhich
           bingrep

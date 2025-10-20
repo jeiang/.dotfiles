@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  lib,
   ...
 }: {
   imports = [
@@ -11,10 +12,6 @@
     # ./swaync.nix
     ./walker.nix
   ];
-  home.packages = with pkgs; [
-    # for screensharing with xwayland apps
-    kdePackages.xwaylandvideobridge
-  ];
   gtk = {
     enable = true;
     iconTheme = {
@@ -22,13 +19,22 @@
       package = pkgs.adwaita-icon-theme;
     };
   };
-  home.pointerCursor = {
-    enable = true;
-    name = "rose-pine-hyprcursor";
-    package = pkgs.rose-pine-hyprcursor;
-    gtk.enable = true;
-    x11.enable = true;
-    hyprcursor.enable = true;
+  home = {
+    packages = with pkgs; [
+      # for screensharing with xwayland apps
+      kdePackages.xwaylandvideobridge
+    ];
+    pointerCursor = {
+      enable = true;
+      name = "rose-pine-hyprcursor";
+      package = pkgs.rose-pine-hyprcursor;
+      gtk.enable = true;
+      x11.enable = true;
+      hyprcursor.enable = true;
+    };
+    sessionVariables = {
+      AQ_DRM_DEVICES = lib.mkDefault "/dev/dri/egpu:/dev/dri/igpu";
+    };
   };
   programs.hyprshot.enable = true;
   services = {
@@ -47,6 +53,8 @@
         no_update_news = true;
       };
       monitor = [
+        # TODO: find a way to make this machine specific
+        "DP-1, 5120x1440@240, 0x0, 1, vrr, 1"
         ",preferred,auto,auto"
       ];
       "$terminal" = "uwsm app -- ${config.programs.ghostty.package}/bin/ghostty";

@@ -6,6 +6,7 @@
   netbirdAuthClientId = "netbird";
   authDomain = "auth.jeiang.dev";
 in {
+  # TODO: add config to allow this same file to be used on server & client, and add an option to enable server stuff
   services = {
     caddy.virtualHosts."netbird" = rec {
       hostName = "netbird.jeiang.dev";
