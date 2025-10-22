@@ -72,6 +72,7 @@
           ripgrep
           rnr
           sad
+          tdf
           trashy
           tokei
           xh

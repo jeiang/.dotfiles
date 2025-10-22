@@ -4,6 +4,7 @@
     bitwarden-desktop
     pwvucontrol
     jetbrains-mono
+    umu-launcher
     nerd-fonts.jetbrains-mono
     nerd-fonts.symbols-only
     wl-clipboard
