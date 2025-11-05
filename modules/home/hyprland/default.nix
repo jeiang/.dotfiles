@@ -54,7 +54,7 @@
       };
       monitor = [
         # TODO: find a way to make this machine specific
-        "DP-1, 5120x1440@240, 0x0, 1, vrr, 1"
+        "DP-1, 5120x1440@240, 0x0, 1"
         ",preferred,auto,auto"
       ];
       "$terminal" = "uwsm app -- ${config.programs.ghostty.package}/bin/ghostty";

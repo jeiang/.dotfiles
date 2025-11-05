@@ -40,6 +40,7 @@
           localFlake.homeModules.ssh
           localFlake.homeModules.starship
           localFlake.homeModules.helix
+          localFlake.homeModules.gaming
           inputs.nix-index-database.homeModules.nix-index
         ]
         ++ guiImports;

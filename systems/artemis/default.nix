@@ -8,13 +8,20 @@
       system = "x86_64-linux";
       specialArgs = {inherit inputs;};
       modules = [
-        ({pkgs, ...}: {
+        ({
+          pkgs,
+          config,
+          ...
+        }: {
           facter.reportPath = ./facter.json;
           boot = {
             loader.systemd-boot.enable = true;
             supportedFilesystems = ["ntfs"];
             tmp.cleanOnBoot = true;
           };
+          boot.kernelPackages = pkgs.linuxPackages_zen;
+          boot.extraModulePackages = [config.boot.kernelPackages.zenpower];
+          boot.kernelModules = ["zenpower"];
           # setup a symlink to /dev/dri/egpu and /dev/dri/igpu for hyprland
           services.udev.packages = let
             name = "52-gpu-symlink.rules";
@@ -79,7 +86,7 @@
         self.nixosModules.user-root
         self.nixosModules.user-aidanp
         self.nixosModules.hyprland
-        self.nixosModules.steam
+        self.nixosModules.gaming
         # enable wm + gui apps
         {users.aidanp.graphical = true;}
       ];

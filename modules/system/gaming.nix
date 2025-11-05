@@ -2,7 +2,7 @@
   programs = {
     gamescope = {
       enable = true;
-      capSysNice = true;
+      capSysNice = false;
     };
     gamemode = {
       enable = true;
@@ -37,5 +37,16 @@
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
+  };
+  services.ananicy = {
+    enable = true;
+    package = pkgs.ananicy-cpp;
+    rulesProvider = pkgs.ananicy-cpp;
+    extraRules = [
+      {
+        "name" = "gamescope";
+        "nice" = -20;
+      }
+    ];
   };
 }

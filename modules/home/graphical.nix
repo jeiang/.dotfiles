@@ -4,6 +4,7 @@
     bitwarden-desktop
     pwvucontrol
     jetbrains-mono
+    qview
     umu-launcher
     nerd-fonts.jetbrains-mono
     nerd-fonts.symbols-only
