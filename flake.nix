@@ -62,5 +62,6 @@
       nixpkgs.follows = "nixpkgs";
       flake-parts.follows = "flake-parts";
     };
+    nix-minecraft.url = "github:Infinidoge/nix-minecraft";
   };
 }

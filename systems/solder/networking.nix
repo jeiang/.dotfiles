@@ -1,5 +1,6 @@
 _: {
   networking = {
+    nftables.enable = true;
     interfaces.enp1s0 = {
       # set the correct ip for ipv6
       ipv6.addresses = [

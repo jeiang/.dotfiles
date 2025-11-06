@@ -21,12 +21,14 @@
         inputs.disko.nixosModules.disko
         inputs.nixos-facter-modules.nixosModules.facter
         inputs.home-manager.nixosModules.home-manager
+        inputs.nix-minecraft.nixosModules.minecraft-servers
         self.nixosModules.attic
         self.nixosModules.authelia
         self.nixosModules.blocky
         self.nixosModules.caddy
         self.nixosModules.netbird
         self.nixosModules.website
+        self.nixosModules.mc
         self.nixosModules.security
         self.nixosModules.nix
         self.nixosModules.sops

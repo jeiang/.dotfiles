@@ -24,6 +24,10 @@ in {
     security = import ./system/security.nix;
     hyprland = import ./system/hyprland.nix;
     gaming = import ./system/gaming.nix;
+    mc = importApply ./system/mc.nix {
+      localFlake = self;
+      inherit inputs;
+    };
   };
   flake.homeModules = {
     fish = import ./home/fish.nix;
