@@ -52,6 +52,9 @@
       ecosystem = {
         no_update_news = true;
       };
+      debug = {
+        full_cm_proto = true;
+      };
       monitor = [
         # TODO: find a way to make this machine specific
         "DP-1, 5120x1440@240, 0x0, 1"

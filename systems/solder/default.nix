@@ -29,6 +29,7 @@
         self.nixosModules.netbird
         self.nixosModules.website
         self.nixosModules.mc
+        self.nixosModules.exh-home
         self.nixosModules.security
         self.nixosModules.nix
         self.nixosModules.sops

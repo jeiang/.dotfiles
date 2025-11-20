@@ -28,6 +28,7 @@ in {
       localFlake = self;
       inherit inputs;
     };
+    exh-home = import ./system/exh-home.nix;
   };
   flake.homeModules = {
     fish = import ./home/fish.nix;

@@ -4,6 +4,7 @@
   ...
 }: {
   home.shell.enableFishIntegration = true;
+  home.shellAliases."mv" = "mv -i";
   programs.fish = {
     enable = true;
     shellInit = ''

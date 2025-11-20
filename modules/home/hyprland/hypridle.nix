@@ -16,7 +16,7 @@
         {
           timeout = 1200;
           on-timeout = "hyprctl dispatch dpms off";
-          on-resume = "hyprctl dispatch dpms on";
+          on-resume = "hyprctl dispatch dpms on && systemctl restart --user hyprpanel.service";
         }
       ];
     };
