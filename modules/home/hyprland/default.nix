@@ -140,6 +140,7 @@
         kb_layout = "us";
         follow_mouse = 1;
         sensitivity = 0;
+        numlock_by_default = true;
       };
       "$mainMod" = "SUPER"; # Sets "Windows" key as main modifier
       bind = [
