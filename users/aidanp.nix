@@ -50,9 +50,6 @@
       };
       home = {
         stateVersion = "25.05";
-        file = {
-          ".face.icon".source = ./aidanp.png;
-        };
         packages = with pkgs; [
           btop-rocm
           fd
@@ -142,6 +139,23 @@
         pinentry = {
           package = pkgs.pinentry-qt;
           program = "pinentry-qt";
+        };
+      };
+      home.file = {
+        ".face.icon".source = ./aidanp.png;
+        ".local/share/dbus-1/services/org.freedesktop.FileManager1.service".text = ''
+          [D-BUS Service]
+          Name=org.freedesktop.FileManager1
+          Exec=yazi %u
+          Terminal=true
+        '';
+      };
+      xdg = {
+        mimeApps = {
+          enable = true;
+          defaultApplicationPackages = with pkgs; [
+            yazi
+          ];
         };
       };
     };

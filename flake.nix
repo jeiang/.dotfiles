@@ -63,5 +63,10 @@
       flake-parts.follows = "flake-parts";
     };
     nix-minecraft.url = "github:Infinidoge/nix-minecraft";
+    vicinae-extensions.url = "github:vicinaehq/extensions";
+    vicinae-extensions.inputs = {
+      nixpkgs.follows = "nixpkgs";
+      systems.follows = "systems";
+    };
   };
 }

@@ -9,8 +9,7 @@
     ./hyprpanel.nix
     ./hyprpaper.nix
     ./hyprsunset.nix
-    # ./swaync.nix
-    ./walker.nix
+    ./vicinae.nix
   ];
   gtk = {
     enable = true;
@@ -20,10 +19,6 @@
     };
   };
   home = {
-    packages = with pkgs; [
-      # for screensharing with xwayland apps
-      kdePackages.xwaylandvideobridge
-    ];
     pointerCursor = {
       enable = true;
       name = "rose-pine-hyprcursor";
@@ -39,7 +34,6 @@
   programs.hyprshot.enable = true;
   services = {
     hyprpolkitagent.enable = true;
-    clipse.enable = true;
   };
   xdg.configFile."uwsm/env".source = "${config.home.sessionVariablesPackage}/etc/profile.d/hm-session-vars.sh";
 
@@ -62,7 +56,7 @@
       ];
       "$terminal" = "uwsm app -- ${config.programs.ghostty.package}/bin/ghostty";
       "$fileManager" = "uwsm app -- ${config.programs.ghostty.package}/bin/ghostty -e ${config.programs.yazi.package}/bin/yazi";
-      "$menu" = "uwsm app -- ${config.services.walker.package}/bin/walker";
+      "$menu" = "uwsm app -- ${config.programs.vicinae.package}/bin/vicinae";
       env = [
         "XCURSOR_SIZE,24"
         "HYPRCURSOR_SIZE,24"
@@ -146,9 +140,9 @@
       bind = [
         # Apps
         "$mainMod, T, exec, $terminal"
-        "$mainMod SHIFT, V, exec, $terminal --class=savedra1.clipse -e clipse"
+        "$mainMod SHIFT, V, exec, $menu vicinae://extensions/vicinae/clipboard/history"
         "$mainMod, E, exec, $fileManager"
-        "$mainMod, Space, exec, $menu"
+        "$mainMod, Space, exec, $menu toggle"
         # Misc Controls
         "$mainMod, V, togglefloating,"
         "$mainMod, P, pseudo, # dwindle"
@@ -215,17 +209,10 @@
         "suppressevent maximize, class:.*"
         # Fix some dragging issues with XWayland
         "nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0"
-        # Rules for xwaylandvideobridge from https://wiki.hypr.land/Useful-Utilities/Screen-Sharing/#xwayland
-        "opacity 0.0 override, class:^(xwaylandvideobridge)$"
-        "noanim, class:^(xwaylandvideobridge)$"
-        "noinitialfocus, class:^(xwaylandvideobridge)$"
-        "maxsize 1 1, class:^(xwaylandvideobridge)$"
-        "noblur, class:^(xwaylandvideobridge)$"
-        "nofocus, class:^(xwaylandvideobridge)$"
-        # Clipse Rules
-        "float, class:(savedra1.clipse)"
-        "size 622 652, class:(savedra1.clipse)"
-        "stayfocused, class:(savedra1.clipse)"
+      ];
+      layerrule = [
+        "blur,vicinae"
+        "ignorealpha 0, vicinae"
       ];
     };
   };
