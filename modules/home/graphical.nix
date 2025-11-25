@@ -4,9 +4,11 @@
     bitwarden-desktop
     pwvucontrol
     jetbrains-mono
+    departure-mono
     qview
     umu-launcher
     nerd-fonts.jetbrains-mono
+    nerd-fonts.departure-mono
     nerd-fonts.symbols-only
     wl-clipboard
   ];
@@ -16,6 +18,16 @@
   fonts.fontconfig.enable = true;
 
   programs = {
+    mpv = {
+      enable = true;
+      package = pkgs.mpv-unwrapped.wrapper {
+        mpv = pkgs.mpv-unwrapped;
+        youtubeSupport = true;
+      };
+      defaultProfiles = [
+        "high-quality"
+      ];
+    };
     firefox = {
       enable = true;
       profiles.main = {

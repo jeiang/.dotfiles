@@ -110,7 +110,8 @@
           enable = config.users.aidanp.graphical;
           settings = {
             theme = "Kanagawa Dragon";
-            # TODO: add jetbrains fonts
+            font-family = "DepartureMono Nerd Font";
+            font-size = 11;
           };
         };
         mcfly = {
