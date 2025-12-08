@@ -64,7 +64,7 @@
           hyperfine
           jq
           libtree
-          ouch
+          (ouch.override {enableUnfree = true;})
           parallel
           procs
           ripgrep

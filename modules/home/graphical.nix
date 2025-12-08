@@ -18,6 +18,13 @@
   fonts.fontconfig.enable = true;
 
   programs = {
+    spotify-player = {
+      enable = true;
+      settings = {
+        client-id = "e91bb966bf8c4f4494849daa582d857a";
+        theme = "catppuccin_mocha";
+      };
+    };
     mpv = {
       enable = true;
       package = pkgs.mpv-unwrapped.wrapper {
