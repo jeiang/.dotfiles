@@ -29,6 +29,7 @@ in {
       inherit inputs;
     };
     exh-home = import ./system/exh-home.nix;
+    ollama = import ./system/ollama.nix;
   };
   flake.homeModules = {
     fish = import ./home/fish.nix;

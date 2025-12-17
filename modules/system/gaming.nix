@@ -1,4 +1,27 @@
 {pkgs, ...}: {
+  services.udev.packages = let
+    name = "99-boxflat.rules";
+    gpu-rules = pkgs.writeText name ''
+      # Add uaccess tag to every Moza (Gudsen) ttyACM device so a user can easily access it
+      # without being added to the uucp group. This in turn will make it so EVERY user
+      # can access these devices
+      SUBSYSTEM=="tty", KERNEL=="ttyACM*", ATTRS{idVendor}=="346e", ACTION=="add", MODE="0666", TAG+="uaccess"
+
+      # Add uaccess tag to uinput devices to create virtual joysticks
+      SUBSYSTEM=="misc", KERNEL=="uinput", OPTIONS+="static_node=uinput", TAG+="uaccess"
+    '';
+    symlink-drv = pkgs.stdenv.mkDerivation {
+      name = "boxflat-rules";
+      phases = ["installPhase"];
+
+      installPhase = ''
+        mkdir -p $out/lib/udev/rules.d
+        cp ${gpu-rules} $out/lib/udev/rules.d/${name}
+      '';
+    };
+  in [
+    symlink-drv
+  ];
   programs = {
     gamescope = {
       enable = true;

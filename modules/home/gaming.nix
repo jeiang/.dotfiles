@@ -12,6 +12,7 @@
         zulu
       ];
     })
+    boxflat
   ];
   programs.mangohud.enable = true;
   xdg.configFile."MangoHud/MangoHud.conf".text = ''

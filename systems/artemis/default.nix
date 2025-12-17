@@ -87,6 +87,7 @@
         self.nixosModules.user-aidanp
         self.nixosModules.hyprland
         self.nixosModules.gaming
+        self.nixosModules.ollama
         # enable wm + gui apps
         {users.aidanp.graphical = true;}
       ];
