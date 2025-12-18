@@ -143,7 +143,7 @@
         };
       };
       home.file = {
-        ".face.icon".source = ./aidanp.png;
+        ".face".source = ./aidanp.png;
         ".local/share/dbus-1/services/org.freedesktop.FileManager1.service".text = ''
           [D-BUS Service]
           Name=org.freedesktop.FileManager1

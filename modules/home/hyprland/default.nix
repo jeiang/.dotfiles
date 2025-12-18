@@ -1,15 +1,14 @@
-{
+{inputs, ...}: {
   config,
   pkgs,
   lib,
   ...
 }: {
   imports = [
-    ./hypridle.nix
-    ./hyprpanel.nix
-    ./hyprpaper.nix
     ./hyprsunset.nix
     ./vicinae.nix
+    inputs.caelestia-shell.homeManagerModules.default
+    ./caelestia.nix
   ];
   gtk = {
     enable = true;

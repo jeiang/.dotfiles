@@ -39,11 +39,14 @@ in {
       localFlake = self;
       inherit inputs lib;
     };
+    hyprland = importApply ./home/hyprland {
+      localFlake = self;
+      inherit inputs lib;
+    };
     starship = import ./home/starship;
     zellij = import ./home/zellij;
     ssh = import ./home/ssh.nix;
     gaming = import ./home/gaming.nix;
-    hyprland = import ./home/hyprland;
     graphical = import ./home/graphical.nix;
   };
 }
