@@ -29,16 +29,16 @@
               sha512 = "0qm5442cjfam4ws9sg0z69bynlb2y8pwsfcj76apkc40cqbrp3cgn17v9w6g7n25ahylqxf74cwbbbhfm4ld7s0z6395dcrwi1haq5y";
             };
             Lithium = pkgs.fetchurl {
-              url = "https://cdn.modrinth.com/data/gvQqBUqZ/versions/qxIL7Kb8/lithium-fabric-0.18.1%2Bmc1.21.8.jar";
-              sha512 = "1r4c72dv62cm276bzwjm7q4y8n0l3578hj03690x15r612sh3j8mkkvivmzmljslf5l5r64lc7xnwzzyjhs9bymrd9c6cf8qwh0hgpg";
+              url = "https://cdn.modrinth.com/data/gvQqBUqZ/versions/gl30uZvp/lithium-fabric-0.21.2%2Bmc1.21.11.jar";
+              sha512 = "2v3nv6wl4jmnjw924zk1jf1ppgq78asgb14sv2p1xk6ad3vs2a6s12z45c8d1jzrnqaa6zr41igycn9cfjdidp2qbqsl39y0485aqll";
             };
             Dungeons-And-Taverns = pkgs.fetchurl {
-              url = "https://cdn.modrinth.com/data/tpehi7ww/versions/upyHsGeL/dungeons-and-taverns-v4.7.3.jar";
-              sha512 = "3a905micd10c4jxnanyh5qjs08yzkf0zb2cs0xfq686m3xxj3va22qw2xfxbz9pxbzglhmmqzvidm55snf1w9zc3id4m1ng4xvdziw2";
+              url = "https://cdn.modrinth.com/data/tpehi7ww/versions/rJ0Y6xDT/dungeons-and-taverns-v5.1.0.jar";
+              sha512 = "1a531ba1l191nb1mfj9ld0slr5sjaswl14f86mxzqdzd89d17m3vxphisx5pxd1w6zk68942mpnydm5q7kc29jrqkvrgfrbr8x6ms7y";
             };
             Essential-Commands = pkgs.fetchurl {
-              url = "https://cdn.modrinth.com/data/6VdDUivB/versions/BBQodJEo/essential_commands-0.38.5-mc1.21.8.jar";
-              sha512 = "2fk5xzfh4hap8hzi2c652r4h5ipayd971xc1y4lwviqh11y9nc79dy3j2h07qmph3aakxwm48f00d8xfmgyzmxc1chaicp7mdyzwzzg";
+              url = "https://cdn.modrinth.com/data/6VdDUivB/versions/3s9XXmZa/essential_commands-0.38.6-mc1.21.11.jar";
+              sha512 = "0xi3qz1gfn468jjfbfjjrcp89lkis35ggy8d5gg0gkxkr8dpk7gfk4r3zgh9ij821whm0zrk7vn0vvndiy0a1zricq8jwg9cdx9mgiv";
             };
           }
         );
