@@ -4,7 +4,7 @@
     enable = true;
     eula = true;
     openFirewall = true;
-    servers.fabric = {
+    servers.gooncraft = {
       enable = true;
       serverProperties = {
         motd = "Gooncraft";

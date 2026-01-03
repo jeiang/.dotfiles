@@ -217,6 +217,7 @@ in {
       # caddy needs to be started before the client can access the management server
       requires = [config.systemd.services.caddy.name];
       after = [config.systemd.services.caddy.name];
+      partOf = ["netbird-login.service"];
     };
     # netbird login before service starts
     netbird-login = let
