@@ -13,20 +13,20 @@
       jvmOpts = "-Xms2048M -Xmx4096M";
 
       # Specify the custom minecraft server package
-      package = pkgs.fabricServers.fabric-1_21_8.override {
-        loaderVersion = "0.17.3";
+      package = pkgs.fabricServers.fabric-1_21_11.override {
+        loaderVersion = "0.18.4";
       }; # Specific fabric loader version
 
       symlinks = {
         mods = pkgs.linkFarmFromDrvs "mods" (
           builtins.attrValues {
             Fabric-API = pkgs.fetchurl {
-              url = "https://cdn.modrinth.com/data/P7dR8mSH/versions/RMahJx2I/fabric-api-0.136.0%2B1.21.8.jar";
-              sha512 = "sha512-qGgBysjioUxSoTcFpkdVJcmt4/O+8FORTczl9czeOFQSPFRK7KbPVrdaGR9uNZobm9M7MU8HYveDo6oblLpX6A==";
+              url = "https://cdn.modrinth.com/data/P7dR8mSH/versions/gB6TkYEJ/fabric-api-0.140.2%2B1.21.11.jar";
+              sha512 = "006s23g8by3v1920i36fg7smcqasnp58jlg8f3m0c7gq506dcj5bw41z88c7yzsyfdjjd71rbwc1rq0f9a8rz5flqhi0h40gmwnai5g";
             };
             Ferrite-Core = pkgs.fetchurl {
-              url = "https://cdn.modrinth.com/data/uXXizFIs/versions/CtMpt7Jr/ferritecore-8.0.0-fabric.jar";
-              sha512 = "12pg6yw3dn1x2rg1xwz8bgb20w894jwxn77v8ay5smfpymkbd184fnad34byqb23b9hdh9hry7dc16ncb1kijxz6mj9dw36sg8q46qk";
+              url = "https://cdn.modrinth.com/data/uXXizFIs/versions/eRLwt73x/ferritecore-8.0.3-fabric.jar";
+              sha512 = "0qm5442cjfam4ws9sg0z69bynlb2y8pwsfcj76apkc40cqbrp3cgn17v9w6g7n25ahylqxf74cwbbbhfm4ld7s0z6395dcrwi1haq5y";
             };
           }
         );
