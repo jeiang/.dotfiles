@@ -6,47 +6,54 @@
   ...
 }: let
   inherit (flake-parts-lib) importApply;
-in {
-  flake.nixosModules = {
+  sharedModules = {
     nix = importApply ./system/nix.nix {
       localFlake = self;
       inherit inputs lib;
     };
-    sops = import ./system/sops;
-    shared = import ./system/shared-config.nix;
-    home-manager = import ./system/home-manager.nix;
-    attic = import ./system/attic.nix;
-    caddy = import ./system/caddy.nix;
-    blocky = import ./system/blocky.nix;
-    netbird = import ./system/netbird.nix;
-    website = import ./system/website.nix;
-    authelia = import ./system/authelia.nix;
-    security = import ./system/security.nix;
-    hyprland = import ./system/hyprland.nix;
-    gaming = import ./system/gaming.nix;
-    mc = importApply ./system/mc.nix {
-      localFlake = self;
-      inherit inputs;
-    };
-    exh-home = import ./system/exh-home.nix;
-    ollama = import ./system/ollama.nix;
   };
-  flake.homeModules = {
-    fish = import ./home/fish.nix;
-    attic = import ./home/attic.nix;
-    git = import ./home/git.nix;
-    helix = importApply ./home/helix {
-      localFlake = self;
-      inherit inputs lib;
+in {
+  flake = {
+    nixosModules =
+      sharedModules
+      // {
+        sops = import ./system/sops;
+        shared = import ./system/shared-config.nix;
+        home-manager = import ./system/home-manager.nix;
+        attic = import ./system/attic.nix;
+        caddy = import ./system/caddy.nix;
+        blocky = import ./system/blocky.nix;
+        netbird = import ./system/netbird.nix;
+        website = import ./system/website.nix;
+        authelia = import ./system/authelia.nix;
+        security = import ./system/security.nix;
+        hyprland = import ./system/hyprland.nix;
+        gaming = import ./system/gaming.nix;
+        mc = importApply ./system/mc.nix {
+          localFlake = self;
+          inherit inputs;
+        };
+        exh-home = import ./system/exh-home.nix;
+        ollama = import ./system/ollama.nix;
+      };
+    darwinModules = sharedModules // {};
+    homeModules = {
+      fish = import ./home/fish.nix;
+      attic = import ./home/attic.nix;
+      git = import ./home/git.nix;
+      helix = importApply ./home/helix {
+        localFlake = self;
+        inherit inputs lib;
+      };
+      hyprland = importApply ./home/hyprland {
+        localFlake = self;
+        inherit inputs lib;
+      };
+      starship = import ./home/starship;
+      zellij = import ./home/zellij;
+      ssh = import ./home/ssh.nix;
+      gaming = import ./home/gaming.nix;
+      graphical = import ./home/graphical.nix;
     };
-    hyprland = importApply ./home/hyprland {
-      localFlake = self;
-      inherit inputs lib;
-    };
-    starship = import ./home/starship;
-    zellij = import ./home/zellij;
-    ssh = import ./home/ssh.nix;
-    gaming = import ./home/gaming.nix;
-    graphical = import ./home/graphical.nix;
   };
 }

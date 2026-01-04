@@ -2,7 +2,7 @@
   lib,
   inputs,
   ...
-}: {
+}: {pkgs, ...}: {
   nix = let
     # pin the registry to avoid downloading and evaling a new nixpkgs version every time
     registry = lib.mapAttrs (_: v: {flake = v;}) inputs;
@@ -11,19 +11,33 @@
     # auto garbage collect
     gc = {
       automatic = true;
-      dates = "weekly";
+      dates = lib.mkIf pkgs.stdenv.isLinux "weekly";
+      interval = lib.mkIf pkgs.stdenv.isDarwin [
+        {
+          Hour = 1;
+          Minute = 0;
+          Weekday = 7;
+        }
+      ];
       options = "--delete-older-than 14d";
     };
     optimise = {
       automatic = true;
-      dates = ["03:45"];
+      dates = lib.mkIf pkgs.stdenv.isLinux ["03:45"];
+      interval = lib.mkIf pkgs.stdenv.isDarwin [
+        {
+          Hour = 3;
+          Minute = 45;
+          Weekday = 7;
+        }
+      ];
     };
 
     # set the path for channels compat
     nixPath = lib.mapAttrsToList (key: _: "${key}=flake:${key}") registry;
 
     settings = {
-      auto-optimise-store = true;
+      auto-optimise-store = lib.mkIf pkgs.stdenv.isLinux true;
       builders-use-substitutes = true;
       experimental-features = [
         "nix-command"

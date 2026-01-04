@@ -18,6 +18,7 @@
         ./modules
         ./users
         ./systems/solder
+        ./systems/zakkart
         ./systems/artemis
         ./overlays
       ];
@@ -28,6 +29,8 @@
     systems.url = "github:nix-systems/default";
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
+    nix-darwin.url = "github:nix-darwin/nix-darwin/master";
+    nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
 
     # Utility inputs
     flake-parts.url = "github:hercules-ci/flake-parts";
