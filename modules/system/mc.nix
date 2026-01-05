@@ -8,6 +8,7 @@
       enable = true;
       serverProperties = {
         motd = "Gooncraft";
+        level-seed = "888880777356331877";
       };
 
       jvmOpts = "-Xms2048M -Xmx4096M";
