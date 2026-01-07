@@ -21,7 +21,6 @@
         inputs.disko.nixosModules.disko
         inputs.nixos-facter-modules.nixosModules.facter
         inputs.home-manager.nixosModules.home-manager
-        inputs.nix-minecraft.nixosModules.minecraft-servers
         self.nixosModules.attic
         self.nixosModules.authelia
         self.nixosModules.blocky

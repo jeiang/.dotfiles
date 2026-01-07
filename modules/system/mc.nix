@@ -1,14 +1,19 @@
 {inputs, ...}: {pkgs, ...}: {
+  imports = [
+    inputs.nix-minecraft.nixosModules.minecraft-servers
+  ];
   nixpkgs.overlays = [inputs.nix-minecraft.overlay];
+  networking.firewall.allowedUDPPorts = [19132];
   services.minecraft-servers = {
     enable = true;
     eula = true;
     openFirewall = true;
-    servers.gooncraft = {
+    servers.mc = {
       enable = true;
       serverProperties = {
         motd = "Gooncraft";
         level-seed = "888880777356331877";
+        enforce-secure-profile = false;
       };
 
       jvmOpts = "-Xms2048M -Xmx4096M";
@@ -17,6 +22,19 @@
       package = pkgs.fabricServers.fabric-1_21_11.override {
         loaderVersion = "0.18.4";
       }; # Specific fabric loader version
+
+      files = {
+        "config/Geyser-Fabric/config.yml".value = {
+          bedrock = {
+            address = "0.0.0.0";
+            port = 19132;
+            clone-remote-port = false;
+          };
+          remote = {
+            auth-type = "floodgate";
+          };
+        };
+      };
 
       symlinks = {
         mods = pkgs.linkFarmFromDrvs "mods" (
@@ -40,6 +58,15 @@
             Essential-Commands = pkgs.fetchurl {
               url = "https://cdn.modrinth.com/data/6VdDUivB/versions/3s9XXmZa/essential_commands-0.38.6-mc1.21.11.jar";
               sha512 = "0xi3qz1gfn468jjfbfjjrcp89lkis35ggy8d5gg0gkxkr8dpk7gfk4r3zgh9ij821whm0zrk7vn0vvndiy0a1zricq8jwg9cdx9mgiv";
+            };
+            Geyser-MC = pkgs.fetchurl {
+              url = "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/fabric";
+              sha512 = "0igkdciyq2g3sgcbc2i7kcn69j23aj2x4x4v1mb8lcf5iy7l5wvvxd69rk96gyp6i68905p2gk8kgqfjhj86sb6xi4f009llvq943mr";
+              name = "geyser.jar";
+            };
+            Floodgate = pkgs.fetchurl {
+              url = "https://cdn.modrinth.com/data/bWrNNfkb/versions/wzwExuYr/Floodgate-Fabric-2.2.6-b54.jar";
+              sha512 = "2py37djwzp9z6kx66mi69647yrw0dbqxv61v36xmkwqj41ysxaqj868pp4d8v3a7hpsnvr9a428idpz8g5vwly009v1ccr2ivcids5a";
             };
           }
         );
