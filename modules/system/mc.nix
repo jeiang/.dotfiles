@@ -34,6 +34,9 @@
             auth-type = "floodgate";
           };
         };
+        "config/EssentialCommands.properties".value = {
+          home_limit = 5;
+        };
       };
 
       symlinks = {
