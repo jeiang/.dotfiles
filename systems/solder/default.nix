@@ -28,6 +28,7 @@
         self.nixosModules.netbird
         self.nixosModules.website
         self.nixosModules.mc
+        self.nixosModules.ollama-caddy
         self.nixosModules.exh-home
         self.nixosModules.security
         self.nixosModules.nix

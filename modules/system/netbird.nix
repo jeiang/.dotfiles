@@ -219,6 +219,14 @@ in {
       after = [config.systemd.services.caddy.name];
       partOf = ["netbird-login.service"];
     };
+    # reload netbird service whenever the system config changes
+    netbird-management = {
+      requires = [config.systemd.services.caddy.name "authelia-main.service"];
+      after = [config.systemd.services.caddy.name "authelia-main.service"];
+      preStart = ''
+        sleep 5
+      '';
+    };
     # netbird login before service starts
     netbird-login = let
       defaultClient = config.services.netbird.clients.default;

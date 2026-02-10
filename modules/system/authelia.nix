@@ -77,6 +77,13 @@ in {
               policy = "bypass";
             }
             {
+              domain = "chat.jeiang.dev";
+              policy = "one_factor";
+              subject = [
+                "group:chat"
+              ];
+            }
+            {
               domain = "stats.jeiang.dev";
               policy = "two_factor";
               subject = [

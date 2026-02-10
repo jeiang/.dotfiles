@@ -19,7 +19,6 @@
         ./users
         ./systems/solder
         ./systems/artemis
-        ./overlays
       ];
     };
 

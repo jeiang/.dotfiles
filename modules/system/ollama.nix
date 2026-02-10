@@ -15,16 +15,21 @@ in {
       package = pkgs.ollama-vulkan;
       loadModels = [
         "deepseek-r1:14b"
+        "quen3-coder-next:latest"
+        "gemma3:4b"
+        "gemma3:27b"
       ];
       environmentVariables = {
-        OLLAMA_CONTEXT_LENGTH = "8192";
+        OLLAMA_CONTEXT_LENGTH = "64000";
         GGML_VK_VISIBLE_DEVICES = "0";
       };
     };
     nextjs-ollama-llm-ui = {
       enable = true;
+      hostname = "0.0.0.0";
       port = 11110;
       ollamaUrl = http_url;
     };
   };
+  networking.firewall.allowedTCPPorts = [11110];
 }
