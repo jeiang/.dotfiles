@@ -206,9 +206,7 @@
       windowrule = [
         # Ignore maximize requests from apps. You'll probably like this.
         "match:class .*, suppress_event maximize"
-      ];
-      windowrulev2 = [
-        "opacity 1.0 override 1.0 override, class:^(mpv)$"
+        "match:class ^(mpv)$, opacity 1.0 override"
       ];
       layerrule = [
         "blur on, match:namespace vicinae"

@@ -10,6 +10,7 @@
     nerd-fonts.jetbrains-mono
     nerd-fonts.departure-mono
     nerd-fonts.symbols-only
+    qbittorrent
     wl-clipboard
   ];
 

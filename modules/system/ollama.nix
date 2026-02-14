@@ -4,9 +4,14 @@
   port = 11111;
   port_str = builtins.toString port;
 in {
-  environment.variables = {
-    OLLAMA_HOST = url;
-    OLLAMA_API_BASE = http_url;
+  environment = {
+    systemPackages = with pkgs; [
+      claude-code
+    ];
+    variables = {
+      OLLAMA_HOST = url;
+      OLLAMA_API_BASE = http_url;
+    };
   };
   services = {
     ollama = {
@@ -15,7 +20,7 @@ in {
       package = pkgs.ollama-vulkan;
       loadModels = [
         "deepseek-r1:14b"
-        "quen3-coder-next:latest"
+        "qwen3-coder-next:latest"
         "gemma3:4b"
         "gemma3:27b"
       ];
