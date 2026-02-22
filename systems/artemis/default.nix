@@ -47,6 +47,12 @@
           system.stateVersion = "25.05";
         })
         {
+          services.jellyfin = {
+            enable = true;
+            openFirewall = true;
+          };
+        }
+        {
           # TODO: create user service to start the ui
           # TEMP: netbird config until i modify the proper instance
           services.netbird = {
@@ -80,6 +86,7 @@
         inputs.home-manager.nixosModules.home-manager
         self.nixosModules.security
         self.nixosModules.nix
+        self.nixosModules.appimage
         self.nixosModules.sops
         self.nixosModules.home-manager
         self.nixosModules.shared

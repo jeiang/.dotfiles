@@ -31,6 +31,7 @@ in {
     exh-home = import ./system/exh-home.nix;
     ollama = import ./system/ollama.nix;
     ollama-caddy = import ./system/ollama-caddy.nix;
+    appimage = import ./system/appimage.nix;
   };
   flake.homeModules = {
     fish = import ./home/fish.nix;

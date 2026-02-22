@@ -29,7 +29,7 @@ in {
       ];
       environmentVariables = {
         OLLAMA_CONTEXT_LENGTH = "64000";
-        GGML_VK_VISIBLE_DEVICES = "1";
+        GGML_VK_VISIBLE_DEVICES = "0";
       };
     };
     nextjs-ollama-llm-ui = {

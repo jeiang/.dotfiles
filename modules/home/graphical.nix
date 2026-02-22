@@ -35,6 +35,9 @@
         "high-quality"
       ];
     };
+    vscode = {
+      enable = true;
+    };
     firefox = {
       enable = true;
       profiles.main = {

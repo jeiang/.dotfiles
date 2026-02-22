@@ -22,6 +22,7 @@
         inputs.nixos-facter-modules.nixosModules.facter
         inputs.home-manager.nixosModules.home-manager
         self.nixosModules.attic
+        self.nixosModules.appimage
         self.nixosModules.authelia
         self.nixosModules.blocky
         self.nixosModules.caddy
