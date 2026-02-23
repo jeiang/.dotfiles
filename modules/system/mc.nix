@@ -14,6 +14,26 @@
         motd = "Gooncraft";
         level-seed = "888880777356331877";
         enforce-secure-profile = false;
+        white-list = true;
+      };
+
+      whitelist = {
+        "QuantumShaco" = "96a2a270-29de-42ac-8d7e-7002d04f2dd1";
+        "Enadiz76" = "04d5bea4-1920-4f00-a3b9-5cd58181043b";
+        "DestSprk" = "326eb1c7-bbca-4fd5-94cd-51319997fed7";
+        "jeiang_" = "9df0b3a2-034d-4b97-865e-6e8226251784";
+        "justinmybubble" = "e90cc15c-5885-4670-96c6-be196e9e73c7";
+        "jkmn" = "3e63deaa-3d4e-4104-a3f6-869cd04894fe";
+        "Plyrex" = "f7d3f731-6416-4784-b4bc-5969285b3a85";
+        "JazJulie" = "66e77a41-2dbf-4f99-a11c-f2c3d2426c9f";
+        "Rebecurrr" = "e8bfcd6e-2544-4c3e-a8f7-774910636312";
+        "Terrel24" = "acd98cb0-6cf7-4d58-a063-a5ff24e7cab7";
+        "Osafaphagus" = "b4c33034-c734-49af-bbf1-1679ac02dc4e";
+        ".aligeeez" = "00000000-0000-0000-0009-01f4f546ad4a";
+        ".Sen7818" = "00000000-0000-0000-0009-01fa9dc7761f";
+        ".Plyrex_Inc" = "00000000-0000-0000-0009-01f4a59cc9cb";
+        ".jeiang1165" = "00000000-0000-0000-0009-01f48fae3ae6";
+        ".Elysia2564B" = "00000000-0000-0000-0009-01f41118cdd4";
       };
 
       jvmOpts = "-Xms2048M -Xmx4096M";
