@@ -20,13 +20,15 @@ in {
       package = pkgs.ollama-vulkan;
       loadModels = [
         "deepseek-r1:14b"
-        "qwen3-coder-next:latest"
         "gemma3:4b"
-        "gemma3:27b"
         "glm-4.7-flash:latest"
         "qwen3:8b"
+        "qwen3:14b"
         "ministral-3:8b"
+        "ministral-3:14b"
+        "gpt-oss:20b"
       ];
+      syncModels = true;
       environmentVariables = {
         OLLAMA_CONTEXT_LENGTH = "64000";
         GGML_VK_VISIBLE_DEVICES = "0";
