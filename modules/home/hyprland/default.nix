@@ -5,7 +5,7 @@
   ...
 }: {
   imports = [
-    ./hyprsunset.nix
+    # ./hyprsunset.nix
     ./vicinae.nix
     inputs.caelestia-shell.homeManagerModules.default
     ./caelestia.nix

@@ -128,6 +128,7 @@
         };
         yazi = {
           enable = true;
+          shellWrapperName = "y";
           initLua = ''
             require("zoxide"):setup {
               update_db = true,
