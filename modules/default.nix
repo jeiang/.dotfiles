@@ -32,6 +32,7 @@ in {
     ollama = import ./system/ollama.nix;
     ollama-caddy = import ./system/ollama-caddy.nix;
     appimage = import ./system/appimage.nix;
+    matrix-tuwunel = import ./system/matrix-tuwunel.nix;
   };
   flake.homeModules = {
     fish = import ./home/fish.nix;

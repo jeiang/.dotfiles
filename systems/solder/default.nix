@@ -23,6 +23,7 @@
         inputs.home-manager.nixosModules.home-manager
         self.nixosModules.attic
         self.nixosModules.appimage
+        self.nixosModules.matrix-tuwunel
         self.nixosModules.authelia
         self.nixosModules.blocky
         self.nixosModules.caddy
