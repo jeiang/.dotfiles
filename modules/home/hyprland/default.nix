@@ -7,8 +7,10 @@
   imports = [
     # ./hyprsunset.nix
     ./vicinae.nix
-    inputs.caelestia-shell.homeManagerModules.default
-    ./caelestia.nix
+    # inputs.caelestia-shell.homeManagerModules.default
+    # ./caelestia.nix
+    inputs.noctalia.homeModules.default
+    ./noctalia.nix
   ];
   gtk = {
     enable = true;
@@ -65,7 +67,7 @@
       ];
       general = {
         gaps_in = "5";
-        gaps_out = "20";
+        gaps_out = "10";
         border_size = "2";
         "col.active_border" = "rgba(33ccffee) rgba(00ff99ee) 45deg";
         "col.inactive_border" = "rgba(595959aa)";
@@ -87,7 +89,7 @@
         blur = {
           enabled = true;
           size = 3;
-          passes = 1;
+          passes = 2;
           vibrancy = 0.1696;
         };
       };
