@@ -157,6 +157,7 @@
           enable = true;
           defaultApplicationPackages = with pkgs; [
             yazi
+            qview
           ];
         };
       };
