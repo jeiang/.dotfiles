@@ -37,24 +37,30 @@ in {
 
     netbird = {
       enable = true;
-      clients.default.config = let
-        urlConfig = {
-          Scheme = "https";
-          Opaque = "";
-          User = null;
-          Host = "netbird.jeiang.dev:443";
-          Path = "";
-          RawPath = "";
-          OmitHost = false;
-          ForceQuery = false;
-          RawQuery = "";
-          Fragment = "";
-          RawFragment = "";
+      clients.default = {
+        login = {
+          enable = true;
+          setupKeyFile = config.sops.secrets."netbird/client-setup-key".path;
         };
-      in {
-        # Set Management URL for netbird configuration file
-        ManagementURL = urlConfig;
-        AdminUrl = urlConfig;
+        config = let
+          urlConfig = {
+            Scheme = "https";
+            Opaque = "";
+            User = null;
+            Host = "netbird.jeiang.dev:443";
+            Path = "";
+            RawPath = "";
+            OmitHost = false;
+            ForceQuery = false;
+            RawQuery = "";
+            Fragment = "";
+            RawFragment = "";
+          };
+        in {
+          # Set Management URL for netbird configuration file
+          ManagementURL = urlConfig;
+          AdminUrl = urlConfig;
+        };
       };
       useRoutingFeatures = "both";
       server = {
@@ -212,41 +218,12 @@ in {
     };
   };
   systemd.services = {
-    # reload netbird service whenever the system config changes
-    ${config.services.netbird.clients.default.service.name} = {
-      # caddy needs to be started before the client can access the management server
-      requires = [config.systemd.services.caddy.name];
-      after = [config.systemd.services.caddy.name];
-      partOf = ["netbird-login.service"];
-    };
-    # reload netbird service whenever the system config changes
     netbird-management = {
       requires = [config.systemd.services.caddy.name "authelia-main.service"];
       after = [config.systemd.services.caddy.name "authelia-main.service"];
       preStart = ''
         sleep 5
       '';
-    };
-    # netbird login before service starts
-    netbird-login = let
-      defaultClient = config.services.netbird.clients.default;
-    in {
-      description = "Login to self hosted netbird instance";
-      before = [config.systemd.services.${defaultClient.service.name}.name];
-      after = ["network.target"];
-      wantedBy = ["multi-user.target"];
-      inherit (config.systemd.services.${defaultClient.service.name}) preStart;
-      serviceConfig = {
-        ExecStart = "${lib.getExe config.services.netbird.package} login --management-url https://netbird.jeiang.dev --setup-key-file ${config.sops.secrets."netbird/client-setup-key".path}";
-        User = defaultClient.user.name;
-        Group = defaultClient.user.group;
-        RuntimeDirectory = defaultClient.dir.baseName;
-        RuntimeDirectoryMode = "0755";
-        ConfigurationDirectory = defaultClient.dir.baseName;
-        StateDirectory = defaultClient.dir.baseName;
-        StateDirectoryMode = "0700";
-        WorkingDirectory = defaultClient.dir.state;
-      };
     };
     # Override the default user for coturn, there is no exposed option for it
     coturn.serviceConfig = {

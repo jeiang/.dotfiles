@@ -1,6 +1,9 @@
 {pkgs, ...}: {
   home.packages = with pkgs; [
-    discord
+    (discord.override {
+      withOpenASAR = true; # can do this here too
+      withVencord = true;
+    })
     kdePackages.dolphin
     bitwarden-desktop
     pwvucontrol

@@ -33,9 +33,7 @@
     };
   };
   programs.hyprshot.enable = true;
-  services = {
-    hyprpolkitagent.enable = true;
-  };
+  services.hyprpolkitagent.enable = true;
   xdg.configFile."uwsm/env".source = "${config.home.sessionVariablesPackage}/etc/profile.d/hm-session-vars.sh";
 
   wayland.windowManager.hyprland = {

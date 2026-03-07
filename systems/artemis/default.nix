@@ -75,6 +75,9 @@
               # Set Management URL for netbird configuration file
               ManagementURL = urlConfig;
               AdminUrl = urlConfig;
+              RosenpassEnabled = true;
+              RosenpassPermissive = true;
+              ServerSSHAllowed = true;
             };
             useRoutingFeatures = "both";
           };

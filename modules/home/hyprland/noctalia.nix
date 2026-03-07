@@ -89,9 +89,7 @@ in {
           ];
         };
       };
-      general = {
-        avatarImage = "/home/aidanp/.face";
-      };
+      general.avatarImage = "/home/aidanp/.face";
       ui = {
         fontDefault = "JetBrains Mono";
         fontFixed = "JetBrains Mono";
@@ -102,22 +100,20 @@ in {
         weatherShowEffects = true;
         useFahrenheit = true;
       };
-      calendar = {
-        cards = [
-          {
-            enabled = true;
-            id = "calendar-header-card";
-          }
-          {
-            enabled = true;
-            id = "calendar-month-card";
-          }
-          {
-            enabled = true;
-            id = "weather-card";
-          }
-        ];
-      };
+      calendar.cards = [
+        {
+          enabled = true;
+          id = "calendar-header-card";
+        }
+        {
+          enabled = true;
+          id = "calendar-month-card";
+        }
+        {
+          enabled = true;
+          id = "weather-card";
+        }
+      ];
       wallpaper = {
         enabled = true;
         directory = "/home/aidanp/Pictures/Wallpapers";
@@ -205,9 +201,7 @@ in {
         criticalColor = "";
         externalMonitor = "resources || missioncenter || jdsystemmonitor || corestats || system-monitoring-center || gnome-system-monitor || plasma-systemmonitor || mate-system-monitor || ukui-system-monitor || deepin-system-monitor || pantheon-system-monitor";
       };
-      dock = {
-        enabled = false;
-      };
+      dock.enabled = false;
       network = {
         wifiEnabled = true;
         airplaneModeEnabled = false;
@@ -277,8 +271,7 @@ in {
         enabled = true;
         enableMarkdown = false;
         density = "default";
-        monitors = [
-        ];
+        monitors = [];
         location = "top_right";
         overlayLayer = true;
         backgroundOpacity = 1;
@@ -316,8 +309,7 @@ in {
           1
           2
         ];
-        monitors = [
-        ];
+        monitors = [];
       };
       audio = {
         volumeStep = 5;
@@ -334,8 +326,7 @@ in {
         brightnessStep = 5;
         enforceMinimum = true;
         enableDdcSupport = false;
-        backlightDeviceMappings = [
-        ];
+        backlightDeviceMappings = [];
       };
       colorSchemes = {
         useWallpaperColors = false;
@@ -348,33 +339,39 @@ in {
         monitorForColors = "";
       };
       templates = {
-        activeTemplates = [
-        ];
+        activeTemplates = [];
         enableUserTheming = false;
       };
-      nightLight = {
-        enabled = false;
+      nightLight.enabled = false;
+      hooks.enabled = false;
+      plugins.autoUpdate = false;
+      idle.enabled = false;
+      desktopWidgets.enabled = false;
+    };
+  };
+  services.hypridle = {
+    enable = true;
+    settings = {
+      general = {
+        after_sleep_cmd = "hyprctl dispatch dpms on";
+        lock_cmd = noctalia "lockScreen lock";
       };
-      hooks = {
-        enabled = false;
-      };
-      plugins = {
-        autoUpdate = false;
-      };
-      idle = {
-        enabled = true;
-        screenOffTimeout = 600;
-        lockTimeout = 660;
-        suspendTimeout = 1800;
-        fadeDuration = 5;
-        screenOffCommand = "hyprctl dispatch dpms off";
-        lockCommand = noctalia "lockScreen lock";
-        suspendCommand = "systemctl suspend";
-        resumeScreenOffCommand = "hyprctl dispatch dpms on";
-      };
-      desktopWidgets = {
-        enabled = false;
-      };
+
+      listener = [
+        {
+          timeout = 900;
+          on-timeout = noctalia "lockScreen lock";
+        }
+        {
+          timeout = 1200;
+          on-timeout = "hyprctl dispatch dpms off";
+          on-resume = "hyprctl dispatch dpms on";
+        }
+        {
+          timeout = 21600;
+          on-timeout = "systemctl suspend";
+        }
+      ];
     };
   };
 }
