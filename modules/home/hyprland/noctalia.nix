@@ -1,12 +1,4 @@
-{pkgs, ...}: let
-  noctalia = cmd:
-    [
-      "noctalia-shell"
-      "ipc"
-      "call"
-    ]
-    ++ (pkgs.lib.splitString " " cmd);
-in {
+{
   wayland.windowManager.hyprland = {
     settings = {
       layerrule = [
@@ -354,13 +346,13 @@ in {
     settings = {
       general = {
         after_sleep_cmd = "hyprctl dispatch dpms on";
-        lock_cmd = noctalia "lockScreen lock";
+        lock_cmd = "noctalia-shell ipc call lockScreen lock";
       };
 
       listener = [
         {
           timeout = 900;
-          on-timeout = noctalia "lockScreen lock";
+          on-timeout = "noctalia-shell ipc call lockScreen lock";
         }
         {
           timeout = 1200;
