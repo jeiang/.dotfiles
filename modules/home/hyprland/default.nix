@@ -144,6 +144,7 @@
         "$mainMod, Space, exec, $menu toggle"
         # Misc Controls
         "$mainMod, V, togglefloating,"
+        "$mainMod SHIFT, F, fullscreen, 0"
         "$mainMod, P, pseudo, # dwindle"
         "$mainMod, J, togglesplit, # dwindle"
         "$mainMod, Q, killactive,"
