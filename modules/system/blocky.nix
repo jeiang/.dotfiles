@@ -19,6 +19,12 @@
           dns = lib.mkDefault 553;
           http = lib.mkDefault 8000;
         };
+        customDNS = {
+          mapping = {
+            "roriwalrus.com" = "104.21.77.239";
+            "www.roriwalrus.com" = "104.21.77.239";
+          };
+        };
         upstreams = {
           groups = {
             default = [
