@@ -15,6 +15,7 @@
     config = {
       settings = let
         noctaliaExe = lib.getExe self.packages.${config.pkgs.stdenv.hostPlatform.system}.noctalia-shell;
+        hypridle = lib.getExe self.packages.${config.pkgs.stdenv.hostPlatform.system}.hypridle;
       in {
         prefer-no-csd = null;
 
@@ -145,15 +146,51 @@
 
         spawn-at-startup = [
           noctaliaExe
+          hypridle
         ];
       };
     };
   };
 
-  perSystem = {pkgs, ...}: {
+  perSystem = {
+    pkgs,
+    lib,
+    ...
+  }: {
     packages.niri = inputs.wrapper-modules.wrappers.niri.wrap {
       inherit pkgs;
       imports = [self.wrapperModules.niri];
+    };
+    packages.hypridle = inputs.wrapper-modules.lib.wrapPackage {
+      inherit pkgs;
+      package = pkgs.hypridle;
+      flags = let
+        noctaliaExe = lib.getExe self.packages.${config.pkgs.stdenv.hostPlatform.system}.noctalia-shell;
+        config = ''
+          general {
+            after_sleep_cmd=niri msg action power-on-monitors
+            lock_cmd=${noctaliaExe} ipc call lockScreen lock
+          }
+
+          listener {
+            on-timeout=${noctaliaExe} ipc call lockScreen lock
+            timeout=900
+          }
+
+          listener {
+            on-resume=niri msg action power-on-monitors
+            on-timeout=niri msg action power-off-monitors
+            timeout=1200
+          }
+
+          listener {
+            on-timeout=${noctaliaExe} ipc call sessionMenu lockAndSuspend
+            timeout=21600
+          }
+        '';
+      in {
+        "--config" = config;
+      };
     };
   };
 }
