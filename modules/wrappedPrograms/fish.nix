@@ -1,35 +1,51 @@
-{
-  inputs,
-  lib,
-  ...
-}: {
-  perSystem = {pkgs, ...}: let
+{inputs, ...}: {
+  perSystem = {
+    pkgs,
+    self',
+    ...
+  }: let
+    donefish = pkgs.fetchurl {
+      url = "https://raw.githubusercontent.com/franciscolourenco/done/master/conf.d/done.fish";
+      sha512 = "29d7kfnd5v0n01hsrcrfllp03fyi8ygc8wm4w6q2ip863lwdywl6rv0rjkhsqfhrc8ff86y3yc9d97gsrr6l181cq7yb43sxa5bkfc7";
+    };
     fishConf =
       pkgs.writeText "fishy-fishy"
       # fish
       ''
-        ${pkgs.any-nix-shell}/bin/any-nix-shell fish --info-right | source
         function fish_greeting
-          ${lib.getExe pkgs.nitch}
+          nitch
         end
 
-        ${lib.getExe pkgs.zoxide} init fish | source
-        ${lib.getExe pkgs.fzf} --fish | source
+        status is-interactive; and begin
+          source ${donefish}
+          zoxide init fish | source
+          fzf --fish | source
+          if test "$TERM" != dumb
+              starship init fish | source
+              enable_transience
+          end
 
-        if type -q direnv
-            direnv hook fish | source
+          if type -q direnv
+              direnv hook fish | source
+          end
         end
       '';
   in {
-    packages.fish = inputs.wrappers.lib.wrapPackage {
-      inherit pkgs;
-      package = pkgs.fish;
-      runtimeInputs = [
-        pkgs.zoxide
-      ];
-      flags = {
-        "-C" = "source ${fishConf}";
+    packages.fish =
+      inputs.wrapper-modules.lib.wrapPackage
+      {
+        inherit pkgs;
+        package = pkgs.fish;
+        extraPackages = with pkgs; [
+          self'.packages.starship
+          fzf
+          jq
+          nitch
+          zoxide
+        ];
+        flags = {
+          "-C" = "source ${fishConf}";
+        };
       };
-    };
   };
 }

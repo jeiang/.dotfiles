@@ -15,7 +15,6 @@
     config = {
       settings = let
         noctaliaExe = lib.getExe self.packages.${config.pkgs.stdenv.hostPlatform.system}.noctalia-shell;
-        hyprpaper = lib.getExe self.packages.${config.pkgs.stdenv.hostPlatform.system}.hyprpaper;
       in {
         prefer-no-csd = null;
 
@@ -146,7 +145,6 @@
 
         spawn-at-startup = [
           noctaliaExe
-          hyprpaper
         ];
       };
     };
@@ -156,22 +154,6 @@
     packages.niri = inputs.wrapper-modules.wrappers.niri.wrap {
       inherit pkgs;
       imports = [self.wrapperModules.niri];
-    };
-    packages.hyprpaper = inputs.wrapper-modules.lib.wrapPackage {
-      inherit pkgs;
-      package = pkgs.hyprpaper;
-      flags = {
-        "--config" = pkgs.writeTextFile {
-          name = "hyprpaper.conf";
-          text = ''
-            wallpaper {
-              monitor =
-              path = ${self}/assets/wallpaper.jpg
-              fit_mode = cover
-            }
-          '';
-        };
-      };
     };
   };
 }

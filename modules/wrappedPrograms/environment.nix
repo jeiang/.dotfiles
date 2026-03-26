@@ -11,17 +11,19 @@
   }: {
     packages = {
       terminal = self'.packages.ghostty;
-      desktop = self.wrapperModules.niri.wrap {
+      desktop = inputs.wrapper-modules.wrappers.niri.wrap {
         inherit pkgs;
         terminal = lib.getExe self'.packages.terminal;
+        imports = [self.wrapperModules.niri];
       };
-      environment = inputs.wrappers-modules.lib.wrapPackage {
+      environment = inputs.wrapper-modules.lib.wrapPackage {
         inherit pkgs;
         package = self'.packages.fish;
+        # needed for nixos to recognize this as a shell
+        passthru.shellPath = "/bin/fish";
         extraPackages = with pkgs; [
           self'.packages.git
           self'.packages.difft
-          self'.packages.starfish
           fd
           bandwhich
           bingrep
