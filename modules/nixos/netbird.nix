@@ -44,7 +44,7 @@
         netbird = {
           inherit (config.netbird.client) enable;
           clients.default = {
-            login = {
+            login = lib.mkIf config.netbird.management.enable {
               enable = true;
               setupKeyFile = config.sops.secrets."netbird/client-setup-key".path;
             };

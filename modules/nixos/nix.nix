@@ -67,12 +67,6 @@
       };
     };
 
-    nixpkgs = {
-      config.allowUnfree = true;
-      overlays = [
-        # inputs.helix.overlays.default
-        # inputs.nur.overlays.default
-      ];
-    };
+    nixpkgs.config.allowUnfree = true;
   };
 }

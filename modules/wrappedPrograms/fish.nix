@@ -28,6 +28,14 @@
           if type -q direnv
               direnv hook fish | source
           end
+
+          alias eza 'eza --icons auto --git'
+          alias la 'eza -a'
+          alias ll 'eza -l'
+          alias lla 'eza -la'
+          alias ls eza
+          alias lt 'eza --tree'
+          alias mv 'mv -i'
         end
       '';
   in {
@@ -38,6 +46,7 @@
         package = pkgs.fish;
         extraPackages = with pkgs; [
           self'.packages.starship
+          eza
           fzf
           jq
           nitch

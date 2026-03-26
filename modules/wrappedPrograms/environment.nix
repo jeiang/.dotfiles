@@ -32,13 +32,11 @@
           devenv
           duf
           erdtree
-          eza
           file
-          fzf
           hyperfine
-          jq
           libtree
           # (ouch.override {enableUnfree = true;})
+          ouch
           parallel
           procs
           ripgrep
