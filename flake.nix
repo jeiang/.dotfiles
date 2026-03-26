@@ -1,39 +1,9 @@
 {
-  description = "System configuration.";
-
-  nixConfig = {
-    extra-trusted-public-keys = "main:bDbTZZwnX3C+67tQxGUfZzNLNio6KTPyJrXpqjTXBWM=";
-    extra-substituters = "https://attic.jeiang.dev/main";
-  };
-
-  outputs = {flake-parts, ...} @ inputs:
-    flake-parts.lib.mkFlake {inherit inputs;} {
-      systems = import inputs.systems;
-      imports = [
-        inputs.devenv.flakeModule
-        inputs.treefmt-nix.flakeModule
-        ./devenv.nix
-        ./deploy.nix
-        inputs.home-manager.flakeModules.home-manager
-        ./modules
-        ./users
-        ./systems/solder
-        ./systems/artemis
-      ];
-    };
-
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    systems.url = "github:nix-systems/default";
-    home-manager.url = "github:nix-community/home-manager";
-    home-manager.inputs.nixpkgs.follows = "nixpkgs";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    # Utility inputs
     flake-parts.url = "github:hercules-ci/flake-parts";
-    nixos-facter-modules.url = "github:numtide/nixos-facter-modules";
-    deploy-rs.url = "github:serokell/deploy-rs";
-    nix-index-database.url = "github:nix-community/nix-index-database";
-    nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
+    import-tree.url = "github:vic/import-tree";
 
     # devenv
     devenv.url = "github:cachix/devenv";
@@ -44,41 +14,27 @@
     nix2container.inputs.nixpkgs.follows = "nixpkgs";
     mk-shell-bin.url = "github:rrbutani/nix-mk-shell-bin";
 
-    # system config
+    # system management inputs
+    impermanence.url = "github:nix-community/impermanence";
+    persist-retro.url = "github:Geometer1729/persist-retro";
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs";
+    nixos-facter-modules.url = "github:numtide/nixos-facter-modules";
+    deploy-rs.url = "github:serokell/deploy-rs";
+    nix-index-database.url = "github:nix-community/nix-index-database";
+    nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
+    hjem.follows = "hjem-rum/hjem";
+    hjem-rum.url = "github:snugnug/hjem-rum";
+    hjem-rum.inputs.nixpkgs.follows = "nixpkgs";
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
+    wrappers.url = "github:Lassulus/wrappers";
+    wrapper-modules.url = "github:BirdeeHub/nix-wrapper-modules";
 
-    # Packages & Apps
-    helix.url = "github:helix-editor/helix";
-    helix.inputs.nixpkgs.follows = "nixpkgs";
-    ### WARNING: DO NOT FOLLOW NIXPKGS. Gradle builds are broken for this package due to bad dependencies.
-    website.url = "github:jeiang/website";
-    nur.url = "github:nix-community/NUR";
-    nur.inputs = {
-      nixpkgs.follows = "nixpkgs";
-      flake-parts.follows = "flake-parts";
-    };
+    # Packages
     nix-minecraft.url = "github:Infinidoge/nix-minecraft";
-    vicinae-extensions.url = "github:vicinaehq/extensions";
-    vicinae-extensions.inputs = {
-      nixpkgs.follows = "nixpkgs";
-      systems.follows = "systems";
-    };
-    caelestia-shell = {
-      url = "github:caelestia-dots/shell";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    noctalia = {
-      url = "github:noctalia-dev/noctalia-shell";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.noctalia-qs.follows = "noctalia-qs";
-    };
-
-    noctalia-qs = {
-      url = "github:noctalia-dev/noctalia-qs";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    nix-minecraft.inputs.nixpkgs.follows = "nixpkgs";
   };
+
+  outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);
 }
