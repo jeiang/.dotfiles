@@ -10,10 +10,10 @@
     ...
   }: {
     packages = {
-      terminal = self'.packages.ghostty;
+      terminal = lib.nixGL.wrap pkgs.ghostty;
       desktop = inputs.wrapper-modules.wrappers.niri.wrap {
         inherit pkgs;
-        terminal = lib.getExe self'.packages.terminal;
+        terminal = "${lib.getExe self'.packages.terminal} +new-window";
         imports = [self.wrapperModules.niri];
       };
       environment = inputs.wrapper-modules.lib.wrapPackage {
@@ -24,6 +24,7 @@
         extraPackages = with pkgs; [
           self'.packages.git
           self'.packages.difft
+          self'.packages.helix
           fd
           bandwhich
           bingrep
@@ -35,8 +36,7 @@
           file
           hyperfine
           libtree
-          # (ouch.override {enableUnfree = true;})
-          ouch
+          (ouch.override {enableUnfree = true;})
           parallel
           procs
           ripgrep
@@ -48,8 +48,7 @@
           xh
         ];
         env = {
-          # TODO: replace with wrapped version
-          EDITOR = lib.getExe pkgs.helix;
+          EDITOR = lib.getExe self'.packages.helix;
         };
       };
     };

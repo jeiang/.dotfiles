@@ -17,9 +17,6 @@
         config = pkgs.writeTextFile {
           name = "ghostty-config";
           text = ''
-            font-family = DepartureMono Nerd Font
-            font-size = 13
-            theme = Kanagawa Dragon
           '';
         };
       in {

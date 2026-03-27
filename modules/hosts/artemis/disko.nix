@@ -25,7 +25,7 @@
       };
       # for bees
       "${btrfsRootMount}" = {
-        device = "/dev/disk/by-partlabel/disk-nvme2-root";
+        device = "/dev/disk/by-partlabel/disk-nvme3-root";
         neededForBoot = false;
         fsType = "btrfs";
         options = btrfsMountOptions;
@@ -63,7 +63,7 @@
                 };
               };
               empty = {
-                size = "90%";
+                size = "1800G";
               };
             };
           };
@@ -75,19 +75,19 @@
             type = "gpt";
             partitions = {
               empty = {
-                size = "90%";
+                size = "1800G";
               };
             };
           };
         };
-        nvme2 = {
+        nvme3 = {
           type = "disk";
-          device = "/dev/nvme2n1";
+          device = "/dev/nvme3n1";
           content = {
             type = "gpt";
             partitions = {
               root = {
-                size = "90%";
+                size = "1800G";
                 content = {
                   type = "btrfs";
                   extraArgs = [
@@ -96,7 +96,7 @@
                     "-d raid0"
                     "/dev/nvme0n1p2"
                     "/dev/nvme1n1p1"
-                    "/dev/nvme2n1p1"
+                    "/dev/nvme3n1p1"
                   ];
                   subvolumes = {
                     "/rootfs" = {
@@ -115,6 +115,10 @@
                     "/nix" = {
                       mountOptions = btrfsMountOptions;
                       mountpoint = "/nix";
+                    };
+                    "/persist" = {
+                      mountOptions = btrfsMountOptions;
+                      mountpoint = "/persist";
                     };
                   };
                 };

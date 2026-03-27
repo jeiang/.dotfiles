@@ -1,12 +1,27 @@
 {
   inputs,
   self,
+  withSystem,
   ...
 }: {
-  flake.nixosModules.nix = {lib, ...}: {
+  perSystem = {system, ...}: {
+    _module.args.pkgs = import inputs.nixpkgs {
+      inherit system;
+      config.allowUnfree = true;
+    };
+  };
+
+  flake.nixosModules.nix = {
+    lib,
+    config,
+    ...
+  }: {
     imports = [
       inputs.nix-index-database.nixosModules.nix-index
     ];
+
+    nixpkgs.pkgs = withSystem config.nixpkgs.hostPlatform.system ({pkgs, ...}: pkgs);
+
     programs = {
       nix-index-database.comma.enable = true;
       direnv = {
@@ -67,6 +82,12 @@
       };
     };
 
-    nixpkgs.config.allowUnfree = true;
+    hjem.users.${config.preferences.user.name}.files.".config/nixpkgs/config.nix".text =
+      # nix
+      ''
+        {
+          allowUnfree = true;
+        }
+      '';
   };
 }

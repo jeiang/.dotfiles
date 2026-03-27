@@ -28,6 +28,7 @@
         push.autoSetupRemote = "true";
         pull.rebase = false;
         commit.gpgsign = true;
+        safe.directory = "*";
 
         alias = {
           a = "!git add -p";

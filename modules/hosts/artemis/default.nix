@@ -52,7 +52,11 @@
         extraModulePackages = [config.boot.kernelPackages.zenpower];
         kernelModules = ["zenpower"];
       };
-      networking.hostName = "artemis";
+      networking = {
+        hostName = "artemis";
+        networkmanager.enable = true;
+        nftables.enable = true;
+      };
       nixpkgs.hostPlatform = "x86_64-linux";
       system.stateVersion = "25.05";
       users.users.root.openssh.authorizedKeys.keys = [

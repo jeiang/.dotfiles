@@ -6,6 +6,7 @@
   perSystem = {
     pkgs,
     config,
+    self',
     ...
   }: {
     treefmt.config = {
@@ -21,11 +22,12 @@
         name = "system";
         packages = with pkgs; [
           config.treefmt.build.wrapper
+          self'.packages.helix
+          self'.packages.git
           deploy-rs
+          disko
           fd
           fzf
-          git
-          helix
           just
           nh
           nixVersions.latest
@@ -33,7 +35,7 @@
           ssh-to-age
         ];
         # used for NH
-        env.NH_FLAKE = ./.;
+        env.NH_FLAKE = ../.;
         languages = {
           nix.enable = true;
         };

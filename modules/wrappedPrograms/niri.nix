@@ -43,7 +43,7 @@
         };
 
         binds = {
-          "Mod+Return".spawn = config.terminal;
+          "Mod+T".spawn = config.terminal;
 
           "Mod+Q".close-window = null;
           "Mod+F".maximize-column = null;
@@ -88,8 +88,7 @@
           "Mod+Shift+9".move-column-to-workspace = "w8";
           "Mod+Shift+0".move-column-to-workspace = "w9";
 
-          "Mod+S".spawn-sh = "${noctaliaExe} ipc call launcher toggle";
-          "Mod+V".spawn-sh = ''${pkgs.alsa-utils}/bin/amixer sset Capture toggle'';
+          "Mod+Space".spawn-sh = "${noctaliaExe} ipc call launcher toggle";
 
           "XF86AudioRaiseVolume".spawn-sh = "wpctl set-volume -l 1.4 @DEFAULT_AUDIO_SINK@ 5%+";
           "XF86AudioLowerVolume".spawn-sh = "wpctl set-volume -l 1.4 @DEFAULT_AUDIO_SINK@ 5%-";
@@ -148,6 +147,7 @@
         spawn-at-startup = [
           noctaliaExe
           hypridle
+          "ghostty --initial-window=false --gtk-single-instance=true"
         ];
       };
     };

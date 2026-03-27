@@ -18,16 +18,16 @@
 
         status is-interactive; and begin
           source ${donefish}
-          zoxide init fish | source
+          zoxide init fish --cmd cd | source
           fzf --fish | source
           if test "$TERM" != dumb
               starship init fish | source
               enable_transience
           end
 
-          if type -q direnv
-              direnv hook fish | source
-          end
+          # if type -q direnv
+          direnv hook fish | source
+          # end
 
           alias eza 'eza --icons auto --git'
           alias la 'eza -a'
