@@ -2,6 +2,7 @@ keys:
   - &server_solder age1vsvztaxkcqduvyawf6ak5rv3f63ujq6ucm5855ernuh7tj8uhahsxqx9ar
   - &server_artemis age14ngdfn0jgcc2dv86dwcznxmax9d2cmcuu4klvga4hmk90nfltvwquyekx5
   - &user_aidanp age1yy2uxasknys578edlnepcxug2j37ntep0tudfv9nr7qqx6d9ws3sack68y
+  - &new_artemis age1fm8meecmpus97y9ra9gjdk08g8njran6fv4jxnr0zegpfd89a9esayj39c
 
 creation_rules:
   - path_regex: secrets(\.[^.]+)?\.(yaml|json|env|ini)$
@@ -10,3 +11,4 @@ creation_rules:
       - *server_solder
       - *server_artemis
       - *user_aidanp
+      - *new_artemis

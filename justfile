@@ -35,6 +35,6 @@ disko-format system sudo="sudo":
 install system sudo="sudo":
   {{sudo}} nixos-install --flake .#{{system}}
 
-nixos action system="" sudo="sudo":
-  {{sudo}} nixos-rebuild {{action}} --flake .#{{system}}
+nh +args:
+  NH_FLAKE={{justfile_directory()}} nh {{args}}
 
