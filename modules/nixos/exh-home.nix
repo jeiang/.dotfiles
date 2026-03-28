@@ -1,5 +1,9 @@
 {
-  flake.nixosModules.exh-home = {pkgs, ...}: {
+  flake.nixosModules.exh-home = {
+    pkgs,
+    lib,
+    ...
+  }: {
     systemd.services.exh-home = {
       enable = true;
       description = "exh h@home client";
@@ -7,20 +11,13 @@
       after = ["network-online.target"];
       wantedBy = ["multi-user.target"];
       serviceConfig = let
-        jdk = pkgs.temurin-jre-bin-8;
-        exh-pkg = pkgs.fetchzip {
-          stripRoot = false;
-          url = "https://repo.e-hentai.org/hath/HentaiAtHome_1.6.4.zip";
-          hash = "sha256-GBkluRpqIWuZtZDEEulzf0BvrVVsC63aB0RgfRuGssQ=";
-        };
-        exh-jar = "${exh-pkg}/HentaiAtHome.jar";
         exh-name = "exh-home";
       in {
         User = exh-name;
         Group = exh-name;
         DynamicUser = true;
         ExecStart = ''
-          ${jdk}/bin/java -Xms16m -Xmx512m -jar "${exh-jar}" --log-dir="/var/log/${exh-name}" --data-dir="/var/lib/${exh-name}" --cache-dir="/var/cache/${exh-name}" --temp-dir="/tmp" --download-dir="/var/run/${exh-name}"
+          ${lib.getExe pkgs.hath-rust} --enable-metrics --log-dir="/var/log/${exh-name}" --data-dir="/var/lib/${exh-name}" --cache-dir="/var/cache/${exh-name}" --temp-dir="/tmp" --download-dir="/var/run/${exh-name}"
         '';
         Restart = "on-failure";
         MemoryHigh = "100M";
@@ -33,6 +30,28 @@
         ReadOnlyPaths = "/nix";
       };
     };
+    services.caddy.virtualHosts.exh-metrics = rec {
+      hostName = "hath-metrics.jeiang.dev";
+      logFormat = null;
+      extraConfig = ''
+        import logging ${hostName}
+        import compression
+        import security_headers
+
+        basic_auth {
+          grafana $2a$14$yWcASm7EOvMzAQVbSNSu6eNFDdVux7E0fKsbJgqigMSES5B86Aiyu
+        }
+
+        rewrite * /metrics
+        reverse_proxy 0.0.0.0:8888 {
+          transport http {
+            tls
+            tls_insecure_skip_verify
+          }
+        }
+      '';
+    };
+
     networking.firewall.allowedTCPPorts = [8888];
     networking.firewall.allowedUDPPorts = [8888];
   };

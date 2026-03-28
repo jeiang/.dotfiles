@@ -33,15 +33,18 @@
       };
     };
 
+    environment.systemPackages = with pkgs; [
+      rose-pine-hyprcursor
+    ];
+
     environment.variables = rec {
-      XCURSOR_SIZE = cursor;
-      XCURSOR_THEME = 32;
-      HYPRCURSOR_THEME = XCURSOR_SIZE;
-      HYPRCURSOR_SIZE = XCURSOR_THEME;
+      XCURSOR_SIZE = 32;
+      XCURSOR_THEME = cursor;
+      HYPRCURSOR_THEME = XCURSOR_THEME;
+      HYPRCURSOR_SIZE = XCURSOR_SIZE;
     };
 
     hjem.users.${user}.files = {
-      ".local/share/icons/${cursor}".source = "${pkgs.rose-pine-hyprcursor}/share/icons/${cursor}";
       ".config/hypr/hyprland.conf".text =
         # hypr
         ''
@@ -65,9 +68,6 @@
           $terminal=uwsm app -- /nix/store/ln9i1hs8v6rv57mzhgmm7d9pq7b5m6bf-ghostty-1.3.1/bin/ghostty
 
           permission=/nix/store/*/bin/xdg-desktop-portal-hyprland, screencopy, allow
-
-          env=XCURSOR_SIZE,24
-          env=HYPRCURSOR_SIZE,24
 
           general {
             allow_tearing=false

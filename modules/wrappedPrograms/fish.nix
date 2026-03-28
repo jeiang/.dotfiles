@@ -30,6 +30,7 @@
           # end
 
           alias eza 'eza --icons auto --git'
+          alias l 'eza -alhF --smart-group'
           alias la 'eza -a'
           alias ll 'eza -l'
           alias lla 'eza -la'

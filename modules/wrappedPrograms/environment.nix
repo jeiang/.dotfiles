@@ -10,7 +10,7 @@
     ...
   }: {
     packages = {
-      terminal = lib.nixGL.wrap pkgs.ghostty;
+      terminal = pkgs.ghostty;
       desktop = inputs.wrapper-modules.wrappers.niri.wrap {
         inherit pkgs;
         terminal = "${lib.getExe self'.packages.terminal} +new-window";

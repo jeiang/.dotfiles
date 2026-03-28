@@ -85,7 +85,7 @@
               };
               Geyser-MC = pkgs.fetchurl {
                 url = "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/fabric";
-                sha512 = "1sl1l4mld953wnawrjydllrc7d4am3yjk2jf07bj6sdfl44lng5pnpmbpgqgj302lr7hdksk40nn2dybwjkz8v32lhffyf1a39vzmsw";
+                sha512 = "sha512-xYzGzNqmTW/oqEdrodqcjZkvkYksjQfeHM/7IvrpNfD5Wi0CyVgz5VlyLRUkU09sHtiYIlrIFdRKiNtx6tVWog==";
                 name = "geyser.jar";
               };
               Floodgate = pkgs.fetchurl {
