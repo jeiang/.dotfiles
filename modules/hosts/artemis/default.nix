@@ -48,7 +48,7 @@
           "udev.log_level=3"
           "systemd.show_status=auto"
         ];
-        kernelPackages = pkgs.linuxPackages_zen;
+        kernelPackages = pkgs.linuxPackages_xanmod;
         extraModulePackages = [config.boot.kernelPackages.zenpower];
         kernelModules = ["zenpower"];
       };
