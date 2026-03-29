@@ -52,6 +52,10 @@
         extraModulePackages = [config.boot.kernelPackages.zenpower];
         kernelModules = ["zenpower"];
       };
+      environment.variables = {
+        AMD_VULKAN_ICD = "RADV";
+        MESA_SHADER_CACHE_MAX_SIZE = "12G";
+      };
       networking = {
         hostName = "artemis";
         networkmanager.enable = true;

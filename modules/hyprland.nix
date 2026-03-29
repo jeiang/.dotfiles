@@ -8,6 +8,7 @@
     cursor = "rose-pine-hyprcursor";
     user = config.preferences.user.name;
     noctaliaExe = lib.getExe self.packages.${pkgs.stdenv.hostPlatform.system}.noctalia-shell;
+    terminal = lib.getExe self.packages.${pkgs.stdenv.hostPlatform.system}.terminal;
   in {
     security.pam.services.hyprlock = {};
 
@@ -62,12 +63,12 @@
           exec-once = ${noctaliaExe}
           exec-once = uwsm app -- ${lib.getExe pkgs.netbird-ui}
 
-          $fileManager=uwsm app -- /nix/store/qkk4p7h4plf4vqmqa2q4xip2r3zwk4zy-dolphin-25.12.3/bin/dolphin
+          $fileManager=uwsm app -- ${lib.getExe' pkgs.kdePackages.dolphin "dolphin"}
           $mainMod=SUPER
-          $menu=/nix/store/vwjj9nsal2yn77pm1gqpay612q0grrmz-custom-noctalia/bin/noctalia-shell ipc call launcher
-          $terminal=uwsm app -- /nix/store/ln9i1hs8v6rv57mzhgmm7d9pq7b5m6bf-ghostty-1.3.1/bin/ghostty
+          $menu=${noctaliaExe} ipc call launcher
+          $terminal=uwsm app -- ${terminal}
 
-          permission=/nix/store/*/bin/xdg-desktop-portal-hyprland, screencopy, allow
+          permission=${lib.getExe config.programs.hyprland.portalPackage}, screencopy, allow
 
           general {
             allow_tearing=false
@@ -76,7 +77,7 @@
             col.inactive_border=rgba(595959aa)
             gaps_in=5
             gaps_out=10
-            layout=dwindle
+            layout=scrolling
             resize_on_border=false
           }
 
@@ -148,14 +149,25 @@
           bind=$mainMod, Space, exec, $menu toggle
           bind=$mainMod, V, togglefloating,
           bind=$mainMod SHIFT, F, fullscreen, 0
-          bind=$mainMod, P, pseudo, # dwindle
-          bind=$mainMod, J, togglesplit, # dwindle
           bind=$mainMod, Q, killactive,
           bind=$mainMod, M, exit,
           bind=$mainMod, left, movefocus, l
           bind=$mainMod, right, movefocus, r
           bind=$mainMod, up, movefocus, u
           bind=$mainMod, down, movefocus, d
+          bind=$mainMod, K, movefocus, u
+          bind=$mainMod, J, movefocus, d
+          bind=$mainMod, H, movefocus, l
+          bind=$mainMod, L, movefocus, r
+          bind=$mainMod SHIFT, left, movewindow, l
+          bind=$mainMod SHIFT, right, movewindow, r
+          bind=$mainMod SHIFT, up, movewindow, u
+          bind=$mainMod SHIFT, down, movewindow, d
+          bind=$mainMod SHIFT, K, movewindow, u
+          bind=$mainMod SHIFT, J, movewindow, d
+          bind=$mainMod SHIFT, H, movewindow, l
+          bind=$mainMod SHIFT, L, movewindow, r
+          bind=$mainMod, P, layoutmsg, promote
           bind=$mainMod, 1, workspace, 1
           bind=$mainMod, 2, workspace, 2
           bind=$mainMod, 3, workspace, 3
@@ -166,6 +178,8 @@
           bind=$mainMod, 8, workspace, 8
           bind=$mainMod, 9, workspace, 9
           bind=$mainMod, 0, workspace, 10
+          bind=$mainMod, code:59, workspace, -1
+          bind=$mainMod, code:60, workspace, +1
           bind=$mainMod SHIFT, 1, movetoworkspace, 1
           bind=$mainMod SHIFT, 2, movetoworkspace, 2
           bind=$mainMod SHIFT, 3, movetoworkspace, 3
@@ -176,8 +190,25 @@
           bind=$mainMod SHIFT, 8, movetoworkspace, 8
           bind=$mainMod SHIFT, 9, movetoworkspace, 9
           bind=$mainMod SHIFT, 0, movetoworkspace, 10
-          bind=$mainMod, S, togglespecialworkspace, magic
-          bind=$mainMod SHIFT, S, movetoworkspace, special:magic
+          bind = $mainMod, R,submap,resize
+          submap=resize
+          bind = , right, resizeactive, 10 0
+          bind = , left, resizeactive, -10 0
+          bind = , up, resizeactive, 0 -10
+          bind = , down, resizeactive, 0 10
+          bind = , l, resizeactive, 10 0
+          bind = , h, resizeactive, -10 0
+          bind = , k, resizeactive, 0 -10
+          bind = , j, resizeactive, 0 10
+          bind = SHIFT, right, resizeactive, 50 0
+          bind = SHIFT, left, resizeactive, -50 0
+          bind = SHIFT, up, resizeactive, 0 -50
+          bind = SHIFT, down, resizeactive, 0 50
+          bind = SHIFT, l, resizeactive, 50 0
+          bind = SHIFT, h, resizeactive, -50 0
+          bind = SHIFT, k, resizeactive, 0 -50
+          bind = SHIFT, j, resizeactive, 0 50
+          submap=reset
           bind=$mainMod, mouse_down, workspace, e+1
           bind=$mainMod, mouse_up, workspace, e-1
 

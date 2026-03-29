@@ -30,8 +30,8 @@
     zramSwap.enable = true;
     services.openssh.enable = true;
     security.sudo.wheelNeedsPassword = false;
-    environment.systemPackages = with pkgs; [
-      git
+    environment.systemPackages = [
+      self.packages.${pkgs.stdenv.hostPlatform.system}.git
     ];
   };
 }
