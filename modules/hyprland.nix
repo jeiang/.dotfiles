@@ -22,7 +22,6 @@
 
     services = {
       hypridle.enable = true;
-      hypridle.package = self.packages.${pkgs.stdenv.hostPlatform.system}.hypridle;
       greetd = {
         enable = true;
         useTextGreeter = true;
@@ -46,6 +45,31 @@
     };
 
     hjem.users.${user}.files = {
+      ".config/hypr/hypridle.conf".text =
+        # hypr
+        ''
+          general {
+            after_sleep_cmd=niri msg action power-on-monitors
+            lock_cmd=${noctaliaExe} ipc call lockScreen lock
+          }
+
+          listener {
+            on-timeout=${noctaliaExe} ipc call lockScreen lock
+            timeout=900
+          }
+
+          listener {
+            on-resume=niri msg action power-on-monitors
+            on-timeout=niri msg action power-off-monitors
+            timeout=1200
+          }
+
+          listener {
+            on-timeout=${noctaliaExe} ipc call sessionMenu lockAndSuspend
+            timeout=21600
+          }
+
+        '';
       ".config/hypr/hyprland.conf".text =
         # hypr
         ''
