@@ -9,7 +9,6 @@
   in {
     imports = [
       self.nixosModules.firefox
-      self.nixosModules.gaming
       self.nixosModules.gpg
       self.nixosModules.hyprland
       self.nixosModules.pipewire

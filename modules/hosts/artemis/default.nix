@@ -22,6 +22,8 @@
         self.nixosModules.doas
         self.nixosModules.desktop
         self.nixosModules.netbird
+        self.nixosModules.vr
+        self.nixosModules.gaming
 
         # disks
         self.diskoConfigurations.artemis
