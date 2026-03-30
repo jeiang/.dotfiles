@@ -84,9 +84,9 @@
                 sha512 = "0xi3qz1gfn468jjfbfjjrcp89lkis35ggy8d5gg0gkxkr8dpk7gfk4r3zgh9ij821whm0zrk7vn0vvndiy0a1zricq8jwg9cdx9mgiv";
               };
               Geyser-MC = pkgs.fetchurl {
-                url = "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/fabric";
-                sha512 = "sha512-xYzGzNqmTW/oqEdrodqcjZkvkYksjQfeHM/7IvrpNfD5Wi0CyVgz5VlyLRUkU09sHtiYIlrIFdRKiNtx6tVWog==";
-                name = "geyser.jar";
+                url = "https://cdn.modrinth.com/data/wKkoqHrH/versions/YgokOb0l/geyser-fabric-Geyser-Fabric-2.9.5-b1108.jar";
+                sha512 = "1ph0qignyyf0zpba407kcx8klbf27z2wxmppm8dihhpjaqrr1brymaqzrycqd1087h86al0fh9d6w48pyshv7n7fwjykmqmc1f0w03b";
+                # name = "geyser.jar";
               };
               Floodgate = pkgs.fetchurl {
                 url = "https://cdn.modrinth.com/data/bWrNNfkb/versions/wzwExuYr/Floodgate-Fabric-2.2.6-b54.jar";
