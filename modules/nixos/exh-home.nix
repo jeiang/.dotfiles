@@ -3,7 +3,9 @@
     pkgs,
     lib,
     ...
-  }: {
+  }: let
+    port = 8888;
+  in {
     systemd.services.exh-home = {
       enable = true;
       description = "exh h@home client";
@@ -30,29 +32,23 @@
         ReadOnlyPaths = "/nix";
       };
     };
-    services.caddy.virtualHosts.exh-metrics = rec {
-      hostName = "hath-metrics.jeiang.dev";
-      logFormat = null;
-      extraConfig = ''
-        import logging ${hostName}
-        import compression
-        import security_headers
 
-        basic_auth {
-          grafana $2a$14$yWcASm7EOvMzAQVbSNSu6eNFDdVux7E0fKsbJgqigMSES5B86Aiyu
-        }
-
-        rewrite * /metrics
-        reverse_proxy 0.0.0.0:8888 {
-          transport http {
-            tls
-            tls_insecure_skip_verify
+    services.prometheus.scrapeConfigs = [
+      {
+        job_name = "exh h@home";
+        scheme = "https";
+        tls_config.insecure_skip_verify = true;
+        static_configs = [
+          {
+            targets = [
+              "localhost:${toString port}"
+            ];
           }
-        }
-      '';
-    };
+        ];
+      }
+    ];
 
-    networking.firewall.allowedTCPPorts = [8888];
-    networking.firewall.allowedUDPPorts = [8888];
+    networking.firewall.allowedTCPPorts = [port];
+    networking.firewall.allowedUDPPorts = [port];
   };
 }

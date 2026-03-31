@@ -23,6 +23,7 @@
         self.nixosModules.caddy
         self.nixosModules.exh-home
         self.nixosModules.minecraft
+        self.nixosModules.monitoring
         self.nixosModules.netbird
         self.nixosModules.tuwunel
         self.nixosModules.website

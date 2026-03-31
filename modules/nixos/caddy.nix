@@ -2,6 +2,7 @@
   flake.nixosModules.caddy = {config, ...}: {
     services.caddy = {
       enable = true;
+      openFirewall = true;
       user = "caddy";
       group = "caddy";
       email = "aidan@aidanpinard.co";
@@ -20,12 +21,16 @@
         default_sni aidanpinard.co
         log default-file {
           output file /var/log/caddy/caddy.log {
+            mode 0644
             roll_size 10mb
             roll_keep 100
             roll_keep_for 30d
           }
           exclude http.log.access
           format json
+        }
+        metrics {
+          per_host
         }
       '';
       extraConfig = let
@@ -84,9 +89,74 @@
         };
       };
     };
-    networking.firewall = {
-      allowedTCPPorts = [80 443];
-      allowedUDPPorts = [443];
-    };
+    services.prometheus.scrapeConfigs = [
+      {
+        job_name = "caddy";
+        static_configs = [
+          {
+            targets = [
+              "localhost:2019"
+            ];
+          }
+        ];
+      }
+    ];
+    environment.etc."alloy/10-caddy.alloy".text = ''
+      local.file_match "caddy" {
+        path_targets = [
+          {
+            __path__ = "/var/log/caddy/caddy.log",
+            job      = "caddy",
+            log_type = "main",
+          },
+          {
+            __path__ = "/var/log/caddy/access-*.log",
+            job      = "caddy",
+            log_type = "access",
+          },
+        ]
+      }
+
+      loki.process "caddy_json" {
+        stage.json {
+          expressions = {
+            level        = "level",
+            logger       = "logger",
+            msg          = "msg",
+            host         = "request.host",
+            http_version = "request.proto",
+            http_method  = "request.method",
+            http_status  = "status",
+            duration     = "duration",
+            ip           = "request.remote_ip",
+          }
+        }
+
+        stage.labels {
+          values = {
+            level        = "",
+            logger       = "",
+            host         = "",
+            http_version = "",
+            http_method  = "",
+            http_status  = "",
+          }
+        }
+
+        stage.structured_metadata {
+          values = {
+            duration = "",
+            ip       = "",
+          }
+        }
+
+        forward_to = [loki.write.local.receiver]
+      }
+
+      loki.source.file "caddy" {
+        targets    = local.file_match.caddy.targets
+        forward_to = [loki.process.caddy_json.receiver]
+      }
+    '';
   };
 }
