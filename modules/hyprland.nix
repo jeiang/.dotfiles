@@ -20,6 +20,7 @@
       };
     };
 
+    security.polkit.enable = true;
     services = {
       hypridle.enable = true;
       greetd = {
@@ -35,6 +36,7 @@
 
     environment.systemPackages = with pkgs; [
       rose-pine-hyprcursor
+      hyprpolkitagent
     ];
 
     environment.variables = rec {
@@ -86,6 +88,7 @@
 
           exec-once = ${noctaliaExe}
           exec-once = uwsm app -- ${lib.getExe pkgs.netbird-ui}
+          exec-once = systemctl --user start hyprpolkitagent
 
           $fileManager=uwsm app -- ${lib.getExe' pkgs.kdePackages.dolphin "dolphin"}
           $mainMod=SUPER
