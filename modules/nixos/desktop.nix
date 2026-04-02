@@ -24,11 +24,15 @@
       '';
     };
 
+    services.passSecretService.enable = true;
+    services.passSecretService.package = pkgs.gopass;
+
     environment.systemPackages = with pkgs; [
       selfpkgs.noctalia-shell
       bitwarden-desktop
       btop-rocm
       ghostty
+      gopass
       kdePackages.dolphin
       mpv
       pwvucontrol
