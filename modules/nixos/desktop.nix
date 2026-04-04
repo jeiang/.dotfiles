@@ -89,5 +89,9 @@
       bluetooth.enable = true;
       bluetooth.powerOnBoot = true;
     };
+
+    xdg.portal.config.common = {
+      "org.freedesktop.appearance.color-scheme" = "2"; # 0 = no preference, 1 = prefer dark, 2 = prefer light
+    };
   };
 }

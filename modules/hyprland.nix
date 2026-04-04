@@ -235,6 +235,7 @@
           bind = SHIFT, h, resizeactive, -50 0
           bind = SHIFT, k, resizeactive, 0 -50
           bind = SHIFT, j, resizeactive, 0 50
+          bind = , escape, submap, reset
           submap=reset
           bind=$mainMod, mouse_down, workspace, e+1
           bind=$mainMod, mouse_up, workspace, e-1

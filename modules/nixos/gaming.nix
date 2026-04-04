@@ -141,13 +141,7 @@
     };
   };
 
-  flake.nixosModules.vr = {
-    pkgs,
-    config,
-    ...
-  }: let
-    user = config.preferences.user.name;
-  in {
+  flake.nixosModules.vr = {pkgs, ...}: {
     environment.systemPackages = [
       (pkgs.writeShellScriptBin "vrstart" ''
         #!/usr/bin/env bash
@@ -163,29 +157,30 @@
     services.wivrn = {
       enable = true;
       openFirewall = true;
-      defaultRuntime = true;
+      # steam.importOXRRuntimes = true;
+      highPriority = true;
       autoStart = true;
     };
 
-    hjem.users.${user} = {
-      files.".config/openxr/1/active_runtime.json".source = "${pkgs.wivrn}/share/openxr/1/openxr_wivrn.json";
+    # hjem.users.${user} = {
+    #   files.".config/openxr/1/active_runtime.json".source = "${pkgs.wivrn}/share/openxr/1/openxr_wivrn.json";
 
-      files.".config/openvr/openvrpaths.vrpath".text = let
-        steam = "/home/${user}/.local/share/Steam";
-      in
-        builtins.toJSON {
-          version = 1;
-          jsonid = "vrpathreg";
+    #   files.".config/openvr/openvrpaths.vrpath".text = let
+    #     steam = "/home/${user}/.local/share/Steam";
+    #   in
+    #     builtins.toJSON {
+    #       version = 1;
+    #       jsonid = "vrpathreg";
 
-          external_drivers = null;
-          config = ["${steam}/config"];
+    #       external_drivers = null;
+    #       config = ["${steam}/config"];
 
-          log = ["${steam}/logs"];
+    #       log = ["${steam}/logs"];
 
-          runtime = [
-            "${pkgs.xrizer}/lib/xrizer"
-          ];
-        };
-    };
+    #       runtime = [
+    #         "${pkgs.xrizer}/lib/xrizer"
+    #       ];
+    #     };
+    # };
   };
 }
