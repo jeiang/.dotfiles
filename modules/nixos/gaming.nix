@@ -119,6 +119,8 @@
         enable = true;
         extest.enable = true;
         protontricks.enable = true;
+        remotePlay.openFirewall = true;
+        gamescopeSession.enable = true;
         extraCompatPackages = with pkgs; [
           proton-ge-bin
         ];

@@ -41,14 +41,14 @@
         };
         git-hooks.hooks = {
           editorconfig-checker.enable = true;
-          markdownlint = {
-            enable = true;
-            settings.configuration = {
-              "MD013" = {
-                "line_length" = 120;
-              };
-            };
-          };
+          # markdownlint = {
+          #   enable = true;
+          #   settings.configuration = {
+          #     "MD013" = {
+          #       "line_length" = 120;
+          #     };
+          #   };
+          # };
           statix.enable = true;
           treefmt = {
             enable = true;

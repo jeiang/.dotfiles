@@ -51,23 +51,23 @@
         # hypr
         ''
           general {
-            after_sleep_cmd=niri msg action power-on-monitors
+            after_sleep_cmd=hyprctl dispatch dpms on
             lock_cmd=${noctaliaExe} ipc call lockScreen lock
           }
 
           listener {
-            on-timeout=${noctaliaExe} ipc call lockScreen lock
+            on-timeout=loginctl lock-session
             timeout=900
           }
 
           listener {
-            on-resume=niri msg action power-on-monitors
-            on-timeout=niri msg action power-off-monitors
+            on-resume=hyprctl dispatch dpms on
+            on-timeout=hyprctl dispatch dpms off
             timeout=1200
           }
 
           listener {
-            on-timeout=${noctaliaExe} ipc call sessionMenu lockAndSuspend
+            on-timeout=systemctl suspend
             timeout=21600
           }
 
