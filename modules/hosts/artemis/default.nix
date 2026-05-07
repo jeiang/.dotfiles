@@ -13,7 +13,13 @@
       pkgs,
       config,
       ...
-    }: {
+    }: let
+      originalKernel = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linux-cachyos-bore-lto;
+      kernel = originalKernel.override {
+        pname = "linux-cachyos-bore-lto-zen4";
+        processorOpt = "zen4";
+      };
+    in {
       imports = [
         self.nixosModules.base
         self.nixosModules.sharedConfiguration
@@ -50,8 +56,12 @@
           "udev.log_level=3"
           "systemd.show_status=auto"
         ];
-        kernelPackages = pkgs.linuxPackages_xanmod;
+        kernelPackages = let
+          helpers = pkgs.callPackage "${inputs.nix-cachyos-kernel.outPath}/helpers.nix" {};
+        in
+          helpers.kernelModuleLLVMOverride (pkgs.linuxKernel.packagesFor kernel);
         extraModulePackages = [config.boot.kernelPackages.zenpower];
+        blacklistedKernelModules = ["algif_aead"];
         kernelModules = ["zenpower"];
       };
       environment.variables = {
