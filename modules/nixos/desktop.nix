@@ -33,11 +33,13 @@
       btop-rocm
       ghostty
       gopass
+      grim
       kdePackages.dolphin
       mpv
       pwvucontrol
       qbittorrent
       qview
+      slurp
       umu-launcher
       wl-clipboard
       (discord.override {
