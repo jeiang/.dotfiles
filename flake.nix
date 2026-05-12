@@ -29,6 +29,8 @@
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
     wrapper-modules.url = "github:BirdeeHub/nix-wrapper-modules";
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
+    hyprland.url = "github:hyprwm/Hyprland";
+    hyprland.inputs.nixpkgs.follows = "nixpkgs";
 
     # Packages
     nix-minecraft.url = "github:Infinidoge/nix-minecraft";

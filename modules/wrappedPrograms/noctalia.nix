@@ -359,8 +359,8 @@
             useApp2Unit = false;
             sortByMostUsed = true;
             terminalCommand = "ghostty -e";
-            customLaunchPrefixEnabled = false;
-            customLaunchPrefix = "";
+            customLaunchPrefixEnabled = true;
+            customLaunchPrefix = "uwsm app --";
             viewMode = "grid";
             showCategories = true;
             iconMode = "tabler";

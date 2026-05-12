@@ -14,6 +14,7 @@
       programs = {
         alejandra.enable = true;
         deadnix.enable = true;
+        stylua.enable = true;
       };
     };
     formatter = config.treefmt.build.wrapper;
@@ -33,6 +34,27 @@
           nixVersions.latest
           sops
           ssh-to-age
+          # hyprland
+          (
+            inputs.wrapper-modules.lib.wrapPackage (_: {
+              inherit pkgs;
+              package = pkgs.lua-language-server;
+              flags = {
+                "--configpath" = pkgs.writeText ".luarc.json" ''
+                  {
+                    "workspace": {
+                      "library": [
+                        "${inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland}/share/hypr/stubs"
+                      ]
+                    },
+                    "diagnostics": {
+                      "globals": ["hl"]
+                    }
+                  }
+                '';
+              };
+            })
+          )
         ];
         # used for NH
         env.NH_FLAKE = ../.;

@@ -9,15 +9,17 @@
         self.nixosModules.artemisConfiguration
       ];
     };
-    nixosModules.artemisConfiguration = {
-      pkgs,
-      config,
-      ...
-    }: let
-      originalKernel = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linux-cachyos-bore-lto;
+    nixosModules.artemisConfiguration = {pkgs, ...}: let
+      originalKernel = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linux-cachyos-latest;
       kernel = originalKernel.override {
         pname = "linux-cachyos-bore-lto-zen4";
         processorOpt = "zen4";
+        cpusched = "bore";
+        lto = "full";
+        autofdo = true;
+        # structuredExtraConfig = {
+        #   CONFIG_PROPELLER_CLANG = lib.kernel.yes;
+        # };
       };
     in {
       imports = [
@@ -60,9 +62,9 @@
           helpers = pkgs.callPackage "${inputs.nix-cachyos-kernel.outPath}/helpers.nix" {};
         in
           helpers.kernelModuleLLVMOverride (pkgs.linuxKernel.packagesFor kernel);
-        extraModulePackages = [config.boot.kernelPackages.zenpower];
+        # extraModulePackages = [config.boot.kernelPackages.zenpower];
         blacklistedKernelModules = ["algif_aead"];
-        kernelModules = ["zenpower"];
+        # kernelModules = ["zenpower"];
       };
       environment.variables = {
         AMD_VULKAN_ICD = "RADV";

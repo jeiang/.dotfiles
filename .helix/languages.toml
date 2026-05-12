@@ -2,3 +2,8 @@
 name = "nix"
 formatter = { command = "treefmt", args = [ "--stdin", "--quiet", "%{buffer_name}" ] }
 auto-format = true
+
+[[language]]
+name = "lua"
+formatter = { command = "treefmt", args = [ "--stdin", "--quiet", "%{buffer_name}" ] }
+auto-format = true
