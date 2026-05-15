@@ -11,24 +11,29 @@
   }: let
     cursor = "rose-pine-hyprcursor";
     user = config.preferences.user.name;
-    noctaliaExe = lib.getExe self.packages.${pkgs.stdenv.hostPlatform.system}.noctalia-shell;
-    terminal = lib.getExe self.packages.${pkgs.stdenv.hostPlatform.system}.terminal;
+    selfpkgs = self.packages.${pkgs.stdenv.hostPlatform.system};
+    terminal = lib.getExe selfpkgs.terminal;
+    shell = lib.getExe selfpkgs.shell-cli;
   in {
+    imports = [
+      self.nixosModules.caelestia-config
+    ];
     security.pam.services.hyprlock = {};
 
     programs = {
       hyprlock.enable = true;
-      hyprland = {
+      hyprland = let
+        hyprpkgs = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system};
+      in {
         enable = true;
         withUWSM = true;
-        package = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland;
-        portalPackage = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.xdg-desktop-portal-hyprland;
+        package = hyprpkgs.hyprland;
+        portalPackage = hyprpkgs.xdg-desktop-portal-hyprland;
       };
     };
 
     security.polkit.enable = true;
     services = {
-      hypridle.enable = true;
       greetd = {
         enable = true;
         useTextGreeter = true;
@@ -43,6 +48,7 @@
     environment.systemPackages = with pkgs; [
       rose-pine-hyprcursor
       hyprpolkitagent
+      selfpkgs.shell-cli
     ];
 
     environment.variables = rec {
@@ -53,35 +59,16 @@
     };
 
     hjem.users.${user}.files = {
-      ".config/hypr/hypridle.conf".text =
-        # hypr
-        ''
-          general {
-            after_sleep_cmd=hyprctl dispatch dpms on
-            lock_cmd=${noctaliaExe} ipc call lockScreen lock
-          }
-
-          listener {
-            on-timeout=loginctl lock-session
-            timeout=900
-          }
-
-          listener {
-            on-resume=hyprctl dispatch dpms on
-            on-timeout=hyprctl dispatch dpms off
-            timeout=1200
-          }
-
-          listener {
-            on-timeout=systemctl suspend
-            timeout=21600
-          }
-        '';
       ".config/hypr/hyprland.lua".source = ./hyprland.lua;
       ".config/hypr/rules.lua".source = ./rules.lua;
       ".config/hypr/animations.lua".source = ./animations.lua;
       ".config/hypr/keybinds.lua".source = ./keybinds.lua;
-      ".config/hypr/nixpaths.lua".text =
+      ".config/hypr/nixpaths.lua".text = let
+        screenshot = pkgs.writeShellScriptBin "screenshot" ''
+          mkdir -p $HOME/Pictures/Screenshots
+          ${lib.getExe pkgs.grimblast} --notify copysave area "$HOME/Pictures/Screenshots/screenshot-$(date +"%Y%m%d%H%M%S").png"
+        '';
+      in
         # lua
         ''
           local vars = {}
@@ -89,13 +76,15 @@
           vars.fileManager = "${lib.getExe' pkgs.kdePackages.dolphin "dolphin"}"
           vars.browser = "${lib.getExe config.programs.firefox.package}"
           vars.netbird = "${lib.getExe pkgs.netbird-ui}"
-          vars.noctalia = "${noctaliaExe}"
           vars.portal = "${lib.getExe config.programs.hyprland.portalPackage}"
           vars.pluginManager = "${lib.getExe' config.programs.hyprland.package "hyprpm"}"
-          vars.screenshot = "${lib.getExe pkgs.grimblast}"
           vars.shutdown = "${lib.getExe pkgs.hyprshutdown}"
           vars.wpctl = "${lib.getExe' pkgs.wireplumber "wpctl"}"
           vars.playerctl = "${lib.getExe' pkgs.wireplumber "playerctl"}"
+          vars.screenshot = "${lib.getExe' screenshot "screenshot"}"
+          vars.shell = "${shell} shell"
+          vars.launcher = "${shell} shell drawers toggle launcher"
+          vars.wallpaper = "${shell} wallpaper -f ${self}/assets/wallpaper.jpg"
           return vars
         '';
     };

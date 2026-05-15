@@ -12,11 +12,13 @@ end
 -- Applications
 bind("T", hl.dsp.exec_cmd("uwsm app -- " .. vars.terminal))
 bind("E", hl.dsp.exec_cmd("uwsm app -- " .. vars.fileManager))
-bind("Space", hl.dsp.exec_cmd(vars.noctalia .. " ipc call launcher toggle"))
-bind("SHIFT + V", hl.dsp.exec_cmd(vars.noctalia .. " ipc call launcher clipboard"))
+bind("Space", hl.dsp.exec_cmd(vars.launcher))
+-- bind("SHIFT + V", hl.dsp.exec_cmd(vars.noctalia .. " ipc call launcher clipboard"))
+bind("SHIFT + S", hl.dsp.exec_cmd(vars.screenshot))
 
 -- Control
-bind("Q", hl.dsp.window.kill())
+bind("Q", hl.dsp.window.close())
+bind("SHIFT + Q", hl.dsp.window.close())
 bind("M", hl.dsp.exec_cmd(vars.shutdown .. " && hyprctl dispatch 'hl.dsp.exit()'"))
 bind("V", hl.dsp.window.float({ action = "toggle" }))
 bind("SHIFT + F", hl.dsp.window.fullscreen({ action = "toggle" }))

@@ -4,7 +4,6 @@
     pkgs,
     ...
   }: let
-    selfpkgs = self.packages.${pkgs.stdenv.hostPlatform.system};
     user = config.preferences.user.name;
   in {
     imports = [
@@ -16,7 +15,7 @@
 
     hjem.users.${user}.files = {
       ".config/ghostty/config.ghostty".text = ''
-        font-family = DepartureMono Nerd Font
+        font-family = Mononoki Nerd Font
         font-size = 13
         theme = Kanagawa Dragon
         quit-after-last-window-closed = false
@@ -28,7 +27,6 @@
     services.passSecretService.package = pkgs.gopass;
 
     environment.systemPackages = with pkgs; [
-      selfpkgs.noctalia-shell
       bitwarden-desktop
       btop-rocm
       ghostty
@@ -53,9 +51,9 @@
     };
 
     fonts.fontconfig.defaultFonts = {
-      serif = ["Ubuntu Sans"];
-      sansSerif = ["Ubuntu Sans"];
-      monospace = ["JetBrainsMono Nerd Font"];
+      serif = ["UbuntuSans Nerd Font"];
+      sansSerif = ["UbuntuSans Nerd Font"];
+      monospace = ["mononoki"];
     };
 
     fonts.packages = with pkgs; [
@@ -65,8 +63,9 @@
       jetbrains-mono
       nerd-fonts.departure-mono
       nerd-fonts.jetbrains-mono
+      nerd-fonts.ubuntu-sans
       nerd-fonts.symbols-only
-      ubuntu-sans
+      nerd-fonts.mononoki
       unifont
     ];
 

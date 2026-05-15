@@ -16,10 +16,7 @@
         processorOpt = "zen4";
         cpusched = "bore";
         lto = "full";
-        autofdo = true;
-        # structuredExtraConfig = {
-        #   CONFIG_PROPELLER_CLANG = lib.kernel.yes;
-        # };
+        autofdo = ./kernel.afdo;
       };
     in {
       imports = [
@@ -39,6 +36,7 @@
       netbird.management.enable = false;
       boot = {
         loader.systemd-boot.enable = true;
+        loader.systemd-boot.consoleMode = "max";
         supportedFilesystems = ["ntfs"];
         tmp.cleanOnBoot = true;
         plymouth = {
@@ -63,8 +61,8 @@
         in
           helpers.kernelModuleLLVMOverride (pkgs.linuxKernel.packagesFor kernel);
         # extraModulePackages = [config.boot.kernelPackages.zenpower];
-        blacklistedKernelModules = ["algif_aead"];
         # kernelModules = ["zenpower"];
+        blacklistedKernelModules = ["algif_aead"];
       };
       environment.variables = {
         AMD_VULKAN_ICD = "RADV";

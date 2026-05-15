@@ -25,7 +25,8 @@ hl.monitor({
 -- Autostart
 ------------------------
 hl.on("hyprland.start", function()
-  hl.exec_cmd(vars.noctalia)
+  hl.exec_cmd(vars.shell)
+  hl.exec_cmd(vars.wallpaper)
   hl.exec_cmd("uwsm app -- " .. vars.netbird)
   hl.exec_cmd("systemctl --user start hyprpolkitagent")
 end)

@@ -4,7 +4,13 @@
       sudo.enable = false;
       doas = {
         enable = true;
-        wheelNeedsPassword = false;
+        extraRules = [
+          {
+            groups = ["wheel"];
+            noPass = true;
+            keepEnv = true;
+          }
+        ];
       };
     };
     environment = {

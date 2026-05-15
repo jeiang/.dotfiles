@@ -31,6 +31,13 @@
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
     hyprland.url = "github:hyprwm/Hyprland";
     hyprland.inputs.nixpkgs.follows = "nixpkgs";
+    caelestia-shell.url = "github:caelestia-dots/shell";
+    caelestia-shell.inputs.nixpkgs.follows = "nixpkgs";
+    caelestia-cli = {
+      url = "github:caelestia-dots/cli";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.caelestia-shell.follows = "caelestia-shell";
+    };
 
     # Packages
     nix-minecraft.url = "github:Infinidoge/nix-minecraft";
