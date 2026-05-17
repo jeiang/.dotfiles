@@ -13,10 +13,10 @@
     user = config.preferences.user.name;
     selfpkgs = self.packages.${pkgs.stdenv.hostPlatform.system};
     terminal = lib.getExe selfpkgs.terminal;
-    shell = lib.getExe selfpkgs.shell-cli;
+    shell = lib.getExe selfpkgs.dms;
   in {
     imports = [
-      self.nixosModules.caelestia-config
+      self.nixosModules.dankmaterialshell
     ];
     security.pam.services.hyprlock = {};
 
@@ -48,7 +48,6 @@
     environment.systemPackages = with pkgs; [
       rose-pine-hyprcursor
       hyprpolkitagent
-      selfpkgs.shell-cli
     ];
 
     environment.variables = rec {
@@ -82,8 +81,8 @@
           vars.wpctl = "${lib.getExe' pkgs.wireplumber "wpctl"}"
           vars.playerctl = "${lib.getExe' pkgs.wireplumber "playerctl"}"
           vars.screenshot = "${lib.getExe' screenshot "screenshot"}"
-          vars.shell = "${shell} shell"
-          vars.launcher = "${shell} shell drawers toggle launcher"
+          vars.shell = "${shell}"
+          vars.launcher = "${shell} ipc launcher open"
           vars.wallpaper = "${shell} wallpaper -f ${self}/assets/wallpaper.jpg"
           return vars
         '';
