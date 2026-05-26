@@ -87,6 +87,15 @@
             redir * https://github.com/jeiang permanent
           '';
         };
+        "pegus" = rec {
+          hostName = "pegus.jeiang.dev";
+          extraConfig = ''
+            import logging ${hostName}
+            import compression
+            import security_headers
+            reverse_proxy localhost:3000
+          '';
+        };
       };
     };
     services.prometheus.scrapeConfigs = [

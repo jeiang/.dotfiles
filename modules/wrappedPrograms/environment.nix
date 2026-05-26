@@ -1,8 +1,4 @@
-{
-  inputs,
-  self,
-  ...
-}: {
+{inputs, ...}: {
   perSystem = {
     pkgs,
     lib,
@@ -11,11 +7,6 @@
   }: {
     packages = {
       terminal = pkgs.ghostty;
-      desktop = inputs.wrapper-modules.wrappers.niri.wrap {
-        inherit pkgs;
-        terminal = "${lib.getExe self'.packages.terminal} +new-window";
-        imports = [self.wrapperModules.niri];
-      };
       environment = inputs.wrapper-modules.lib.wrapPackage {
         inherit pkgs;
         package = self'.packages.fish;
