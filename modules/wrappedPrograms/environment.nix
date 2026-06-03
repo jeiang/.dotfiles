@@ -3,6 +3,7 @@
     pkgs,
     lib,
     self',
+    inputs',
     ...
   }: {
     packages = {
@@ -21,7 +22,7 @@
           bingrep
           cachix
           choose
-          devenv
+          inputs'.devenv.packages.default
           duf
           erdtree
           file

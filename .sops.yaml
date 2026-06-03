@@ -1,8 +1,11 @@
 keys:
   - &server_solder age1vsvztaxkcqduvyawf6ak5rv3f63ujq6ucm5855ernuh7tj8uhahsxqx9ar
-  - &server_artemis age14ngdfn0jgcc2dv86dwcznxmax9d2cmcuu4klvga4hmk90nfltvwquyekx5
   - &user_aidanp age1yy2uxasknys578edlnepcxug2j37ntep0tudfv9nr7qqx6d9ws3sack68y
-  - &new_artemis age1fm8meecmpus97y9ra9gjdk08g8njran6fv4jxnr0zegpfd89a9esayj39c
+  - &server_artemis age1fm8meecmpus97y9ra9gjdk08g8njran6fv4jxnr0zegpfd89a9esayj39c
+  - &server_legion_control_plane age1scwhtucufm7p3q4mj2ejy6xpp08h3pjelgfgkzufazn9m7mj3s6sfx75re
+  - &server_legion_worker1 age10gtjvxyr75l7ahmhwtqx4jf7ecu49k30mfgxrs8zg5gkntq49casrc8myq
+  - &server_legion_worker2 age1qpnfpdak52apv5p79grpu4tcaa5ykdcjctuvzwh5lqx85hlad4nq7qh6z8
+  - &server_legion_worker3 age1r3aekj3kfp423v7n04quskaujggk6zhegfv3dxgn8a3ml4jcyqyq23m3hj
 
 creation_rules:
   - path_regex: secrets(\.[^.]+)?\.(yaml|json|env|ini)$
@@ -11,4 +14,7 @@ creation_rules:
       - *server_solder
       - *server_artemis
       - *user_aidanp
-      - *new_artemis
+      - *server_legion_control_plane
+      - *server_legion_worker1
+      - *server_legion_worker2
+      - *server_legion_worker3

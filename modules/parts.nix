@@ -1,4 +1,8 @@
-{inputs, ...}: {
+{
+  inputs,
+  lib,
+  ...
+}: {
   options = {
     flake = inputs.flake-parts.lib.mkSubmoduleOptions {
       wrapperModules = inputs.nixpkgs.lib.mkOption {
@@ -7,7 +11,12 @@
       diskoConfigurations = inputs.nixpkgs.lib.mkOption {
         default = {};
       };
-      deploy = inputs.nixpkgs.lib.mkOption {
+      deploy = lib.mkOption {
+        type = lib.types.submodule {
+          options.nodes = lib.mkOption {
+            type = lib.types.attrsOf lib.types.raw;
+          };
+        };
         default = {};
       };
     };

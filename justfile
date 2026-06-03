@@ -1,33 +1,33 @@
 default:
-    @just --list
+  @just --list
 
 # Format all files
 fmt:
-    nix fmt
-    statix fix
-    # anything that could not be autofixed would be reported here
-    statix check
+  nix fmt
+  statix fix
+  # anything that could not be autofixed would be reported here
+  statix check
 
 # Check for nix errors
 check extraArgs="":
-    nix flake check --impure {{extraArgs}}
+  nix flake check --impure {{extraArgs}}
 
-clean-deploy system address:
-    nix run github:nix-community/nixos-anywhere -- --generate-hardware-config nixos-facter ./systems/{{system}}/facter.json  --flake .#{{system}} --target-host root@{{address}}
+clean-deploy system address *args:
+  nix run github:nix-community/nixos-anywhere -- --generate-hardware-config nixos-facter ./modules/hosts/{{system}}/facter.json  --flake .#{{system}} --target-host root@{{address}} {{args}}
 
-deploy system profile="":
-    deploy .#{{system}}{{ if profile == "" { "" } else { "." + profile } }} -- --impure
+deploy system *args:
+  deploy .#{{system}} {{args}} -- --impure
 
 # Run this after editing .sops.yaml
 sops-updatekeys:
-    sops updatekeys $(fd "secrets.(yaml|env|ini|json)" | fzf)
+  sops updatekeys $(fd "secrets.(yaml|env|ini|json)" | fzf)
 
 # Edit or view the secrets
 sops-edit:
-    sops $(fd "secrets.([^.]+.)?(yaml|env|ini|json)" | fzf)
+  sops $(fd "secrets.([^.]+.)?(yaml|env|ini|json)" | fzf)
 
 sops-create path:
-    sops {{path}}
+  sops {{path}}
 
 disko-format system sudo="sudo":
   {{sudo}} disko -f .#{{system}} --mode destroy,format,mount

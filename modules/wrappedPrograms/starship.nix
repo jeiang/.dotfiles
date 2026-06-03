@@ -15,7 +15,6 @@
 
             format = """($nix_shell$container$fill$git_metrics\n)$cmd_duration\
             $hostname\
-            $localip\
             $shlvl\
             $shell\
             $env_var\
@@ -148,11 +147,6 @@
             format = "[$symbol$number]($style) "
             style = "white"
             symbol = "[▶](blue italic)"
-
-            [localip]
-            ssh_only = true
-            format = " ◯[$localipv4](bold magenta)"
-            disabled = false
 
             [time]
             disabled = false
