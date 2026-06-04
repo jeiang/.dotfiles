@@ -40,12 +40,67 @@
             additionalConfig
           ];
         };
+
+      "10-control-plane-nat" = {
+        matchConfig.Name = "enp7s0";
+        networkConfig = {
+          DHCP = "ipv4";
+        };
+        dhcpV4Config = {
+          UseRoutes = false;
+        };
+        routes = [
+          # hetzner private network
+          {
+            Destination = "172.16.0.0/12";
+            Gateway = "172.16.0.1";
+            GatewayOnLink = true;
+          }
+          # hetzner forwards requests through the primary node
+          # this is configured within the web console
+          {
+            Destination = "0.0.0.0/0";
+            Gateway = "172.16.0.1";
+            GatewayOnLink = true;
+          }
+        ];
+      };
     in
       builtins.mapAttrs mkLegionSystem {
         legion = {
-          systemd.network.networks."10-wan".address = [
-            "2a01:4ff:f0:6b8e::1/64"
-          ];
+          systemd.network.networks."10-wan" = {
+            address = [
+              "2a01:4ff:f0:6b8e::1/64"
+              "178.156.226.145/32"
+            ];
+            routes = [
+              {
+                Destination = "172.31.1.1/32";
+              }
+              {
+                Gateway = "172.31.1.1";
+                GatewayOnLink = true;
+              }
+            ];
+            networkConfig = {
+              DHCP = "no";
+              IPv6AcceptRA = false;
+            };
+          };
+          boot.kernel.sysctl = {
+            "net.ipv4.ip_forward" = 1;
+          };
+
+          # forward ipv4 through main node for kubernetes
+          networking.nat = {
+            enable = true;
+            externalInterface = "enp1s0";
+            internalInterfaces = ["enp7s0"];
+          };
+
+          networking.firewall = {
+            trustedInterfaces = ["enp7s0"];
+          };
           services.k3s = {
             role = "server";
             nodeIP = "172.16.0.2";
@@ -54,19 +109,25 @@
           };
         };
         legion-node1 = {
-          systemd.network.networks."10-wan".address = [
-            "2a01:4ff:f0:ca96::1/64"
-          ];
+          systemd.network.networks = {
+            "10-wan".address = [
+              "2a01:4ff:f0:ca96::1/64"
+            ];
+          };
         };
         legion-node2 = {
-          systemd.network.networks."10-wan".address = [
-            "2a01:4ff:f0:c52a::1/64"
-          ];
+          systemd.network.networks = {
+            "10-wan".address = [
+              "2a01:4ff:f0:c52a::1/64"
+            ];
+          };
         };
         legion-node3 = {
-          systemd.network.networks."10-wan".address = [
-            "2a01:4ff:f0:a1ff::1/64"
-          ];
+          systemd.network.networks = {
+            "10-wan".address = [
+              "2a01:4ff:f0:a1ff::1/64"
+            ];
+          };
         };
       };
     deploy.nodes = let
