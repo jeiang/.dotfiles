@@ -40,8 +40,7 @@
             additionalConfig
           ];
         };
-
-      "10-control-plane-nat" = {
+      natforwarding = {
         matchConfig.Name = "enp7s0";
         networkConfig = {
           DHCP = "ipv4";
@@ -113,6 +112,7 @@
             "10-wan".address = [
               "2a01:4ff:f0:ca96::1/64"
             ];
+            "10-control-plane-nat" = natforwarding;
           };
         };
         legion-node2 = {
@@ -120,6 +120,7 @@
             "10-wan".address = [
               "2a01:4ff:f0:c52a::1/64"
             ];
+            "10-control-plane-nat" = natforwarding;
           };
         };
         legion-node3 = {
@@ -127,6 +128,7 @@
             "10-wan".address = [
               "2a01:4ff:f0:a1ff::1/64"
             ];
+            "10-control-plane-nat" = natforwarding;
           };
         };
       };
