@@ -34,6 +34,9 @@
                 serverAddr = "https://172.16.0.2:6443";
                 extraFlags = [
                   "--flannel-iface=enp7s0"
+                  "--tls-san=pinard.co.tt"
+                  "--tls-san=jeiang.dev"
+                  "--tls-san=aidanpinard.co"
                 ];
               };
             }
