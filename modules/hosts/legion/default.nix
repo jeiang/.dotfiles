@@ -15,8 +15,28 @@
         self.nixosModules.k3s
         self.diskoConfigurations.legion
       ];
-      boot.loader.grub.enable = true;
-      boot.tmp.cleanOnBoot = true;
+      services.k3s = {
+        serverAddr = "https://172.17.0.1:6443";
+        extraFlags = [
+          "--flannel-iface=enp7s0"
+        ];
+      };
+      boot = {
+        kernel = {
+          sysctl = {
+            "net.ipv4.ip_forward" = 1;
+            "net.ipv6.conf.all.forwarding" = 1;
+          };
+        };
+        kernelModules = [
+          "br_netfilter"
+          "overlay"
+          "nf_conntrack"
+          "vxlan"
+        ];
+        loader = {grub = {enable = true;};};
+        tmp = {cleanOnBoot = true;};
+      };
       nixpkgs.hostPlatform = "x86_64-linux";
       system.stateVersion = "25.05";
       users.users.root.openssh.authorizedKeys.keys = [
@@ -30,15 +50,6 @@
             self.nixosModules.legionConfiguration
             {
               networking.hostName = name;
-              services.k3s = {
-                serverAddr = "https://172.16.0.2:6443";
-                extraFlags = [
-                  "--flannel-iface=enp7s0"
-                  "--tls-san=pinard.co.tt"
-                  "--tls-san=jeiang.dev"
-                  "--tls-san=aidanpinard.co"
-                ];
-              };
             }
             additionalConfig
           ];
@@ -69,7 +80,7 @@
       };
     in
       builtins.mapAttrs mkLegionSystem {
-        legion = {
+        legion-node1 = {
           systemd.network.networks."10-wan" = {
             address = [
               "2a01:4ff:f0:6b8e::1/64"
@@ -89,63 +100,92 @@
               IPv6AcceptRA = false;
             };
           };
-          boot.kernel.sysctl = {
-            "net.ipv4.ip_forward" = 1;
-          };
-
           # forward ipv4 through main node for kubernetes
           networking.nat = {
             enable = true;
             externalInterface = "enp1s0";
             internalInterfaces = ["enp7s0"];
           };
-
-          networking.firewall = {
-            trustedInterfaces = ["enp7s0"];
-          };
           services.k3s = {
             role = "server";
-            nodeIP = "172.16.0.2";
+            nodeIP = "172.17.0.1";
+            nodeExternalIP = "178.156.226.145";
             serverAddr = lib.mkForce "";
+            extraFlags = [
+              "--tls-san=pinard.co.tt"
+              "--tls-san=jeiang.dev"
+              "--tls-san=aidanpinard.co"
+              "--tls-san=178.156.226.145"
+              "--tls-san=2a01:4ff:f0:6b8e::1"
+            ];
             clusterInit = true;
           };
         };
-        legion-node1 = {
-          systemd.network.networks = {
-            "10-wan".address = [
-              "2a01:4ff:f0:ca96::1/64"
-            ];
-            "10-control-plane-nat" = natforwarding;
-          };
-        };
         legion-node2 = {
-          systemd.network.networks = {
-            "10-wan".address = [
-              "2a01:4ff:f0:c52a::1/64"
-            ];
-            "10-control-plane-nat" = natforwarding;
-          };
-        };
-        legion-node3 = {
           systemd.network.networks = {
             "10-wan".address = [
               "2a01:4ff:f0:a1ff::1/64"
             ];
             "10-control-plane-nat" = natforwarding;
           };
+          services.k3s = {
+            role = "server";
+            nodeIP = "172.17.0.2";
+          };
+        };
+        legion-node3 = {
+          systemd.network.networks = {
+            "10-wan".address = [
+              "2a01:4ff:f0:c52a::1/64"
+            ];
+            "10-control-plane-nat" = natforwarding;
+          };
+          services.k3s = {
+            role = "server";
+            nodeIP = "172.17.0.3";
+          };
+        };
+        legion-node4 = {
+          systemd.network.networks = {
+            "10-wan".address = [
+              "2a01:4ff:f0:ca96::1/64"
+            ];
+            "10-control-plane-nat" = natforwarding;
+          };
+          services.k3s.nodeIP = "172.17.0.4";
         };
       };
     deploy.nodes = let
-      mkDeploy = node: {
-        hostname = "override-this.example";
+      mkDeploy = name: {
+        sshOpts,
+        hostname,
+      }: {
+        inherit hostname sshOpts;
         sudo = "doas -u";
         profiles.system = {
           user = "root";
-          path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.${node};
+          path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.${name};
         };
       };
-      nodes = ["legion" "legion-node1" "legion-node2" "legion-node3"];
+      nodes = {
+        legion-node1 = {
+          sshOpts = [];
+          hostname = "jeiang.dev";
+        };
+        legion-node2 = {
+          sshOpts = ["-J" "jeiang.dev"];
+          hostname = "172.17.0.2";
+        };
+        legion-node3 = {
+          sshOpts = ["-J" "jeiang.dev"];
+          hostname = "172.17.0.3";
+        };
+        legion-node4 = {
+          sshOpts = ["-J" "jeiang.dev"];
+          hostname = "172.17.0.4";
+        };
+      };
     in
-      lib.genAttrs nodes mkDeploy;
+      builtins.mapAttrs mkDeploy nodes;
   };
 }

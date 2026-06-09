@@ -19,13 +19,8 @@
       nftables.enable = true;
       tempAddresses = "disabled";
 
-      # configure firewall
-      firewall = {
-        enable = true;
-        allowedTCPPorts = [
-          22
-        ];
-      };
+      # disable firewall, hetzner firewall will manage instead
+      firewall.enable = false;
     };
   };
 }

@@ -10,6 +10,7 @@
       package = pkgs.difftastic;
       flags = {
         "--display" = "inline";
+        "--context" = "5";
       };
       flagSeparator = "=";
     });

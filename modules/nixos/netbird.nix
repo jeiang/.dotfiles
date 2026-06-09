@@ -43,31 +43,31 @@
 
         netbird = {
           inherit (config.netbird.client) enable;
-          clients.default = {
-            login = lib.mkIf config.netbird.management.enable {
-              enable = true;
-              setupKeyFile = config.sops.secrets."netbird/client-setup-key".path;
-            };
-            config = let
-              urlConfig = {
-                Scheme = "https";
-                Opaque = "";
-                User = null;
-                Host = "netbird.jeiang.dev:443";
-                Path = "";
-                RawPath = "";
-                OmitHost = false;
-                ForceQuery = false;
-                RawQuery = "";
-                Fragment = "";
-                RawFragment = "";
-              };
-            in {
-              # Set Management URL for netbird configuration file
-              ManagementURL = urlConfig;
-              AdminUrl = urlConfig;
-            };
-          };
+          # clients.default = {
+          # login = lib.mkIf config.netbird.management.enable {
+          #   enable = true;
+          #   setupKeyFile = config.sops.secrets."netbird/client-setup-key".path;
+          # };
+          # config = let
+          #   urlConfig = {
+          #     Scheme = "https";
+          #     Opaque = "";
+          #     User = null;
+          #     Host = "netbird.jeiang.dev:443";
+          #     Path = "";
+          #     RawPath = "";
+          #     OmitHost = false;
+          #     ForceQuery = false;
+          #     RawQuery = "";
+          #     Fragment = "";
+          #     RawFragment = "";
+          #   };
+          # in {
+          #   # Set Management URL for netbird configuration file
+          #   ManagementURL = urlConfig;
+          #   AdminUrl = urlConfig;
+          # };
+          # };
           useRoutingFeatures = "both";
           server = {
             inherit (config.netbird.management) enable;
