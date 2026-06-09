@@ -5,7 +5,7 @@
   ...
 }: {
   flake = {
-    nixosModules.legionConfiguration = {...}: {
+    nixosModules.legionConfiguration = {config, ...}: {
       imports = [
         self.nixosModules.base
         self.nixosModules.sharedConfiguration
@@ -15,18 +15,10 @@
         self.nixosModules.k3s
         self.diskoConfigurations.legion
       ];
-      services.k3s = {
-        serverAddr = "https://172.17.0.1:6443";
-        extraFlags = [
-          "--flannel-iface=enp7s0"
-        ];
-      };
       boot = {
-        kernel = {
-          sysctl = {
-            "net.ipv4.ip_forward" = 1;
-            "net.ipv6.conf.all.forwarding" = 1;
-          };
+        kernel.sysctl = {
+          "net.ipv4.ip_forward" = 1;
+          "net.ipv6.conf.all.forwarding" = 1;
         };
         kernelModules = [
           "br_netfilter"
@@ -34,9 +26,33 @@
           "nf_conntrack"
           "vxlan"
         ];
-        loader = {grub = {enable = true;};};
-        tmp = {cleanOnBoot = true;};
+        loader.grub.enable = true;
+        tmp.cleanOnBoot = true;
+        supportedFilesystems = ["nfs"];
       };
+      services = {
+        k3s = {
+          serverAddr = "https://172.17.0.1:6443";
+          extraFlags = [
+            "--flannel-iface=enp7s0"
+          ];
+        };
+        openiscsi = {
+          enable = true;
+          name = "${config.networking.hostName}-initiatorhost";
+        };
+        rpcbind.enable = true;
+      };
+      # https://github.com/longhorn/longhorn/issues/2166#issuecomment-2994323945
+      systemd.services.iscsid.serviceConfig = {
+        PrivateMounts = "yes";
+        BindPaths = "/run/current-system/sw/bin:/bin";
+      };
+      # https://github.com/longhorn/longhorn/issues/2166#issuecomment-3094699127
+      systemd.tmpfiles.rules = [
+        # Create a symbolic link /usr/bin/mount -> /run/current-system/sw/bin/mount
+        "L /usr/bin/mount - - - - /run/current-system/sw/bin/mount"
+      ];
       nixpkgs.hostPlatform = "x86_64-linux";
       system.stateVersion = "25.05";
       users.users.root.openssh.authorizedKeys.keys = [
