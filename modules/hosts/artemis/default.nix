@@ -33,7 +33,6 @@
         # disks
         self.diskoConfigurations.artemis
       ];
-      netbird.management.enable = false;
       boot = {
         loader.systemd-boot.enable = true;
         loader.systemd-boot.consoleMode = "max";

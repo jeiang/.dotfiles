@@ -29,13 +29,6 @@
     sops.secrets."passwords/root".neededForUsers = true;
     zramSwap.enable = true;
     services.openssh.enable = true;
-    programs.ssh.extraConfig = ''
-      Host mainserver
-        HostName jeiang.dev
-
-      Host 172.17.0.*
-        ProxyJump mainserver
-    '';
     security.sudo.wheelNeedsPassword = false;
     environment.systemPackages = [
       self.packages.${pkgs.stdenv.hostPlatform.system}.git

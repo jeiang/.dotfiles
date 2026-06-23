@@ -2,10 +2,10 @@ keys:
   - &server_solder age1vsvztaxkcqduvyawf6ak5rv3f63ujq6ucm5855ernuh7tj8uhahsxqx9ar
   - &user_aidanp age1yy2uxasknys578edlnepcxug2j37ntep0tudfv9nr7qqx6d9ws3sack68y
   - &server_artemis age1fm8meecmpus97y9ra9gjdk08g8njran6fv4jxnr0zegpfd89a9esayj39c
-  - &server_legion_node1 age173nh4czpxumlfedtzpchxj277q7pz7vd3jhwnxrsqpvlnptf8yrsfptr6u
-  - &server_legion_node2 age1l4l4fu99s2scfe5d9dq6kjvw59fl8llk4zpne6lqeu0gl0gyjpmsl8dwls
-  - &server_legion_node3 age1a2v77apgt7cd58vwf6a6zs8y97s3tzulxnzqcxsqc65fmj8ttg9qrcjx70
-  - &server_legion_node4 age16p6j7rhnqxdrr9gc28fqlf46cz5rf7dxxw02tx93yzsxds7csdasr4l645
+  - &server_legion_node1 age1fexn9r8huh294w3hmyst605fndjagyg7e3s23aqfedlqrqnn24rq5lvgr7
+  - &server_legion_node2 age1f9t7ktuy3hny3lju3692mqx35mrc0wrfrl8mtelyeecc4lydcu0snxtm23
+  - &server_legion_node3 age1yc37qpvazdtfswa38057e73sh523q0exj75qqahzgax6kqaxeqmsq2wx9t
+  - &server_legion_node4 age1a80m5fpv387njdmg63q6vvkavahepdkx7zq4gjjkg62x3lme4f7q9s5c66
 
 creation_rules:
   - path_regex: secrets(\.[^.]+)?\.(yaml|json|env|ini)$

@@ -3,9 +3,44 @@
   self,
   lib,
   ...
-}: {
+}: let
+  publicV4Gateway = "172.31.1.1";
+  publicV6Gateway = "fe80::1";
+
+  podCIDRv4 = "10.42.0.0/16";
+  podCIDRv6 = "fd42:42::/56";
+  serviceCIDRv4 = "10.43.0.0/16";
+  serviceCIDRv6 = "fd42:43::/112";
+
+  mkWan = {
+    publicIPv4,
+    publicIPv6,
+  }: {
+    address = [
+      "${publicIPv4}/32"
+      "${publicIPv6}/64"
+    ];
+
+    routes = [
+      {Destination = "${publicV4Gateway}/32";}
+      {
+        Gateway = publicV4Gateway;
+        GatewayOnLink = true;
+      }
+      {
+        Gateway = publicV6Gateway;
+        GatewayOnLink = true;
+      }
+    ];
+
+    networkConfig = {
+      DHCP = "no";
+      IPv6AcceptRA = false;
+    };
+  };
+in {
   flake = {
-    nixosModules.legionConfiguration = {config, ...}: {
+    nixosModules.legionConfiguration = {
       imports = [
         self.nixosModules.base
         self.nixosModules.sharedConfiguration
@@ -15,192 +50,135 @@
         self.nixosModules.k3s
         self.diskoConfigurations.legion
       ];
+
       boot = {
         kernel.sysctl = {
           "net.ipv4.ip_forward" = 1;
           "net.ipv6.conf.all.forwarding" = 1;
+          "net.bridge.bridge-nf-call-iptables" = 1;
+          "net.bridge.bridge-nf-call-ip6tables" = 1;
         };
+
         kernelModules = [
           "br_netfilter"
           "overlay"
           "nf_conntrack"
           "vxlan"
         ];
+
         loader.grub.enable = true;
         tmp.cleanOnBoot = true;
         supportedFilesystems = ["nfs"];
       };
-      services = {
-        k3s = {
-          serverAddr = "https://172.17.0.1:6443";
-          extraFlags = [
-            "--flannel-iface=enp7s0"
-          ];
-        };
-        openiscsi = {
-          enable = true;
-          name = "${config.networking.hostName}-initiatorhost";
-        };
-        rpcbind.enable = true;
-      };
-      # https://github.com/longhorn/longhorn/issues/2166#issuecomment-2994323945
-      systemd.services.iscsid.serviceConfig = {
-        PrivateMounts = "yes";
-        BindPaths = "/run/current-system/sw/bin:/bin";
-      };
-      # https://github.com/longhorn/longhorn/issues/2166#issuecomment-3094699127
-      systemd.tmpfiles.rules = [
-        # Create a symbolic link /usr/bin/mount -> /run/current-system/sw/bin/mount
-        "L /usr/bin/mount - - - - /run/current-system/sw/bin/mount"
-      ];
-      nixpkgs.hostPlatform = "x86_64-linux";
-      system.stateVersion = "25.05";
-      users.users.root.openssh.authorizedKeys.keys = [
-        "AAAAC3NzaC1lZDI1NTE5AAAAIDX/1mgkG5030b8C3eAZN2vBcoYvS9d+/OTtRf0f6XJJ"
-      ];
-    };
-    nixosConfigurations = let
-      mkLegionSystem = name: additionalConfig:
-        inputs.nixpkgs.lib.nixosSystem {
-          modules = [
-            self.nixosModules.legionConfiguration
-            {
-              networking.hostName = name;
-            }
-            additionalConfig
-          ];
-        };
-      natforwarding = {
+
+      systemd.network.networks."20-hcloud-private" = {
         matchConfig.Name = "enp7s0";
-        networkConfig = {
-          DHCP = "ipv4";
-        };
-        dhcpV4Config = {
-          UseRoutes = false;
-        };
+        networkConfig.DHCP = "ipv4";
+        dhcpV4Config.UseRoutes = false;
         routes = [
-          # hetzner private network
           {
             Destination = "172.16.0.0/12";
             Gateway = "172.16.0.1";
             GatewayOnLink = true;
           }
-          # hetzner forwards requests through the primary node
-          # this is configured within the web console
-          {
-            Destination = "0.0.0.0/0";
-            Gateway = "172.16.0.1";
-            GatewayOnLink = true;
-          }
         ];
       };
+
+      services.k3s = {
+        role = "server";
+        serverAddr = "https://172.17.0.1:6443";
+
+        extraFlags = [
+          "--flannel-iface=enp7s0"
+
+          # Required before installing hcloud-cloud-controller-manager.
+          "--disable-cloud-controller"
+          "--kubelet-arg=cloud-provider=external"
+
+          # Required when using MetalLB instead of K3s ServiceLB.
+          "--disable=servicelb"
+
+          # Avoid competing default storage classes when using Hetzner CSI.
+          "--disable=local-storage"
+
+          # Dual-stack must be set when the cluster is first created.
+          "--cluster-cidr=${podCIDRv4},${podCIDRv6}"
+          "--service-cidr=${serviceCIDRv4},${serviceCIDRv6}"
+          "--flannel-ipv6-masq"
+
+          "--tls-san=pinard.co.tt"
+          "--tls-san=jeiang.dev"
+          "--tls-san=aidanpinard.co"
+        ];
+      };
+
+      nixpkgs.hostPlatform = "x86_64-linux";
+      system.stateVersion = "25.05";
+    };
+
+    nixosConfigurations = let
+      mkLegionSystem = name: node:
+        inputs.nixpkgs.lib.nixosSystem {
+          modules = [
+            self.nixosModules.legionConfiguration
+            {
+              networking.hostName = name;
+
+              systemd.network.networks."10-wan" = mkWan {
+                inherit (node) publicIPv4 publicIPv6;
+              };
+
+              services.k3s.nodeIP = "${node.privateIPv4},${node.publicIPv6}";
+            }
+
+            (lib.mkIf (node.bootstrap or false) {
+              services.k3s = {
+                serverAddr = lib.mkForce "";
+                clusterInit = true;
+              };
+            })
+          ];
+        };
     in
       builtins.mapAttrs mkLegionSystem {
         legion-node1 = {
-          systemd.network.networks."10-wan" = {
-            address = [
-              "2a01:4ff:f0:6b8e::1/64"
-              "178.156.226.145/32"
-            ];
-            routes = [
-              {
-                Destination = "172.31.1.1/32";
-              }
-              {
-                Gateway = "172.31.1.1";
-                GatewayOnLink = true;
-              }
-            ];
-            networkConfig = {
-              DHCP = "no";
-              IPv6AcceptRA = false;
-            };
-          };
-          # forward ipv4 through main node for kubernetes
-          networking.nat = {
-            enable = true;
-            externalInterface = "enp1s0";
-            internalInterfaces = ["enp7s0"];
-          };
-          services.k3s = {
-            role = "server";
-            nodeIP = "172.17.0.1";
-            nodeExternalIP = "178.156.226.145";
-            serverAddr = lib.mkForce "";
-            extraFlags = [
-              "--tls-san=pinard.co.tt"
-              "--tls-san=jeiang.dev"
-              "--tls-san=aidanpinard.co"
-              "--tls-san=178.156.226.145"
-              "--tls-san=2a01:4ff:f0:6b8e::1"
-            ];
-            clusterInit = true;
-          };
+          bootstrap = true;
+          privateIPv4 = "172.17.0.1";
+          publicIPv4 = "178.156.226.145";
+          publicIPv6 = "2a01:4ff:f0:6b8e::1";
         };
+
         legion-node2 = {
-          systemd.network.networks = {
-            "10-wan".address = [
-              "2a01:4ff:f0:a1ff::1/64"
-            ];
-            "10-control-plane-nat" = natforwarding;
-          };
-          services.k3s = {
-            role = "server";
-            nodeIP = "172.17.0.2";
-          };
+          privateIPv4 = "172.17.0.2";
+          publicIPv4 = "178.156.201.35";
+          publicIPv6 = "2a01:4ff:f0:a1ff::1";
         };
+
         legion-node3 = {
-          systemd.network.networks = {
-            "10-wan".address = [
-              "2a01:4ff:f0:c52a::1/64"
-            ];
-            "10-control-plane-nat" = natforwarding;
-          };
-          services.k3s = {
-            role = "server";
-            nodeIP = "172.17.0.3";
-          };
+          privateIPv4 = "172.17.0.3";
+          publicIPv4 = "178.156.186.147";
+          publicIPv6 = "2a01:4ff:f0:c52a::1";
         };
+
         legion-node4 = {
-          systemd.network.networks = {
-            "10-wan".address = [
-              "2a01:4ff:f0:ca96::1/64"
-            ];
-            "10-control-plane-nat" = natforwarding;
-          };
-          services.k3s.nodeIP = "172.17.0.4";
+          privateIPv4 = "172.17.0.4";
+          publicIPv4 = "178.156.191.180";
+          publicIPv6 = "2a01:4ff:f0:ca96::1";
         };
       };
     deploy.nodes = let
-      mkDeploy = name: {
-        sshOpts,
-        hostname,
-      }: {
-        inherit hostname sshOpts;
+      mkDeploy = name: {hostname}: {
+        inherit hostname;
         sudo = "doas -u";
         profiles.system = {
           user = "root";
           path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.${name};
         };
       };
-      nodes = {
-        legion-node1 = {
-          sshOpts = [];
-          hostname = "jeiang.dev";
-        };
-        legion-node2 = {
-          sshOpts = ["-J" "jeiang.dev"];
-          hostname = "172.17.0.2";
-        };
-        legion-node3 = {
-          sshOpts = ["-J" "jeiang.dev"];
-          hostname = "172.17.0.3";
-        };
-        legion-node4 = {
-          sshOpts = ["-J" "jeiang.dev"];
-          hostname = "172.17.0.4";
-        };
-      };
+      nodes = builtins.listToAttrs (map (node: {
+        name = "legion-${node}";
+        value = {hostname = "${node}.jeiang.dev";};
+      }) ["node1" "node2" "node3" "node4"]);
     in
       builtins.mapAttrs mkDeploy nodes;
   };

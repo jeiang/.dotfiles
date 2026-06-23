@@ -8,6 +8,8 @@
     _module.args.pkgs = import inputs.nixpkgs {
       inherit system;
       config.allowUnfree = true;
+      # bitwarden depends on this, see https://github.com/NixOS/nixpkgs/issues/526914 for this being updated
+      config.permittedInsecurePackages = ["electron-39.8.10"];
     };
   };
 

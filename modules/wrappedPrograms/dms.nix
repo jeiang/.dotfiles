@@ -91,7 +91,7 @@
               done
             '';
         });
-        extraPackages = with pkgs; [
+        runtimePkgs = with pkgs; [
           khal
           wtype
           cava

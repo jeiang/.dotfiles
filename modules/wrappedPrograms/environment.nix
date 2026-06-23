@@ -13,7 +13,7 @@
         package = self'.packages.fish;
         # needed for nixos to recognize this as a shell
         passthru.shellPath = "/bin/fish";
-        extraPackages = with pkgs; [
+        runtimePkgs = with pkgs; [
           self'.packages.git
           self'.packages.difft
           self'.packages.helix
