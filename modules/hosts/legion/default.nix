@@ -8,9 +8,7 @@
   publicV6Gateway = "fe80::1";
 
   podCIDRv4 = "10.42.0.0/16";
-  podCIDRv6 = "fd42:42::/56";
   serviceCIDRv4 = "10.43.0.0/16";
-  serviceCIDRv6 = "fd42:43::/112";
 
   mkWan = {
     publicIPv4,
@@ -63,6 +61,13 @@ in {
           "br_netfilter"
           "overlay"
           "nf_conntrack"
+          "nf_nat"
+          "ip_tables"
+          "iptable_nat"
+          "iptable_filter"
+          "ip6_tables"
+          "ip6table_nat"
+          "ip6table_filter"
           "vxlan"
         ];
 
@@ -85,30 +90,10 @@ in {
       };
 
       services.k3s = {
-        role = "server";
         serverAddr = "https://172.17.0.1:6443";
 
         extraFlags = [
           "--flannel-iface=enp7s0"
-
-          # Required before installing hcloud-cloud-controller-manager.
-          "--disable-cloud-controller"
-          "--kubelet-arg=cloud-provider=external"
-
-          # Required when using MetalLB instead of K3s ServiceLB.
-          "--disable=servicelb"
-
-          # Avoid competing default storage classes when using Hetzner CSI.
-          "--disable=local-storage"
-
-          # Dual-stack must be set when the cluster is first created.
-          "--cluster-cidr=${podCIDRv4},${podCIDRv6}"
-          "--service-cidr=${serviceCIDRv4},${serviceCIDRv6}"
-          "--flannel-ipv6-masq"
-
-          "--tls-san=pinard.co.tt"
-          "--tls-san=jeiang.dev"
-          "--tls-san=aidanpinard.co"
         ];
       };
 
@@ -128,7 +113,32 @@ in {
                 inherit (node) publicIPv4 publicIPv6;
               };
 
-              services.k3s.nodeIP = "${node.privateIPv4},${node.publicIPv6}";
+              services.k3s = {
+                nodeIP = "${node.privateIPv4}";
+                role =
+                  if (node.agent or false)
+                  then "agent"
+                  else "server";
+                extraFlags = lib.mkIf (!node.agent or false) [
+                  # Required before installing hcloud-cloud-controller-manager.
+                  "--disable-cloud-controller"
+                  "--kubelet-arg=cloud-provider=external"
+
+                  # Required when using MetalLB instead of K3s ServiceLB.
+                  "--disable=servicelb"
+
+                  # Avoid competing default storage classes when using Hetzner CSI.
+                  "--disable=local-storage"
+
+                  # Dual-stack must be set when the cluster is first created.
+                  "--cluster-cidr=${podCIDRv4}"
+                  "--service-cidr=${serviceCIDRv4}"
+
+                  "--tls-san=pinard.co.tt"
+                  "--tls-san=jeiang.dev"
+                  "--tls-san=aidanpinard.co"
+                ];
+              };
             }
 
             (lib.mkIf (node.bootstrap or false) {
@@ -164,6 +174,7 @@ in {
           privateIPv4 = "172.17.0.4";
           publicIPv4 = "178.156.191.180";
           publicIPv6 = "2a01:4ff:f0:ca96::1";
+          agent = true;
         };
       };
     deploy.nodes = let

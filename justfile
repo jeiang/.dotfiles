@@ -38,14 +38,14 @@ install system sudo="sudo":
 nh *args:
   NH_FLAKE={{justfile_directory()}} nh {{args}}
 
-deploy-legion:
-  @just deploy legion-node1
-  @just deploy legion-node2 --skip-checks
-  @just deploy legion-node3 --skip-checks
-  @just deploy legion-node4 --skip-checks
+deploy-legion *args:
+  @just deploy legion-node1 {{args}}
+  @just deploy legion-node2 {{args}}
+  @just deploy legion-node3 {{args}}
+  @just deploy legion-node4 {{args}}
 
 legion-run *command:
-  ssh -J jeiang.dev 172.17.0.2 -- {{command}}
-  ssh -J jeiang.dev 172.17.0.3 -- {{command}}
-  ssh -J jeiang.dev 172.17.0.4 -- {{command}}
-  ssh jeiang.dev -- {{command}}
+  ssh node1.jeiang.dev -- {{command}}
+  ssh node2.jeiang.dev -- {{command}}
+  ssh node3.jeiang.dev -- {{command}}
+  ssh node4.jeiang.dev -- {{command}}
