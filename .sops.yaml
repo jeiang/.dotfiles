@@ -6,6 +6,7 @@ keys:
   - &server_legion_node2 age1f9t7ktuy3hny3lju3692mqx35mrc0wrfrl8mtelyeecc4lydcu0snxtm23
   - &server_legion_node3 age1yc37qpvazdtfswa38057e73sh523q0exj75qqahzgax6kqaxeqmsq2wx9t
   - &server_legion_node4 age1a80m5fpv387njdmg63q6vvkavahepdkx7zq4gjjkg62x3lme4f7q9s5c66
+  - &server_legion_node5 age12pfwz5m3j2a5zp2adwwwuucxxmzjkqwa5rsjrd6uzxv96qv8qscsk9fjds
 
 creation_rules:
   - path_regex: secrets(\.[^.]+)?\.(yaml|json|env|ini)$
@@ -18,3 +19,4 @@ creation_rules:
       - *server_legion_node2
       - *server_legion_node3
       - *server_legion_node4
+      - *server_legion_node5

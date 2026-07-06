@@ -18,6 +18,8 @@
           self'.packages.difft
           self'.packages.helix
           fd
+          dig
+          glow
           bandwhich
           bingrep
           cachix
@@ -35,7 +37,12 @@
           rnr
           sad
           tdf
-          trashy
+          (pkgs.writeShellApplication {
+            name = "trash";
+            text = ''
+              ${lib.getExe gomi} "$@"
+            '';
+          })
           tokei
           xh
         ];

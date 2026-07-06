@@ -94,6 +94,7 @@ in {
 
         extraFlags = [
           "--flannel-iface=enp7s0"
+          "--kubelet-arg=cloud-provider=external"
         ];
       };
 
@@ -122,7 +123,6 @@ in {
                 extraFlags = lib.mkIf (!node.agent or false) [
                   # Required before installing hcloud-cloud-controller-manager.
                   "--disable-cloud-controller"
-                  "--kubelet-arg=cloud-provider=external"
 
                   # Required when using MetalLB instead of K3s ServiceLB.
                   "--disable=servicelb"
@@ -135,8 +135,19 @@ in {
                   "--service-cidr=${serviceCIDRv4}"
 
                   "--tls-san=pinard.co.tt"
-                  "--tls-san=jeiang.dev"
                   "--tls-san=aidanpinard.co"
+                  "--tls-san=jeiang.dev"
+                  "--tls-san=node1.jeiang.dev"
+                  "--tls-san=node2.jeiang.dev"
+                  "--tls-san=node3.jeiang.dev"
+                  "--tls-san=node4.jeiang.dev"
+
+                  "--kube-apiserver-arg=oidc-issuer-url=https://auth.jeiang.dev"
+                  "--kube-apiserver-arg=oidc-client-id=44213aa3-11eb-401d-922c-c7f81c3a9e37"
+                  "--kube-apiserver-arg=oidc-username-claim=preferred_username"
+                  "--kube-apiserver-arg=oidc-username-prefix=-"
+                  "--kube-apiserver-arg=oidc-groups-claim=groups"
+                  "--kube-apiserver-arg=oidc-groups-prefix="
                 ];
               };
             }
@@ -162,18 +173,27 @@ in {
           privateIPv4 = "172.17.0.2";
           publicIPv4 = "178.156.201.35";
           publicIPv6 = "2a01:4ff:f0:a1ff::1";
+          agent = true;
         };
 
         legion-node3 = {
           privateIPv4 = "172.17.0.3";
           publicIPv4 = "178.156.186.147";
           publicIPv6 = "2a01:4ff:f0:c52a::1";
+          agent = true;
         };
 
         legion-node4 = {
           privateIPv4 = "172.17.0.4";
           publicIPv4 = "178.156.191.180";
           publicIPv6 = "2a01:4ff:f0:ca96::1";
+          agent = true;
+        };
+
+        legion-node5 = {
+          privateIPv4 = "172.17.0.6";
+          publicIPv4 = "178.156.253.100";
+          publicIPv6 = "2a01:4ff:f4:13f7::1";
           agent = true;
         };
       };
@@ -189,7 +209,7 @@ in {
       nodes = builtins.listToAttrs (map (node: {
         name = "legion-${node}";
         value = {hostname = "${node}.jeiang.dev";};
-      }) ["node1" "node2" "node3" "node4"]);
+      }) ["node1" "node2" "node3" "node4" "node5"]);
     in
       builtins.mapAttrs mkDeploy nodes;
   };
