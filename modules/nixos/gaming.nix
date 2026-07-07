@@ -22,6 +22,13 @@
           zulu
         ];
       })
+      (heroic.override {
+        extraPkgs = pkgs':
+          with pkgs'; [
+            gamescope
+            gamemode
+          ];
+      })
     ];
     hjem.users.${user}.files.".config/MangoHud/MangoHud.conf".text = ''
       legacy_layout=false
