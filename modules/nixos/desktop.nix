@@ -26,28 +26,35 @@
     services.passSecretService.enable = true;
     services.passSecretService.package = pkgs.gopass;
 
-    environment.systemPackages = with pkgs; [
-      bitwarden-desktop
-      btop-rocm
-      ghostty
-      gopass
-      grim
-      kdePackages.dolphin
-      mpv
-      pwvucontrol
-      qbittorrent
-      qview
-      slurp
-      umu-launcher
-      wl-clipboard
-      (discord.override {
-        withOpenASAR = true; # can do this here too
-        withVencord = true;
-      })
-    ];
-    environment.variables = {
-      SSH_AUTH_SOCK = "/home/${user}/.bitwarden-ssh-agent.sock";
-      MOZ_ENABLE_WAYLAND = 1;
+    # Fix Dolphin file associations on non-Plasma desktop environments
+    # https://github.com/NixOS/nixpkgs/issues/409986
+    environment = {
+      etc."xdg/menus/applications.menu".source = "${pkgs.kdePackages.plasma-workspace}/etc/xdg/menus/plasma-applications.menu";
+      systemPackages = with pkgs; [
+        bitwarden-desktop
+        btop-rocm
+        ghostty
+        gopass
+        grim
+        kdePackages.dolphin
+        # needed for dolphin's file associations
+        kdePackages.kservice
+        mpv
+        pwvucontrol
+        qbittorrent
+        qview
+        slurp
+        umu-launcher
+        wl-clipboard
+        (discord.override {
+          withOpenASAR = true; # can do this here too
+          withVencord = true;
+        })
+      ];
+      variables = {
+        SSH_AUTH_SOCK = "/home/${user}/.bitwarden-ssh-agent.sock";
+        MOZ_ENABLE_WAYLAND = 1;
+      };
     };
 
     fonts.fontconfig.defaultFonts = {
