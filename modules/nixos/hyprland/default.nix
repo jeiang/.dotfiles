@@ -12,7 +12,7 @@
     cursor = "rose-pine-hyprcursor";
     user = config.preferences.user.name;
     selfpkgs = self.packages.${pkgs.stdenv.hostPlatform.system};
-    terminal = lib.getExe selfpkgs.terminal;
+    terminal = lib.getExe selfpkgs.ghostty;
     shell = lib.getExe selfpkgs.dms;
   in {
     imports = [

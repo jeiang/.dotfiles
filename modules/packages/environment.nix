@@ -7,7 +7,6 @@
     ...
   }: {
     packages = {
-      terminal = pkgs.ghostty;
       environment = inputs.wrapper-modules.lib.wrapPackage {
         inherit pkgs;
         package = self'.packages.fish;

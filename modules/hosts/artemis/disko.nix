@@ -90,6 +90,9 @@
                 size = "1800G";
                 content = {
                   type = "btrfs";
+                  # Intentional: striped raid0 across all 3 nvme drives for
+                  # throughput on this desktop host. No redundancy — data loss
+                  # on any single drive failure is accepted here.
                   extraArgs = [
                     "-f"
                     "-m raid0"
