@@ -18,6 +18,7 @@ The flake is built with `flake-parts` and `import-tree`. Keep changes aligned wi
 - `modules/hosts/`: host-specific NixOS, hardware, disko, and facter files.
 - `modules/nixos/`: reusable NixOS modules for base configuration, desktop, K3s, sops, security, Hyprland, and related system features.
 - `modules/packages/`: package definitions, overrides, and wrapped-program (CLI/application) configuration.
+- `docs/`: design and audit documentation — see `docs/DESIGN.md` for module boundaries and change rules, and `docs/IMPROVEMENTS.md` for known follow-ups and intentional host-specific quirks.
 - `justfile`: common formatting, checking, deploy, install, sops, disko, and helper commands.
 - `assets/`: image assets referenced by the system configuration.
 

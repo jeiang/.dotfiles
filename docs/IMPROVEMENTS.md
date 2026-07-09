@@ -37,6 +37,9 @@ intentional and should not be "fixed" without explicit sign-off. See
   support the old Ghostty `evalModule`-based wrapper; once that wrapper was
   simplified to `wrapPackage` (matching every other wrapper in the repo), the
   option in `modules/parts.nix` had no remaining callers.
+- **README described this repo as "currently just my server."** The flake
+  now also builds `artemis` (a desktop host) alongside the `legion-node*` K3s
+  cluster, so the description was stale. Updated to name both.
 
 ## Follow-Up Candidates
 
@@ -64,11 +67,19 @@ intentional and should not be "fixed" without explicit sign-off. See
   modules. Renaming is a mechanical but repo-wide change with no behavioral
   effect while the options remain unwired (see above) — bundling the rename
   with actually wiring up impermanence avoids a second churn pass.
-- **README still describes this repo as "currently just my server."** The
-  flake now also builds `artemis` (a desktop host) alongside the `legion-node*`
-  K3s cluster, so the description is stale. Left unchanged here since it's
-  user-facing prose rather than module organization, and out of scope for
-  this refactor's Key Changes.
+- **`environment`'s `cachix` dependency makes evaluation fragile on
+  non-`x86_64-linux` machines.** `modules/packages/environment.nix` includes
+  `cachix` in the shell's `runtimePkgs`. Building `cachix` pulls in a
+  `cabal2nix`-based import-from-derivation (IFD) step that must run *during
+  evaluation*, not just at build time — so merely evaluating
+  `nixosConfigurations.artemis` (or the `environment` package itself) on a
+  machine that isn't `x86_64-linux` requires a working `x86_64-linux`
+  builder just to finish evaluating, independent of `--store`/`--builders`
+  overrides for the eventual build. Confirmed present on unmodified `main`,
+  so not introduced by this refactor. Worth revisiting if flake evaluation
+  needs to work cleanly from non-Linux dev machines: either drop `cachix`
+  from `environment`'s `runtimePkgs`, or find a way to pin/substitute it
+  without triggering an eval-time build.
 
 ## Intentional Host Context
 

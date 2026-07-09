@@ -4,7 +4,8 @@
 
 ![cornn flaek](assets/cornn-flaek.jpg "Cornn Flaek")
 
-This repository is home to the nix code that builds my systems. Currently just my server.
+This repository is home to the nix code that builds my systems: `artemis`, my desktop, and the `legion-node1`
+through `legion-node5` hosts that make up my K3s cluster.
 
 ## Why the name?
 
