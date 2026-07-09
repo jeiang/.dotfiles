@@ -1,0 +1,119 @@
+# Improvements
+
+Findings from a pass over module organization, grouped by what was fixed in
+this refactor, what's left as a follow-up, and host-specific choices that are
+intentional and should not be "fixed" without explicit sign-off. See
+[`docs/DESIGN.md`](DESIGN.md) for the resulting module boundaries and rules.
+
+## Fixed Now
+
+- **Netbird override lived in a system module.** `modules/nixos/netbird.nix`
+  built its own `pkgs.netbird.overrideAttrs` inline. Moved the override to
+  `modules/packages/netbird.nix` as `packages.<system>.netbird`; the NixOS
+  module now consumes `self.packages.${system}.netbird`.
+- **DMS mixed package and NixOS module concerns.** `dms.nix` used to define
+  both `packages.dms`/`packages.dsearch` and `flake.nixosModules.dankmaterialshell`
+  in one file under the wrapped-programs directory. Split them:
+  `modules/packages/dms.nix` keeps the package outputs, and
+  `modules/nixos/dankmaterialshell.nix` has the NixOS module (same output
+  name, `nixosModules.dankmaterialshell`, so no downstream references
+  changed).
+- **Ghostty had a wrapper, but desktop code used plain `pkgs.ghostty`.**
+  `modules/nixos/desktop.nix` installed `pkgs.ghostty` directly and separately
+  hjem-managed `~/.config/ghostty/config.ghostty`, while a mostly-empty
+  `flake.wrapperModules.ghostty` wrapper sat unused. Consolidated: the Ghostty
+  config now lives in the wrapper (`modules/packages/ghostty.nix`, via
+  `--config-file`), the home-managed config file was removed, and both
+  `desktop.nix`'s `systemPackages` entry and the Hyprland terminal launch
+  path (`modules/nixos/hyprland/default.nix`) now reference the wrapped
+  `self.packages.${system}.ghostty` package. Also removed a stray
+  `packages.terminal = pkgs.ghostty` (unwrapped) that `hyprland/default.nix`
+  had been reading the terminal binary from instead of the wrapper.
+- **`modules/wrappedPrograms/` renamed to `modules/packages/`.** The old name
+  undersold what lived there (package overrides, not just wrappers) and read
+  as parallel to, rather than complementary to, `modules/nixos/`.
+  `AGENTS.md` updated to match.
+- **Unused `flake.wrapperModules` option removed.** It existed only to
+  support the old Ghostty `evalModule`-based wrapper; once that wrapper was
+  simplified to `wrapPackage` (matching every other wrapper in the repo), the
+  option in `modules/parts.nix` had no remaining callers.
+- **README described this repo as "currently just my server."** The flake
+  now also builds `artemis` (a desktop host) alongside the `legion-node*` K3s
+  cluster, so the description was stale. Updated to name both.
+- **MangoHud config was hjem-managed instead of wrapped.** Originally left as
+  a follow-up because MangoHud's overlay can be triggered without going
+  through the `mangohud` binary at all (`MANGOHUD=1` plus its Vulkan implicit
+  layer, which is why nixpkgs' own package comment says it deliberately
+  avoids `makeWrapper`). Confirmed the actual launch path here is always the
+  `mangohud` binary, so wrapped it: `modules/packages/mangohud.nix` sets
+  `MANGOHUD_CONFIGFILE` via `wrapPackage`, and `modules/nixos/gaming.nix` now
+  installs the wrapped package instead of `pkgs.mangohud` plus a separate
+  hjem-managed `~/.config/MangoHud/MangoHud.conf`. Verified the wrapper only
+  replaces `bin/mangohud`; `lib/mangohud/libMangoHud.so`, `bin/mangoapp`,
+  `bin/mangohudctl`, and the Vulkan `implicit_layer.d` JSON are symlinked
+  through from the original package unchanged, so the overlay-without-the-
+  binary path (if it were ever used) still works exactly as before.
+
+## Follow-Up Candidates
+
+- **`modules/nixos/impermanence.nix` is empty.** It declares
+  `flake.nixosModules` for nothing — no `impermanence` module is defined
+  there, and the `persistance.*` options declared in
+  `modules/nixos/base/persistence.nix` (see next item) are never consumed by
+  anything that actually wires up `nix-community/impermanence` or
+  `persist-retro` (both present as flake inputs). Several modules
+  (`firefox.nix`, `pipewire.nix`, `gaming.nix`) set `persistance.data.*` /
+  `persistance.cache.*` values that currently have no effect. This needs a
+  real design decision (which persistence backend, how directories map to
+  bind mounts) before it's touched, so it's left for a follow-up rather than
+  guessed at here.
+- **`persistance` option name is a likely misspelling of "persistence".**
+  Declared in `modules/nixos/base/persistence.nix` and used in three other
+  modules. Renaming is a mechanical but repo-wide change with no behavioral
+  effect while the options remain unwired (see above) — bundling the rename
+  with actually wiring up impermanence avoids a second churn pass.
+- **`environment`'s `cachix` dependency makes evaluation fragile on
+  non-`x86_64-linux` machines.** `modules/packages/environment.nix` includes
+  `cachix` in the shell's `runtimePkgs`. Building `cachix` pulls in a
+  `cabal2nix`-based import-from-derivation (IFD) step that must run *during
+  evaluation*, not just at build time — so merely evaluating
+  `nixosConfigurations.artemis` (or the `environment` package itself) on a
+  machine that isn't `x86_64-linux` requires a working `x86_64-linux`
+  builder just to finish evaluating, independent of `--store`/`--builders`
+  overrides for the eventual build. Confirmed present on unmodified `main`,
+  so not introduced by this refactor. Worth revisiting if flake evaluation
+  needs to work cleanly from non-Linux dev machines: either drop `cachix`
+  from `environment`'s `runtimePkgs`, or find a way to pin/substitute it
+  without triggering an eval-time build.
+
+## Intentional Host Context
+
+These are host-specific choices that look surprising out of context but are
+deliberate. Comments were added at the point of each choice in this pass
+where none previously existed; do not "fix" these without discussing the
+underlying tradeoff first, per the host-specific change rules in
+[`docs/DESIGN.md`](DESIGN.md).
+
+- **Legion nodes disable the NixOS firewall.**
+  (`modules/hosts/legion/hardware.nix`) Hetzner's Cloud Firewall manages
+  traffic to these nodes at the infrastructure level, so an in-VM firewall
+  would be redundant. Already commented in the source.
+- **Artemis runs a custom CachyOS kernel build.**
+  (`modules/hosts/artemis/default.nix`) Built specifically for this host's
+  zen4 CPU with the BORE scheduler, full LTO, and an AutoFDO profile
+  (`kernel.afdo`) — desktop-only performance tuning, not portable to other
+  hosts as-is. Comment added in this pass.
+- **Artemis stripes root across 3 NVMe drives with btrfs raid0, no
+  redundancy.** (`modules/hosts/artemis/disko.nix`) Deliberate throughput
+  choice for a desktop workstation; a single drive failure loses data by
+  design. Comment added in this pass.
+- **Artemis creates udev symlinks for `/dev/dri/egpu` and `/dev/dri/igpu`
+  keyed to specific PCI addresses.** (`modules/hosts/artemis/hardware.nix`)
+  Lets Hyprland/niri pick a specific GPU by a stable path instead of the
+  `cardN` enumeration order, which can change across boots. Already commented
+  in the source.
+- **Artemis's VR and gaming setup (`modules/nixos/gaming.nix`'s `vr`/`gaming`
+  NixOS modules) are host-specific by design,** not general-purpose modules —
+  they encode this host's specific hardware (Moza wheel udev rules, GPU
+  device index for gamemode) and are only imported by
+  `artemisConfiguration`.

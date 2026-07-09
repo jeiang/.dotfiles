@@ -13,16 +13,6 @@
       self.nixosModules.pipewire
     ];
 
-    hjem.users.${user}.files = {
-      ".config/ghostty/config.ghostty".text = ''
-        font-family = Mononoki Nerd Font
-        font-size = 13
-        theme = Kanagawa Dragon
-        quit-after-last-window-closed = false
-        gtk-single-instance = true
-      '';
-    };
-
     services.passSecretService.enable = true;
     services.passSecretService.package = pkgs.gopass;
 
@@ -33,7 +23,7 @@
       systemPackages = with pkgs; [
         bitwarden-desktop
         btop-rocm
-        ghostty
+        self.packages.${pkgs.stdenv.hostPlatform.system}.ghostty
         gopass
         grim
         kdePackages.dolphin

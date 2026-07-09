@@ -10,6 +10,9 @@
       ];
     };
     nixosModules.artemisConfiguration = {pkgs, ...}: let
+      # Desktop-only performance tuning: CachyOS kernel built for this host's
+      # zen4 CPU with the BORE scheduler and full LTO, guided by the AutoFDO
+      # profile in ./kernel.afdo. Not portable to other hosts as-is.
       originalKernel = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linux-cachyos-latest;
       kernel = originalKernel.override {
         pname = "linux-cachyos-bore-lto-zen4";
