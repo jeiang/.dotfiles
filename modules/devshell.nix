@@ -22,41 +22,44 @@
     devenv.shells = {
       default = {
         name = "system";
-        packages = with pkgs; [
-          config.treefmt.build.wrapper
-          self'.packages.helix
-          self'.packages.git
-          deploy-rs
-          disko
-          fd
-          fzf
-          just
-          nh
-          nixVersions.latest
-          sops
-          ssh-to-age
-          # hyprland
-          (
-            inputs.wrapper-modules.lib.wrapPackage (_: {
-              inherit pkgs;
-              package = pkgs.lua-language-server;
-              flags = {
-                "--configpath" = pkgs.writeText ".luarc.json" ''
-                  {
-                    "workspace": {
-                      "library": [
-                        "${inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland}/share/hypr/stubs"
-                      ]
-                    },
-                    "diagnostics": {
-                      "globals": ["hl"]
+        packages = with pkgs;
+          [
+            config.treefmt.build.wrapper
+            self'.packages.helix
+            self'.packages.git
+            deploy-rs
+            disko
+            fd
+            fzf
+            just
+            nh
+            nixVersions.latest
+            sops
+            ssh-to-age
+          ]
+          ++ lib.optionals pkgs.stdenv.isLinux [
+            # hyprland
+            (
+              inputs.wrapper-modules.lib.wrapPackage (_: {
+                inherit pkgs;
+                package = pkgs.lua-language-server;
+                flags = {
+                  "--configpath" = pkgs.writeText ".luarc.json" ''
+                    {
+                      "workspace": {
+                        "library": [
+                          "${inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system}.hyprland}/share/hypr/stubs"
+                        ]
+                      },
+                      "diagnostics": {
+                        "globals": ["hl"]
+                      }
                     }
-                  }
-                '';
-              };
-            })
-          )
-        ];
+                  '';
+                };
+              })
+            )
+          ];
         # used for NH
         env.NH_FLAKE = ../.;
         languages = {
