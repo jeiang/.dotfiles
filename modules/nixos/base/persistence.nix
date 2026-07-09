@@ -1,7 +1,7 @@
 {
   flake.nixosModules.base = {lib, ...}: {
-    options.persistance = {
-      enable = lib.mkEnableOption "enable persistance";
+    options.persistence = {
+      enable = lib.mkEnableOption "enable persistence";
 
       nukeRoot.enable = lib.mkEnableOption "Destroy /root on every boot";
 

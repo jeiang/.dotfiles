@@ -53,25 +53,27 @@ intentional and should not be "fixed" without explicit sign-off. See
   `bin/mangohudctl`, and the Vulkan `implicit_layer.d` JSON are symlinked
   through from the original package unchanged, so the overlay-without-the-
   binary path (if it were ever used) still works exactly as before.
-
-## Follow-Up Candidates
-
-- **`modules/nixos/impermanence.nix` is empty.** It declares
-  `flake.nixosModules` for nothing — no `impermanence` module is defined
-  there, and the `persistance.*` options declared in
-  `modules/nixos/base/persistence.nix` (see next item) are never consumed by
-  anything that actually wires up `nix-community/impermanence` or
-  `persist-retro` (both present as flake inputs). Several modules
-  (`firefox.nix`, `pipewire.nix`, `gaming.nix`) set `persistance.data.*` /
-  `persistance.cache.*` values that currently have no effect. This needs a
-  real design decision (which persistence backend, how directories map to
-  bind mounts) before it's touched, so it's left for a follow-up rather than
-  guessed at here.
-- **`persistance` option name is a likely misspelling of "persistence".**
-  Declared in `modules/nixos/base/persistence.nix` and used in three other
-  modules. Renaming is a mechanical but repo-wide change with no behavioral
-  effect while the options remain unwired (see above) — bundling the rename
-  with actually wiring up impermanence avoids a second churn pass.
+- **`modules/nixos/impermanence.nix` was empty and `persistance` was a
+  misspelling of "persistence".** Both follow-ups from an earlier pass are
+  now resolved together: `persistance.*` was renamed to `persistence.*`
+  everywhere it was declared or set (`modules/nixos/base/persistence.nix`,
+  `firefox.nix`, `pipewire.nix`, `gaming.nix`), and
+  `modules/nixos/impermanence.nix` now imports
+  `inputs.impermanence.nixosModules.impermanence` and wires those options to
+  real `environment.persistence` entries under `/persist`,
+  `/persist/data/home/<user>`, and `/persist/cache/home/<user>`. Enabled on
+  `artemis` only; legion hosts stay opt-in (see `persistence.enable`'s
+  default and the declarative-only entries in `modules/nixos/k3s.nix`).
+  `nix-community/impermanence` was chosen as the sole persistence backend —
+  see the next item for why `persist-retro` was dropped instead of also
+  being wired up.
+- **`persist-retro` was removed as a flake input rather than adopted.** It
+  was present alongside `impermanence` from the start but never wired to
+  anything. `persist-retro`'s value proposition is auto-migrating
+  pre-existing data into the persistent store, but that's exactly the kind
+  of implicit, hard-to-audit behavior this repo wants to avoid for a
+  destructive-by-construction feature — see the `persistence.*` guardrail in
+  `AGENTS.md` requiring explicit, documented data copies instead.
 - **`environment`'s `cachix` dependency makes evaluation fragile on
   non-`x86_64-linux` machines.** `modules/packages/environment.nix` includes
   `cachix` in the shell's `runtimePkgs`. Building `cachix` pulls in a

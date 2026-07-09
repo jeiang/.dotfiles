@@ -110,11 +110,12 @@
                       mountOptions = btrfsMountOptions;
                       mountpoint = "/var/log";
                     };
-                    "/home" = {
-                      mountOptions = btrfsMountOptions;
-                      mountpoint = "/home";
-                    };
-                    "/home/aidanp" = {};
+                    # /home is intentionally not its own persistent subvolume:
+                    # with impermanence enabled (modules/nixos/impermanence.nix),
+                    # only the paths explicitly listed under persistence.data/
+                    # persistence.cache are bind-mounted into $HOME from
+                    # /persist; unlisted home state is not guaranteed to
+                    # survive.
                     "/nix" = {
                       mountOptions = btrfsMountOptions;
                       mountpoint = "/nix";

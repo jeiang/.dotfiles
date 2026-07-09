@@ -2,11 +2,11 @@
   flake.nixosModules.firefox = {
     programs.firefox.enable = true;
 
-    persistance.data.directories = [
+    persistence.data.directories = [
       ".mozilla"
     ];
 
-    persistance.cache.directories = [
+    persistence.cache.directories = [
       ".cache/mozilla"
     ];
   };

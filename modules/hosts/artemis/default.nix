@@ -32,10 +32,101 @@
         self.nixosModules.netbird
         self.nixosModules.vr
         self.nixosModules.gaming
+        self.nixosModules.impermanence
 
         # disks
         self.diskoConfigurations.artemis
       ];
+
+      persistence = {
+        enable = true;
+        # /root isn't covered by any persistence entry below, so wipe it on
+        # every boot instead of letting it silently accumulate on the
+        # (non-ephemeral) root filesystem.
+        nukeRoot.enable = true;
+
+        # Core system state that has to survive reinstalls/rebuilds: host
+        # identity, generated secrets, and machine-specific network/pairing
+        # state. See modules/nixos/impermanence.nix for the reminder that
+        # none of this migrates automatically.
+        files = [
+          "/etc/machine-id"
+          "/var/lib/systemd/random-seed"
+          "/etc/ssh/ssh_host_ed25519_key"
+          "/etc/ssh/ssh_host_ed25519_key.pub"
+          "/etc/ssh/ssh_host_rsa_key"
+          "/etc/ssh/ssh_host_rsa_key.pub"
+        ];
+        directories = [
+          "/var/lib/nixos"
+          "/etc/NetworkManager/system-connections"
+          "/var/lib/NetworkManager"
+          "/var/lib/bluetooth"
+          "/var/lib/netbird"
+        ];
+
+        # User-level state. .mozilla/.cache/mozilla, .local/state/wireplumber,
+        # and .config/wivrn are already declared by the firefox, pipewire,
+        # and vr modules respectively, so they aren't repeated here.
+        data.directories = [
+          "Desktop"
+          "Documents"
+          "Downloads"
+          "Pictures"
+          "Videos"
+          "Music"
+          "Projects"
+          "Games"
+          ".local/share/Steam"
+          {
+            directory = ".ssh";
+            mode = "0700";
+          }
+          {
+            directory = ".gnupg";
+            mode = "0700";
+          }
+          {
+            directory = ".password-store";
+            mode = "0700";
+          }
+          {
+            directory = ".kube";
+            mode = "0700";
+          }
+          {
+            directory = ".local/share/keyrings";
+            mode = "0700";
+          }
+          ".local/share/fish"
+          ".local/share/direnv"
+          ".local/share/devenv"
+          ".local/share/zoxide"
+          ".krew"
+          ".config/fish"
+          ".config/gopass"
+          ".config/DankMaterialShell"
+          ".config/Bitwarden"
+          ".config/discord"
+          ".config/heroic"
+          ".config/PrismLauncher"
+          ".config/qBittorrent"
+          ".config/easyeffects"
+          ".local/share/heroic"
+          ".local/share/PrismLauncher"
+          ".local/share/qBittorrent"
+        ];
+        cache.directories = [
+          ".cache/devenv"
+          ".cache/direnv"
+          ".cache/nix-direnv"
+          ".cache/danksearch"
+          ".cache/heroic"
+          ".cache/PrismLauncher"
+          ".cache/protontricks"
+        ];
+      };
+
       boot = {
         loader.systemd-boot.enable = true;
         loader.systemd-boot.consoleMode = "max";

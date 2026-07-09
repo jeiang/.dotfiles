@@ -104,7 +104,7 @@
       '')
     ];
 
-    persistance.cache.directories = [
+    persistence.cache.directories = [
       ".config/wivrn"
     ];
 
