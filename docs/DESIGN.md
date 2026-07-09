@@ -31,22 +31,30 @@ in `modules/nixos` or `modules/hosts`.
 Several CLI tools are wrapped with `inputs.wrapper-modules.lib.wrapPackage`
 (or a prebuilt wrapper from `inputs.wrapper-modules.wrappers.*`) to bake in
 config files, flags, or a curated `PATH` of runtime dependencies — see
-`modules/packages/{fish,git,helix,starship,hyprpaper,ghostty,dms}.nix`.
+`modules/packages/{fish,git,helix,starship,hyprpaper,ghostty,dms,netbird,mangohud}.nix`.
 
 - Prefer wrapping over separately managing a dotfile with hjem when the
   program accepts an explicit config-file flag (`--config`, `--config-file`,
-  a `-C`-style startup command, or an env var like `STARSHIP_CONFIG`). This
-  keeps the config colocated with the package definition instead of split
-  across a package output and a home-managed file.
+  a `-C`-style startup command, or an env var like `STARSHIP_CONFIG` /
+  `MANGOHUD_CONFIGFILE`). This keeps the config colocated with the package
+  definition instead of split across a package output and a home-managed
+  file.
 - Only migrate a program to this pattern when the launch path is certain: the
   wrapped binary must be what actually gets executed everywhere the program
   is launched (system packages, desktop launchers, keybinds, systemd
-  `ExecStart`, etc). If a program is invoked through multiple launch paths and
-  it's not certain all of them resolve to the wrapped package (e.g. an
-  LD_PRELOAD-style tool like MangoHud, or something with a `.desktop` file
-  from another package providing the binary), leave it on its current config
-  mechanism and record it as a follow-up in `docs/IMPROVEMENTS.md` rather than
-  guessing.
+  `ExecStart`, etc). Verify this here, not from general knowledge of how the
+  upstream tool is normally invoked elsewhere. If a program is invoked
+  through multiple launch paths and it's not certain all of them resolve to
+  the wrapped package (e.g. something with a `.desktop` file from another
+  package providing the binary), leave it on its current config mechanism
+  and record it as a follow-up in `docs/IMPROVEMENTS.md` rather than
+  guessing. `wrapPackage` only replaces the wrapped binary's own entrypoint
+  and symlinks the rest of the original package's outputs through
+  unchanged (via `lndir`), so wrapping a program that has *other* important
+  entrypoints (other binaries, a preload library, a Vulkan/GL layer JSON,
+  etc.) is safe as long as the launch path for the wrapped binary itself is
+  certain — those other entrypoints keep working exactly as before, since
+  they aren't touched by the wrap.
 - Downstream NixOS modules should reference the wrapped package (via
   `self.packages.${system}.<name>` / `self'.packages.<name>`), never the
   underlying `pkgs.<name>` directly, once a wrapper exists for it.

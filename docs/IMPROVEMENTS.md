@@ -40,17 +40,22 @@ intentional and should not be "fixed" without explicit sign-off. See
 - **README described this repo as "currently just my server."** The flake
   now also builds `artemis` (a desktop host) alongside the `legion-node*` K3s
   cluster, so the description was stale. Updated to name both.
+- **MangoHud config was hjem-managed instead of wrapped.** Originally left as
+  a follow-up because MangoHud's overlay can be triggered without going
+  through the `mangohud` binary at all (`MANGOHUD=1` plus its Vulkan implicit
+  layer, which is why nixpkgs' own package comment says it deliberately
+  avoids `makeWrapper`). Confirmed the actual launch path here is always the
+  `mangohud` binary, so wrapped it: `modules/packages/mangohud.nix` sets
+  `MANGOHUD_CONFIGFILE` via `wrapPackage`, and `modules/nixos/gaming.nix` now
+  installs the wrapped package instead of `pkgs.mangohud` plus a separate
+  hjem-managed `~/.config/MangoHud/MangoHud.conf`. Verified the wrapper only
+  replaces `bin/mangohud`; `lib/mangohud/libMangoHud.so`, `bin/mangoapp`,
+  `bin/mangohudctl`, and the Vulkan `implicit_layer.d` JSON are symlinked
+  through from the original package unchanged, so the overlay-without-the-
+  binary path (if it were ever used) still works exactly as before.
 
 ## Follow-Up Candidates
 
-- **MangoHud config is still hjem-managed, not wrapped.** `modules/nixos/gaming.nix`
-  writes `~/.config/MangoHud/MangoHud.conf` via hjem rather than baking the
-  config into a wrapped `mangohud` package. MangoHud is typically invoked via
-  `mangohud <game-command>` or `LD_PRELOAD` from many different launch paths
-  (Steam launch options, Heroic, Prism Launcher, gamescope), so it isn't
-  certain that a single wrapped binary would be picked up everywhere it's
-  used. Left as-is; revisit if/when all launch paths are confirmed to go
-  through one wrapped binary.
 - **`modules/nixos/impermanence.nix` is empty.** It declares
   `flake.nixosModules` for nothing — no `impermanence` module is defined
   there, and the `persistance.*` options declared in
