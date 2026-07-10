@@ -34,8 +34,10 @@ disko-format system sudo="sudo":
 
 # Run ON artemis, as root, before rebooting into a persistence.* change —
 # impermanence never migrates existing data into /persist on its own.
+# jq/rsync aren't guaranteed to be on PATH outside the dev shell, so pull
+# them in explicitly rather than assuming the target environment has them.
 migrate-persist flake="." sudo="sudo":
-  {{sudo}} ./modules/hosts/artemis/migrate-persist.sh {{flake}}
+  {{sudo}} nix shell nixpkgs#jq nixpkgs#rsync -c ./modules/hosts/artemis/migrate-persist.sh {{flake}}
 
 install system sudo="sudo":
   {{sudo}} nixos-install --flake .#{{system}}

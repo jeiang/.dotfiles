@@ -87,7 +87,10 @@
       # empty subvolume is what actually gets mounted as /.
       (lib.mkIf (cfg.enable && cfg.nukeRoot.enable && config.boot.initrd.systemd.enable) {
         boot.initrd.systemd = {
-          initrdBin = [pkgs.btrfs-progs];
+          # findutils for `find` in rollbackScript below — btrfs-progs is
+          # already pulled in automatically since / is btrfs, but findutils
+          # isn't part of the default systemd-initrd tool set.
+          initrdBin = [pkgs.btrfs-progs pkgs.findutils];
           services.rollback-root = {
             description = "Roll back btrfs root subvolume to an empty subvolume";
             unitConfig.DefaultDependencies = false;

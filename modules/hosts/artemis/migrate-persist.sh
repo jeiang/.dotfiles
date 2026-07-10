@@ -36,8 +36,16 @@ sync_dir() {
     echo "skip (missing): $src"
     return
   fi
-  mkdir -p "$dst"
-  rsync -aHAX --numeric-ids "$src/" "$dst/"
+  local dst_parent
+  dst_parent="$(dirname "$dst")"
+  mkdir -p "$dst_parent"
+  # No trailing slash on $src: every call site here builds $dst as some
+  # prefix + $src's own path, so basename "$src" always equals basename
+  # "$dst". That lets rsync copy the directory itself (with its own
+  # owner/mode/xattrs, not just its contents) into $dst_parent — otherwise
+  # $dst would come back root:root 0755 regardless of what the source
+  # directory's permissions were (e.g. .ssh, .gnupg, system-connections).
+  rsync -aHAX --numeric-ids "$src" "$dst_parent/"
   echo "synced dir:  $src -> $dst"
 }
 
