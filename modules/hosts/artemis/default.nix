@@ -40,10 +40,17 @@
 
       persistence = {
         enable = true;
-        # /root isn't covered by any persistence entry below, so wipe it on
-        # every boot instead of letting it silently accumulate on the
-        # (non-ephemeral) root filesystem.
-        nukeRoot.enable = true;
+        # Roll the "/rootfs" btrfs subvolume (mounted as /, see
+        # ./disko.nix) back to empty on every boot, in the initrd, before
+        # anything else is mounted. Only paths explicitly listed below
+        # survive a reboot; everything else on / is gone. device matches
+        # the same partition disko.nix mounts for /persist, /nix, etc. —
+        # any one member device of the multi-device btrfs filesystem works.
+        nukeRoot = {
+          enable = true;
+          device = "/dev/disk/by-partlabel/disk-nvme3-root";
+          subvolume = "rootfs";
+        };
 
         # Core system state that has to survive reinstalls/rebuilds: host
         # identity, generated secrets, and machine-specific network/pairing
@@ -77,7 +84,10 @@
           "Music"
           "Projects"
           "Games"
+          ".steam"
           ".local/share/Steam"
+          ".renpy"
+          ".local/share/Trash"
           {
             directory = ".ssh";
             mode = "0700";
@@ -124,6 +134,10 @@
           ".cache/heroic"
           ".cache/PrismLauncher"
           ".cache/protontricks"
+          ".local/state/DankMaterialShell"
+          ".local/state/nix"
+          ".local/state/wivrn"
+          ".local/state/xrizer"
         ];
       };
 
