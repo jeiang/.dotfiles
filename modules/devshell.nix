@@ -16,7 +16,7 @@
         deadnix.enable = true;
         stylua.enable = true;
       };
-      flakeCheck = false;
+      flakeCheck = true;
     };
     formatter = config.treefmt.build.wrapper;
     devenv.shells = {

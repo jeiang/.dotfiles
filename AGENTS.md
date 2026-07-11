@@ -62,7 +62,7 @@ This repo manages live systems, disks, cluster membership, and secrets. Treat op
 ## Common Commands
 
 - `just fmt`: format files and run statix autofixes/checks.
-- `just check`: run `nix flake check --impure`.
+- `just check`: run `nix flake check --impure --keep-going`.
 - `just deploy <system>`: deploy a named system with deploy-rs.
 - `just clean-deploy <system> <address>`: install through nixos-anywhere and regenerate facter hardware config.
 - `just disko-format <system>`: destroy, format, and mount a system disk layout.
