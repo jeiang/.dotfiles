@@ -1,6 +1,6 @@
 {
   flake.nixosModules.pipewire = {pkgs, ...}: {
-    persistance.cache.directories = [
+    persistence.cache.directories = [
       ".local/state/wireplumber"
     ];
     environment.systemPackages = with pkgs; [

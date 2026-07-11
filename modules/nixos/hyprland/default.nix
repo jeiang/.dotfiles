@@ -45,6 +45,19 @@
       };
     };
 
+    # hjem.target/hjem-activate@ (which link hjem.users.${user}.files below,
+    # including the hyprland config) are only WantedBy=multi-user.target,
+    # which pulls them in but doesn't order them relative to anything else
+    # also wanted by that target — Requires/WantedBy alone don't imply
+    # ordering. On persistent /home this raced harmlessly since hjem had
+    # nothing to do; with impermanence wiping / on every boot, hjem has to
+    # relink everything from scratch and can lose the race, starting
+    # Hyprland before its config exists. Make greetd wait for it.
+    systemd.services.greetd = {
+      wants = ["hjem-activate@${user}.service"];
+      after = ["hjem-activate@${user}.service"];
+    };
+
     environment.systemPackages = with pkgs; [
       rose-pine-hyprcursor
       hyprpolkitagent

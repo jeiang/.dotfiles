@@ -57,6 +57,7 @@ This repo manages live systems, disks, cluster membership, and secrets. Treat op
 - Do not change disk layouts, host networking, K3s bootstrap settings, or deploy targets as incidental cleanup.
 - Do not run commands that destroy or format disks unless the user explicitly asks for the exact host/system target.
 - When touching K3s configuration, preserve bootstrap/control-plane intent and avoid changes that could force cluster reinitialization unless explicitly requested.
+- Impermanence (`modules/nixos/impermanence.nix`) never migrates existing data, and on artemis `persistence.nukeRoot.enable` rolls the entire root btrfs subvolume back to empty every boot — not just `/root`. When adding or changing a `persistence.*` entry (system paths, or a host's `persistence.data`/`persistence.cache`), explicitly document or perform the matching copy of existing state into its `/persist` target before a reboot or activation that would otherwise lose it. `just migrate-persist` (`modules/hosts/artemis/migrate-persist.sh`) runs that copy on artemis itself from the live `persistence.*` config; it must be run on the target host, not from a dev checkout, and re-run after any further persistence changes before rebooting. Never assume the module migrates state for you.
 
 ## Common Commands
 

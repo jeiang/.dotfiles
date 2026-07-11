@@ -78,6 +78,15 @@
         ];
       };
     };
+    # ~/.steam is intentionally not managed here: Steam's own launcher
+    # (steam.sh) expects it to be a real directory containing its own
+    # internal symlinks (.steam/steam, .steam/root, .steam/bin32, ... into
+    # ~/.local/share/Steam), and recreates that structure itself on every
+    # launch if missing — cheap, no real data. Only ~/.local/share/Steam
+    # (the actual library) is persisted; see persistence.data.directories
+    # on artemis. Do not turn ~/.steam itself into a symlink to
+    # ~/.local/share/Steam — that breaks steam.sh (tried, produced
+    # "couldn't set up steam data" errors).
     hardware.graphics = {
       enable = true;
       enable32Bit = true;
@@ -104,7 +113,7 @@
       '')
     ];
 
-    persistance.cache.directories = [
+    persistence.cache.directories = [
       ".config/wivrn"
     ];
 
