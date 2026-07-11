@@ -100,6 +100,22 @@ while IFS= read -r p; do
   sync_file "${home}/${p}" "/persist/cache/home/${user}/${p}"
 done < <(paths cache.files)
 
+# The `mkdir -p` calls in sync_dir/sync_file run as root and only create
+# ancestor directories that aren't themselves a declared persistence entry
+# (e.g. .config, .local, .local/share, .local/state, .cache — none of
+# which are individually listed, only paths nested inside them). Left
+# alone those come back root:root, and impermanence mirrors that ownership
+# onto the live $HOME tree at boot instead of creating it fresh as the
+# user, breaking every app that expects to write into its own XDG dirs.
+# Force correct ownership on the whole user tree; this only touches
+# owner:group, never mode, so it doesn't disturb the explicit 0700 entries
+# (.ssh, .gnupg, etc.) synced above.
+echo "== fixing ownership under /persist/{data,cache}/home/${user} =="
+group="$(id -gn "$user")"
+for root in "/persist/data/home/${user}" "/persist/cache/home/${user}"; do
+  [[ -e "$root" ]] && chown -R "${user}:${group}" "$root"
+done
+
 echo
 echo "Done. Review any 'skip (missing)' lines above — those are fine if the"
 echo "path genuinely doesn't exist yet, but re-run this after any further"
