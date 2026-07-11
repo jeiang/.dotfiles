@@ -1,9 +1,12 @@
 {self, ...}: {
   flake.nixosModules.gaming = {
+    config,
     pkgs,
     lib,
     ...
-  }: {
+  }: let
+    user = config.preferences.user.name;
+  in {
     environment.systemPackages = with pkgs; [
       boxflat
       self.packages.${pkgs.stdenv.hostPlatform.system}.mangohud
@@ -78,6 +81,13 @@
         ];
       };
     };
+    # ~/.steam is just Steam's own compatibility-symlink shortcut into the
+    # real library at ~/.local/share/Steam (the only one actually persisted,
+    # see persistence.data.directories on artemis) — not independent data,
+    # so recreate it declaratively every boot instead of persisting it.
+    systemd.tmpfiles.rules = [
+      "L+ /home/${user}/.steam - - - - /home/${user}/.local/share/Steam"
+    ];
     hardware.graphics = {
       enable = true;
       enable32Bit = true;

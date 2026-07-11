@@ -84,7 +84,6 @@
           "Music"
           "Projects"
           "Games"
-          ".steam"
           ".local/share/Steam"
           ".renpy"
           ".local/share/Trash"
