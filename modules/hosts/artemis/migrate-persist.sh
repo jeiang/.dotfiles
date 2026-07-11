@@ -19,6 +19,16 @@ set -euo pipefail
 flake="${1:-/etc/nixos}"
 attr="nixosConfigurations.artemis.config"
 
+# `nix eval --impure` shells out to git for a local git+file:// flake input.
+# This script runs as root, but the checkout is normally owned by a regular
+# user, so git's ownership check ("detected dubious ownership in
+# repository") blocks it unless the path is explicitly marked safe for this
+# process. Scope that to just this flake path rather than disabling the
+# check globally for root.
+export GIT_CONFIG_COUNT=1
+export GIT_CONFIG_KEY_0=safe.directory
+export GIT_CONFIG_VALUE_0="$(cd "$flake" && pwd -P)"
+
 user=$(nix eval --impure --raw "${flake}#${attr}.preferences.user.name")
 home="/home/${user}"
 
