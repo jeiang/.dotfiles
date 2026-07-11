@@ -1,12 +1,9 @@
 {self, ...}: {
   flake.nixosModules.gaming = {
-    config,
     pkgs,
     lib,
     ...
-  }: let
-    user = config.preferences.user.name;
-  in {
+  }: {
     environment.systemPackages = with pkgs; [
       boxflat
       self.packages.${pkgs.stdenv.hostPlatform.system}.mangohud
@@ -81,13 +78,15 @@
         ];
       };
     };
-    # ~/.steam is just Steam's own compatibility-symlink shortcut into the
-    # real library at ~/.local/share/Steam (the only one actually persisted,
-    # see persistence.data.directories on artemis) — not independent data,
-    # so recreate it declaratively every boot instead of persisting it.
-    systemd.tmpfiles.rules = [
-      "L+ /home/${user}/.steam - - - - /home/${user}/.local/share/Steam"
-    ];
+    # ~/.steam is intentionally not managed here: Steam's own launcher
+    # (steam.sh) expects it to be a real directory containing its own
+    # internal symlinks (.steam/steam, .steam/root, .steam/bin32, ... into
+    # ~/.local/share/Steam), and recreates that structure itself on every
+    # launch if missing — cheap, no real data. Only ~/.local/share/Steam
+    # (the actual library) is persisted; see persistence.data.directories
+    # on artemis. Do not turn ~/.steam itself into a symlink to
+    # ~/.local/share/Steam — that breaks steam.sh (tried, produced
+    # "couldn't set up steam data" errors).
     hardware.graphics = {
       enable = true;
       enable32Bit = true;
