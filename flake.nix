@@ -40,6 +40,8 @@
     nix-minecraft.inputs.nixpkgs.follows = "nixpkgs";
     website.url = "github:jeiang/website";
     website.inputs.nixpkgs.follows = "nixpkgs";
+    attic.url = "github:jeiang/attic";
+    attic.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);

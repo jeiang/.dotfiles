@@ -9,12 +9,15 @@ on:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  # Never cancel a main-branch run: it's the one populating the Cachix cache,
-  # and cancelling it mid-push would leave the cache half-populated.
+  # Never cancel a main-branch run: it's the one populating the authoritative
+  # cache state, and cancelling it mid-push would leave things half-populated.
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
+  # Needed to exchange a GitHub Actions OIDC token for an Attic access token
+  # (jeiang/attic's github-actions OIDC provider) — no ATTIC_TOKEN secret.
+  id-token: write
 
 jobs:
   # Source of the check matrix below. Building every check in a single job
@@ -65,14 +68,25 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
 
-      - name: Configure Cachix
-        uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71 # v17
-        with:
-          name: cornn-flaek
-          # Only direct pushes to main get a write-capable token; PRs (including
-          # forks) never see CACHIX_AUTH_TOKEN, so they can only pull.
-          authToken: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.CACHIX_AUTH_TOKEN || '' }}
-          useDaemon: true
+      # Exchanges this job's GitHub Actions OIDC token for an Attic access
+      # token via jeiang/attic's github-actions OIDC provider, then points
+      # Nix's substituters at the "default" cache using that token — this
+      # covers both authenticated pulls and (if this ref is authorized to
+      # write) pushes, since the private cache isn't otherwise readable.
+      - name: Log in to Attic
+        run: |
+          nix run --impure .#attic-client -- login --set-default ci https://attic.jeiang.dev/ --oidc github-actions
+          nix run --impure .#attic-client -- use default
 
       - name: Build check
-        run: nix build --impure --keep-going --show-trace ".#checks.x86_64-linux.${{ matrix.check }}"
+        id: build
+        run: |
+          path=$(nix build --impure --keep-going --show-trace --no-link --print-out-paths ".#checks.x86_64-linux.${{ matrix.check }}")
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+
+      # Push whatever this check built. Read/write is enforced server-side by
+      # Attic's OIDC rules, not here, so this can just be attempted
+      # unconditionally: a token without write access is rejected without
+      # failing the job, since the check itself already succeeded above.
+      - name: Push to Attic
+        run: nix run --impure .#attic-client -- push default ${{ steps.build.outputs.path }} || echo "::warning::Push to Attic failed or was not authorized"
