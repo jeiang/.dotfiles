@@ -6,7 +6,7 @@
   }: let
     donefish = pkgs.fetchurl {
       url = "https://raw.githubusercontent.com/franciscolourenco/done/master/conf.d/done.fish";
-      sha512 = "29d7kfnd5v0n01hsrcrfllp03fyi8ygc8wm4w6q2ip863lwdywl6rv0rjkhsqfhrc8ff86y3yc9d97gsrr6l181cq7yb43sxa5bkfc7";
+      sha512 = "sha512-RQYS4uV2/u+JmDM33jy6Zh0VPEfbb7Qd/qMBIhgZqTjDnY8ioISruVXAd7gMKrBWkLdlngJkfduyG9rcbUpa9w==";
     };
     fishConf =
       pkgs.writeText "fishy-fishy"
