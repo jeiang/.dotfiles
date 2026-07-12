@@ -17,15 +17,43 @@ permissions:
   contents: read
 
 jobs:
-  flake-check:
+  # Fast, build-free structural validation, and the source of the check
+  # matrix below. Building every check in a single job previously ran for
+  # hours and got killed with no useful logs (likely OOM from building 6
+  # NixOS closures, one with a full-LTO kernel, plus every package, all in
+  # one process) — splitting into a matrix gives each check its own runner,
+  # memory budget, and time budget.
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      checks: ${{ steps.discover.outputs.checks }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+
+      - name: Validate flake structure
+        run: nix flake check --impure --keep-going --no-build --show-trace
+
+      - name: Discover checks
+        id: discover
+        run: |
+          checks=$(nix eval --impure --json '.#checks.x86_64-linux' --apply builtins.attrNames)
+          echo "checks=$checks" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: discover
+    strategy:
+      fail-fast: false
+      matrix:
+        check: ${{ fromJson(needs.discover.outputs.checks) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      # Building every host's full NixOS closure (including the LTO kernel
-      # build for artemis) plus every package needs more headroom than the
-      # runner's default free space.
       - name: Free disk space
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
@@ -43,5 +71,5 @@ jobs:
           authToken: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && secrets.CACHIX_AUTH_TOKEN || '' }}
           useDaemon: true
 
-      - name: Run flake checks
-        run: nix flake check --impure --keep-going --show-trace
+      - name: Build check
+        run: nix build --impure --keep-going --show-trace ".#checks.x86_64-linux.${{ matrix.check }}"
