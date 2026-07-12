@@ -65,8 +65,16 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           df -h
 
+      # jeiang.cachix.org carries a prebuilt attic-client so this job doesn't
+      # have to compile the Rust toolchain (attic-client + its full
+      # dependency tree) from scratch every run just to get a CLI for
+      # talking to Attic.
       - name: Install Nix
         uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+        with:
+          extra_nix_config: |
+            extra-substituters = https://jeiang.cachix.org
+            extra-trusted-public-keys = jeiang.cachix.org-1:Ax2onCzp6V74ORnjlTAbZsDmlLeMMzDOzzcC2qHfJKg=
 
       # Exchanges this job's GitHub Actions OIDC token for an Attic access
       # token via jeiang/attic's github-actions OIDC provider, then points
