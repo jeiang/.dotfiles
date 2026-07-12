@@ -17,12 +17,18 @@ permissions:
   contents: read
 
 jobs:
-  # Fast, build-free structural validation, and the source of the check
-  # matrix below. Building every check in a single job previously ran for
-  # hours and got killed with no useful logs (likely OOM from building 6
-  # NixOS closures, one with a full-LTO kernel, plus every package, all in
-  # one process) — splitting into a matrix gives each check its own runner,
-  # memory budget, and time budget.
+  # Source of the check matrix below. Building every check in a single job
+  # previously ran for hours and got killed with no useful logs (likely OOM
+  # from building 6 NixOS closures, one with a full-LTO kernel, plus every
+  # package, all in one process) — splitting into a matrix gives each check
+  # its own runner, memory budget, and time budget.
+  #
+  # This only evaluates checks.x86_64-linux, not the whole flake: some
+  # packages (e.g. Hyprland, which reads a VERSION file from its own source
+  # at eval time) need a build-capable evaluation just to resolve their
+  # attributes, so a `nix flake check --no-build`-style pass over every
+  # output isn't viable here. The `build` job below is what actually
+  # validates each check.
   discover:
     runs-on: ubuntu-latest
     outputs:
@@ -33,9 +39,6 @@ jobs:
 
       - name: Install Nix
         uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
-
-      - name: Validate flake structure
-        run: nix flake check --impure --keep-going --no-build --show-trace
 
       - name: Discover checks
         id: discover
