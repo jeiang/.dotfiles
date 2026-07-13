@@ -10,7 +10,7 @@ fmt:
 
 # Check for nix errors
 check extraArgs="":
-  nix flake check --impure {{extraArgs}}
+  nix flake check --impure --keep-going {{extraArgs}}
 
 clean-deploy system address *args:
   nix run github:nix-community/nixos-anywhere -- --generate-hardware-config nixos-facter ./modules/hosts/{{system}}/facter.json  --flake .#{{system}} --target-host root@{{address}} {{args}}

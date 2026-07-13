@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # Never cancel a main-branch run: it's the one populating the authoritative
+  # cache state, and cancelling it mid-push would leave things half-populated.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+  # Needed to exchange a GitHub Actions OIDC token for an Attic access token
+  # (jeiang/attic's github-actions OIDC provider) — no ATTIC_TOKEN secret.
+  id-token: write
+
+jobs:
+  # Source of the check matrix below. Building every check in a single job
+  # previously ran for hours and got killed with no useful logs (likely OOM
+  # from building 6 NixOS closures, one with a full-LTO kernel, plus every
+  # package, all in one process) — splitting into a matrix gives each check
+  # its own runner, memory budget, and time budget.
+  #
+  # This only evaluates checks.x86_64-linux, not the whole flake: some
+  # packages (e.g. Hyprland, which reads a VERSION file from its own source
+  # at eval time) need a build-capable evaluation just to resolve their
+  # attributes, so a `nix flake check --no-build`-style pass over every
+  # output isn't viable here. The `build` job below is what actually
+  # validates each check.
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      checks: ${{ steps.discover.outputs.checks }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+
+      - name: Discover checks
+        id: discover
+        run: |
+          checks=$(nix eval --impure --json '.#checks.x86_64-linux' --apply builtins.attrNames)
+          echo "checks=$checks" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: discover
+    strategy:
+      fail-fast: false
+      matrix:
+        check: ${{ fromJson(needs.discover.outputs.checks) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h
+
+      # jeiang.cachix.org carries a prebuilt attic-client so this job doesn't
+      # have to compile the Rust toolchain (attic-client + its full
+      # dependency tree) from scratch every run just to get a CLI for
+      # talking to Attic.
+      - name: Install Nix
+        uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+        with:
+          extra_nix_config: |
+            extra-substituters = https://jeiang.cachix.org
+            extra-trusted-public-keys = jeiang.cachix.org-1:Ax2onCzp6V74ORnjlTAbZsDmlLeMMzDOzzcC2qHfJKg=
+
+      # Exchanges this job's GitHub Actions OIDC token for an Attic access
+      # token via jeiang/attic's github-actions OIDC provider, then points
+      # Nix's substituters at the "default" cache using that token — this
+      # covers both authenticated pulls and (if this ref is authorized to
+      # write) pushes, since the private cache isn't otherwise readable.
+      - name: Log in to Attic
+        run: |
+          nix run --impure .#attic-client -- login --set-default ci https://attic.jeiang.dev/ --oidc github-actions
+          nix run --impure .#attic-client -- use default
+
+      # print-out-paths emits one line per derivation output (e.g. mangohud's
+      # "out" and "man"), so this can be multi-line — write it to
+      # $GITHUB_OUTPUT with the delimiter form rather than a plain
+      # key=value line, which breaks on embedded newlines.
+      - name: Build check
+        id: build
+        run: |
+          paths=$(nix build --impure --keep-going --show-trace --no-link --print-out-paths ".#checks.x86_64-linux.${{ matrix.check }}")
+          delimiter="$(openssl rand -hex 8)"
+          {
+            echo "paths<<$delimiter"
+            echo "$paths"
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
+
+      # Push whatever this check built. Read/write is enforced server-side by
+      # Attic's OIDC rules, not here, so this can just be attempted
+      # unconditionally: a token without write access is rejected without
+      # failing the job, since the check itself already succeeded above.
+      #
+      # PATHS goes through the environment rather than being spliced
+      # directly into the run script: the output can be multiple
+      # newline-separated paths, and unquoted $PATHS lets the shell
+      # word-split it into separate push arguments, whereas templating it
+      # straight into the YAML would paste literal newlines into the script
+      # and turn each extra path into its own (invalid) command.
+      - name: Push to Attic
+        env:
+          PATHS: ${{ steps.build.outputs.paths }}
+        run: nix run --impure .#attic-client -- push default $PATHS || echo "::warning::Push to Attic failed or was not authorized"
