@@ -40,8 +40,12 @@
     nix-minecraft.inputs.nixpkgs.follows = "nixpkgs";
     website.url = "github:jeiang/website";
     website.inputs.nixpkgs.follows = "nixpkgs";
+    # Deliberately not following our nixpkgs: attic-client is built and
+    # pushed to Cachix from a standalone jeiang/attic checkout, which uses
+    # attic's own nixpkgs pin. Following ours here would give attic-client a
+    # different derivation (different rustc/deps) and thus a different store
+    # path than what's actually cached, forcing a from-source rebuild in CI.
     attic.url = "github:jeiang/attic";
-    attic.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);
