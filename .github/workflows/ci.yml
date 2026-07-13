@@ -86,15 +86,33 @@ jobs:
           nix run --impure .#attic-client -- login --set-default ci https://attic.jeiang.dev/ --oidc github-actions
           nix run --impure .#attic-client -- use default
 
+      # print-out-paths emits one line per derivation output (e.g. mangohud's
+      # "out" and "man"), so this can be multi-line — write it to
+      # $GITHUB_OUTPUT with the delimiter form rather than a plain
+      # key=value line, which breaks on embedded newlines.
       - name: Build check
         id: build
         run: |
-          path=$(nix build --impure --keep-going --show-trace --no-link --print-out-paths ".#checks.x86_64-linux.${{ matrix.check }}")
-          echo "path=$path" >> "$GITHUB_OUTPUT"
+          paths=$(nix build --impure --keep-going --show-trace --no-link --print-out-paths ".#checks.x86_64-linux.${{ matrix.check }}")
+          delimiter="$(openssl rand -hex 8)"
+          {
+            echo "paths<<$delimiter"
+            echo "$paths"
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
 
       # Push whatever this check built. Read/write is enforced server-side by
       # Attic's OIDC rules, not here, so this can just be attempted
       # unconditionally: a token without write access is rejected without
       # failing the job, since the check itself already succeeded above.
+      #
+      # PATHS goes through the environment rather than being spliced
+      # directly into the run script: the output can be multiple
+      # newline-separated paths, and unquoted $PATHS lets the shell
+      # word-split it into separate push arguments, whereas templating it
+      # straight into the YAML would paste literal newlines into the script
+      # and turn each extra path into its own (invalid) command.
       - name: Push to Attic
-        run: nix run --impure .#attic-client -- push default ${{ steps.build.outputs.path }} || echo "::warning::Push to Attic failed or was not authorized"
+        env:
+          PATHS: ${{ steps.build.outputs.paths }}
+        run: nix run --impure .#attic-client -- push default $PATHS || echo "::warning::Push to Attic failed or was not authorized"
