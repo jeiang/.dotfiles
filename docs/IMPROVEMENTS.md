@@ -74,6 +74,13 @@ intentional and should not be "fixed" without explicit sign-off. See
   of implicit, hard-to-audit behavior this repo wants to avoid for a
   destructive-by-construction feature — see the `persistence.*` guardrail in
   `AGENTS.md` requiring explicit, documented data copies instead.
+- **Persistence options accepted invalid values until impermanence consumed
+  them.** Removed the unused `persistence.volumeGroup` and
+  `persistence.user` options, typed persistence entry lists as strings or
+  attribute sets, and restricted `nukeRoot.maxAge` to nonnegative integers.
+  Root rollback now requires persistence to be enabled and rejects empty
+  device or subvolume values during NixOS evaluation. Existing Artemis
+  persistence entries and rollback behavior remain unchanged.
 - **Legion node details were duplicated across configuration, deployment,
   TLS, and operator helpers.** Consolidated the inventory in
   `modules/hosts/legion/default.nix`; NixOS configurations, deploy-rs nodes,
@@ -103,14 +110,7 @@ Listed in recommended implementation order.
   privileges; prefer a dedicated deployment user with narrowly scoped
   activation privileges over unrestricted passwordless root access.
 
-3. **Tighten the persistence option contract.** Remove the unused
-  `persistence.volumeGroup` and `persistence.user` options, add types to the
-  persistence path lists, require a non-empty `nukeRoot.device` whenever
-  rollback is enabled, and assert that `nukeRoot.maxAge` is nonnegative.
-  These checks should fail during evaluation rather than allowing a bad
-  rollback configuration to reach the initrd.
-
-4. **Separate the login shell from the general-purpose toolbox.** The
+3. **Separate the login shell from the general-purpose toolbox.** The
   wrapped Fish login shell currently carries Cachix, devenv, and many CLI
   tools in `runtimePkgs`. Keep the shell wrapper small and move general
   tools into a system package module or the development shell. In
@@ -118,14 +118,14 @@ Listed in recommended implementation order.
   import-from-derivation step during evaluation, making evaluation from a
   non-`x86_64-linux` machine depend on a working Linux builder.
 
-5. **Add repository-policy checks.** Once CI is in place, add inexpensive
+4. **Add repository-policy checks.** Once CI is in place, add inexpensive
   evaluation checks for the invariants above: every applicable NixOS system
   has a deploy target, every Legion hostname is represented in generated
   SANs, exactly one K3s node bootstraps the cluster, and root rollback cannot
   be enabled without a device. Also enable treefmt's flake check instead of
   relying only on the development-shell hook.
 
-6. **Make the README useful for operating the flake.** Add a host and role
+5. **Make the README useful for operating the flake.** Add a host and role
   matrix, development-shell instructions, formatting and validation
   commands, safe deployment examples, links to `DESIGN.md` and this file,
   and a prominent reminder that Artemis persistence changes require running
