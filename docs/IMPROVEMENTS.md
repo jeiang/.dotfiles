@@ -74,19 +74,63 @@ intentional and should not be "fixed" without explicit sign-off. See
   of implicit, hard-to-audit behavior this repo wants to avoid for a
   destructive-by-construction feature — see the `persistence.*` guardrail in
   `AGENTS.md` requiring explicit, documented data copies instead.
-- **`environment`'s `cachix` dependency makes evaluation fragile on
-  non-`x86_64-linux` machines.** `modules/packages/environment.nix` includes
-  `cachix` in the shell's `runtimePkgs`. Building `cachix` pulls in a
-  `cabal2nix`-based import-from-derivation (IFD) step that must run *during
-  evaluation*, not just at build time — so merely evaluating
-  `nixosConfigurations.artemis` (or the `environment` package itself) on a
-  machine that isn't `x86_64-linux` requires a working `x86_64-linux`
-  builder just to finish evaluating, independent of `--store`/`--builders`
-  overrides for the eventual build. Confirmed present on unmodified `main`,
-  so not introduced by this refactor. Worth revisiting if flake evaluation
-  needs to work cleanly from non-Linux dev machines: either drop `cachix`
-  from `environment`'s `runtimePkgs`, or find a way to pin/substitute it
-  without triggering an eval-time build.
+
+## Future Improvements
+
+Listed in recommended implementation order.
+
+1. **Harden CI cache access for pull requests.** Keep anonymous cache reads
+  available so fork pull requests do not depend on GitHub OIDC permissions,
+  while restricting authenticated cache writes to trusted `main` runs.
+  Preserve separate checks for every `x86_64-linux` package, all NixOS
+  system closures, treefmt, and statix as the workflow evolves. Keep
+  unrelated lock-file and package-hash updates out of CI-only changes so
+  reviews remain focused.
+
+2. **Make the Legion node inventory the single source of truth.**
+  `modules/hosts/legion/default.nix` defines `legion-node5` and includes it
+  in `deploy.nodes`, but `just deploy-legion`, `just legion-run`, and the K3s
+  API TLS SAN list stop at node 4. Generate deployment targets, hostnames,
+  TLS SANs, and fleet operations from the same node attribute set. Add
+  assertions for unique IP addresses, exactly one bootstrap node, and a
+  deployment target for every Legion configuration. Confirm whether node
+  5's private address ending in `.6` is intentional before changing it.
+
+3. **Make remote-access and elevation policy explicit.** OpenSSH is enabled
+  without an explicit authentication policy, while every wheel user gets
+  passwordless `doas` with environment preservation on every host. At
+  minimum, explicitly disable SSH password and keyboard-interactive
+  authentication. Separate workstation elevation from server deployment
+  privileges; prefer a dedicated deployment user with narrowly scoped
+  activation privileges over unrestricted passwordless root access.
+
+4. **Tighten the persistence option contract.** Remove the unused
+  `persistence.volumeGroup` and `persistence.user` options, add types to the
+  persistence path lists, require a non-empty `nukeRoot.device` whenever
+  rollback is enabled, and assert that `nukeRoot.maxAge` is nonnegative.
+  These checks should fail during evaluation rather than allowing a bad
+  rollback configuration to reach the initrd.
+
+5. **Separate the login shell from the general-purpose toolbox.** The
+  wrapped Fish login shell currently carries Cachix, devenv, and many CLI
+  tools in `runtimePkgs`. Keep the shell wrapper small and move general
+  tools into a system package module or the development shell. In
+  particular, `cachix` pulls in a `cabal2nix`-based
+  import-from-derivation step during evaluation, making evaluation from a
+  non-`x86_64-linux` machine depend on a working Linux builder.
+
+6. **Add repository-policy checks.** Once CI is in place, add inexpensive
+  evaluation checks for the invariants above: every applicable NixOS system
+  has a deploy target, every Legion hostname is represented in generated
+  SANs, exactly one K3s node bootstraps the cluster, and root rollback cannot
+  be enabled without a device. Also enable treefmt's flake check instead of
+  relying only on the development-shell hook.
+
+7. **Make the README useful for operating the flake.** Add a host and role
+  matrix, development-shell instructions, formatting and validation
+  commands, safe deployment examples, links to `DESIGN.md` and this file,
+  and a prominent reminder that Artemis persistence changes require running
+  `just migrate-persist` on Artemis before rebooting.
 
 ## Intentional Host Context
 
