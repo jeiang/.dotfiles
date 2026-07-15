@@ -53,6 +53,7 @@ jobs:
     needs: discover
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         check: ${{ fromJson(needs.discover.outputs.checks) }}
     runs-on: ubuntu-latest
