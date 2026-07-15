@@ -46,13 +46,7 @@ nh *args:
   NH_FLAKE={{justfile_directory()}} nh {{args}}
 
 deploy-legion *args:
-  @just deploy legion-node1 {{args}}
-  @just deploy legion-node2 {{args}}
-  @just deploy legion-node3 {{args}}
-  @just deploy legion-node4 {{args}}
+  @for node in $(nix eval --impure --raw '.#deploy.nodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrNames nodes)'); do just deploy "$node" {{args}}; done
 
 legion-run *command:
-  ssh node1.jeiang.dev -- {{command}}
-  ssh node2.jeiang.dev -- {{command}}
-  ssh node3.jeiang.dev -- {{command}}
-  ssh node4.jeiang.dev -- {{command}}
+  @for host in $(nix eval --impure --raw '.#deploy.nodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrValues (builtins.mapAttrs (_: node: node.hostname) nodes))'); do ssh "$host" -- {{command}}; done

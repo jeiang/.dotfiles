@@ -10,6 +10,63 @@
   podCIDRv4 = "10.42.0.0/16";
   serviceCIDRv4 = "10.43.0.0/16";
 
+  legionNodes = {
+    legion-node1 = {
+      bootstrap = true;
+      privateIPv4 = "172.17.0.1";
+      publicIPv4 = "178.156.226.145";
+      publicIPv6 = "2a01:4ff:f0:6b8e::1";
+    };
+
+    legion-node2 = {
+      privateIPv4 = "172.17.0.2";
+      publicIPv4 = "178.156.201.35";
+      publicIPv6 = "2a01:4ff:f0:a1ff::1";
+      agent = true;
+    };
+
+    legion-node3 = {
+      privateIPv4 = "172.17.0.3";
+      publicIPv4 = "178.156.186.147";
+      publicIPv6 = "2a01:4ff:f0:c52a::1";
+      agent = true;
+    };
+
+    legion-node4 = {
+      privateIPv4 = "172.17.0.4";
+      publicIPv4 = "178.156.191.180";
+      publicIPv6 = "2a01:4ff:f0:ca96::1";
+      agent = true;
+    };
+
+    legion-node5 = {
+      # Keep the gap at .5: this is the node's existing address, and changing
+      # cluster networking requires confirming the live host state first.
+      privateIPv4 = "172.17.0.6";
+      publicIPv4 = "178.156.253.100";
+      publicIPv6 = "2a01:4ff:f4:13f7::1";
+      agent = true;
+    };
+  };
+
+  bootstrapNodes = lib.filterAttrs (_: node: node.bootstrap or false) legionNodes;
+  nodeAddresses = lib.concatMap (node: [node.privateIPv4 node.publicIPv4 node.publicIPv6]) (builtins.attrValues legionNodes);
+
+  validatedLegionNodes = assert lib.assertMsg (builtins.length (builtins.attrNames bootstrapNodes) == 1)
+  "Legion inventory must define exactly one bootstrap node";
+  assert lib.assertMsg (builtins.length nodeAddresses == builtins.length (lib.unique nodeAddresses))
+  "Legion inventory must not reuse an IP address"; legionNodes;
+
+  bootstrapNode = builtins.head (builtins.attrValues (lib.filterAttrs (_: node: node.bootstrap or false) validatedLegionNodes));
+  nodeHostname = name: "${lib.removePrefix "legion-" name}.jeiang.dev";
+  apiTlsSans =
+    [
+      "pinard.co.tt"
+      "aidanpinard.co"
+      "jeiang.dev"
+    ]
+    ++ map nodeHostname (builtins.attrNames validatedLegionNodes);
+
   mkWan = {
     publicIPv4,
     publicIPv6,
@@ -90,7 +147,7 @@ in {
       };
 
       services.k3s = {
-        serverAddr = "https://172.17.0.1:6443";
+        serverAddr = "https://${bootstrapNode.privateIPv4}:6443";
 
         extraFlags = [
           "--flannel-iface=enp7s0"
@@ -120,35 +177,31 @@ in {
                   if (node.agent or false)
                   then "agent"
                   else "server";
-                extraFlags = lib.mkIf (!node.agent or false) [
-                  # Required before installing hcloud-cloud-controller-manager.
-                  "--disable-cloud-controller"
+                extraFlags = lib.mkIf (!node.agent or false) (
+                  [
+                    # Required before installing hcloud-cloud-controller-manager.
+                    "--disable-cloud-controller"
 
-                  # Required when using MetalLB instead of K3s ServiceLB.
-                  "--disable=servicelb"
+                    # Required when using MetalLB instead of K3s ServiceLB.
+                    "--disable=servicelb"
 
-                  # Avoid competing default storage classes when using Hetzner CSI.
-                  "--disable=local-storage"
+                    # Avoid competing default storage classes when using Hetzner CSI.
+                    "--disable=local-storage"
 
-                  # Dual-stack must be set when the cluster is first created.
-                  "--cluster-cidr=${podCIDRv4}"
-                  "--service-cidr=${serviceCIDRv4}"
-
-                  "--tls-san=pinard.co.tt"
-                  "--tls-san=aidanpinard.co"
-                  "--tls-san=jeiang.dev"
-                  "--tls-san=node1.jeiang.dev"
-                  "--tls-san=node2.jeiang.dev"
-                  "--tls-san=node3.jeiang.dev"
-                  "--tls-san=node4.jeiang.dev"
-
-                  "--kube-apiserver-arg=oidc-issuer-url=https://auth.jeiang.dev"
-                  "--kube-apiserver-arg=oidc-client-id=44213aa3-11eb-401d-922c-c7f81c3a9e37"
-                  "--kube-apiserver-arg=oidc-username-claim=preferred_username"
-                  "--kube-apiserver-arg=oidc-username-prefix=-"
-                  "--kube-apiserver-arg=oidc-groups-claim=groups"
-                  "--kube-apiserver-arg=oidc-groups-prefix="
-                ];
+                    # Dual-stack must be set when the cluster is first created.
+                    "--cluster-cidr=${podCIDRv4}"
+                    "--service-cidr=${serviceCIDRv4}"
+                  ]
+                  ++ map (san: "--tls-san=${san}") apiTlsSans
+                  ++ [
+                    "--kube-apiserver-arg=oidc-issuer-url=https://auth.jeiang.dev"
+                    "--kube-apiserver-arg=oidc-client-id=44213aa3-11eb-401d-922c-c7f81c3a9e37"
+                    "--kube-apiserver-arg=oidc-username-claim=preferred_username"
+                    "--kube-apiserver-arg=oidc-username-prefix=-"
+                    "--kube-apiserver-arg=oidc-groups-claim=groups"
+                    "--kube-apiserver-arg=oidc-groups-prefix="
+                  ]
+                );
               };
             }
 
@@ -161,56 +214,16 @@ in {
           ];
         };
     in
-      builtins.mapAttrs mkLegionSystem {
-        legion-node1 = {
-          bootstrap = true;
-          privateIPv4 = "172.17.0.1";
-          publicIPv4 = "178.156.226.145";
-          publicIPv6 = "2a01:4ff:f0:6b8e::1";
-        };
-
-        legion-node2 = {
-          privateIPv4 = "172.17.0.2";
-          publicIPv4 = "178.156.201.35";
-          publicIPv6 = "2a01:4ff:f0:a1ff::1";
-          agent = true;
-        };
-
-        legion-node3 = {
-          privateIPv4 = "172.17.0.3";
-          publicIPv4 = "178.156.186.147";
-          publicIPv6 = "2a01:4ff:f0:c52a::1";
-          agent = true;
-        };
-
-        legion-node4 = {
-          privateIPv4 = "172.17.0.4";
-          publicIPv4 = "178.156.191.180";
-          publicIPv6 = "2a01:4ff:f0:ca96::1";
-          agent = true;
-        };
-
-        legion-node5 = {
-          privateIPv4 = "172.17.0.6";
-          publicIPv4 = "178.156.253.100";
-          publicIPv6 = "2a01:4ff:f4:13f7::1";
-          agent = true;
-        };
-      };
-    deploy.nodes = let
-      mkDeploy = name: {hostname}: {
-        inherit hostname;
+      builtins.mapAttrs mkLegionSystem validatedLegionNodes;
+    deploy.nodes =
+      builtins.mapAttrs (name: _: {
+        hostname = nodeHostname name;
         sudo = "doas -u";
         profiles.system = {
           user = "root";
           path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.${name};
         };
-      };
-      nodes = builtins.listToAttrs (map (node: {
-        name = "legion-${node}";
-        value = {hostname = "${node}.jeiang.dev";};
-      }) ["node1" "node2" "node3" "node4" "node5"]);
-    in
-      builtins.mapAttrs mkDeploy nodes;
+      })
+      validatedLegionNodes;
   };
 }
