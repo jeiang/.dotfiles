@@ -89,6 +89,16 @@ intentional and should not be "fixed" without explicit sign-off. See
   bootstrap nodes or duplicate node IP addresses. Node 5's existing `.6`
   private address remains unchanged pending confirmation against the live
   host.
+- **Remote access and elevation policy were implicit and shared across host
+  roles.** SSH now explicitly disables password and keyboard-interactive
+  authentication and direct root login on every host. Artemis uses
+  password-required `doas` with credential caching and a sanitized
+  environment. Legion deployments connect through a dedicated, restricted-key
+  `deploy` account whose passwordless sudo rule is limited to deploy-rs
+  activation executables; wheel users retain password-protected sudo for
+  administrative recovery. The deployment account is intentionally a Nix
+  trusted user and therefore root-equivalent despite the narrower sudo rule;
+  see [ADR 0001](adr/0001-treat-deployment-identity-as-privileged.md).
 
 ## Future Improvements
 
@@ -102,15 +112,7 @@ Listed in recommended implementation order.
   unrelated lock-file and package-hash updates out of CI-only changes so
   reviews remain focused.
 
-2. **Make remote-access and elevation policy explicit.** OpenSSH is enabled
-  without an explicit authentication policy, while every wheel user gets
-  passwordless `doas` with environment preservation on every host. At
-  minimum, explicitly disable SSH password and keyboard-interactive
-  authentication. Separate workstation elevation from server deployment
-  privileges; prefer a dedicated deployment user with narrowly scoped
-  activation privileges over unrestricted passwordless root access.
-
-3. **Separate the login shell from the general-purpose toolbox.** The
+2. **Separate the login shell from the general-purpose toolbox.** The
   wrapped Fish login shell currently carries Cachix, devenv, and many CLI
   tools in `runtimePkgs`. Keep the shell wrapper small and move general
   tools into a system package module or the development shell. In
@@ -118,14 +120,14 @@ Listed in recommended implementation order.
   import-from-derivation step during evaluation, making evaluation from a
   non-`x86_64-linux` machine depend on a working Linux builder.
 
-4. **Add repository-policy checks.** Once CI is in place, add inexpensive
+3. **Add repository-policy checks.** Once CI is in place, add inexpensive
   evaluation checks for the invariants above: every applicable NixOS system
   has a deploy target, every Legion hostname is represented in generated
   SANs, exactly one K3s node bootstraps the cluster, and root rollback cannot
   be enabled without a device. Also enable treefmt's flake check instead of
   relying only on the development-shell hook.
 
-5. **Make the README useful for operating the flake.** Add a host and role
+4. **Make the README useful for operating the flake.** Add a host and role
   matrix, development-shell instructions, formatting and validation
   commands, safe deployment examples, links to `DESIGN.md` and this file,
   and a prominent reminder that Artemis persistence changes require running

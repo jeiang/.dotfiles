@@ -28,8 +28,14 @@
     sops.secrets."passwords/aidanp".neededForUsers = true;
     sops.secrets."passwords/root".neededForUsers = true;
     zramSwap.enable = true;
-    services.openssh.enable = true;
-    security.sudo.wheelNeedsPassword = false;
+    services.openssh = {
+      enable = true;
+      settings = {
+        PasswordAuthentication = false;
+        KbdInteractiveAuthentication = false;
+        PermitRootLogin = "no";
+      };
+    };
     environment.systemPackages = [
       self.packages.${pkgs.stdenv.hostPlatform.system}.git
     ];

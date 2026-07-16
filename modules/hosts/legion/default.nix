@@ -95,15 +95,44 @@
   };
 in {
   flake = {
-    nixosModules.legionConfiguration = {
+    nixosModules.legionConfiguration = {pkgs, ...}: {
       imports = [
         self.nixosModules.base
         self.nixosModules.sharedConfiguration
         self.nixosModules.sops
         self.nixosModules.legionHardware
-        self.nixosModules.doas
         self.nixosModules.k3s
         self.diskoConfigurations.legion
+      ];
+
+      users = {
+        groups.deploy = {};
+        users.deploy = {
+          isSystemUser = true;
+          group = "deploy";
+          home = "/var/empty";
+          createHome = false;
+          hashedPassword = "!";
+          shell = pkgs.bashInteractive;
+          openssh.authorizedKeys.keys = [
+            "restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGEDR/RgCI/ULKL6ywYbmeqvU5BfjpmMnOieuQ66XlX+ legion-deploy"
+          ];
+        };
+      };
+
+      nix.settings.trusted-users = ["deploy"];
+
+      security.sudo.extraRules = [
+        {
+          users = ["deploy"];
+          runAs = "root";
+          commands = [
+            {
+              command = "/nix/store/*/activate-rs";
+              options = ["NOPASSWD"];
+            }
+          ];
+        }
       ];
 
       boot = {
@@ -218,7 +247,10 @@ in {
     deploy.nodes =
       builtins.mapAttrs (name: _: {
         hostname = nodeHostname name;
-        sudo = "doas -u";
+        # The first activation removes doas, so disable its doas-based waiter:
+        # deploy .#legion-nodeN --ssh-user aidanp --sudo='doas -u' --magic-rollback=false -- --impure
+        sshUser = "deploy";
+        sudo = "sudo -u";
         profiles.system = {
           user = "root";
           path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.${name};
