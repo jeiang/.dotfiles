@@ -112,22 +112,14 @@ Listed in recommended implementation order.
   unrelated lock-file and package-hash updates out of CI-only changes so
   reviews remain focused.
 
-2. **Separate the login shell from the general-purpose toolbox.** The
-  wrapped Fish login shell currently carries Cachix, devenv, and many CLI
-  tools in `runtimePkgs`. Keep the shell wrapper small and move general
-  tools into a system package module or the development shell. In
-  particular, `cachix` pulls in a `cabal2nix`-based
-  import-from-derivation step during evaluation, making evaluation from a
-  non-`x86_64-linux` machine depend on a working Linux builder.
-
-3. **Add repository-policy checks.** Once CI is in place, add inexpensive
+2. **Add repository-policy checks.** Once CI is in place, add inexpensive
   evaluation checks for the invariants above: every applicable NixOS system
   has a deploy target, every Legion hostname is represented in generated
   SANs, exactly one K3s node bootstraps the cluster, and root rollback cannot
   be enabled without a device. Also enable treefmt's flake check instead of
   relying only on the development-shell hook.
 
-4. **Make the README useful for operating the flake.** Add a host and role
+3. **Make the README useful for operating the flake.** Add a host and role
   matrix, development-shell instructions, formatting and validation
   commands, safe deployment examples, links to `DESIGN.md` and this file,
   and a prominent reminder that Artemis persistence changes require running
