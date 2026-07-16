@@ -7,6 +7,7 @@
     imports = [
       self.nixosModules.hjem
       self.nixosModules.nix
+      self.nixosModules.toolbox
     ];
     users = {
       mutableUsers = false;
@@ -36,8 +37,5 @@
         PermitRootLogin = "no";
       };
     };
-    environment.systemPackages = [
-      self.packages.${pkgs.stdenv.hostPlatform.system}.git
-    ];
   };
 }
