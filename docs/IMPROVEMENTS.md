@@ -70,6 +70,13 @@ Replace the transitional Experimental Cluster with explicitly placed
 Host-Native Services on `legion-node1` through `legion-node4`. Follow
 [ADR 0002](adr/0002-migrate-legion-to-host-native-services.md).
 
+Three workloads run only on the Experimental Cluster and are absent from the
+Kubernetes manifests repository: the `jkmn-website` static site
+(`noelejoshua.com`), Stirling PDF (`pdf.plyrex.dev`), and the Tailscale reverse
+proxy publishing `jellyfin.plyrex.dev` and `seerr.plyrex.dev`. Include them in
+the migration inventory; do not derive the inventory from the manifests
+repository alone.
+
 ### Capacity And Placement
 
 - Measure steady-state CPU, memory, storage, and dependencies for every current
@@ -85,13 +92,19 @@ Host-Native Services on `legion-node1` through `legion-node4`. Follow
 
 ### Service Modules
 
-- Use first-party NixOS modules for Actual Budget, Attic, Blocky, and Pocket ID.
+- Use first-party NixOS modules for Actual Budget, Attic, Blocky, Pocket ID,
+  and Stirling PDF. Stirling PDF keeps login enabled and moves its authoritative
+  data from the cluster-provisioned 10 GiB Hetzner Volume to a directly mounted
+  Volume on its assigned node.
 - Compose the first-party component modules behind local modules for monitoring
   and CrowdSec.
 - Build a local NetBird module for the deployed server, relay, reverse proxy,
   identity, and state topology rather than forcing it through the mismatched
   first-party server abstraction.
 - Use thin local modules for H@H and project-specific static sites.
+- Render the `jkmn-website` content to static HTML and serve `noelejoshua.com`
+  directly from the Edge Node Caddy as an ordinary static site, retiring its
+  nginx container and ConfigMap-embedded pages.
 - Keep application source in its application repository. This flake owns the
   NixOS service definition, placement, state, secrets, and lifecycle.
 
@@ -107,6 +120,13 @@ Host-Native Services on `legion-node1` through `legion-node4`. Follow
   private network.
 - Terminate public TLS at Caddy. Backend HTTP over the firewalled Hetzner private
   network is the accepted transport boundary.
+- Replace the cluster's Tailscale-plus-Caddy proxy pod by joining the Edge Node
+  to the tailnet with `services.tailscale` and adding Caddy routes for
+  `jellyfin.plyrex.dev` and `seerr.plyrex.dev` that proxy to the existing
+  tailnet peer. Deliver the Tailscale auth key through sops-nix scoped to the
+  Edge Node. These two routes are the only accepted exception to the
+  private-network backend transport boundary; their backend hop rides the
+  tailnet.
 - Keep DNS, Hetzner Cloud Firewall, server, and Volume provisioning outside this
   repository. Document their required records, rules, IDs, and attachments.
 
