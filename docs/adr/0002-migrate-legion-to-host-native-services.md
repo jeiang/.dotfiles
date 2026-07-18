@@ -9,8 +9,10 @@ four-node fleet.
 
 `legion-node1` becomes the single Caddy Edge Node and public DNS points directly
 to it after the Hetzner load balancer is removed. Caddy terminates public TLS and
-proxies over the firewalled Hetzner private network. Preserve CrowdSec IP
-remediation and AppSec through a reproducible Caddy plugin build.
+proxies over the firewalled Hetzner private network, except for the media routes
+whose backend is an external tailnet peer; the Edge Node joins the tailnet and
+proxies those over Tailscale. Preserve CrowdSec IP remediation and AppSec
+through a reproducible Caddy plugin build.
 
 Use first-party NixOS service modules where they match the workload, composed
 local modules for monitoring and CrowdSec, a custom local NetBird module for its
