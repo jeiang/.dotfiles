@@ -60,7 +60,7 @@ jobs:
       - name: Discover checks
         id: discover
         run: |
-          checks=$(nix eval --impure --json '.#checks.x86_64-linux' --apply builtins.attrNames)
+          checks=$(nix eval --json '.#checks.x86_64-linux' --apply builtins.attrNames)
           echo "checks=$checks" >> "$GITHUB_OUTPUT"
 
   build:
@@ -107,7 +107,7 @@ jobs:
       - name: Build check
         id: build
         run: |
-          paths=$(nix build --impure --keep-going --show-trace --no-link --print-out-paths ".#checks.x86_64-linux.${{ matrix.check }}")
+          paths=$(nix build --keep-going --show-trace --no-link --print-out-paths ".#checks.x86_64-linux.${{ matrix.check }}")
           delimiter="$(openssl rand -hex 8)"
           {
             echo "paths<<$delimiter"
