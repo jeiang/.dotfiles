@@ -61,15 +61,21 @@
         ];
         flake-registry = "/etc/nix/registry.json";
 
+        # attic.jeiang.dev is self-hosted; don't let a cache outage stall deploys
+        connect-timeout = 5;
+        fallback = true;
+
         # for direnv GC roots
         keep-derivations = true;
         keep-outputs = true;
 
         substituters = [
+          "https://attic.jeiang.dev/default"
           "https://helix.cachix.org"
           "https://hyprland.cachix.org"
         ];
         trusted-public-keys = [
+          "default:Xaqeg5b1ctNwH4sEWG+nt1kSpGPpFG0zivJUbZyCfdM="
           "helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="
           "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
         ];
