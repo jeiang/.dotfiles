@@ -46,7 +46,7 @@ jobs:
       - name: Discover checks
         id: discover
         run: |
-          checks=$(nix eval --impure --json '.#checks.x86_64-linux' --apply builtins.attrNames)
+          checks=$(nix eval --json '.#checks.x86_64-linux' --apply builtins.attrNames)
           echo "checks=$checks" >> "$GITHUB_OUTPUT"
 
   build:
@@ -84,8 +84,8 @@ jobs:
       # write) pushes, since the private cache isn't otherwise readable.
       - name: Log in to Attic
         run: |
-          nix run --impure .#attic-client -- login --set-default ci https://attic.jeiang.dev/ --oidc github-actions
-          nix run --impure .#attic-client -- use default
+          nix run .#attic-client -- login --set-default ci https://attic.jeiang.dev/ --oidc github-actions
+          nix run .#attic-client -- use default
 
       # print-out-paths emits one line per derivation output (e.g. mangohud's
       # "out" and "man"), so this can be multi-line — write it to
@@ -94,7 +94,7 @@ jobs:
       - name: Build check
         id: build
         run: |
-          paths=$(nix build --impure --keep-going --show-trace --no-link --print-out-paths ".#checks.x86_64-linux.${{ matrix.check }}")
+          paths=$(nix build --keep-going --show-trace --no-link --print-out-paths ".#checks.x86_64-linux.${{ matrix.check }}")
           delimiter="$(openssl rand -hex 8)"
           {
             echo "paths<<$delimiter"
@@ -116,4 +116,4 @@ jobs:
       - name: Push to Attic
         env:
           PATHS: ${{ steps.build.outputs.paths }}
-        run: nix run --impure .#attic-client -- push default $PATHS || echo "::warning::Push to Attic failed or was not authorized"
+        run: nix run .#attic-client -- push default $PATHS || echo "::warning::Push to Attic failed or was not authorized"

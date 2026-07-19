@@ -8,16 +8,14 @@
       self.packages.${pkgs.stdenv.hostPlatform.system}.git
       self.packages.${pkgs.stdenv.hostPlatform.system}.difft
       self.packages.${pkgs.stdenv.hostPlatform.system}.helix
-      self.packages.${pkgs.stdenv.hostPlatform.system}.cachix
+      cachix
       fd
       dig
       glow
       bandwhich
       bingrep
       choose
-      (devenv.override {
-        cachix = self.packages.${pkgs.stdenv.hostPlatform.system}.cachix;
-      })
+      devenv
       duf
       erdtree
       file
