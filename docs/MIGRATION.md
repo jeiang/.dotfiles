@@ -85,10 +85,10 @@ Tailscale proxy routes).
 | Blocky DNS | internal (NetBird peers) | none | First-party `services.blocky` |
 | Monitoring (VictoriaMetrics, VictoriaLogs, Grafana, vmalert, Alertmanager, log/metric agents) | `grafana.jeiang.dev` | reset allowed | Local composition module |
 | website | `jeiang.dev`, `aidanpinard.co`, `pinard.co.tt` | none | Static from `inputs.website` served by Caddy |
-| jkmn-website | `noelejoshua.com` | none (content must be extracted from live ConfigMap) | Static site served by Caddy |
+| jkmn-website | `noelejoshua.com` | none | Static from new flake input `github:joshua-noel/portfolio` (its flake exposes the html/css/js), served by Caddy |
 | bill-splitter | `bill-split.jeiang.dev` | none | Static/thin service served via Caddy (investigate build) |
 | github-redirect | `github.jeiang.dev` | none | Caddy redirect rule |
-| Tailscale proxy (jellyfin/seerr) | `jellyfin.plyrex.dev`, `seerr.plyrex.dev` | auth key secret | Edge Node joins tailnet; Caddy routes to tailnet peer |
+| Tailscale proxy (jellyfin/seerr) | `jellyfin.plyrex.dev`, `seerr.plyrex.dev` | — | **Deferred**: edge Caddy serves a placeholder page; the cluster proxy dies with K3s teardown (downtime accepted); tailnet integration happens at a later date |
 | Dropped: Traefik, cert-manager, Bitwarden SM operator, rclone CSI, Kyverno/RBAC charts, NetBird operator + `netbird-resources`, Hetzner CCM/CSI | — | — | Removed with K3s |
 
 ## Proposed Placement
@@ -101,7 +101,7 @@ state on a directly mounted Hetzner Volume; every service gets a systemd
 
 | Node | Role | Services | Port notes |
 | --- | --- | --- | --- |
-| `legion-node1` | Edge Node | Caddy (80/443 public, layer-4 SNI passthrough for `*.proxy.jeiang.dev`), CrowdSec LAPI+AppSec, Tailscale client, static sites (incl. NetBird dashboard), github-redirect | 80/443 public; blocked for other services |
+| `legion-node1` | Edge Node | Caddy (80/443 public, layer-4 SNI passthrough for `*.proxy.jeiang.dev`), CrowdSec LAPI+AppSec, static sites (incl. NetBird dashboard), github-redirect (Tailscale client deferred) | 80/443 public; blocked for other services |
 | `legion-node2` | NetBird | NetBird server, relay (+STUN UDP 3478), NetBird reverse proxy (TCP 443 + free custom ports), Pocket ID (private HTTP behind Caddy) | 443 owned by NetBird RP; 3478/UDP relay; remaining ports free for RP custom ports |
 | `legion-node3` | Observability | VictoriaMetrics, VictoriaLogs, Grafana, vmalert, Alertmanager, Blocky | 53 owned by Blocky on the node's NetBird address |
 | `legion-node4` | Applications | Attic, Actual Budget, Stirling PDF, H@H | 8888/TCP public for H@H; tightest RAM fit — audit may move Stirling PDF |
@@ -216,12 +216,13 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   feasible); route table covers every public host in the inventory
   including the protocol-specific NetBird routes.
 - **1.2 Static sites on the edge**: serve `website` (from `inputs.website`,
-  which gains a caller — amend `IMPROVEMENTS.md` §3), `jkmn-website`
-  (static HTML; content must first be extracted from the live ConfigMap by
-  the operator and committed — blocked until provided), `bill-splitter`
-  (investigate `jeiang/bill-splitter` build output; serve statically if
-  possible, else thin service), the NetBird dashboard static assets, and
-  the `github.jeiang.dev` redirect.
+  which gains a caller — amend `IMPROVEMENTS.md` §3), `jkmn-website` (new
+  flake input `github:joshua-noel/portfolio`, whose flake exposes the
+  html/css/js output), `bill-splitter` (investigate `jeiang/bill-splitter`
+  build output; serve statically if possible, else thin service), the
+  NetBird dashboard static assets, the `github.jeiang.dev` redirect, and
+  placeholder pages for `jellyfin.plyrex.dev`/`seerr.plyrex.dev` (see
+  1.4).
   *Accept*: each host serves correct content via `curl --resolve` against
   the Edge Node before DNS moves.
 - **1.3 CrowdSec composition module**: build on first-party
@@ -234,11 +235,14 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   *Accept*: services start in a VM test or on-node; Caddy handler config
   references a valid LAPI URL + key from sops; a CrowdSec restart does not
   interrupt edge traffic.
-- **1.4 Tailscale + media routes**: `services.tailscale` on the Edge Node
-  with sops auth key; Caddy routes `jellyfin.plyrex.dev` and
-  `seerr.plyrex.dev` to the existing tailnet peer. Accepted exception to
-  the private-network backend rule per ADR 0002.
-  *Accept*: routes render; tailnet join is an operator runbook step.
+- **1.4 Media routes — deferred**: the Tailscale-based backend for
+  `jellyfin.plyrex.dev`/`seerr.plyrex.dev` is NOT migrated now. The edge
+  serves a static placeholder page on both hosts (implemented in 1.2); the
+  cluster's Tailscale proxy pod is deleted with the K3s teardown and its
+  downtime is accepted. Joining the Edge Node to the tailnet and restoring
+  the proxied routes (the accepted ADR 0002 exception) happens at a later
+  date, after the migration.
+  *Accept*: placeholder responses render for both hosts.
 - **1.5 Runbook `docs/runbooks/edge-cutover.md`**: staged DNS cutover per
   host (test via `--resolve`, lower TTL, move A/AAAA records from the
   Hetzner LB to `legion-node1`, watch logs), third-party DNS coordination
