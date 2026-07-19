@@ -123,10 +123,12 @@ intentional instead of moving it into a generalized abstraction.
 
 ## Intentional Host Decisions
 
-- Legion currently disables the NixOS firewall because the Experimental
-  Cluster relies on Hetzner Cloud Firewall. ADR 0002 changes the target policy:
-  Host-Native Services must re-enable host firewalls before they bind directly
-  on the nodes.
+- Legion enables the NixOS firewall (`modules/hosts/legion/hardware.nix`,
+  ADR 0002 / `docs/MIGRATION.md` piece 0.2), rather than relying solely on
+  the Hetzner Cloud Firewall. Openings are derived in
+  `modules/hosts/legion/default.nix` from the Legion service inventory
+  (`service-inventory.nix`) plus the live K3s-era data path documented
+  there.
 - Legion intentionally has one K3s server. Control-plane high availability
   would consume RAM needed for experimentation and transitional workloads.
 - `legion-node5` intentionally uses private address `172.17.0.6`; do not close

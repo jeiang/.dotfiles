@@ -63,6 +63,13 @@
   "Legion service inventory places services on unknown nodes: ${builtins.concatStringsSep ", " unknownServicePlacements}";
     lib.mapAttrs (name: node: node // (legionServices.${name} or {})) legionNodes;
 
+  # tcp/udp ports a node's placed services open, scoped to "public" or
+  # "private" per their firewall.scope (docs/MIGRATION.md piece 0.1/0.2).
+  firewallPortsFor = nodeName: proto: scope: let
+    openings = lib.concatMap (service: service.firewall or []) (validatedLegionNodes.${nodeName}.services or []);
+  in
+    lib.unique (map (o: o.port) (builtins.filter (o: o.proto == proto && o.scope == scope) openings));
+
   bootstrapNode = builtins.head (builtins.attrValues (lib.filterAttrs (_: node: node.bootstrap or false) validatedLegionNodes));
   nodeHostname = name: "${lib.removePrefix "legion-" name}.jeiang.dev";
   apiTlsSans =
@@ -101,7 +108,11 @@
   };
 in {
   flake = {
-    nixosModules.legionConfiguration = {pkgs, ...}: {
+    nixosModules.legionConfiguration = {
+      pkgs,
+      config,
+      ...
+    }: {
       imports = [
         self.nixosModules.base
         self.nixosModules.sharedConfiguration
@@ -188,6 +199,35 @@ in {
           "--flannel-iface=enp7s0"
           "--kubelet-arg=cloud-provider=external"
         ];
+      };
+
+      # Piece 0.2: re-enable the host firewall (hardware.nix flips
+      # networking.firewall.enable) with openings derived from the Legion
+      # service inventory above, plus the live K3s-era data path that isn't
+      # yet represented in the inventory:
+      #  - K3s control (6443/10250 tcp, 8472 udp) is opened by
+      #    modules/nixos/k3s.nix already.
+      #  - Traefik NodePorts targeted by the Hetzner LB (legion-lb1, TCP
+      #    web/websecure) and its health checks arrive over the private
+      #    network: the LB is annotated `use-private-ip: true` (confirmed
+      #    live: NodePorts 30693/tcp, 30297/tcp on the `traefik` Service),
+      #    so they're covered by the enp7s0 trust below rather than pinned
+      #    here, since NodePort numbers are not stable across Service
+      #    recreation.
+      #  - STUN (UDP 3478) and H@H's hostPort (TCP 8888) are opened
+      #    fleet-wide "for now": the live K3s scheduler can place those
+      #    pods on any node today (the NetBird relay has moved nodes
+      #    before), and the target placement (netbird-relay on
+      #    legion-node2, hath on legion-node4; see _service-inventory.nix)
+      #    only takes effect once pieces 3.1/5.4 land. Narrow this during
+      #    their cutover runbooks.
+      networking.firewall = {
+        allowedTCPPorts = firewallPortsFor config.networking.hostName "tcp" "public" ++ [8888];
+        allowedUDPPorts = firewallPortsFor config.networking.hostName "udp" "public" ++ [3478];
+        # Backend transport boundary (DESIGN.md): K3s/kubelet, flannel
+        # VXLAN, and Hetzner LB->NodePort traffic all arrive on the
+        # private interface already.
+        trustedInterfaces = ["enp7s0"];
       };
 
       nixpkgs.hostPlatform = "x86_64-linux";
