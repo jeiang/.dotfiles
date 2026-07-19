@@ -124,6 +124,7 @@
           ".local/share/heroic"
           ".local/share/PrismLauncher"
           ".local/share/qBittorrent"
+          ".local/share/rivalsmodmanager"
         ];
         cache.directories = [
           ".cache/devenv"
