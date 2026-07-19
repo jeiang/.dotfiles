@@ -50,21 +50,7 @@ Remove inputs that have no callers:
 Update `flake.lock`, then evaluate every host and run the package and flake
 checks to catch any hidden dependency before merging.
 
-## 4. Separate Anonymous Cache Reads From Trusted Writes
-
-The Attic cache is publicly readable, but CI still performs OIDC login on pull
-requests.
-
-- Configure the public cache as an anonymous substituter for discovery and
-  build jobs.
-- Request an OIDC token and log in to Attic only for trusted `main` runs that
-  may push.
-- Treat a failed cache push on a trusted run as a failure instead of suppressing
-  every push error.
-- Preserve separate checks for every `x86_64-linux` package, every NixOS system
-  closure, treefmt, Statix, and deploy-rs.
-
-## 5. Migrate Legion To Host-Native Services
+## 4. Migrate Legion To Host-Native Services
 
 Replace the transitional Experimental Cluster with explicitly placed
 Host-Native Services on `legion-node1` through `legion-node4`. Follow
