@@ -40,11 +40,13 @@
     nix-minecraft.inputs.nixpkgs.follows = "nixpkgs";
     website.url = "github:jeiang/website";
     website.inputs.nixpkgs.follows = "nixpkgs";
-    # Deliberately not following our nixpkgs: attic-client is built and
-    # pushed to Cachix from a standalone jeiang/attic checkout, which uses
-    # attic's own nixpkgs pin. Following ours here would give attic-client a
-    # different derivation (different rustc/deps) and thus a different store
-    # path than what's actually cached, forcing a from-source rebuild in CI.
+    # Deliberately not following our nixpkgs: attic-client is built with
+    # attic's own nixpkgs pin and pushed to the Attic cache by jeiang/attic's
+    # own CI. Following ours here would give attic-client a different
+    # derivation (different rustc/deps) and thus a different store path than
+    # what's actually cached, forcing a from-source rebuild in CI. CI also
+    # installs the client from this input's locked rev (see
+    # .github/workflows/ci.yml), so this lock is the single pin to bump.
     attic.url = "github:jeiang/attic";
   };
 

@@ -15,9 +15,17 @@ concurrency:
 
 permissions:
   contents: read
-  # Needed to exchange a GitHub Actions OIDC token for an Attic access token
-  # (jeiang/attic's github-actions OIDC provider) — no ATTIC_TOKEN secret.
-  id-token: write
+
+env:
+  # The Attic "default" cache is public: pulls are anonymous on every event
+  # (PRs and forks included), so substitution needs no client, no login, and
+  # no secrets — just the substituter and its signing key in nix.conf below.
+  # Push credentials are minted per-job via GitHub OIDC immediately before
+  # pushing, and only main pushes are granted write access server-side.
+  ATTIC_SERVER: https://attic.jeiang.dev/
+  ATTIC_CACHE: default
+  ATTIC_SUBSTITUTER: https://attic.jeiang.dev/default
+  ATTIC_PUBLIC_KEY: "default:Xaqeg5b1ctNwH4sEWG+nt1kSpGPpFG0zivJUbZyCfdM="
 
 jobs:
   # Source of the check matrix below. Building every check in a single job
@@ -40,8 +48,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
+      # The Attic substituter goes straight into nix.conf so evaluation-time
+      # IFD sources substitute from the cache too.
       - name: Install Nix
         uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+        with:
+          extra_nix_config: |
+            extra-substituters = ${{ env.ATTIC_SUBSTITUTER }}
+            extra-trusted-public-keys = ${{ env.ATTIC_PUBLIC_KEY }}
 
       - name: Discover checks
         id: discover
@@ -51,9 +65,19 @@ jobs:
 
   build:
     needs: discover
+    permissions:
+      contents: read
+      # Exchanged for a short-lived Attic push token right before pushing;
+      # the server only grants write access to pushes on the protected main
+      # branch, so PR runs never use it.
+      id-token: write
     strategy:
       fail-fast: false
-      max-parallel: 2
+      # 2 was set when every job compiled heavyweight closures from scratch;
+      # with the cache warm, jobs are mostly network-bound substitution, so a
+      # higher cap mainly trades Attic server load for wall-clock time. Raise
+      # further if the cache keeps up.
+      max-parallel: 6
       matrix:
         check: ${{ fromJson(needs.discover.outputs.checks) }}
     runs-on: ubuntu-latest
@@ -66,26 +90,15 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           df -h
 
-      # jeiang.cachix.org carries a prebuilt attic-client so this job doesn't
-      # have to compile the Rust toolchain (attic-client + its full
-      # dependency tree) from scratch every run just to get a CLI for
-      # talking to Attic.
+      # Pulls are anonymous against the public cache: baking the substituter
+      # into nix.conf here means every nix invocation below substitutes from
+      # Attic with zero setup steps — no attic client, no login, no secrets.
       - name: Install Nix
         uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
         with:
           extra_nix_config: |
-            extra-substituters = https://jeiang.cachix.org
-            extra-trusted-public-keys = jeiang.cachix.org-1:Ax2onCzp6V74ORnjlTAbZsDmlLeMMzDOzzcC2qHfJKg=
-
-      # Exchanges this job's GitHub Actions OIDC token for an Attic access
-      # token via jeiang/attic's github-actions OIDC provider, then points
-      # Nix's substituters at the "default" cache using that token — this
-      # covers both authenticated pulls and (if this ref is authorized to
-      # write) pushes, since the private cache isn't otherwise readable.
-      - name: Log in to Attic
-        run: |
-          nix run --impure .#attic-client -- login --set-default ci https://attic.jeiang.dev/ --oidc github-actions
-          nix run --impure .#attic-client -- use default
+            extra-substituters = ${{ env.ATTIC_SUBSTITUTER }}
+            extra-trusted-public-keys = ${{ env.ATTIC_PUBLIC_KEY }}
 
       # print-out-paths emits one line per derivation output (e.g. mangohud's
       # "out" and "man"), so this can be multi-line — write it to
@@ -102,10 +115,17 @@ jobs:
             echo "$delimiter"
           } >> "$GITHUB_OUTPUT"
 
-      # Push whatever this check built. Read/write is enforced server-side by
-      # Attic's OIDC rules, not here, so this can just be attempted
-      # unconditionally: a token without write access is rejected without
-      # failing the job, since the check itself already succeeded above.
+      # Main pushes only: PRs pull anonymously and never need a client or a
+      # token. The attic client rev comes from flake.lock (the same pin the
+      # flake itself uses), and that build is pre-seeded in the cache by
+      # jeiang/attic's own CI, so the install substitutes in seconds instead
+      # of compiling a Rust toolchain. Login happens here, immediately before
+      # the push, so tokens stay short-lived and scoped to jobs that can
+      # actually push.
+      #
+      # The push is best-effort by design (continue-on-error plus the retry
+      # script's soft-fail): the cache is an optimization, and an Attic
+      # outage must never turn main red.
       #
       # PATHS goes through the environment rather than being spliced
       # directly into the run script: the output can be multiple
@@ -114,6 +134,12 @@ jobs:
       # straight into the YAML would paste literal newlines into the script
       # and turn each extra path into its own (invalid) command.
       - name: Push to Attic
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
         env:
           PATHS: ${{ steps.build.outputs.paths }}
-        run: nix run --impure .#attic-client -- push default $PATHS || echo "::warning::Push to Attic failed or was not authorized"
+        run: |
+          attic_rev=$(jq -r '.nodes.attic.locked.rev' flake.lock)
+          nix profile install "github:jeiang/attic/${attic_rev}#attic-client"
+          ./.ci/attic-login-push.sh
+          ./.ci/attic-push-retry.sh "ci:$ATTIC_CACHE" $PATHS
