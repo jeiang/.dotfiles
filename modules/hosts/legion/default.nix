@@ -52,10 +52,16 @@
   bootstrapNodes = lib.filterAttrs (_: node: node.bootstrap or false) legionNodes;
   nodeAddresses = lib.concatMap (node: [node.privateIPv4 node.publicIPv4 node.publicIPv6]) (builtins.attrValues legionNodes);
 
+  legionServices = import ./_service-inventory.nix {inherit lib;};
+  unknownServicePlacements = builtins.filter (name: !(legionNodes ? ${name})) (builtins.attrNames legionServices);
+
   validatedLegionNodes = assert lib.assertMsg (builtins.length (builtins.attrNames bootstrapNodes) == 1)
   "Legion inventory must define exactly one bootstrap node";
   assert lib.assertMsg (builtins.length nodeAddresses == builtins.length (lib.unique nodeAddresses))
-  "Legion inventory must not reuse an IP address"; legionNodes;
+  "Legion inventory must not reuse an IP address";
+  assert lib.assertMsg (unknownServicePlacements == [])
+  "Legion service inventory places services on unknown nodes: ${builtins.concatStringsSep ", " unknownServicePlacements}";
+    lib.mapAttrs (name: node: node // (legionServices.${name} or {})) legionNodes;
 
   bootstrapNode = builtins.head (builtins.attrValues (lib.filterAttrs (_: node: node.bootstrap or false) validatedLegionNodes));
   nodeHostname = name: "${lib.removePrefix "legion-" name}.jeiang.dev";
