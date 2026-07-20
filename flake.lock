@@ -1253,6 +1253,26 @@
         "type": "github"
       }
     },
+    "portfolio": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1784464881,
+        "narHash": "sha256-p0R3awrmYAVW3KTAK42s6rpkMhS2GtJT17oLy0LWqf8=",
+        "owner": "joshua-noel",
+        "repo": "portfolio",
+        "rev": "44d790950bf9fc4a16c2fdb62e8441ae11e31070",
+        "type": "github"
+      },
+      "original": {
+        "owner": "joshua-noel",
+        "repo": "portfolio",
+        "type": "github"
+      }
+    },
     "pre-commit-hooks": {
       "inputs": {
         "flake-compat": "flake-compat_5",
@@ -1295,6 +1315,7 @@
         "nix2container": "nix2container",
         "nixos-facter-modules": "nixos-facter-modules",
         "nixpkgs": "nixpkgs_5",
+        "portfolio": "portfolio",
         "sops-nix": "sops-nix",
         "treefmt-nix": "treefmt-nix_2",
         "website": "website",

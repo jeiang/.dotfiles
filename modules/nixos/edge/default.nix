@@ -1,5 +1,9 @@
-{self, ...}: {
-  # docs/MIGRATION.md piece 1.1: Edge Node Caddy. Imported only for the
+{
+  self,
+  inputs,
+  ...
+}: {
+  # docs/MIGRATION.md piece 1.1/1.2: Edge Node Caddy. Imported only for the
   # inventory's edge node (modules/hosts/legion/default.nix), alongside K3s
   # until the runbook (piece 1.5) cuts DNS over.
   flake.nixosModules.edge = {
@@ -17,6 +21,10 @@
     node2 = "172.17.0.2"; # NetBird server/relay (3.1), Pocket ID (4.1)
     node3 = "172.17.0.3"; # Monitoring/Grafana (6.1)
     node4 = "172.17.0.4"; # Attic (5.1), Actual Budget (5.2)
+
+    website = inputs.website.packages.${system}.default;
+    portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
+    netbirdDashboard = self.packages.${system}.netbird-dashboard;
   in {
     options.edge.crowdsec.enable = lib.mkEnableOption ''
       the CrowdSec bouncer HTTP + AppSec handlers on the edge. Off by
@@ -94,32 +102,50 @@
           # reuses this already-managed wildcard for them instead of
           # requesting a second certificate per hostname (see
           # https://caddyserver.com/docs/automatic-https#wildcard-certificates).
-          # Site content (the website/jkmn-website static roots) lands in
-          # piece 1.2; for now every host under the wildcard just proves
-          # out DNS-01 issuance.
           jeiang.dev, *.jeiang.dev {
             tls {
               dns hetzner {env.HETZNER_DNS_TOKEN}
             }
 
-            respond 404
+            @apex host jeiang.dev
+            handle @apex {
+              root * ${website}
+              file_server
+            }
+
+            # Anything else under the wildcard that isn't one of the
+            # specific host blocks below is a stray/typo subdomain.
+            handle {
+              respond 404
+            }
           }
 
           # aidanpinard.co / pinard.co.tt: separate DNS-01 certs per
           # docs/MIGRATION.md (Hetzner-hosted zones, not part of the
-          # jeiang.dev wildcard SAN). Content lands in piece 1.2.
+          # jeiang.dev wildcard SAN).
           aidanpinard.co {
             tls {
               dns hetzner {env.HETZNER_DNS_TOKEN}
             }
-            respond 404
+            root * ${website}
+            file_server
           }
 
           pinard.co.tt {
             tls {
               dns hetzner {env.HETZNER_DNS_TOKEN}
             }
-            respond 404
+            root * ${website}
+            file_server
+          }
+
+          # --- noelejoshua.com: jkmn-website (piece 1.2), new input -------
+          # noelejoshua.com is not in Hetzner DNS: no explicit `tls`
+          # directive, so this falls back to Caddy's standard automatic
+          # HTTPS (HTTP-01/TLS-ALPN-01), per the TLS strategy section.
+          noelejoshua.com {
+            root * ${portfolio}
+            file_server
           }
 
           # --- auth.jeiang.dev: Pocket ID (piece 4.1) ---------------------
@@ -159,9 +185,10 @@
           # Route split mirrors the live k8s-manifests
           # netbird/templates/ingress.yaml: gRPC/h2c for signal +
           # management + proxy registration, plain REST for api/oauth2 +
-          # the dashboard<->management WebSocket, and a separate port for
-          # the relay WebSocket. Long read timeouts for the streaming
-          # routes. The dashboard static-asset fallback lands in piece 1.2.
+          # the dashboard<->management WebSocket, a separate port for the
+          # relay WebSocket, and the dashboard static assets (piece 1.2)
+          # as the default fallback. Long read timeouts for the streaming
+          # routes.
           netbird.jeiang.dev {
             @grpc path /signalexchange.SignalExchange/* /management.ManagementService/* /management.ProxyService/*
             handle @grpc {
@@ -187,10 +214,32 @@
               }
             }
 
-            # Default fallback (dashboard static assets) lands in piece 1.2.
             handle {
-              respond 404
+              root * ${netbirdDashboard}
+              file_server
             }
+          }
+
+          # --- bill-split.jeiang.dev: BLOCKED, see report -----------------
+          # jeiang/bill-splitter has no flake.nix at the pinned
+          # k8s-manifests revision (ba481839c2eb24aa1079e902827121dc81d2936f),
+          # so there is no static flake output to serve. Per
+          # docs/MIGRATION.md piece 1.2, no route is defined here; this is
+          # reported to the planner rather than improvised around.
+
+          # --- github.jeiang.dev: redirect --------------------------------
+          github.jeiang.dev {
+            redir https://github.com/jeiang{uri} 301
+          }
+
+          # --- jellyfin.plyrex.dev / seerr.plyrex.dev: placeholders -------
+          # (piece 1.4, deferred). 503 rather than 200: accurately signals
+          # "temporarily unavailable" instead of looking like real content
+          # that a client or proxy might cache. Not in Hetzner DNS, so
+          # (like noelejoshua.com) these fall back to standard automatic
+          # HTTPS.
+          jellyfin.plyrex.dev, seerr.plyrex.dev {
+            respond "Service migrating. This service is temporarily unavailable while it moves to new infrastructure." 503
           }
         '';
       };

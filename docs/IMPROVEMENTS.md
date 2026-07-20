@@ -41,7 +41,6 @@ metadata.
 Remove inputs that have no callers:
 
 - `nix-minecraft`
-- `website`
 - `nix2container`
 - `mk-shell-bin`
 - `nixos-facter-modules`, because the pinned nixpkgs already provides the
