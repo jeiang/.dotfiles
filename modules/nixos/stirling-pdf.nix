@@ -1,6 +1,17 @@
 _: {
-  # docs/MIGRATION.md piece 5.3: Stirling PDF for legion-node4, behind the
-  # edge at pdf.plyrex.dev (modules/nixos/edge/default.nix). First-party
+  # UNPLACED (piece 0.6 capacity audit, docs/MIGRATION.md): this module is
+  # no longer imported by any node -- Stirling PDF's 1.35 GiB peak+typical
+  # JVM footprint doesn't fit a ~1.88 GiB Legion node alongside its other
+  # placed services. Kept in the tree, deferred, not deleted. The intended
+  # future replacement is BentoPDF via nixpkgs' first-party
+  # `services.bentopdf` (verified present in the pinned nixpkgs revision,
+  # `nixos/modules/services/web-apps/bentopdf.nix`) -- a much lighter
+  # non-JVM app that should fit the same node budget. Not implemented here;
+  # this is a forward-reference for whoever picks piece 5.3 back up.
+  #
+  # docs/MIGRATION.md piece 5.3 (original, now deferred): Stirling PDF for
+  # legion-node4, behind the edge at pdf.plyrex.dev
+  # (modules/nixos/edge/default.nix). First-party
   # `services.stirling-pdf` -- cluster-only workload (IMPROVEMENTS.md §4),
   # no k8s-manifests chart to diff against; the pinned nixpkgs module
   # (nixos/modules/services/web-apps/stirling-pdf.nix) hardcodes both
@@ -33,10 +44,11 @@ _: {
       # nothing else it reads is sensitive.
     };
 
-    # Java heap/native memory budget (docs/MIGRATION.md: "every service
-    # gets a systemd MemoryMax derived from the audit" -- piece 0.6's audit
-    # hasn't landed yet; this is a defensible starting point pending it,
-    # not a measured value).
+    # Java heap/native memory budget. Unchanged pre-audit value: the piece
+    # 0.6 capacity audit measured this workload at 1.35 GiB peak+typical,
+    # which is why it's deferred rather than placed (see this file's header
+    # comment) -- 712M stays here only as a starting point for whoever picks
+    # the module back up, not a value the audit endorsed.
     systemd.services.stirling-pdf.serviceConfig.MemoryMax = "712M";
   };
 }

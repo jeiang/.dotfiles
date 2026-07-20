@@ -1,37 +1,39 @@
 # Runbook: Applications Migration
 
 Operator runbook for [`docs/MIGRATION.md`](../MIGRATION.md) piece 5.6: moving
-Attic, Actual Budget, Stirling PDF, and H@H from the Experimental Cluster to
+Attic, Actual Budget, and H@H from the Experimental Cluster to
 `legion-node4` (`modules/nixos/attic.nix`, `modules/nixos/actual-budget.nix`,
-`modules/nixos/stirling-pdf.nix`, `modules/nixos/hath.nix`, pieces 5.1-5.4).
-Also covers piece 5.7 (NetBird DNS repoint for Blocky) as its own section
-below, per `docs/MIGRATION.md`'s "may fold into 5.6". Review
+`modules/nixos/hath.nix`, pieces 5.1-5.2/5.4). Stirling PDF (piece 5.3) is
+**deferred, not part of this migration** — see its own section below for why
+— so it is not among the services this runbook deploys/cuts over. Also
+covers piece 5.7 (NetBird DNS repoint for Blocky) as its own section below,
+per `docs/MIGRATION.md`'s "may fold into 5.6". Review
 [`AGENTS.md`](../../AGENTS.md) before running any command here, and
 [`docs/runbooks/restore.md`](restore.md) for the Restic mechanics that Actual
-Budget's and Stirling PDF's Safety Rule 1 steps depend on.
+Budget's Safety Rule 1 step depends on.
 
 This runbook assumes [`docs/runbooks/edge-cutover.md`](edge-cutover.md) has
-already landed the Edge Node (the `attic.jeiang.dev`, `budget.jeiang.dev`, and
-`pdf.plyrex.dev` Caddy routes exist and are verified up to the point where
-they `502` because pieces 5.1-5.3 aren't deployed yet — expected, not a
-regression). H@H has no edge route (Caddy doesn't proxy its binary protocol);
-it is reached directly at `legion-node4`'s public IP. This runbook does not
-cut DNS for any other Edge Node host, and does not touch the Hetzner Load
-Balancer, Traefik, or K3s (Cutover Safety Rule 3, Phase 7 only).
+already landed the Edge Node (the `attic.jeiang.dev` and `budget.jeiang.dev`
+Caddy routes exist and are verified up to the point where they `502` because
+pieces 5.1-5.2 aren't deployed yet — expected, not a regression;
+`pdf.plyrex.dev` instead serves a placeholder response, piece 0.6). H@H has
+no edge route (Caddy doesn't proxy its binary protocol); it is reached
+directly at `legion-node4`'s public IP. This runbook does not cut DNS for any
+other Edge Node host, and does not touch the Hetzner Load Balancer, Traefik,
+or K3s (Cutover Safety Rule 3, Phase 7 only).
 
 Each service section is independent — deploy, verify, and cut one over at a
-time rather than all four together, so a problem with one doesn't block or
+time rather than all three together, so a problem with one doesn't block or
 mask a problem with another.
 
 ## Prerequisites
 
 ### sops secrets (Attic only)
 
-Actual Budget, Stirling PDF, and H@H need no sops secrets of their own
-(`modules/nixos/actual-budget.nix`, `modules/nixos/stirling-pdf.nix`,
-`modules/nixos/hath.nix` declare none). Create these four with
-`just sops-edit` before deploying `legion-node4` with `attic` enabled
-(`modules/nixos/attic.nix` `sops.secrets`/`templates."attic.env"`):
+Actual Budget and H@H need no sops secrets of their own
+(`modules/nixos/actual-budget.nix`, `modules/nixos/hath.nix` declare none).
+Create these four with `just sops-edit` before deploying `legion-node4` with
+`attic` enabled (`modules/nixos/attic.nix` `sops.secrets`/`templates."attic.env"`):
 
 | Secret | Value |
 | --- | --- |
@@ -42,8 +44,8 @@ Actual Budget, Stirling PDF, and H@H need no sops secrets of their own
 
 `restic/password` and `restic/s4-env` are prerequisites of piece 2.1, not
 this runbook — see `docs/runbooks/restore.md` if they don't already exist.
-They're relevant to Actual Budget, Stirling PDF, and H@H below; Attic alone
-does not declare a `backupSet` (it has no local state).
+They're relevant to Actual Budget and H@H below; Attic alone does not
+declare a `backupSet` (it has no local state).
 
 ### Hetzner Volumes
 
@@ -54,18 +56,16 @@ with the corresponding service enabled (inventory entries,
 | Service | Mountpoint | Inventory Volume name |
 | --- | --- | --- |
 | Actual Budget | `/mnt/actual-budget` | `legion-node4-actual-budget` |
-| Stirling PDF | `/var/lib/stirling-pdf` | `legion-node4-stirling-pdf` (mounts directly here, not under `/mnt` — `modules/nixos/stirling-pdf.nix` comment: the pinned nixpkgs module hardcodes `StateDirectory`/`WorkingDirectory`) |
 | H@H | `/mnt/hath` | `legion-node4-hath` |
 
 Neither this flake nor the individual modules declare a `fileSystems` entry
 for any of these (Hetzner Volume mounting is an external prerequisite per
 `DESIGN.md`) — add a durable mount (e.g. an `/etc/fstab` line by device
 UUID/ID) for each so it survives a reboot. Confirm each is mounted before
-proceeding (`ssh node4.jeiang.dev -- findmnt /mnt/actual-budget
-/var/lib/stirling-pdf /mnt/hath`); otherwise the service's own
-`systemd.tmpfiles.rules`/`StateDirectory` creates an empty directory on the
-root disk instead, and the copied-in data below silently lands on disposable
-storage.
+proceeding (`ssh node4.jeiang.dev -- findmnt /mnt/actual-budget /mnt/hath`);
+otherwise the service's own `systemd.tmpfiles.rules`/`StateDirectory`
+creates an empty directory on the root disk instead, and the copied-in data
+below silently lands on disposable storage.
 
 ### Deploy
 
@@ -73,15 +73,15 @@ storage.
 just deploy legion-node4
 ```
 
-This brings up all four services at once: Attic connects to the live
+This brings up all three services at once: Attic connects to the live
 external Postgres immediately (nothing to quiesce or copy for it — see its
-section below), while Actual Budget, Stirling PDF, and H@H start against
-**empty** Volumes — intentional, so you can confirm each unit starts cleanly
-before trusting it with copied data. Confirm before proceeding:
+section below), while Actual Budget and H@H start against **empty**
+Volumes — intentional, so you can confirm each unit starts cleanly before
+trusting it with copied data. Confirm before proceeding:
 
 ```sh
-ssh node4.jeiang.dev -- sudo systemctl status atticd actual stirling-pdf hath
-ssh node4.jeiang.dev -- sudo journalctl -u atticd -u actual -u stirling-pdf -u hath --since -5m
+ssh node4.jeiang.dev -- sudo systemctl status atticd actual hath
+ssh node4.jeiang.dev -- sudo journalctl -u atticd -u actual -u hath --since -5m
 ```
 
 ## Attic (stateless)
@@ -272,7 +272,17 @@ kubectl -n actual-budget patch pv <actual-budget-pv-name> -p '{"spec":{"persiste
 helm -n actual-budget uninstall actual-budget
 ```
 
-## Stirling PDF (retain data)
+## Stirling PDF — deferred, not part of this migration
+
+**Deferred** (piece 0.6 capacity audit, `docs/MIGRATION.md`): measured at
+1.35 GiB peak+typical (JVM heap + native overhead), which doesn't fit a
+~1.88 GiB Legion node alongside Attic/Actual Budget/H@H. Not placed on
+`legion-node4`; `modules/nixos/stirling-pdf.nix` stays in the tree,
+unimported, and `pdf.plyrex.dev` serves the same placeholder response as
+`jellyfin.plyrex.dev`/`seerr.plyrex.dev` (`modules/nixos/edge/default.nix`).
+The steps below are kept for whoever revives this piece later (see the
+module's header comment for the intended BentoPDF replacement) but do not
+apply to the current migration.
 
 ### Quiesce the Kubernetes deployment
 

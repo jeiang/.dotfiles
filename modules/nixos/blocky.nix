@@ -1,6 +1,7 @@
 _: {
-  # docs/MIGRATION.md piece 5.5: Blocky DNS for legion-node3, reachable only
-  # from NetBird peers (replaces the dropped Kubernetes NetworkResource).
+  # docs/MIGRATION.md piece 5.5: Blocky DNS for legion-node2 (moved from
+  # legion-node3 by the piece 0.6 capacity audit), reachable only from
+  # NetBird peers (replaces the dropped Kubernetes NetworkResource).
   # First-party `services.blocky` (DESIGN.md Service Ownership) -- config
   # mirrors k8s-manifests/blocky-dns/values.yaml `blocky.config` 1:1
   # (blocklists, upstreams, ports, logging); that chart sets no explicit
@@ -66,7 +67,7 @@ _: {
     };
 
     # Replica count drops 2 -> 1 vs. the chart (docs/MIGRATION.md piece
-    # 5.5): peer DNS becomes a single point of failure on legion-node3.
+    # 5.5): peer DNS becomes a single point of failure on legion-node2.
     # Accepted by the operator; no host-native equivalent of the chart's
     # `replicaCount`/HPA is added.
 

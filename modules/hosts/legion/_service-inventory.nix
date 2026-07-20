@@ -262,6 +262,11 @@
 
     legion-node4 = {
       edge = false;
+      # No `stirling-pdf` entry (piece 0.6 capacity audit, docs/MIGRATION.md):
+      # its 1.35 GiB peak+typical JVM footprint doesn't fit this node's
+      # ~1.88 GiB budget alongside attic/actual-budget/hath. Deferred, not
+      # dropped -- modules/nixos/stirling-pdf.nix stays in the tree unimported
+      # pending a lighter replacement (see that module's header comment).
       services = [
         {
           # DNS points at the edge (legion-node1); Caddy proxies here
@@ -312,40 +317,6 @@
           # a live SQLite DB (modules/nixos/actual-budget.nix).
           backupSet = ["/mnt/actual-budget"];
           backupPauseUnits = ["actual.service"];
-        }
-        {
-          # DNS points at the edge; Caddy proxies here
-          # (modules/nixos/edge/default.nix pdf.plyrex.dev route). Port
-          # 8081, NOT nixpkgs' stirling-pdf example/upstream default of
-          # 8080 -- that collides with attic's listener on this same node
-          # (modules/nixos/stirling-pdf.nix).
-          name = "stirling-pdf";
-          # DNS points at the edge (legion-node1's `caddy` entry already
-          # declares pdf.plyrex.dev); Caddy proxies here.
-          publicHostnames = [];
-          firewall = [
-            {
-              port = 8081;
-              proto = "tcp";
-              scope = "private";
-            }
-          ];
-          stateful = true;
-          volume = {
-            name = "legion-node4-stirling-pdf";
-            # NOT /mnt/stirling-pdf: the pinned nixpkgs services.stirling-pdf
-            # module hardcodes WorkingDirectory/StateDirectory to
-            # /var/lib/stirling-pdf with no override option
-            # (modules/nixos/stirling-pdf.nix) -- mount the Volume there
-            # directly rather than bind-mounting through an indirection.
-            # Still a "directly mounted Hetzner Volume" per DESIGN.md's
-            # State And Backup Boundaries; the path just isn't under /mnt.
-            mountpoint = "/var/lib/stirling-pdf";
-          };
-          backupSet = ["/var/lib/stirling-pdf"];
-          # SQLite-safe: the login DB stirling-pdf retains lives under this
-          # same root (modules/nixos/stirling-pdf.nix).
-          backupPauseUnits = ["stirling-pdf.service"];
         }
         {
           name = "hath";

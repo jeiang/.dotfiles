@@ -408,8 +408,13 @@ in {
             (lib.any (service: service.name == "actual-budget") node.services)
             self.nixosModules.actual-budget
             # Piece 5.3: Stirling PDF, same optional-import pattern, gated
-            # on the inventory node placing `stirling-pdf` (legion-node4
-            # today).
+            # on the inventory node placing `stirling-pdf`. No node places
+            # it as of the piece 0.6 capacity audit (docs/MIGRATION.md,
+            # modules/hosts/legion/_service-inventory.nix) -- this stays as
+            # dead-but-harmless gating rather than being removed, so the
+            # module (kept in the tree, deferred) needs no code change here
+            # to be revived: place it in the inventory again and this
+            # import wakes up automatically.
             ++ lib.optional
             (lib.any (service: service.name == "stirling-pdf") node.services)
             self.nixosModules.stirling-pdf
