@@ -147,6 +147,19 @@
         NB_PROXY_CERTIFICATE_DIRECTORY = acmeCertDir;
         NB_PROXY_CERTIFICATE_FILE = "fullchain.pem";
         NB_PROXY_CERTIFICATE_KEY_FILE = "key.pem";
+        # Counterpart to the edge's `proxy_protocol v2` on the l4 proxy
+        # handler dialing this node (modules/nixos/edge/default.nix) --
+        # BOTH ends must agree or the TLS stream breaks. Verified against
+        # the nixpkgs-pinned v0.74.3 source
+        # (proxy/cmd/proxy/cmd/root.go flag wiring, proxy/server.go
+        # `ProxyProtocol bool` / `wrapProxyProtocol`): the flag is a
+        # boolean toggle (auto-detects v1/v2 on read, unlike caddy-l4's
+        # explicit `v2`), and TrustedProxies gates which source IPs may
+        # send the header at all -- connections from anyone else have it
+        # stripped/rejected rather than trusted, so this also prevents a
+        # spoofed PROXY header from a non-edge peer forging client IPs.
+        NB_PROXY_PROXY_PROTOCOL = "true";
+        NB_PROXY_TRUSTED_PROXIES = "${node1PrivateIp}/32";
         # Explicit false (matches the binary's default): documents the
         # TLS strategy decision above in the running config, not just in
         # comments.

@@ -83,8 +83,26 @@
                 @netbird_proxy tls sni proxy.jeiang.dev *.proxy.jeiang.dev
                 route @netbird_proxy {
                   # RAW passthrough: legion-node2's netbird-proxy (piece
-                  # 3.2) terminates TLS itself.
-                  proxy tcp/${node2}:443
+                  # 3.2) terminates TLS itself. Without proxy_protocol
+                  # below, the RP's CrowdSec bouncer would see every
+                  # passthrough client as this edge node's private IP
+                  # (flagged in piece 3.2's report) and could ban the
+                  # edge outright, blocking all passthrough traffic.
+                  #
+                  # v2 is the JSON field caddy-l4 v0.1.2's l4proxy.Handler
+                  # exposes (modules/l4proxy/proxy.go `ProxyProtocol
+                  # string json:"proxy_protocol"`, Caddyfile sub-directive
+                  # `proxy_protocol <v1|v2>`, verified against the
+                  # mholt/caddy-l4@v0.1.2 tag pinned in
+                  # modules/packages/caddy.nix). This MUST be enabled on
+                  # BOTH ends -- here and NB_PROXY_PROXY_PROTOCOL in
+                  # modules/nixos/netbird-server/proxy.nix -- or the TLS
+                  # stream breaks: one side prepending a PROXY v2 header
+                  # the other side doesn't expect is read as garbage
+                  # ClientHello bytes.
+                  proxy tcp/${node2}:443 {
+                    proxy_protocol v2
+                  }
                 }
               }
               tls
