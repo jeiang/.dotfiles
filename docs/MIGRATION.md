@@ -321,7 +321,12 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   data to the Volume (chown to the module's service user), move secrets,
   cut DNS with the edge, verify OIDC logins (Grafana, Attic, NetBird,
   kubectl users until K3s retires), then remove the K8s release per the
-  safety rules.
+  safety rules. Version note (discovered during 4.1): the deployed chart
+  runs v2.9.0 with env-var SMTP; the pinned nixpkgs v2.10.0 moved SMTP
+  config into DB-backed app-config rows (no `SMTP_*` env). The runbook
+  must include a post-cutover step to verify email delivery and, if the
+  migrated DB lacks SMTP rows, re-enter the iCloud SMTP settings in the
+  admin UI (credentials from the old chart values/Bitwarden).
 
 ### Phase 5 — Applications
 
