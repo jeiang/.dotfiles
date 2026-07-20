@@ -10,10 +10,12 @@ Status legend: each piece is `todo`, `in-progress`, `done` (code merged), or
 `cut-over` (verified live and old deployment removed).
 
 **Current status (2026-07-20)**: Phases 0–6 are `done` (code merged; piece
-0.6's capacity audit stays `todo`, operator-assisted). No service has cut
-over yet — the Experimental Cluster remains the live deployment
-([`DESIGN.md`](DESIGN.md)). Remaining work is the operator-run runbooks in
-`docs/runbooks/` per service and Phase 7 teardown, both `todo`.
+0.6's capacity audit is also `done` as of 2026-07-20 — see Proposed
+Placement below). No service has cut over yet — the Experimental Cluster
+remains the live deployment ([`DESIGN.md`](DESIGN.md)). Remaining work is
+the operator-run runbooks in `docs/runbooks/` per service and Phase 7
+teardown, both `todo`. Stirling PDF (piece 5.3) is deferred, not part of
+this migration — see its Phase 5 entry below.
 
 ## Confirmed Decisions
 
@@ -99,30 +101,77 @@ Tailscale proxy routes).
 
 ## Proposed Placement
 
-Provisional until the capacity audit (piece 0.6) confirms fit against live
-steady-state usage (nodes have ~2 GB RAM). Placement is encoded in the
-Legion inventory (piece 0.1); every stateful service keeps authoritative
-state on a directly mounted Hetzner Volume; every service gets a systemd
-`MemoryMax` derived from the audit.
+Confirmed by the piece 0.6 capacity audit (operator-approved 2026-07-20)
+against live steady-state usage (nodes have ~1.88 GiB RAM usable). Placement
+is encoded in the Legion inventory (piece 0.1); every stateful service keeps
+authoritative state on a directly mounted Hetzner Volume; every service gets
+a systemd `MemoryMax` derived from the audit (see Measured Steady-State
+Usage below for the per-workload figures and rationale).
 
 | Node | Role | Services | Port notes |
 | --- | --- | --- | --- |
 | `legion-node1` | Edge Node | Caddy (80/443 public, layer-4 SNI passthrough for `*.proxy.jeiang.dev`), CrowdSec LAPI+AppSec, static sites (incl. NetBird dashboard), github-redirect (Tailscale client deferred) | 80/443 public; blocked for other services |
-| `legion-node2` | NetBird | NetBird server, relay (+STUN UDP 3478), NetBird reverse proxy (TCP 443 + free custom ports), Pocket ID (private HTTP behind Caddy) | 443 owned by NetBird RP; 3478/UDP relay; remaining ports free for RP custom ports |
-| `legion-node3` | Observability | VictoriaMetrics, VictoriaLogs, Grafana, vmalert, Alertmanager, Blocky | 53 owned by Blocky on the node's NetBird address |
-| `legion-node4` | Applications | Attic, Actual Budget, Stirling PDF, H@H | 8888/TCP public for H@H; tightest RAM fit — audit may move Stirling PDF |
-| `legion-node5` | — | nothing (decommission target) | — |
+| `legion-node2` | NetBird | NetBird server, relay (+STUN UDP 3478), NetBird reverse proxy (TCP 443 + free custom ports), Pocket ID (private HTTP behind Caddy), Blocky (moved from node3, piece 0.6) | 443 owned by NetBird RP; 3478/UDP relay; 53 owned by Blocky on the node's NetBird address; remaining ports free for RP custom ports |
+| `legion-node3` | Observability | VictoriaMetrics, VictoriaLogs, Grafana, vmalert, Alertmanager — monitoring-only as of piece 0.6 (Blocky moved to node2) | — |
+| `legion-node4` | Applications | Attic, Actual Budget, H@H (Stirling PDF deferred, piece 0.6 — see Phase 5 below) | 8888/TCP public for H@H |
+| `legion-node5` | — | nothing (decommission target, piece 7.3 — owns no service, Volume, or placement) | — |
 
 DNS after cutover: public service hosts → `legion-node1` public IPs, except
 `stun.netbird.jeiang.dev` → `legion-node2`, and H@H reached at
 `legion-node4` public IP:8888. `proxy.jeiang.dev`/`*.proxy.jeiang.dev`
 resolve to `legion-node1` (edge) and are passed through to `legion-node2`.
-The per-node `nodeN.jeiang.dev` records are deploy-rs SSH targets and keep
-pointing at their own nodes.
+`pdf.plyrex.dev` resolves to `legion-node1` and serves the same placeholder
+response as `jellyfin.plyrex.dev`/`seerr.plyrex.dev` (piece 0.6, Stirling PDF
+deferred). The per-node `nodeN.jeiang.dev` records are deploy-rs SSH targets
+and keep pointing at their own nodes.
 
 RAM notes carried from the cluster: Attic was tuned to fit a 512 Mi limit
 (two concurrent NAR uploads, 128 MiB SQLite mmap in the old setup); carry
 equivalent concurrency/memory tuning into the module config.
+
+### Measured Steady-State Usage (piece 0.6 capacity audit)
+
+Recorded from the live cluster's VictoriaMetrics, 2026-07-20. `MemoryMax` is
+the systemd limit set on each unit (see the per-module `serviceConfig` in
+`modules/nixos/`); node totals are the sum of `MemoryMax` for services placed
+on that node, all comfortably under the ~1.88 GiB per-node budget.
+
+| Node | Service (unit) | MemoryMax |
+| --- | --- | --- |
+| node1 | caddy (`caddy.service`) | 256M |
+| node1 | crowdsec (`crowdsec.service`) | 512M |
+| node1 total | | **768M** |
+| node2 | netbird-server (`netbird-server.service`) | 320M |
+| node2 | netbird-relay (`netbird-relay.service`) | 96M |
+| node2 | netbird-proxy (`netbird-proxy.service`) | 128M |
+| node2 | pocket-id (`pocket-id.service`) | 256M |
+| node2 | blocky (`blocky.service`) | 512M |
+| node2 total | | **1312M** |
+| node3 | victoriametrics (`victoriametrics.service`) | 640M |
+| node3 | victorialogs (`victorialogs.service`) | 448M |
+| node3 | grafana (`grafana.service`) | 320M |
+| node3 | vmalert (`vmalert-default.service`) | 128M |
+| node3 | alertmanager (`alertmanager.service`) | 96M |
+| node3 total | | **1632M** |
+| node4 | attic (`atticd.service`) | 896M |
+| node4 | actual-budget (`actual.service`) | 320M |
+| node4 | hath (`hath.service`) | 256M |
+| node4 total | | **1472M** |
+
+Notable findings that changed placement or limits from the provisional
+table:
+
+- **Blocky**: the cluster's old 1.22 GiB "peak" reading was an artifact of a
+  prior no-limits config — a config value already caps its heavy read load,
+  so real usage is ≤350 MiB. Moved from node3 to node2 (node3 becomes
+  monitoring-only); `MemoryMax` set to 512M for headroom, not the 1.22 GiB
+  the stale reading implied.
+- **Stirling PDF**: measured 1.35 GiB peak+typical (JVM heap + native
+  overhead) — does not fit a ~1.88 GiB node alongside Attic/Actual
+  Budget/H@H. Dropped from node4's placement and deferred (Phase 5 below);
+  `modules/nixos/stirling-pdf.nix` stays in the tree, unimported.
+- **legion-node5**: confirmed to own no workload after the above moves —
+  ready for Phase 7.3 decommission.
 
 ## Cutover Safety Rules
 
@@ -194,13 +243,17 @@ can interleave per-service once 0–2 land, subject to the safety rules.
 - **0.5 hath-rust package [status: done]**: re-export/pin `pkgs.hath-rust` (already in
   nixpkgs at ≥ 1.17.0) as `perSystem.packages.hath-rust`.
   *Accept*: builds in CI.
-- **0.6 Capacity audit [status: todo (operator)]** (operator-assisted): record steady-state
-  CPU/memory of every workload from the live cluster (VictoriaMetrics has
-  the data) into this document; confirm or adjust the placement table and
-  set per-service `MemoryMax`. Blocks the first service cutover, not code
-  landing.
+- **0.6 Capacity audit [status: done]** (operator-assisted, completed
+  2026-07-20): recorded steady-state CPU/memory of every workload from the
+  live cluster (VictoriaMetrics) into this document; adjusted the placement
+  table and set per-service `MemoryMax`. Outcome: Blocky moves node3→node2
+  (its old 1.22 GiB peak was a no-limits-config artifact, real usage
+  ≤350 MiB); Stirling PDF is dropped from placement and deferred (1.35 GiB
+  peak+typical JVM doesn't fit a 1.88 GiB node); node3 becomes
+  monitoring-only; node5 confirmed to own nothing. See Proposed Placement's
+  "Measured Steady-State Usage" subsection for the full figures.
   *Accept*: placement table updated with measured numbers and final node
-  assignments.
+  assignments. **Done.**
 
 ### Phase 1 — Edge Node (runs alongside K3s/Traefik until DNS cutover)
 
@@ -349,25 +402,40 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   store-rendered config.
 - **5.2 Actual Budget module [status: done]** (retain data): `services.actual` on
   `legion-node4`, data dir on a declared Volume.
-- **5.3 Stirling PDF module [status: done]** (retain data): `services.stirling-pdf` with
-  login enabled on `legion-node4` (audit may move it), data on a declared
-  Volume (replacing the cluster-provisioned 10 GiB Volume).
+- **5.3 Stirling PDF module [status: deferred]**: `modules/nixos/stirling-pdf.nix` module
+  code landed (`services.stirling-pdf`, login enabled, Volume-backed), but
+  the piece 0.6 capacity audit found its 1.35 GiB peak+typical JVM footprint
+  doesn't fit a ~1.88 GiB Legion node alongside Attic/Actual Budget/H@H —
+  **not part of this migration**. Placement removed from
+  `modules/hosts/legion/_service-inventory.nix`; the module stays in the
+  tree, unimported, for later revival. Intended future replacement:
+  BentoPDF via nixpkgs' first-party `services.bentopdf` (confirmed present
+  in the pinned nixpkgs revision) — a much lighter non-JVM app; not
+  implemented, forward-reference only (see the module's header comment).
+  `pdf.plyrex.dev` serves the same placeholder response as
+  `jellyfin.plyrex.dev`/`seerr.plyrex.dev` (`modules/nixos/edge/default.nix`)
+  so the edge config stays internally consistent.
 - **5.4 H@H module [status: done]** (retain data): thin module around
   `packages.hath-rust` on `legion-node4`; cache/login/download dirs on a
   declared Volume; public TCP 8888 opened on that node only.
-- **5.5 Blocky module [status: done]**: `services.blocky` on `legion-node3` on the node's
-  NetBird address (requires 3.4), with systemd ordering on the NetBird
-  client (or listen-all + firewall scoping to the NetBird interface);
-  same blocklists/upstreams as the chart. Replica count drops 2→1 — peer
-  DNS becomes a single point of failure (accepted; recorded here). The
-  NetBird DNS zone's nameserver entry must be repointed to the new
-  address (runbook 5.7). Expose raw VictoriaMetrics/VictoriaLogs on the
+- **5.5 Blocky module [status: done]**: `services.blocky` on `legion-node2` (moved from
+  `legion-node3` by the piece 0.6 capacity audit — its old 1.22 GiB "peak"
+  was a no-limits-config artifact, real usage ≤350 MiB, node2 has room) on
+  the node's NetBird address (requires 3.4), with systemd ordering on the
+  NetBird client (or listen-all + firewall scoping to the NetBird
+  interface); same blocklists/upstreams as the chart. Replica count drops
+  2→1 — peer DNS becomes a single point of failure (accepted; recorded
+  here). The NetBird DNS zone's nameserver entry must be repointed to the
+  new address (runbook 5.7). Expose raw VictoriaMetrics/VictoriaLogs on the
   node3 NetBird address the same way (replaces the dropped
-  `NetworkResource`s).
-- *Accept for 5.2–5.5*: evaluates; state on declared Volumes (where
+  `NetworkResource`s) — node3 stays the monitoring node even though Blocky
+  moved off it.
+- *Accept for 5.2, 5.4, 5.5*: evaluates; state on declared Volumes (where
   applicable); firewall openings scoped; edge routes present where
   public; service users own copied data (no blanket UID 1000 assumption —
-  `services.actual`/`services.stirling-pdf` use their own users).
+  `services.actual` uses its own user). 5.3's module code meets the same
+  bar in isolation (`services.stirling-pdf` uses its own user too) but is
+  unplaced — see 5.3 above.
 - **5.6 Runbook `docs/runbooks/apps-migration.md` [status: done]**: per-service backup →
   copy (PVC → Volume, chown to the module's service user; UID/GID 1000
   only where the module is configured that way, e.g. H@H), secret moves,
@@ -404,7 +472,13 @@ can interleave per-service once 0–2 land, subject to the safety rules.
 - **7.3 `legion-node5` decommission [status: todo]**: verify it owns no workload or Volume,
   remove it from the inventory and `nixosConfigurations`/deploy nodes,
   update DESIGN.md system-roles table; operator deletes the server and the
-  Hetzner LB (runbook `docs/runbooks/decommission.md`).
+  Hetzner LB (runbook `docs/runbooks/decommission.md`). Verified by the
+  piece 0.6 capacity audit (2026-07-20): `legion-node5`'s
+  `modules/hosts/legion/_service-inventory.nix` entry is `services = []`
+  and it appears nowhere in the Proposed Placement table above — it owns no
+  service, Volume, or placement today, so this piece is ready to execute
+  once every service is `cut-over` (still gated on Phase 7 ordering, not
+  code readiness).
 - **7.4 Docs sweep [status: todo]**: mark IMPROVEMENTS §4 done, fold enduring decisions
   into DESIGN.md/ADR; land ADR 0003 (below) if not done earlier.
 
