@@ -9,20 +9,22 @@ belong in Git history; enduring constraints and decisions belong in
 Use NixOS `services.restic.backups` with a dedicated Mega S4 bucket and
 sops-nix-managed credentials.
 
-- Run encrypted backups daily, retain 30 days, and perform a documented restore
-  test quarterly.
-- Give each stateful service an explicit Backup Set and quiesce hooks where a
-  consistent SQLite or application snapshot requires them.
-- Back up authoritative service data from directly mounted Hetzner Volumes.
-  Exclude disposable caches and the one-month monitoring data unless a later
-  recovery requirement says otherwise.
+The Legion side is implemented: `modules/nixos/backups.nix` derives daily,
+30-day-retention Restic jobs from each service's inventory-declared Backup
+Set and pause units (`modules/hosts/legion/_service-inventory.nix`), backing
+up only authoritative data from directly mounted Hetzner Volumes (disposable
+caches and monitoring data excluded), rejecting any Backup Set path outside
+the service's declared persistence, and documented in
+[`docs/runbooks/restore.md`](runbooks/restore.md). Remaining work:
+
 - Give Artemis an explicit backup allowlist for irreplaceable user and
   application data. Exclude downloads, games, Steam data, caches, and generated
   outputs by default.
-- When repository-managed persistence is enabled for a host, reject any backup
-  path that is not also present in its persistence configuration.
-- Store restore instructions beside the service or host configuration they
-  recover.
+- Perform a documented restore test quarterly, once Legion services are
+  cut over and Artemis backups exist. Each service's cutover runbook already
+  exercises a one-time restore per Cutover Safety Rule 1
+  ([`docs/MIGRATION.md`](MIGRATION.md)); a recurring quarterly drill is not
+  yet scheduled.
 
 ## 2. Make Legion Fleet Rollouts Fail Fast
 
@@ -52,79 +54,17 @@ checks to catch any hidden dependency before merging.
 ## 4. Migrate Legion To Host-Native Services
 
 Replace the transitional Experimental Cluster with explicitly placed
-Host-Native Services on `legion-node1` through `legion-node4`. Follow
-[ADR 0002](adr/0002-migrate-legion-to-host-native-services.md).
+Host-Native Services on `legion-node1` through `legion-node4`, per
+[ADR 0002](adr/0002-migrate-legion-to-host-native-services.md) and
+[ADR 0003](adr/0003-edge-tls-and-netbird-proxy-topology.md).
 
-Three workloads run only on the Experimental Cluster and are absent from the
-Kubernetes manifests repository: the `jkmn-website` static site
-(`noelejoshua.com`), Stirling PDF (`pdf.plyrex.dev`), and the Tailscale reverse
-proxy publishing `jellyfin.plyrex.dev` and `seerr.plyrex.dev`. Include them in
-the migration inventory; do not derive the inventory from the manifests
-repository alone.
-
-### Capacity And Placement
-
-- Measure steady-state CPU, memory, storage, and dependencies for every current
-  workload before assigning it to a node. The existing nodes have roughly
-  2 GB of RAM each, so do not infer placement from Kubernetes requests alone.
-- Fix `legion-node1` as the Edge Node. Leave all other assignments unresolved
-  until the capacity audit is complete.
-- Encode every final assignment in the central Legion inventory. Moving a
-  stateful service is a planned data migration, not automatic failover.
-- Add evaluation checks for exactly one Edge Node, placements that reference
-  existing nodes, unique public hostnames, and required Volume and backup
-  declarations for stateful services.
-
-### Service Modules
-
-- Use first-party NixOS modules for Actual Budget, Attic, Blocky, Pocket ID,
-  and Stirling PDF. Stirling PDF keeps login enabled and moves its authoritative
-  data from the cluster-provisioned 10 GiB Hetzner Volume to a directly mounted
-  Volume on its assigned node.
-- Compose the first-party component modules behind local modules for monitoring
-  and CrowdSec.
-- Build a local NetBird module for the deployed server, relay, reverse proxy,
-  identity, and state topology rather than forcing it through the mismatched
-  first-party server abstraction.
-- Use thin local modules for H@H and project-specific static sites.
-- Render the `jkmn-website` content to static HTML and serve `noelejoshua.com`
-  directly from the Edge Node Caddy as an ordinary static site, retiring its
-  nginx container and ConfigMap-embedded pages.
-- Keep application source in its application repository. This flake owns the
-  NixOS service definition, placement, state, secrets, and lifecycle.
-
-### Edge And Network
-
-- Run a single Caddy instance on `legion-node1`; point public DNS directly to
-  that node and remove the Hetzner load balancer after all routes have moved.
-- Build Caddy reproducibly with the CrowdSec HTTP and AppSec handlers. Preserve
-  IP remediation, AppSec, the Attic traffic exception, and exclusions for
-  long-lived NetBird streams.
-- Re-enable the NixOS firewall on every Legion node. Expose public HTTP and HTTPS
-  only on the Edge Node, and permit backend traffic only over the Hetzner
-  private network.
-- Terminate public TLS at Caddy. Backend HTTP over the firewalled Hetzner private
-  network is the accepted transport boundary.
-- Replace the cluster's Tailscale-plus-Caddy proxy pod by joining the Edge Node
-  to the tailnet with `services.tailscale` and adding Caddy routes for
-  `jellyfin.plyrex.dev` and `seerr.plyrex.dev` that proxy to the existing
-  tailnet peer. Deliver the Tailscale auth key through sops-nix scoped to the
-  Edge Node. These two routes are the only accepted exception to the
-  private-network backend transport boundary; their backend hop rides the
-  tailnet.
-- Keep DNS, Hetzner Cloud Firewall, server, and Volume provisioning outside this
-  repository. Document their required records, rules, IDs, and attachments.
-
-### State, Secrets, And Migration
-
-- Keep authoritative service state on directly mounted Hetzner Volumes and use
-  node-local storage only for Disposable State.
-- Replace the Bitwarden Kubernetes operator with sops-nix. Encrypt each service
-  secret file only to the Human Administrator and its assigned node; keep shared
-  infrastructure secrets separate and narrowly scoped.
-- Run Caddy and Host-Native Services alongside K3s during migration. Move and
-  verify one service at a time, including backup and restore behavior, before
-  removing its Kubernetes deployment.
-- After the final service is stable, remove K3s and its platform components,
-  verify that `legion-node5` owns no workload or Volume, remove it from the
-  inventory, and decommission it as the final migration step.
+Code for Phases 0–6 (foundations, Edge Node, backup foundation, NetBird
+stack, identity, applications, monitoring) is landed. This flake still
+describes the Experimental Cluster as the live deployment
+([`DESIGN.md`](DESIGN.md)): remaining work is entirely operator-driven
+cutover — running each phase's runbook against the live services, verifying
+backup and restore per the Cutover Safety Rules, then Phase 7 teardown (K3s
+removal, `legion-node5` decommission). See [`docs/MIGRATION.md`](MIGRATION.md)
+for the authoritative phase-by-phase piece list, status, and per-service
+runbooks in `docs/runbooks/`; this item stays open until every service is
+`cut-over` and Phase 7 lands.

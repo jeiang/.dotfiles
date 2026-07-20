@@ -46,6 +46,12 @@ operator actions. Review the target and generated configuration before using
 `deploy`, `clean-deploy`, `install`, `disko-format`, or a `sops-*` recipe. The
 fleet-wide deployment helper is not a substitute for staged node verification.
 
+Legion is mid-migration to Host-Native Services
+([`docs/MIGRATION.md`](MIGRATION.md)). Follow the matching runbook in
+[`docs/runbooks/`](runbooks/) before cutting DNS or removing a Kubernetes
+deployment for a service; the Experimental Cluster stays the live deployment
+for a service until its runbook is complete.
+
 ## Artemis Persistence
 
 Artemis rolls its root btrfs subvolume back to empty on every boot. The

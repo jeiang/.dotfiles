@@ -9,6 +9,12 @@ not repository automation.
 Status legend: each piece is `todo`, `in-progress`, `done` (code merged), or
 `cut-over` (verified live and old deployment removed).
 
+**Current status (2026-07-20)**: Phases 0–6 are `done` (code merged; piece
+0.6's capacity audit stays `todo`, operator-assisted). No service has cut
+over yet — the Experimental Cluster remains the live deployment
+([`DESIGN.md`](DESIGN.md)). Remaining work is the operator-run runbooks in
+`docs/runbooks/` per service and Phase 7 teardown, both `todo`.
+
 ## Confirmed Decisions
 
 Decisions confirmed by the operator on 2026-07-19, extending ADR 0002:
@@ -143,7 +149,7 @@ can interleave per-service once 0–2 land, subject to the safety rules.
 
 ### Phase 0 — Foundations
 
-- **0.1 Legion inventory rework** (`modules/hosts/legion/`): extend the node
+- **0.1 Legion inventory rework [status: done]** (`modules/hosts/legion/`): extend the node
   inventory with service placement metadata: `edge` flag (exactly one),
   per-node service list, public hostnames, required Hetzner Volumes
   (name/mountpoint), per-service firewall openings, and `MemoryMax`
@@ -154,7 +160,7 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   *Accept*: checks fail on synthetic violations (covered by
   `modules/checks.nix` tests or assertion messages), current config still
   evaluates.
-- **0.2 Firewall re-enable**: turn the NixOS firewall on fleet-wide,
+- **0.2 Firewall re-enable [status: done]**: turn the NixOS firewall on fleet-wide,
   deriving openings from inventory. Must explicitly enumerate the live
   K3s-era data path, not just the K3s control ports (6443/10250/8472
   already in `k3s.nix`): Traefik NodePorts targeted by the Hetzner LB and
@@ -165,13 +171,13 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   the runbook stages enablement node-by-node with a live-traffic
   verification step per node (LB health, STUN, 8888) before proceeding to
   the next.
-- **0.3 Custom Caddy package** (`modules/packages/caddy.nix`): Caddy built
+- **0.3 Custom Caddy package [status: done]** (`modules/packages/caddy.nix`): Caddy built
   with `caddy-dns/hetzner` (DNS-01), CrowdSec bouncer HTTP + AppSec
   handlers, and `caddy-l4` (SNI passthrough), via `pkgs.caddy.withPlugins`
   with pinned versions, exposed as `perSystem.packages.caddy`.
   *Accept*: package builds in CI for `x86_64-linux`; `caddy list-modules`
   shows dns.providers.hetzner, layer4, and both CrowdSec handlers.
-- **0.4 NetBird server-side packages**: reuse nixpkgs components where they
+- **0.4 NetBird server-side packages [status: done]**: reuse nixpkgs components where they
   match the deployed topology — `netbird-relay`, `netbird-proxy` (the
   reverse proxy), `netbird-dashboard` (≥ v2.90.2) — re-exported as
   `perSystem.packages.*`. The deployed management plane is the **unified
@@ -185,10 +191,10 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   *Accept*: packages build in CI; versions ≥ chart-deployed versions
   (server 0.73.2, dashboard v2.90.2); unified-server binary confirmed to
   read the chart-style `config.yaml`.
-- **0.5 hath-rust package**: re-export/pin `pkgs.hath-rust` (already in
+- **0.5 hath-rust package [status: done]**: re-export/pin `pkgs.hath-rust` (already in
   nixpkgs at ≥ 1.17.0) as `perSystem.packages.hath-rust`.
   *Accept*: builds in CI.
-- **0.6 Capacity audit** (operator-assisted): record steady-state
+- **0.6 Capacity audit [status: todo (operator)]** (operator-assisted): record steady-state
   CPU/memory of every workload from the live cluster (VictoriaMetrics has
   the data) into this document; confirm or adjust the placement table and
   set per-service `MemoryMax`. Blocks the first service cutover, not code
@@ -198,7 +204,7 @@ can interleave per-service once 0–2 land, subject to the safety rules.
 
 ### Phase 1 — Edge Node (runs alongside K3s/Traefik until DNS cutover)
 
-- **1.1 Caddy edge module** (`modules/nixos/edge/` or similar): Caddy on the
+- **1.1 Caddy edge module [status: done]** (`modules/nixos/edge/` or similar): Caddy on the
   Edge Node using `packages.caddy`. Hetzner DNS API token via sops. Certs:
   DNS-01 wildcard `jeiang.dev`/`*.jeiang.dev`, DNS-01 `aidanpinard.co`,
   `pinard.co.tt`; HTTP-01/on-demand TLS for `noelejoshua.com` and the
@@ -215,7 +221,7 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   *Accept*: config renders; `caddy validate` passes (as a check if
   feasible); route table covers every public host in the inventory
   including the protocol-specific NetBird routes.
-- **1.2 Static sites on the edge**: serve `website` (from `inputs.website`,
+- **1.2 Static sites on the edge [status: done]**: serve `website` (from `inputs.website`,
   which gains a caller — amend `IMPROVEMENTS.md` §3), `jkmn-website` (new
   flake input `github:joshua-noel/portfolio`, whose flake exposes the
   html/css/js output), `bill-splitter` (investigate `jeiang/bill-splitter`
@@ -225,7 +231,7 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   1.4).
   *Accept*: each host serves correct content via `curl --resolve` against
   the Edge Node before DNS moves.
-- **1.3 CrowdSec composition module**: build on first-party
+- **1.3 CrowdSec composition module [status: done]**: build on first-party
   `services.crowdsec` — LAPI + log acquisition from Caddy access logs +
   AppSec component, bouncer key wiring into Caddy's CrowdSec handlers,
   Attic traffic exception, and exclusions for long-lived NetBird streams.
@@ -235,7 +241,7 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   *Accept*: services start in a VM test or on-node; Caddy handler config
   references a valid LAPI URL + key from sops; a CrowdSec restart does not
   interrupt edge traffic.
-- **1.4 Media routes — deferred**: the Tailscale-based backend for
+- **1.4 Media routes — deferred [status: done]**: the Tailscale-based backend for
   `jellyfin.plyrex.dev`/`seerr.plyrex.dev` is NOT migrated now. The edge
   serves a static placeholder page on both hosts (implemented in 1.2); the
   cluster's Tailscale proxy pod is deleted with the K3s teardown and its
@@ -243,7 +249,7 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   the proxied routes (the accepted ADR 0002 exception) happens at a later
   date, after the migration.
   *Accept*: placeholder responses render for both hosts.
-- **1.5 Runbook `docs/runbooks/edge-cutover.md`**: staged DNS cutover per
+- **1.5 Runbook `docs/runbooks/edge-cutover.md` [status: done]**: staged DNS cutover per
   host (test via `--resolve`, lower TTL, move A/AAAA records from the
   Hetzner LB to `legion-node1`, watch logs), third-party DNS coordination
   for `noelejoshua.com`/`plyrex.dev` and the HTTP-01 cert-issuance gap
@@ -252,7 +258,7 @@ can interleave per-service once 0–2 land, subject to the safety rules.
 
 ### Phase 2 — Backup Foundation (before any stateful cutover)
 
-- **2.1 Restic backup module**: `services.restic.backups` to the Mega S4
+- **2.1 Restic backup module [status: done]**: `services.restic.backups` to the Mega S4
   bucket with sops credentials; per-service Backup Sets (enabled as each
   service migrates) for NetBird, Pocket ID, Actual Budget, Stirling PDF,
   and H@H login data (cache excluded); SQLite-safe snapshot hooks where
@@ -264,7 +270,7 @@ can interleave per-service once 0–2 land, subject to the safety rules.
 
 ### Phase 3 — NetBird stack (data retained)
 
-- **3.1 NetBird service module** (`modules/nixos/netbird-server/`): custom
+- **3.1 NetBird service module [status: done]** (`modules/nixos/netbird-server/`): custom
   local module running the unified `netbird-server` (management+signal)
   and relay with STUN 3478 on `legion-node2`. Secrets via sops: store
   encryption key, relay auth secret, IdP session cookie key, proxy token
@@ -282,7 +288,7 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   *Accept*: module evaluates with state dir on a declared Hetzner Volume
   mount; firewall openings derived from inventory (3478/UDP, relay,
   private backend ports for Caddy).
-- **3.2 NetBird reverse proxy module**: `netbird-proxy` on `legion-node2`
+- **3.2 NetBird reverse proxy module [status: done]**: `netbird-proxy` on `legion-node2`
   bound on 443 (receiving the edge TLS passthrough), registered against
   the local management server with its proxy token, and running its own
   CrowdSec bouncer against the node1 LAPI over the private network (the
@@ -293,14 +299,14 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   through the edge passthrough), migrating existing ACME state.
   *Accept*: module evaluates; chosen cert path documented in the module;
   custom-port capability preserved; bouncer wired to LAPI.
-- **3.3 Runbook `docs/runbooks/netbird-migration.md`**: quiesce the K8s
+- **3.3 Runbook `docs/runbooks/netbird-migration.md` [status: done]**: quiesce the K8s
   NetBird server, back up then copy server state (and proxy ACME state if
   reused) from the PVC to the node2 Volume, move secrets from Bitwarden SM
   to sops, cut `netbird.jeiang.dev`/`stun.netbird.jeiang.dev`/
   `proxy.jeiang.dev` DNS, verify peer reconnection and proxy hosts, then
   (after Safety Rules 1–2) remove the K8s release and the NetBird
   operator/`netbird-resources`.
-- **3.4 Legion nodes as NetBird peers**: import the existing NetBird client
+- **3.4 Legion nodes as NetBird peers [status: done]**: import the existing NetBird client
   module (`modules/nixos/netbird.nix`) into `legionConfiguration` (or
   per-node via inventory) with sops setup keys, replacing the dropped
   Kubernetes routing peer for peer-only services. Guard against the
@@ -312,12 +318,12 @@ can interleave per-service once 0–2 land, subject to the safety rules.
 
 ### Phase 4 — Identity (data retained)
 
-- **4.1 Pocket ID module**: `services.pocket-id` on `legion-node2` behind
+- **4.1 Pocket ID module [status: done]**: `services.pocket-id` on `legion-node2` behind
   Caddy at `auth.jeiang.dev`; state on a declared Volume; secrets
   (encryption key, SMTP credentials) via sops.
   *Accept*: evaluates; state path on Volume; backend route present in edge
   config.
-- **4.2 Runbook `docs/runbooks/pocket-id-migration.md`**: back up, copy PVC
+- **4.2 Runbook `docs/runbooks/pocket-id-migration.md` [status: done]**: back up, copy PVC
   data to the Volume (chown to the module's service user), move secrets,
   cut DNS with the edge, verify OIDC logins (Grafana, Attic, NetBird,
   kubectl users until K3s retires), then remove the K8s release per the
@@ -330,7 +336,7 @@ can interleave per-service once 0–2 land, subject to the safety rules.
 
 ### Phase 5 — Applications
 
-- **5.1 Attic module**: `services.atticd` using the fork's server package
+- **5.1 Attic module [status: done]**: `services.atticd` using the fork's server package
   (new flake output from `inputs.attic`, e.g.
   `perSystem.packages.attic-server`) on `legion-node4`; external managed
   PostgreSQL URL and Mega S4 credentials delivered via `environmentFile`
@@ -340,15 +346,15 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   unchanged.
   *Accept*: evaluates; no Volume required; route present; no secret in
   store-rendered config.
-- **5.2 Actual Budget module** (retain data): `services.actual` on
+- **5.2 Actual Budget module [status: done]** (retain data): `services.actual` on
   `legion-node4`, data dir on a declared Volume.
-- **5.3 Stirling PDF module** (retain data): `services.stirling-pdf` with
+- **5.3 Stirling PDF module [status: done]** (retain data): `services.stirling-pdf` with
   login enabled on `legion-node4` (audit may move it), data on a declared
   Volume (replacing the cluster-provisioned 10 GiB Volume).
-- **5.4 H@H module** (retain data): thin module around
+- **5.4 H@H module [status: done]** (retain data): thin module around
   `packages.hath-rust` on `legion-node4`; cache/login/download dirs on a
   declared Volume; public TCP 8888 opened on that node only.
-- **5.5 Blocky module**: `services.blocky` on `legion-node3` on the node's
+- **5.5 Blocky module [status: done]**: `services.blocky` on `legion-node3` on the node's
   NetBird address (requires 3.4), with systemd ordering on the NetBird
   client (or listen-all + firewall scoping to the NetBird interface);
   same blocklists/upstreams as the chart. Replica count drops 2→1 — peer
@@ -361,18 +367,18 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   applicable); firewall openings scoped; edge routes present where
   public; service users own copied data (no blanket UID 1000 assumption —
   `services.actual`/`services.stirling-pdf` use their own users).
-- **5.6 Runbook `docs/runbooks/apps-migration.md`**: per-service backup →
+- **5.6 Runbook `docs/runbooks/apps-migration.md` [status: done]**: per-service backup →
   copy (PVC → Volume, chown to the module's service user; UID/GID 1000
   only where the module is configured that way, e.g. H@H), secret moves,
   DNS/port cutover, verification, then release removal per the safety
   rules. Attic needs no data copy — deploy, verify push/pull against the
   external Postgres and existing cache keys, then remove the K8s release.
-- **5.7 Runbook: NetBird DNS repoint** for the Blocky nameserver and
+- **5.7 Runbook: NetBird DNS repoint [status: done]** for the Blocky nameserver and
   VM/VL resource addresses (may fold into 5.6).
 
 ### Phase 6 — Monitoring (reset allowed)
 
-- **6.1 Monitoring composition module** on `legion-node3`: VictoriaMetrics,
+- **6.1 Monitoring composition module [status: done]** on `legion-node3`: VictoriaMetrics,
   VictoriaLogs, Grafana (Pocket ID OAuth via sops secret), **vmalert +
   Alertmanager with the existing Discord webhook (sops)**, vmagent/vlagent
   or journald-based log shipping from all nodes, scrape configs for the
@@ -380,35 +386,36 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   CrowdSec dashboard. Fresh state on node3; one-month retention.
   *Accept*: evaluates; Grafana behind edge at `grafana.jeiang.dev`; scrape
   targets derived from the inventory; alert routes render.
-- **6.2 Runbook `docs/runbooks/monitoring-cutover.md`**: deploy fresh, point
+- **6.2 Runbook `docs/runbooks/monitoring-cutover.md` [status: done]**: deploy fresh, point
   DNS, verify dashboards/datasources/alerts, remove the K8s stack (old
   data discarded deliberately).
 
 ### Phase 7 — Decommission
 
-- **7.1 Per-service K8s removal** happens inside each runbook above under
+- **7.1 Per-service K8s removal [status: todo]** happens inside each runbook above under
   the Cutover Safety Rules (a service is `cut-over` only after its release
   is deleted).
-- **7.2 K3s removal**: after all services are `cut-over`, remove the K3s
+- **7.2 K3s removal [status: todo]**: after all services are `cut-over`, remove the K3s
   module import, kernel-module/sysctl leftovers no longer needed, K3s sops
   secrets, OIDC apiserver wiring, and `docs`/`DESIGN.md` references to the
   Experimental Cluster. Remove the Traefik/cert-manager/Bitwarden/CCM/CSI
   expectations from documentation.
-- **7.3 `legion-node5` decommission**: verify it owns no workload or Volume,
+- **7.3 `legion-node5` decommission [status: todo]**: verify it owns no workload or Volume,
   remove it from the inventory and `nixosConfigurations`/deploy nodes,
   update DESIGN.md system-roles table; operator deletes the server and the
   Hetzner LB (runbook `docs/runbooks/decommission.md`).
-- **7.4 Docs sweep**: mark IMPROVEMENTS §4 done, fold enduring decisions
+- **7.4 Docs sweep [status: todo]**: mark IMPROVEMENTS §4 done, fold enduring decisions
   into DESIGN.md/ADR; land ADR 0003 (below) if not done earlier.
 
 ### Cross-cutting documentation
 
-- **ADR 0003 — Edge TLS and NetBird proxy topology**: records the DNS-01
-  wildcard strategy, per-zone cert issuance split, layer-4 SNI passthrough,
-  NetBird RP on a non-edge node, legion nodes as NetBird peers, the
-  fail-open CrowdSec posture, and Attic's external PostgreSQL.
+- **ADR 0003 — Edge TLS and NetBird proxy topology [status: done]**: records
+  the DNS-01 wildcard strategy, per-zone cert issuance split, layer-4 SNI
+  passthrough, NetBird RP on a non-edge node, legion nodes as NetBird peers,
+  the fail-open CrowdSec posture, and Attic's external PostgreSQL. See
+  [ADR 0003](adr/0003-edge-tls-and-netbird-proxy-topology.md).
 - CONTEXT.md gains no new roles unless review says otherwise (Edge Node
-  already defined).
+  already defined) **[status: done]**: reviewed, still accurate.
 
 ## Out Of Scope
 

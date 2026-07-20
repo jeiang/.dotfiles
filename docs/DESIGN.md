@@ -10,8 +10,8 @@ canonical terms and [`docs/IMPROVEMENTS.md`](IMPROVEMENTS.md) for open work.
 | System | Current role | Accepted direction |
 | --- | --- | --- |
 | `artemis` | Performance-oriented workstation with an impermanent root | Remain a recoverable workstation with explicit off-node backups |
-| `legion-node1` | K3s server and bootstrap node | Become the single Caddy Edge Node |
-| `legion-node2` through `legion-node4` | K3s agents | Host explicitly assigned NixOS services |
+| `legion-node1` | K3s server and bootstrap node | Become the single Caddy Edge Node (module landed, not yet cut over; see [ADR 0003](adr/0003-edge-tls-and-netbird-proxy-topology.md)) |
+| `legion-node2` through `legion-node4` | K3s agents | Host explicitly assigned Host-Native Services per the Legion inventory (modules landed, not yet cut over; see [`docs/MIGRATION.md`](MIGRATION.md)) |
 | `legion-node5` | K3s agent | Decommission after service migration |
 
 Artemis's custom kernel, desktop stack, gaming and VR configuration,
@@ -36,7 +36,10 @@ were already deployed.
   `flake.nixosModules.*` output. System wiring such as services, systemd units,
   firewall rules, and filesystem layout does not belong here.
 - `modules/nixos/`: reusable NixOS modules for base configuration, desktop,
-  K3s, sops, security, Hyprland, and related system features. These modules
+  K3s, sops, security, Hyprland, and related system features, including the
+  Host-Native Service modules for the Legion Fleet (`edge/`, `crowdsec/`,
+  `netbird-server/`, `monitoring/`, and the per-application modules; see
+  [ADR 0003](adr/0003-edge-tls-and-netbird-proxy-topology.md)). These modules
   consume package outputs through
   `self.packages.${pkgs.stdenv.hostPlatform.system}` or the corresponding
   `self'.packages`/`selfpkgs` surface. They do not define package overrides or
@@ -127,7 +130,7 @@ intentional instead of moving it into a generalized abstraction.
   ADR 0002 / `docs/MIGRATION.md` piece 0.2), rather than relying solely on
   the Hetzner Cloud Firewall. Openings are derived in
   `modules/hosts/legion/default.nix` from the Legion service inventory
-  (`service-inventory.nix`) plus the live K3s-era data path documented
+  (`_service-inventory.nix`) plus the live K3s-era data path documented
   there.
 - Legion intentionally has one K3s server. Control-plane high availability
   would consume RAM needed for experimentation and transitional workloads.
