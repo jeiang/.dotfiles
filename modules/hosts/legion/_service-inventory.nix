@@ -366,14 +366,17 @@
             name = "legion-node4-hath";
             mountpoint = "/mnt/hath";
           };
-          # Cache is retained on the Volume (operationally required, 30 Gi)
-          # but deliberately excluded from the Backup Set -- it's a
-          # rebuildable download cache, not irreplaceable state
-          # (docs/MIGRATION.md Workload Inventory: H@H "retain: client
-          # login + 30 Gi cache"; only the login/config data is called out
-          # as needing retention). `data` below is hath-rust's --data-dir
-          # ("Login data location"), matching modules/nixos/hath.nix.
-          backupSet = ["/mnt/hath/data"];
+          # Backup Set covers both the login/config data (`data`,
+          # hath-rust's --data-dir) and the 30 Gi download cache
+          # (`cache`, --cache-dir). The cache is technically rebuildable
+          # by re-fetching from the H@H network, but the operator chose to
+          # retain it in backups: restoring 30 Gi from Restic is far
+          # cheaper than re-earning cache trust and re-downloading, and a
+          # cold cache degrades the client's hourly quota until it refills.
+          # `download`/`log` stay out (transient). `data` and `cache` are
+          # subdirs of the /mnt/hath Volume mount, matching
+          # modules/nixos/hath.nix and satisfying the backup-subset check.
+          backupSet = ["/mnt/hath/data" "/mnt/hath/cache"];
           backupPauseUnits = ["hath.service"];
         }
       ];

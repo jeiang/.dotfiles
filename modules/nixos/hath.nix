@@ -44,7 +44,7 @@
           "--port"
           "8888"
           "--cache-dir"
-          "${dataDir}/cache"
+          "${dataDir}/cache" # download cache (in the Backup Set, operator-retained)
           "--data-dir"
           "${dataDir}/data" # login data (modules/hosts/legion/_service-inventory.nix backupSet)
           "--download-dir"

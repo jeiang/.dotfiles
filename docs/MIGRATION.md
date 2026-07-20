@@ -261,7 +261,8 @@ can interleave per-service once 0–2 land, subject to the safety rules.
 - **2.1 Restic backup module [status: done]**: `services.restic.backups` to the Mega S4
   bucket with sops credentials; per-service Backup Sets (enabled as each
   service migrates) for NetBird, Pocket ID, Actual Budget, Stirling PDF,
-  and H@H login data (cache excluded); SQLite-safe snapshot hooks where
+  and H@H login data plus its download cache (operator-retained — see the
+  H@H inventory entry); SQLite-safe snapshot hooks where
   needed; Backup Set ⊆ declared persistent paths enforced by the 0.1
   check. Daily schedule, 30-day retention per IMPROVEMENTS §1.
   *Accept*: evaluates; check rejects a path outside persistence; restore

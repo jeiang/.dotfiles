@@ -42,10 +42,8 @@ Actual Budget, Stirling PDF, and H@H need no sops secrets of their own
 
 `restic/password` and `restic/s4-env` are prerequisites of piece 2.1, not
 this runbook — see `docs/runbooks/restore.md` if they don't already exist.
-They're only relevant to Actual Budget and Stirling PDF below; Attic and H@H
-don't declare a `backupSet` (Attic has no local state; H@H's cache-only
-retained path is covered by its own volume copy, not Restic — see its
-section).
+They're relevant to Actual Budget, Stirling PDF, and H@H below; Attic alone
+does not declare a `backupSet` (it has no local state).
 
 ### Hetzner Volumes
 
@@ -413,10 +411,10 @@ copy failure doesn't also cost the cache transfer time:
 # Alternative to the tar/scp pair above, run from the copy pod's perspective
 # via `kubectl exec -i` piping straight to node4, or port-forward + rsync;
 # either way, prioritize copying `data/` (login, small, critical) before
-# `cache/` (large, tolerable-but-slow to lose per docs/MIGRATION.md
-# Workload Inventory -- the client re-downloads it from the H@H network on
-# demand). Cache loss is tolerable; still worth copying since retention was
-# an explicit operator decision (docs/MIGRATION.md Confirmed Decisions).
+# `cache/` (large, slow). Both are retained AND in the Backup Set (operator
+# decision, docs/MIGRATION.md H@H inventory entry): a cold cache degrades
+# the client's hourly quota until it refills, so the copy is worth the time
+# rather than letting the client re-download 30 GiB from the H@H network.
 ```
 
 ### Extract with the module's ownership
@@ -445,10 +443,11 @@ ssh node4.jeiang.dev -- sudo systemctl start restic-backups-hath.service
 ssh node4.jeiang.dev -- sudo systemctl status restic-backups-hath.service
 ```
 
-`modules/hosts/legion/_service-inventory.nix`'s `hath` entry backs up only
-`/mnt/hath/data` (login data) — the 30 GiB `cache/` subdirectory is
-deliberately excluded, so a much smaller/faster Restic run than the PVC copy
-above. Follow `docs/runbooks/restore.md` against
+`modules/hosts/legion/_service-inventory.nix`'s `hath` entry backs up both
+`/mnt/hath/data` (login data) and `/mnt/hath/cache` (the 30 GiB download
+cache) — `download/` and `log/` stay out. Expect this first Restic run to be
+large and slow (comparable to the PVC copy above); subsequent daily runs are
+incremental. Follow `docs/runbooks/restore.md` against
 `s3:https://s3.eu-central-1.s4.mega.io/legion-restic-backups/legion-node4/hath`,
 record the verification.
 
