@@ -19,6 +19,7 @@
             "auth.jeiang.dev"
             "attic.jeiang.dev"
             "budget.jeiang.dev"
+            "grafana.jeiang.dev"
             "pdf.plyrex.dev"
             "netbird.jeiang.dev"
             "proxy.jeiang.dev"

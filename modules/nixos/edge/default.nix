@@ -24,6 +24,7 @@
 
     website = inputs.website.packages.${system}.default;
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
+    billSplitter = "${inputs.bill-splitter.packages.${system}.default}/dist";
     netbirdDashboard = self.packages.${system}.netbird-dashboard;
   in {
     options.edge.crowdsec.enable = lib.mkEnableOption ''
@@ -220,12 +221,14 @@
             }
           }
 
-          # --- bill-split.jeiang.dev: BLOCKED, see report -----------------
-          # jeiang/bill-splitter has no flake.nix at the pinned
-          # k8s-manifests revision (ba481839c2eb24aa1079e902827121dc81d2936f),
-          # so there is no static flake output to serve. Per
-          # docs/MIGRATION.md piece 1.2, no route is defined here; this is
-          # reported to the planner rather than improvised around.
+          # --- bill-split.jeiang.dev: bill-splitter (piece 1.2) -----------
+          # jeiang/bill-splitter's flake now builds a static site to
+          # $out/dist (verified via `nix flake show`/`nix build`), so it's
+          # served the same way as the other static sites above.
+          bill-split.jeiang.dev {
+            root * ${billSplitter}
+            file_server
+          }
 
           # --- github.jeiang.dev: redirect --------------------------------
           github.jeiang.dev {

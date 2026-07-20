@@ -56,6 +56,26 @@
         "type": "github"
       }
     },
+    "bill-splitter": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1784528603,
+        "narHash": "sha256-WXuS4AdmKtgH4Uy6lpDWvbJU07/1zPncxoEQzUsPjGc=",
+        "owner": "jeiang",
+        "repo": "bill-splitter",
+        "rev": "8061ad4e36bcf2fb9053535bcf1ee928f4bfdbba",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "bill-splitter",
+        "type": "github"
+      }
+    },
     "cachix": {
       "inputs": {
         "devenv": [
@@ -1298,6 +1318,7 @@
     "root": {
       "inputs": {
         "attic": "attic",
+        "bill-splitter": "bill-splitter",
         "deploy-rs": "deploy-rs",
         "devenv": "devenv",
         "disko": "disko",
