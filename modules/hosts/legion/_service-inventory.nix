@@ -215,10 +215,27 @@
       edge = false;
       services = [
         {
+          # DNS points at the edge (legion-node1); Caddy proxies here
+          # (modules/nixos/edge/default.nix attic.jeiang.dev route). Port
+          # 8080 matches both the deployed chart's server.port
+          # (k8s-manifests attic/values.yaml) and
+          # modules/nixos/attic.nix's `services.atticd.settings.listen`.
           name = "attic";
           publicHostnames = [];
-          firewall = [];
-          # External managed PostgreSQL + Mega S4; no local state.
+          firewall = [
+            {
+              # Same documentation-only "private" scope as the other
+              # backend entries in this file: enforcement is
+              # trustedInterfaces (enp7s0) plus the port not being in the
+              # "public" allowlist.
+              port = 8080;
+              proto = "tcp";
+              scope = "private";
+            }
+          ];
+          # External managed PostgreSQL + Mega S4 (docs/MIGRATION.md
+          # Confirmed Decisions); no local state, so -- unlike every other
+          # node4 entry below -- no `volume` and no `backupSet`.
           stateful = false;
         }
         {

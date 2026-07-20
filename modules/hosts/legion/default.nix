@@ -365,7 +365,12 @@ in {
             # alongside netbird-server/netbird-proxy above).
             ++ lib.optional
             (lib.any (service: service.name == "pocket-id") node.services)
-            self.nixosModules.pocket-id;
+            self.nixosModules.pocket-id
+            # Piece 5.1: Attic, same optional-import pattern, gated on the
+            # inventory node placing `attic` (legion-node4 today).
+            ++ lib.optional
+            (lib.any (service: service.name == "attic") node.services)
+            self.nixosModules.attic;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;
