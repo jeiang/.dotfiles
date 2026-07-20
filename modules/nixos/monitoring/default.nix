@@ -89,14 +89,14 @@ _: {
             ];
           }
           {
-            # modules/nixos/edge/default.nix's Caddy admin API, bound to
-            # node1's private address for this scrape (metrics served on
-            # the admin socket's default /metrics route once `servers {
-            # metrics }` is set there).
+            # modules/nixos/edge/default.nix's dedicated metrics site
+            # block (port 2020, not Caddy's admin API -- that stays
+            # localhost-only, deliberately not exposed cross-node; see
+            # that module's comment).
             job_name = "caddy";
             static_configs = [
               {
-                targets = ["${node1}:2019"];
+                targets = ["${node1}:2020"];
                 labels.type = "edge";
               }
             ];

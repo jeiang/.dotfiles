@@ -18,7 +18,7 @@
     # Legion private-network addresses (modules/hosts/legion/default.nix
     # `legionNodes`); backends below don't exist yet (later phases), so
     # these routes may 502 until their service lands.
-    node1 = "172.17.0.1"; # This node's own private address (admin/metrics bind, piece 6.1)
+    node1 = "172.17.0.1"; # This node's own private address (metrics bind, piece 6.1)
     node2 = "172.17.0.2"; # NetBird server/relay (3.1), Pocket ID (4.1)
     node3 = "172.17.0.3"; # Monitoring/Grafana (6.1)
     node4 = "172.17.0.4"; # Attic (5.1), Actual Budget (5.2), Stirling PDF (5.3)
@@ -67,19 +67,22 @@
         '';
 
         globalConfig = ''
-          # docs/MIGRATION.md piece 6.1: bind the admin API (which serves
-          # Prometheus metrics at its default /metrics route once `servers
-          # { metrics }` below is set) to this node's own private address
-          # instead of the module default (localhost-only), so
-          # legion-node3's monitoring module can scrape it. Same
-          # reachability pattern as every other cross-node backend in this
-          # repo: a fixed private-network bind, never opened on the public
-          # interface or added to this node's public firewall allowlist.
-          admin ${node1}:2019
-
-          servers {
-            metrics
-          }
+          # docs/MIGRATION.md piece 6.1: the top-level `metrics` global
+          # option turns on Prometheus metrics collection for every HTTP
+          # server config below (the older `servers { metrics }` nested
+          # form is deprecated as of the pinned caddy 2.11.4 -- confirmed
+          # via `caddy adapt`'s own warning). Deliberately NOT exposed by
+          # binding the `admin` API off localhost (a prior version of this
+          # module did that): the admin API is unauthenticated
+          # config-mutation surface (POST /load reconfigures the whole
+          # edge, /stop shuts it down, etc), and "private network" here
+          # means every Legion node (trustedInterfaces enp7s0) -- a single
+          # compromised node would be able to rewrite this edge's entire
+          # routing table. The admin API stays at the module default
+          # (127.0.0.1:2019, unreachable cross-node); metrics are served
+          # from the plain HTTP site block below instead, which exposes
+          # only the metrics output, nothing administrative.
+          metrics
 
           # caddy-l4 + the HTTP app both wanting :443 is exactly the case
           # covered by caddy-l4's own "combining apps" example
@@ -158,6 +161,27 @@
         '';
 
         extraConfig = ''
+          # --- Prometheus metrics (piece 6.1), private network only ------
+          # Port 2020, deliberately NOT 2019: Caddy's admin API keeps
+          # listening at its module default (127.0.0.1:2019) since it's no
+          # longer reconfigured above, and site blocks sharing a port are
+          # merged by Caddy into one listener bound to every interface
+          # (`:<port>`, host-matched by route, not IP-bound) -- reusing
+          # 2019 here would collide with the admin API's own listener at
+          # startup. Plain `http://` scheme forces this listener to skip
+          # automatic HTTPS/ACME entirely (no cert to manage for an
+          # internal, private-network-only endpoint). Reachability: same
+          # pattern as every other cross-node backend in this repo, never
+          # opened on the public interface or added to this node's public
+          # firewall allowlist (modules/hosts/legion/_service-inventory.nix
+          # `caddy` entry, port 2020, "private" scope). Serves only the
+          # `metrics` handler -- no admin/config-mutation surface, unlike
+          # binding the `admin` API off localhost would (see the `servers
+          # { metrics }` comment above).
+          http://${node1}:2020 {
+            metrics /metrics
+          }
+
           # --- jeiang.dev + *.jeiang.dev: one DNS-01 wildcard cert -------
           # (docs/MIGRATION.md TLS strategy). Every other jeiang.dev site
           # block below has no explicit `tls` directive: Caddy 2.10+

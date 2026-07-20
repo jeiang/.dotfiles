@@ -54,13 +54,15 @@
               scope = "public";
             }
             {
-              # Admin API / Prometheus metrics (piece 6.1,
-              # modules/nixos/edge/default.nix `admin` global option),
-              # scraped by legion-node3's monitoring module. "private"
-              # scope is documentation only, same as every other backend
-              # entry in this file: enforcement is trustedInterfaces
-              # (enp7s0) plus the port not being in the "public" allowlist.
-              port = 2019;
+              # Prometheus metrics site block (piece 6.1,
+              # modules/nixos/edge/default.nix, deliberately NOT the
+              # admin API -- that stays at its module default,
+              # 127.0.0.1:2019, never exposed cross-node), scraped by
+              # legion-node3's monitoring module. "private" scope is
+              # documentation only, same as every other backend entry in
+              # this file: enforcement is trustedInterfaces (enp7s0) plus
+              # the port not being in the "public" allowlist.
+              port = 2020;
               proto = "tcp";
               scope = "private";
             }
