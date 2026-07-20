@@ -121,8 +121,43 @@ in {
         self.nixosModules.legionHardware
         self.nixosModules.k3s
         self.nixosModules.backups
+        # Piece 3.4: every legion node becomes a NetBird peer, reusing
+        # artemis's existing client module unmodified (it stays untouched
+        # -- only this host layer adds the setup-key wiring below).
+        # Replaces the dropped Kubernetes routing peer for peer-only
+        # services (Blocky DNS, raw VictoriaMetrics/VictoriaLogs, Phase
+        # 5). legion-node1 (the edge) and legion-node2 (the future
+        # netbird-server host) become peers too -- harmless, and node2
+        # enrolling as a peer of the server it will later host is exactly
+        # how the existing K8s NetBird server is reached today.
+        self.nixosModules.netbird
         self.diskoConfigurations.legion
       ];
+
+      # Piece 3.4 setup-key enrollment (docs/MIGRATION.md): declared here,
+      # not in modules/nixos/netbird.nix, since it's specific to Legion's
+      # fleet enrollment rather than the general client module artemis
+      # also uses. `services.netbird.clients.default` itself comes from
+      # self.nixosModules.netbird above; this only adds the login fields
+      # nixpkgs' services.netbird module exposes for declarative setup-key
+      # enrollment (nixos/modules/services/networking/netbird.nix
+      # `clients.<name>.login.*`).
+      #
+      # Bootstrap circularity guard: this must never point host DNS at the
+      # future Blocky instance (piece 5.5) as the primary resolver. Legion
+      # nodes keep systemd-networkd's normal DHCP/upstream resolvers
+      # (modules/hosts/legion/hardware.nix `useNetworkd = true`; nothing
+      # here or in self.nixosModules.netbird touches
+      # networking.nameservers or services.resolved), so `netbird.jeiang.dev`
+      # always resolves via public DNS before the tunnel is up -- never via
+      # Blocky-over-NetBird. Piece 5.5/5.7 must preserve this when Blocky
+      # lands.
+      sops.secrets."netbird/setup-key" = {};
+      services.netbird.clients.default.login = {
+        enable = true;
+        setupKeyFile = config.sops.secrets."netbird/setup-key".path;
+        systemdDependencies = ["sops-install-secrets.service"];
+      };
 
       # Piece 2.1: Restic backup jobs derived from this node's own
       # inventory entry -- non-empty on legion-node2 as of piece 3.1
