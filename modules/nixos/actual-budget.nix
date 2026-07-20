@@ -30,5 +30,8 @@ _: {
       # Actual UI/API, same as the deployed chart's `login.method:
       # password`); nothing for this module to configure or store in sops.
     };
+
+    # piece 0.6 capacity audit, docs/MIGRATION.md.
+    systemd.services.actual.serviceConfig.MemoryMax = "320M";
   };
 }

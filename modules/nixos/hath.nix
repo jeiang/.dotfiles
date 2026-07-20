@@ -66,6 +66,8 @@
         # used a plain emptyDir for /tmp/hath): a private, ephemeral /tmp
         # namespace, not the persistent Volume.
         PrivateTmp = true;
+        # piece 0.6 capacity audit, docs/MIGRATION.md.
+        MemoryMax = "256M";
       };
     };
   };

@@ -71,6 +71,11 @@ _: {
     # Accepted by the operator; no host-native equivalent of the chart's
     # `replicaCount`/HPA is added.
 
+    # piece 0.6 capacity audit, docs/MIGRATION.md: the old 1.22 GiB "peak"
+    # reading was an artifact of a prior no-limits config; blocklist load
+    # already caps real usage at <=350 MiB.
+    systemd.services.blocky.serviceConfig.MemoryMax = "512M";
+
     # Stateless (Workload Inventory: Blocky "none"): blocklists are
     # re-downloaded on start, so no Volume/backupSet -- matches the
     # `blocky` entry in modules/hosts/legion/_service-inventory.nix

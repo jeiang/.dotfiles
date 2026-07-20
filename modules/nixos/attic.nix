@@ -209,9 +209,9 @@
 
     # docs/MIGRATION.md RAM notes: "Attic was tuned to fit a 512 Mi limit"
     # in the cluster, but the *live* chart (k8s-manifests attic/values.yaml
-    # `resources.limits.memory`) actually runs 768Mi -- match that here.
-    # Final value still pending the piece 0.6 capacity audit.
-    systemd.services.atticd.serviceConfig.MemoryMax = "768M";
+    # `resources.limits.memory`) actually ran 768Mi. Piece 0.6 capacity
+    # audit raises this to 896M (measured steady-state, docs/MIGRATION.md).
+    systemd.services.atticd.serviceConfig.MemoryMax = "896M";
 
     sops = {
       secrets = {

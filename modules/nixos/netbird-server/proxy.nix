@@ -196,6 +196,8 @@
         # NB_PROXY_ADDRESS above binds :443; the proxy otherwise runs
         # unprivileged.
         AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
+        # piece 0.6 capacity audit, docs/MIGRATION.md.
+        MemoryMax = "128M";
       };
     };
   };

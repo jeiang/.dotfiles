@@ -147,6 +147,8 @@
             # listenAddress above binds :80; the server otherwise runs
             # unprivileged.
             AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
+            # piece 0.6 capacity audit, docs/MIGRATION.md.
+            MemoryMax = "320M";
           };
         };
 
@@ -172,6 +174,8 @@
             Restart = "on-failure";
             RestartSec = 5;
             DynamicUser = true;
+            # piece 0.6 capacity audit, docs/MIGRATION.md.
+            MemoryMax = "96M";
           };
         };
       };

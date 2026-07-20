@@ -334,12 +334,14 @@ _: {
     };
 
     # docs/MIGRATION.md RAM notes / piece 0.1 "every service gets a
-    # systemd MemoryMax derived from the audit": final values pending
-    # piece 0.6; starting point mirrors the chart's own limits
-    # (k8s-manifests monitoring/values.yaml `*.spec.resources.limits.memory`).
+    # systemd MemoryMax derived from the audit": values below are the
+    # piece 0.6 capacity audit's measured steady-state figures
+    # (docs/MIGRATION.md), superseding the chart's own limits
+    # (k8s-manifests monitoring/values.yaml `*.spec.resources.limits.memory`)
+    # that this module started from.
     systemd.services = {
-      victoriametrics.serviceConfig.MemoryMax = "1024M"; # vmsingle: 1Gi
-      victorialogs.serviceConfig.MemoryMax = "512M"; # vlsingle: 512Mi
+      victoriametrics.serviceConfig.MemoryMax = "640M";
+      victorialogs.serviceConfig.MemoryMax = "448M";
       grafana = {
         # nixpkgs' services.grafana has no `environmentFile` option
         # (unlike alertmanager above), so this is wired directly onto the
@@ -348,12 +350,12 @@ _: {
         # `caddy.env`-style convention of setting the sops template's
         # `owner` when the service has one.
         serviceConfig = {
-          MemoryMax = "1024M"; # grafana: 1Gi
+          MemoryMax = "320M";
           EnvironmentFile = config.sops.templates."grafana.env".path;
         };
       };
-      "vmalert-default".serviceConfig.MemoryMax = "384M"; # vmalert: 384Mi
-      alertmanager.serviceConfig.MemoryMax = "256M"; # alertmanager: 256Mi
+      "vmalert-default".serviceConfig.MemoryMax = "128M";
+      alertmanager.serviceConfig.MemoryMax = "96M";
     };
 
     sops = {

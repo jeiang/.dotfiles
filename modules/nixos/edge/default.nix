@@ -385,6 +385,9 @@
       };
       services.caddy.environmentFile = config.sops.templates."caddy.env".path;
 
+      # piece 0.6 capacity audit, docs/MIGRATION.md.
+      systemd.services.caddy.serviceConfig.MemoryMax = "256M";
+
       # 80/443 tcp public are already opened for legion-node1 by the
       # `caddy` entry in modules/hosts/legion/_service-inventory.nix (via
       # firewallPortsFor in modules/hosts/legion/default.nix); no change

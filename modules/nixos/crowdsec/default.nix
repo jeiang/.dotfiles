@@ -169,42 +169,47 @@ _: {
       # its module doesn't exist yet.
       sops.secrets."crowdsec/bouncer-netbird-proxy-key" = {};
 
-      systemd.services.crowdsec-bouncers = {
-        description = "Register CrowdSec LAPI bouncer keys";
-        after = ["crowdsec.service"];
-        wants = ["crowdsec.service"];
-        wantedBy = ["multi-user.target"];
-        path = [pkgs.gnugrep];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-        };
-        script = let
-          registerBouncer = name: keyPath: ''
-            if ! cscli bouncers list -o json | grep -q "\"name\": \"${name}\""; then
-              cscli bouncers add ${lib.escapeShellArg name} --key "$(cat ${lib.escapeShellArg keyPath})"
-            fi
+      systemd.services = {
+        crowdsec-bouncers = {
+          description = "Register CrowdSec LAPI bouncer keys";
+          after = ["crowdsec.service"];
+          wants = ["crowdsec.service"];
+          wantedBy = ["multi-user.target"];
+          path = [pkgs.gnugrep];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+          };
+          script = let
+            registerBouncer = name: keyPath: ''
+              if ! cscli bouncers list -o json | grep -q "\"name\": \"${name}\""; then
+                cscli bouncers add ${lib.escapeShellArg name} --key "$(cat ${lib.escapeShellArg keyPath})"
+              fi
+            '';
+          in ''
+            set -euo pipefail
+            ${registerBouncer "edge-caddy" config.sops.secrets."caddy/crowdsec-lapi-key".path}
+            ${registerBouncer "netbird-proxy" config.sops.secrets."crowdsec/bouncer-netbird-proxy-key".path}
           '';
-        in ''
-          set -euo pipefail
-          ${registerBouncer "edge-caddy" config.sops.secrets."caddy/crowdsec-lapi-key".path}
-          ${registerBouncer "netbird-proxy" config.sops.secrets."crowdsec/bouncer-netbird-proxy-key".path}
-        '';
-      };
+        };
 
-      # Fail-open startup ordering (docs/MIGRATION.md Confirmed Decisions
-      # and piece 1.3): `wants`+`after`, not `requires` -- Caddy must still
-      # start and serve traffic if crowdsec.service is stopped or missing.
-      # The hslatman bouncer plugin's own defaults carry the rest of the
-      # fail-open posture: `enable_hard_fails` stays unset/false (Caddy
-      # doesn't fail to start if the LAPI is unreachable) and
-      # modules/nixos/edge/default.nix sets `appsec_fail_open` (AppSec
-      # connection errors are ignored, not treated as a block) -- both
-      # verified against
-      # https://github.com/hslatman/caddy-crowdsec-bouncer crowdsec/caddyfile.go@v0.13.1.
-      systemd.services.caddy = lib.mkIf config.services.caddy.enable {
-        after = ["crowdsec.service"];
-        wants = ["crowdsec.service"];
+        # piece 0.6 capacity audit, docs/MIGRATION.md.
+        crowdsec.serviceConfig.MemoryMax = "512M";
+
+        # Fail-open startup ordering (docs/MIGRATION.md Confirmed Decisions
+        # and piece 1.3): `wants`+`after`, not `requires` -- Caddy must
+        # still start and serve traffic if crowdsec.service is stopped or
+        # missing. The hslatman bouncer plugin's own defaults carry the
+        # rest of the fail-open posture: `enable_hard_fails` stays
+        # unset/false (Caddy doesn't fail to start if the LAPI is
+        # unreachable) and modules/nixos/edge/default.nix sets
+        # `appsec_fail_open` (AppSec connection errors are ignored, not
+        # treated as a block) -- both verified against
+        # https://github.com/hslatman/caddy-crowdsec-bouncer crowdsec/caddyfile.go@v0.13.1.
+        caddy = lib.mkIf config.services.caddy.enable {
+          after = ["crowdsec.service"];
+          wants = ["crowdsec.service"];
+        };
       };
     };
   };

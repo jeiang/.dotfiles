@@ -66,6 +66,11 @@ _: {
       environmentFile = config.sops.templates."pocket-id.env".path;
     };
 
+    # piece 0.6 capacity audit, docs/MIGRATION.md. Overrides the nixpkgs
+    # services.pocket-id unit (fixed "pocket-id" user, not DynamicUser),
+    # same as every other MemoryMax override in this repo.
+    systemd.services.pocket-id.serviceConfig.MemoryMax = "256M";
+
     sops = {
       secrets = {
         "pocket-id/encryption-key" = {};
