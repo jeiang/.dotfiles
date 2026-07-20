@@ -26,6 +26,14 @@
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
     billSplitter = "${inputs.bill-splitter.packages.${system}.default}/dist";
     netbirdDashboard = self.packages.${system}.netbird-dashboard;
+
+    # Bare `crowdsec`/`appsec` HTTP handler directives (below, gated on
+    # cfg.crowdsec.enable so a disabled toggle renders byte-identical
+    # output to before this existed). Each already carries its own
+    # trailing newline + indent so callers just concatenate them ahead of
+    # the site block's first real directive.
+    crowdsecLine = lib.optionalString cfg.crowdsec.enable "crowdsec\n            ";
+    appsecLine = lib.optionalString cfg.crowdsec.enable "appsec\n            ";
   in {
     options.edge.crowdsec.enable = lib.mkEnableOption ''
       the CrowdSec bouncer HTTP + AppSec handlers on the edge, and (shared
@@ -84,6 +92,20 @@
           }
 
           ${lib.optionalString cfg.crowdsec.enable ''
+            # Handler ordering: neither the `crowdsec` nor `appsec` HTTP
+            # handler directive registers a position in Caddy's default
+            # directive order (both call only
+            # httpcaddyfile.RegisterHandlerDirective, never
+            # RegisterDirectiveOrder -- verified against
+            # github.com/hslatman/caddy-crowdsec-bouncer http/http.go and
+            # appsec/appsec.go @v0.13.1), so every site block below that
+            # uses them bare (not wrapped in an explicit `route`) needs
+            # this global placement: crowdsec's cheap IP-decision check
+            # runs before every other directive in its site block, appsec's
+            # deeper request inspection right after it.
+            order crowdsec first
+            order appsec after crowdsec
+
             # Fail-open posture (docs/MIGRATION.md Confirmed Decisions):
             # enable_hard_fails stays off (default) so Caddy still starts
             # if the LAPI is unreachable, and appsec_fail_open ignores
@@ -110,7 +132,7 @@
           # requesting a second certificate per hostname (see
           # https://caddyserver.com/docs/automatic-https#wildcard-certificates).
           jeiang.dev, *.jeiang.dev {
-            tls {
+            ${crowdsecLine}${appsecLine}tls {
               dns hetzner {env.HETZNER_DNS_TOKEN}
             }
 
@@ -131,7 +153,7 @@
           # docs/MIGRATION.md (Hetzner-hosted zones, not part of the
           # jeiang.dev wildcard SAN).
           aidanpinard.co {
-            tls {
+            ${crowdsecLine}${appsecLine}tls {
               dns hetzner {env.HETZNER_DNS_TOKEN}
             }
             root * ${website}
@@ -139,7 +161,7 @@
           }
 
           pinard.co.tt {
-            tls {
+            ${crowdsecLine}${appsecLine}tls {
               dns hetzner {env.HETZNER_DNS_TOKEN}
             }
             root * ${website}
@@ -151,7 +173,7 @@
           # directive, so this falls back to Caddy's standard automatic
           # HTTPS (HTTP-01/TLS-ALPN-01), per the TLS strategy section.
           noelejoshua.com {
-            root * ${portfolio}
+            ${crowdsecLine}${appsecLine}root * ${portfolio}
             file_server
           }
 
@@ -159,14 +181,26 @@
           # Port 1411 matches the deployed pocket-id image's listen port
           # (k8s-manifests idp/values.yaml `pocketId.port`).
           auth.jeiang.dev {
-            reverse_proxy ${node2}:1411
+            ${crowdsecLine}${appsecLine}reverse_proxy ${node2}:1411
           }
 
           # --- attic.jeiang.dev: Attic (piece 5.1) ------------------------
           # Long timeouts for NAR uploads (docs/MIGRATION.md, >= 15m).
           # Port 8080 matches k8s-manifests attic/values.yaml `server.port`.
+          # crowdsec (IP-decision check) applies -- it's cheap and the
+          # engine's own attic-cache-whitelist parser
+          # (modules/nixos/crowdsec/default.nix) already keeps bursty NAR
+          # traffic from generating bad-IP decisions in the first place.
+          # appsec is deliberately skipped here: the k8s-manifests Traefik
+          # deployment ran AppSec globally on every route including this
+          # one, but its own README documents Attic NAR uploads as
+          # legitimate high-volume bursts that need a whitelist to avoid
+          # false positives -- skipping the deep-inspection handler on this
+          # route entirely is the Caddyfile-level equivalent for a
+          # single-node fail-open edge, avoiding both the false-positive
+          # risk and the cost of body inspection on large NAR blobs.
           attic.jeiang.dev {
-            reverse_proxy ${node4}:8080 {
+            ${crowdsecLine}reverse_proxy ${node4}:8080 {
               transport http {
                 read_timeout 15m
                 write_timeout 15m
@@ -179,13 +213,13 @@
           # Port 5006 matches k8s-manifests actual-budget/values.yaml
           # `service.port`.
           budget.jeiang.dev {
-            reverse_proxy ${node4}:5006
+            ${crowdsecLine}${appsecLine}reverse_proxy ${node4}:5006
           }
 
           # --- grafana.jeiang.dev: monitoring stack (piece 6.1) -----------
           # Port 3000 is Grafana's default listen port.
           grafana.jeiang.dev {
-            reverse_proxy ${node3}:3000
+            ${crowdsecLine}${appsecLine}reverse_proxy ${node3}:3000
           }
 
           # --- netbird.jeiang.dev: NetBird server/relay (piece 3.1) -------
@@ -197,7 +231,18 @@
           # as the default fallback. Long read timeouts for the streaming
           # routes.
           netbird.jeiang.dev {
-            @grpc path /signalexchange.SignalExchange/* /management.ManagementService/* /management.ProxyService/*
+            # crowdsec (IP-decision check, cheap, no body/stream buffering)
+            # applies to the whole site including the gRPC/WebSocket
+            # routes below. appsec (deep request inspection) is placed
+            # only in the fallback dashboard handle at the bottom, not in
+            # @grpc/@backend/@relay: those are NetBird's long-lived
+            # streams (docs/MIGRATION.md piece 1.3 exclusion), and
+            # modules/nixos/crowdsec/default.nix's local
+            # jeiang/appsec-caddy config already carries an on_match
+            # allow-rule for these same paths as a second layer -- skipping
+            # the handler here avoids paying for AppSec inspection on
+            # streaming traffic it would just allow anyway.
+            ${crowdsecLine}@grpc path /signalexchange.SignalExchange/* /management.ManagementService/* /management.ProxyService/*
             handle @grpc {
               reverse_proxy h2c://${node2}:80
             }
@@ -222,7 +267,7 @@
             }
 
             handle {
-              root * ${netbirdDashboard}
+              ${appsecLine}root * ${netbirdDashboard}
               file_server
             }
           }
@@ -232,13 +277,13 @@
           # $out/dist (verified via `nix flake show`/`nix build`), so it's
           # served the same way as the other static sites above.
           bill-split.jeiang.dev {
-            root * ${billSplitter}
+            ${crowdsecLine}${appsecLine}root * ${billSplitter}
             file_server
           }
 
           # --- github.jeiang.dev: redirect --------------------------------
           github.jeiang.dev {
-            redir https://github.com/jeiang{uri} 301
+            ${crowdsecLine}${appsecLine}redir https://github.com/jeiang{uri} 301
           }
 
           # --- jellyfin.plyrex.dev / seerr.plyrex.dev: placeholders -------
@@ -248,7 +293,7 @@
           # (like noelejoshua.com) these fall back to standard automatic
           # HTTPS.
           jellyfin.plyrex.dev, seerr.plyrex.dev {
-            respond "Service migrating. This service is temporarily unavailable while it moves to new infrastructure." 503
+            ${crowdsecLine}${appsecLine}respond "Service migrating. This service is temporarily unavailable while it moves to new infrastructure." 503
           }
         '';
       };
