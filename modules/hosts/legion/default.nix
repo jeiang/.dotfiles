@@ -387,7 +387,15 @@ in {
             # inventory node placing `hath` (legion-node4 today).
             ++ lib.optional
             (lib.any (service: service.name == "hath") node.services)
-            self.nixosModules.hath;
+            self.nixosModules.hath
+            # Piece 5.5: Blocky, same optional-import pattern, gated on the
+            # inventory node placing `blocky` (legion-node3 today). Requires
+            # piece 3.4 (self.nixosModules.netbird, imported fleet-wide
+            # above) for both trustedInterfaces and the client service name
+            # modules/nixos/blocky.nix orders after.
+            ++ lib.optional
+            (lib.any (service: service.name == "blocky") node.services)
+            self.nixosModules.blocky;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;
