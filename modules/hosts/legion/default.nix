@@ -370,7 +370,13 @@ in {
             # inventory node placing `attic` (legion-node4 today).
             ++ lib.optional
             (lib.any (service: service.name == "attic") node.services)
-            self.nixosModules.attic;
+            self.nixosModules.attic
+            # Piece 5.2: Actual Budget, same optional-import pattern, gated
+            # on the inventory node placing `actual-budget` (legion-node4
+            # today).
+            ++ lib.optional
+            (lib.any (service: service.name == "actual-budget") node.services)
+            self.nixosModules.actual-budget;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;

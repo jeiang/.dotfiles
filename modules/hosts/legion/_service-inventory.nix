@@ -239,14 +239,30 @@
           stateful = false;
         }
         {
+          # DNS points at the edge; Caddy proxies here
+          # (modules/nixos/edge/default.nix budget.jeiang.dev route). Port
+          # 5006 matches both k8s-manifests actual-budget/values.yaml
+          # `service.port` and services.actual's own default
+          # (modules/nixos/actual-budget.nix).
           name = "actual-budget";
           publicHostnames = [];
-          firewall = [];
+          firewall = [
+            {
+              port = 5006;
+              proto = "tcp";
+              scope = "private";
+            }
+          ];
           stateful = true;
           volume = {
             name = "legion-node4-actual-budget";
             mountpoint = "/mnt/actual-budget";
           };
+          # Retained-data service (Cutover Safety Rule 1). pauseUnits stops
+          # the service before the snapshot: server-files/account.sqlite is
+          # a live SQLite DB (modules/nixos/actual-budget.nix).
+          backupSet = ["/mnt/actual-budget"];
+          backupPauseUnits = ["actual.service"];
         }
         {
           name = "stirling-pdf";
