@@ -291,7 +291,10 @@ in {
             # Piece 1.1: Caddy Edge Node module, only for the inventory's
             # edge node. Runs alongside K3s until the runbook (piece 1.5)
             # cuts DNS over.
-            ++ lib.optional (node.edge or false) self.nixosModules.edge;
+            ++ lib.optional (node.edge or false) self.nixosModules.edge
+            # Piece 1.3: CrowdSec engine, same edge-node condition as
+            # above. Both modules share the edge.crowdsec.enable toggle.
+            ++ lib.optional (node.edge or false) self.nixosModules.crowdsec;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;

@@ -47,7 +47,19 @@
         {
           name = "crowdsec";
           publicHostnames = [];
-          firewall = [];
+          # LAPI (piece 1.3): reachable from the edge Caddy bouncer on
+          # loopback and from legion-node2's future netbird-proxy bouncer
+          # (piece 3.2) over the private network. "private" scope is
+          # documentation only here (see netbird-proxy below); enforcement
+          # is trustedInterfaces (enp7s0) plus the port not being in the
+          # "public" allowlist modules/hosts/legion/default.nix derives.
+          firewall = [
+            {
+              port = 8080;
+              proto = "tcp";
+              scope = "private";
+            }
+          ];
           stateful = false;
         }
         {

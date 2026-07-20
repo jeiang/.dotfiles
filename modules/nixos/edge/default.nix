@@ -28,8 +28,14 @@
     netbirdDashboard = self.packages.${system}.netbird-dashboard;
   in {
     options.edge.crowdsec.enable = lib.mkEnableOption ''
-      the CrowdSec bouncer HTTP + AppSec handlers on the edge. Off by
-      default so the edge works before piece 1.3 stands up the LAPI.
+      the CrowdSec bouncer HTTP + AppSec handlers on the edge, and (shared
+      switch, modules/nixos/crowdsec/default.nix) the CrowdSec engine
+      itself. Off by default: piece 1.3's engine module cleanly evaluates,
+      but the sops secrets it and this option's Caddy wiring both need
+      (caddy/crowdsec-lapi-url, caddy/crowdsec-lapi-key,
+      crowdsec/bouncer-netbird-proxy-key) are not yet in
+      modules/nixos/sops/secrets.yaml, so activation would fail. Flip once
+      those exist (docs/runbooks/edge-cutover.md CrowdSec enablement step).
     '';
 
     config = {
