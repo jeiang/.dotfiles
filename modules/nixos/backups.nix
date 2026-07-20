@@ -2,10 +2,11 @@ _: {
   # docs/MIGRATION.md piece 2.1: Restic backups to a dedicated Mega S4
   # bucket, driven entirely by the Legion inventory's per-service
   # `backupSet`/`backupPauseUnits` fields
-  # (modules/hosts/legion/_service-inventory.nix). No service declares
-  # `backupSet` yet (stateful services land in Phases 3-5), so `backups.jobs`
-  # is empty on every node today and this module produces zero
-  # services.restic.backups entries until then. Imported unconditionally by
+  # (modules/hosts/legion/_service-inventory.nix). `netbird-server` (piece
+  # 3.1) is the first service to declare `backupSet`; `backups.jobs` stays
+  # empty on every other node until its own stateful service lands (Phases
+  # 4-5), producing zero services.restic.backups entries there. Imported
+  # unconditionally by
   # legionConfiguration (modules/hosts/legion/default.nix); never imported
   # on artemis (IMPROVEMENTS §1: Artemis gets its own backup allowlist as
   # separate future work).

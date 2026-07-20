@@ -11,8 +11,8 @@
 #   - `backupSet`: list of paths, an explicit Backup Set allowlist
 #     (DESIGN.md State And Backup Boundaries). Must be a subset of the
 #     service's declared Volume mountpoint -- enforced below by the
-#     `backupSetViolations` assert. No service declares this yet; stateful
-#     services land in Phases 3-5.
+#     `backupSetViolations` assert. `netbird-server` (piece 3.1) is the
+#     first to declare one; further stateful services land in Phases 4-5.
 #   - `backupPauseUnits`: list of systemd unit names to stop before the
 #     snapshot and restart after, for SQLite-safe snapshots of a service
 #     whose Backup Set contains a live DB (e.g. Pocket ID, Actual Budget).
@@ -91,12 +91,29 @@
           name = "netbird-server";
           # DNS points at the edge (legion-node1); Caddy proxies here.
           publicHostnames = [];
-          firewall = [];
+          firewall = [
+            {
+              # Management/signal backend the edge Caddy netbird.jeiang.dev
+              # @grpc/@backend routes proxy to
+              # (modules/nixos/edge/default.nix). "private" scope is
+              # documentation only, same as the legion-node1 crowdsec
+              # entry above: enforcement is trustedInterfaces (enp7s0)
+              # plus the port not being in the "public" allowlist.
+              port = 80;
+              proto = "tcp";
+              scope = "private";
+            }
+          ];
           stateful = true;
           volume = {
             name = "legion-node2-netbird";
             mountpoint = "/mnt/netbird";
           };
+          # Retained-data service (Cutover Safety Rule 1). pauseUnits stops
+          # the server before the snapshot: its store.engine is sqlite
+          # (modules/nixos/netbird-server/default.nix).
+          backupSet = ["/mnt/netbird"];
+          backupPauseUnits = ["netbird-server.service"];
         }
         {
           name = "netbird-relay";
@@ -107,6 +124,14 @@
               port = 3478;
               proto = "udp";
               scope = "public";
+            }
+            {
+              # Relay WS backend the edge's netbird.jeiang.dev @relay route
+              # proxies to (modules/nixos/edge/default.nix). Same
+              # documentation-only "private" scope as above.
+              port = 8080;
+              proto = "tcp";
+              scope = "private";
             }
           ];
           stateful = false;

@@ -125,9 +125,10 @@ in {
       ];
 
       # Piece 2.1: Restic backup jobs derived from this node's own
-      # inventory entry -- empty today (no service declares backupSet
-      # yet), so modules/nixos/backups.nix evaluates to zero
-      # services.restic.backups jobs until Phases 3-5 land.
+      # inventory entry -- non-empty on legion-node2 as of piece 3.1
+      # (netbird-server); modules/nixos/backups.nix evaluates to zero
+      # services.restic.backups jobs on every other node until its own
+      # stateful service lands (Phases 4-5).
       backups.jobs = lib.listToAttrs (
         map (service:
           lib.nameValuePair service.name {
@@ -310,7 +311,14 @@ in {
             ++ lib.optional (node.edge or false) self.nixosModules.edge
             # Piece 1.3: CrowdSec engine, same edge-node condition as
             # above. Both modules share the edge.crowdsec.enable toggle.
-            ++ lib.optional (node.edge or false) self.nixosModules.crowdsec;
+            ++ lib.optional (node.edge or false) self.nixosModules.crowdsec
+            # Piece 3.1: NetBird server + relay, only for the inventory
+            # node that places `netbird-server`
+            # (modules/hosts/legion/_service-inventory.nix, legion-node2
+            # today). Never imported on any other node.
+            ++ lib.optional
+            (lib.any (service: service.name == "netbird-server") node.services)
+            self.nixosModules.netbird-server;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;
