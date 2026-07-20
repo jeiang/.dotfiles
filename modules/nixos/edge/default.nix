@@ -20,7 +20,7 @@
     # these routes may 502 until their service lands.
     node2 = "172.17.0.2"; # NetBird server/relay (3.1), Pocket ID (4.1)
     node3 = "172.17.0.3"; # Monitoring/Grafana (6.1)
-    node4 = "172.17.0.4"; # Attic (5.1), Actual Budget (5.2)
+    node4 = "172.17.0.4"; # Attic (5.1), Actual Budget (5.2), Stirling PDF (5.3)
 
     website = inputs.website.packages.${system}.default;
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
@@ -184,6 +184,16 @@
             }
             root * ${website}
             file_server
+          }
+
+          # --- pdf.plyrex.dev: Stirling PDF (piece 5.3) --------------------
+          # Not in Hetzner DNS (docs/MIGRATION.md TLS strategy): no
+          # explicit `tls` directive, same automatic-HTTPS fallback as
+          # noelejoshua.com below. Port 8081 matches
+          # modules/nixos/stirling-pdf.nix and the `stirling-pdf` firewall
+          # entry in modules/hosts/legion/_service-inventory.nix.
+          pdf.plyrex.dev {
+            ${crowdsecLine}${appsecLine}reverse_proxy ${node4}:8081
           }
 
           # --- noelejoshua.com: jkmn-website (piece 1.2), new input -------

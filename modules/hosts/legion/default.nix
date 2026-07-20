@@ -376,7 +376,13 @@ in {
             # today).
             ++ lib.optional
             (lib.any (service: service.name == "actual-budget") node.services)
-            self.nixosModules.actual-budget;
+            self.nixosModules.actual-budget
+            # Piece 5.3: Stirling PDF, same optional-import pattern, gated
+            # on the inventory node placing `stirling-pdf` (legion-node4
+            # today).
+            ++ lib.optional
+            (lib.any (service: service.name == "stirling-pdf") node.services)
+            self.nixosModules.stirling-pdf;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;
