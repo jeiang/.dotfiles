@@ -155,14 +155,36 @@
           };
         }
         {
+          # DNS points at the edge (legion-node1); Caddy proxies here
+          # (modules/nixos/edge/default.nix auth.jeiang.dev route). Port
+          # 1411 matches both the deployed chart's pocketId.port
+          # (k8s-manifests idp/values.yaml) and the nixpkgs pocket-id
+          # v2.10.0 binary's own default PORT (backend/internal/common/env_config.go
+          # `defaultConfig().Port = "1411"`) -- nothing to override.
           name = "pocket-id";
           publicHostnames = [];
-          firewall = [];
+          firewall = [
+            {
+              # Same documentation-only "private" scope as the other
+              # legion-node2 backends above: enforcement is
+              # trustedInterfaces (enp7s0) plus the port not being in the
+              # "public" allowlist.
+              port = 1411;
+              proto = "tcp";
+              scope = "private";
+            }
+          ];
           stateful = true;
           volume = {
             name = "legion-node2-pocket-id";
             mountpoint = "/mnt/pocket-id";
           };
+          # Retained-data service (Cutover Safety Rule 1). pauseUnits
+          # stops the service before the snapshot: its DB is SQLite
+          # (modules/nixos/pocket-id.nix, matches the deployed chart's
+          # DB_CONNECTION_STRING).
+          backupSet = ["/mnt/pocket-id"];
+          backupPauseUnits = ["pocket-id.service"];
         }
       ];
     };

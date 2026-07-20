@@ -359,7 +359,13 @@ in {
             # (legion-node2 today, alongside netbird-server above).
             ++ lib.optional
             (lib.any (service: service.name == "netbird-proxy") node.services)
-            self.nixosModules.netbird-proxy;
+            self.nixosModules.netbird-proxy
+            # Piece 4.1: Pocket ID, same optional-import pattern, gated on
+            # the inventory node placing `pocket-id` (legion-node2 today,
+            # alongside netbird-server/netbird-proxy above).
+            ++ lib.optional
+            (lib.any (service: service.name == "pocket-id") node.services)
+            self.nixosModules.pocket-id;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;
