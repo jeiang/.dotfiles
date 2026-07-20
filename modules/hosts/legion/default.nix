@@ -237,56 +237,61 @@ in {
     nixosConfigurations = let
       mkLegionSystem = name: node:
         inputs.nixpkgs.lib.nixosSystem {
-          modules = [
-            self.nixosModules.legionConfiguration
-            {
-              networking.hostName = name;
+          modules =
+            [
+              self.nixosModules.legionConfiguration
+              {
+                networking.hostName = name;
 
-              systemd.network.networks."10-wan" = mkWan {
-                inherit (node) publicIPv4 publicIPv6;
-              };
+                systemd.network.networks."10-wan" = mkWan {
+                  inherit (node) publicIPv4 publicIPv6;
+                };
 
-              services.k3s = {
-                nodeIP = "${node.privateIPv4}";
-                role =
-                  if (node.agent or false)
-                  then "agent"
-                  else "server";
-                extraFlags = lib.mkIf (!node.agent or false) (
-                  [
-                    # Required before installing hcloud-cloud-controller-manager.
-                    "--disable-cloud-controller"
+                services.k3s = {
+                  nodeIP = "${node.privateIPv4}";
+                  role =
+                    if (node.agent or false)
+                    then "agent"
+                    else "server";
+                  extraFlags = lib.mkIf (!node.agent or false) (
+                    [
+                      # Required before installing hcloud-cloud-controller-manager.
+                      "--disable-cloud-controller"
 
-                    # Required when using MetalLB instead of K3s ServiceLB.
-                    "--disable=servicelb"
+                      # Required when using MetalLB instead of K3s ServiceLB.
+                      "--disable=servicelb"
 
-                    # Avoid competing default storage classes when using Hetzner CSI.
-                    "--disable=local-storage"
+                      # Avoid competing default storage classes when using Hetzner CSI.
+                      "--disable=local-storage"
 
-                    # Dual-stack must be set when the cluster is first created.
-                    "--cluster-cidr=${podCIDRv4}"
-                    "--service-cidr=${serviceCIDRv4}"
-                  ]
-                  ++ map (san: "--tls-san=${san}") apiTlsSans
-                  ++ [
-                    "--kube-apiserver-arg=oidc-issuer-url=https://auth.jeiang.dev"
-                    "--kube-apiserver-arg=oidc-client-id=44213aa3-11eb-401d-922c-c7f81c3a9e37"
-                    "--kube-apiserver-arg=oidc-username-claim=preferred_username"
-                    "--kube-apiserver-arg=oidc-username-prefix=-"
-                    "--kube-apiserver-arg=oidc-groups-claim=groups"
-                    "--kube-apiserver-arg=oidc-groups-prefix="
-                  ]
-                );
-              };
-            }
+                      # Dual-stack must be set when the cluster is first created.
+                      "--cluster-cidr=${podCIDRv4}"
+                      "--service-cidr=${serviceCIDRv4}"
+                    ]
+                    ++ map (san: "--tls-san=${san}") apiTlsSans
+                    ++ [
+                      "--kube-apiserver-arg=oidc-issuer-url=https://auth.jeiang.dev"
+                      "--kube-apiserver-arg=oidc-client-id=44213aa3-11eb-401d-922c-c7f81c3a9e37"
+                      "--kube-apiserver-arg=oidc-username-claim=preferred_username"
+                      "--kube-apiserver-arg=oidc-username-prefix=-"
+                      "--kube-apiserver-arg=oidc-groups-claim=groups"
+                      "--kube-apiserver-arg=oidc-groups-prefix="
+                    ]
+                  );
+                };
+              }
 
-            (lib.mkIf (node.bootstrap or false) {
-              services.k3s = {
-                serverAddr = lib.mkForce "";
-                clusterInit = true;
-              };
-            })
-          ];
+              (lib.mkIf (node.bootstrap or false) {
+                services.k3s = {
+                  serverAddr = lib.mkForce "";
+                  clusterInit = true;
+                };
+              })
+            ]
+            # Piece 1.1: Caddy Edge Node module, only for the inventory's
+            # edge node. Runs alongside K3s until the runbook (piece 1.5)
+            # cuts DNS over.
+            ++ lib.optional (node.edge or false) self.nixosModules.edge;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;
