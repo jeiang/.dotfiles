@@ -208,6 +208,20 @@
           backupSet = ["/mnt/pocket-id"];
           backupPauseUnits = ["pocket-id.service"];
         }
+        {
+          # Moved from legion-node3 (piece 0.6 capacity audit,
+          # docs/MIGRATION.md): the old 1.22 GiB peak was an artifact of a
+          # prior no-limits config -- a config value already caps Blocky's
+          # heavy read load, so real usage is <=350 MiB. Node2 has room; same
+          # NetBird-only reachability pattern as before (trustedInterfaces,
+          # no public/private firewall opening).
+          name = "blocky";
+          publicHostnames = [];
+          # Served on the node's NetBird address once node enrollment (3.4)
+          # lands; not a hcloud public/private firewall opening.
+          firewall = [];
+          stateful = false;
+        }
       ];
     };
 
@@ -233,7 +247,7 @@
           ];
           # Raw VictoriaMetrics (8428) and VictoriaLogs (9428) are
           # deliberately absent from this list: reachable only from
-          # NetBird peers, same mechanism as the blocky entry below
+          # NetBird peers, same mechanism legion-node2's blocky entry uses
           # (default 0.0.0.0 bind + trustedInterfaces covering the
           # NetBird client's interface once piece 3.4 lands, the port
           # never added to this node's public/private hcloud openings) --
@@ -244,17 +258,11 @@
           # here): reset allowed (Confirmed Decisions), Disposable State
           # on node-local storage, no Hetzner Volume, no backupSet.
           # MemoryMax values live per-service in
-          # modules/nixos/monitoring/default.nix (same convention as
-          # modules/nixos/attic.nix/stirling-pdf.nix), pending piece 0.6's
-          # capacity audit.
-          stateful = false;
-        }
-        {
-          name = "blocky";
-          publicHostnames = [];
-          # Served on the node's NetBird address once node enrollment (3.4)
-          # lands; not a hcloud public/private firewall opening.
-          firewall = [];
+          # modules/nixos/monitoring/default.nix (piece 0.6 capacity
+          # audit, docs/MIGRATION.md).
+          #
+          # Blocky moved to legion-node2 (piece 0.6 capacity audit,
+          # docs/MIGRATION.md): this node is now monitoring-only.
           stateful = false;
         }
       ];

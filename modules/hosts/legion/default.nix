@@ -424,7 +424,8 @@ in {
             (lib.any (service: service.name == "hath") node.services)
             self.nixosModules.hath
             # Piece 5.5: Blocky, same optional-import pattern, gated on the
-            # inventory node placing `blocky` (legion-node3 today). Requires
+            # inventory node placing `blocky` (legion-node2 today, moved
+            # from legion-node3 by the piece 0.6 capacity audit). Requires
             # piece 3.4 (self.nixosModules.netbird, imported fleet-wide
             # above) for both trustedInterfaces and the client service name
             # modules/nixos/blocky.nix orders after.
