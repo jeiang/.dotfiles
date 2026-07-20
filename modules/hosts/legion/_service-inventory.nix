@@ -53,6 +53,17 @@
               proto = "tcp";
               scope = "public";
             }
+            {
+              # Admin API / Prometheus metrics (piece 6.1,
+              # modules/nixos/edge/default.nix `admin` global option),
+              # scraped by legion-node3's monitoring module. "private"
+              # scope is documentation only, same as every other backend
+              # entry in this file: enforcement is trustedInterfaces
+              # (enp7s0) plus the port not being in the "public" allowlist.
+              port = 2019;
+              proto = "tcp";
+              scope = "private";
+            }
           ];
           stateful = false;
         }
@@ -68,6 +79,15 @@
           firewall = [
             {
               port = 8080;
+              proto = "tcp";
+              scope = "private";
+            }
+            {
+              # Prometheus metrics (piece 6.1,
+              # modules/nixos/crowdsec/default.nix), scraped by
+              # legion-node3's monitoring module. Same documentation-only
+              # "private" scope as the LAPI entry above.
+              port = 6060;
               proto = "tcp";
               scope = "private";
             }
@@ -193,11 +213,38 @@
       edge = false;
       services = [
         {
-          # VictoriaMetrics, VictoriaLogs, Grafana, vmalert, Alertmanager.
+          # VictoriaMetrics, VictoriaLogs, Grafana, vmalert, Alertmanager
+          # (piece 6.1, modules/nixos/monitoring/default.nix).
           name = "monitoring";
           publicHostnames = [];
-          firewall = [];
-          # Reset allowed (Confirmed Decisions): Disposable State, no Volume.
+          firewall = [
+            {
+              # Grafana backend the edge Caddy grafana.jeiang.dev route
+              # proxies to (modules/nixos/edge/default.nix). "private"
+              # scope is documentation only, same as every other backend
+              # entry in this file: enforcement is trustedInterfaces
+              # (enp7s0) plus the port not being in the "public" allowlist.
+              port = 3000;
+              proto = "tcp";
+              scope = "private";
+            }
+          ];
+          # Raw VictoriaMetrics (8428) and VictoriaLogs (9428) are
+          # deliberately absent from this list: reachable only from
+          # NetBird peers, same mechanism as the blocky entry below
+          # (default 0.0.0.0 bind + trustedInterfaces covering the
+          # NetBird client's interface once piece 3.4 lands, the port
+          # never added to this node's public/private hcloud openings) --
+          # no firewall entry needed for them, matching that pattern
+          # exactly (see modules/nixos/blocky.nix's comment).
+          #
+          # Verified against piece 0.1's placeholder entry (unchanged
+          # here): reset allowed (Confirmed Decisions), Disposable State
+          # on node-local storage, no Hetzner Volume, no backupSet.
+          # MemoryMax values live per-service in
+          # modules/nixos/monitoring/default.nix (same convention as
+          # modules/nixos/attic.nix/stirling-pdf.nix), pending piece 0.6's
+          # capacity audit.
           stateful = false;
         }
         {

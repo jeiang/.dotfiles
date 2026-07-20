@@ -153,10 +153,40 @@ in {
       # Blocky-over-NetBird. Piece 5.5/5.7 must preserve this when Blocky
       # lands.
       sops.secrets."netbird/setup-key" = {};
-      services.netbird.clients.default.login = {
-        enable = true;
-        setupKeyFile = config.sops.secrets."netbird/setup-key".path;
-        systemdDependencies = ["sops-install-secrets.service"];
+      services = {
+        netbird.clients.default.login = {
+          enable = true;
+          setupKeyFile = config.sops.secrets."netbird/setup-key".path;
+          systemdDependencies = ["sops-install-secrets.service"];
+        };
+
+        # Piece 6.1: fleet-wide node_exporter, one per Legion node, scraped
+        # by legion-node3's monitoring module
+        # (modules/nixos/monitoring/default.nix `job_name = "node"`). Not
+        # a "placed" service in the inventory sense
+        # (modules/hosts/legion/_service-inventory.nix): every node runs
+        # it unconditionally, so it lives here rather than as a per-node
+        # inventory entry. Default bind (all interfaces) + no
+        # `openFirewall`: same private-network-only reachability as every
+        # other cross-node backend in this repo (trustedInterfaces, never
+        # added to the public allowlist below).
+        prometheus.exporters.node.enable = true;
+
+        # Piece 6.1 log shipping: journald from every Legion node to
+        # legion-node3's VictoriaLogs, via systemd-journal-upload (nixpkgs
+        # `services.journald.upload`) pointed at VictoriaLogs' journald
+        # ingestion route. systemd-journal-upload always appends `/upload`
+        # to the configured URL itself, and VictoriaLogs registers the
+        # matching route at `/insert/journald/upload` (confirmed against
+        # the pinned victorialogs 1.51.0 binary's embedded route strings)
+        # -- so the URL below must end at `/insert/journald`, not
+        # `/upload`. Chosen over vlagent/promtail-style shippers: fully
+        # declarative, no extra service to configure per-node, and
+        # VictoriaLogs supports this ingestion path natively.
+        journald.upload = {
+          enable = true;
+          settings.Upload.URL = "http://${legionNodes.legion-node3.privateIPv4}:9428/insert/journald";
+        };
       };
 
       # Piece 2.1: Restic backup jobs derived from this node's own
@@ -395,7 +425,14 @@ in {
             # modules/nixos/blocky.nix orders after.
             ++ lib.optional
             (lib.any (service: service.name == "blocky") node.services)
-            self.nixosModules.blocky;
+            self.nixosModules.blocky
+            # Piece 6.1: monitoring composition (VictoriaMetrics,
+            # VictoriaLogs, Grafana, vmalert, Alertmanager), same
+            # optional-import pattern, gated on the inventory node placing
+            # `monitoring` (legion-node3 today).
+            ++ lib.optional
+            (lib.any (service: service.name == "monitoring") node.services)
+            self.nixosModules.monitoring;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;

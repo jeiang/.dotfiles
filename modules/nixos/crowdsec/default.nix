@@ -67,6 +67,14 @@ _: {
           listen_uri = "0.0.0.0:${toString lapiPort}";
         };
 
+        # docs/MIGRATION.md piece 6.1: legion-node3's monitoring module
+        # scrapes this over the private network, same reachability
+        # reasoning (and the same 0.0.0.0-plus-firewall pattern) as
+        # listen_uri above -- the module default (127.0.0.1) would make it
+        # unreachable from another node. Port matches
+        # k8s-manifests/crowdsec/values.yaml `listen_port: 6060`.
+        settings.general.prometheus.listen_addr = "0.0.0.0";
+
         localConfig = {
           acquisitions = [
             {

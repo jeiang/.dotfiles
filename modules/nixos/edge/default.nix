@@ -18,6 +18,7 @@
     # Legion private-network addresses (modules/hosts/legion/default.nix
     # `legionNodes`); backends below don't exist yet (later phases), so
     # these routes may 502 until their service lands.
+    node1 = "172.17.0.1"; # This node's own private address (admin/metrics bind, piece 6.1)
     node2 = "172.17.0.2"; # NetBird server/relay (3.1), Pocket ID (4.1)
     node3 = "172.17.0.3"; # Monitoring/Grafana (6.1)
     node4 = "172.17.0.4"; # Attic (5.1), Actual Budget (5.2), Stirling PDF (5.3)
@@ -66,6 +67,20 @@
         '';
 
         globalConfig = ''
+          # docs/MIGRATION.md piece 6.1: bind the admin API (which serves
+          # Prometheus metrics at its default /metrics route once `servers
+          # { metrics }` below is set) to this node's own private address
+          # instead of the module default (localhost-only), so
+          # legion-node3's monitoring module can scrape it. Same
+          # reachability pattern as every other cross-node backend in this
+          # repo: a fixed private-network bind, never opened on the public
+          # interface or added to this node's public firewall allowlist.
+          admin ${node1}:2019
+
+          servers {
+            metrics
+          }
+
           # caddy-l4 + the HTTP app both wanting :443 is exactly the case
           # covered by caddy-l4's own "combining apps" example
           # (github.com/mholt/caddy-l4/blob/master/docs/examples/combining_apps.md):
