@@ -111,6 +111,7 @@ in {
     nixosModules.legionConfiguration = {
       pkgs,
       config,
+      lib,
       ...
     }: {
       imports = [
@@ -119,8 +120,23 @@ in {
         self.nixosModules.sops
         self.nixosModules.legionHardware
         self.nixosModules.k3s
+        self.nixosModules.backups
         self.diskoConfigurations.legion
       ];
+
+      # Piece 2.1: Restic backup jobs derived from this node's own
+      # inventory entry -- empty today (no service declares backupSet
+      # yet), so modules/nixos/backups.nix evaluates to zero
+      # services.restic.backups jobs until Phases 3-5 land.
+      backups.jobs = lib.listToAttrs (
+        map (service:
+          lib.nameValuePair service.name {
+            paths = service.backupSet;
+            pauseUnits = service.backupPauseUnits or [];
+          })
+        (builtins.filter (service: service ? backupSet)
+          (validatedLegionNodes.${config.networking.hostName}.services or []))
+      );
 
       users = {
         groups.deploy = {};

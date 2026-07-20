@@ -5,6 +5,18 @@
 # placement from docs/MIGRATION.md's proposed-placement table so firewall
 # openings (piece 0.2) and later per-service modules can be derived from a
 # single source of truth.
+#
+# Optional per-service fields, consumed by modules/nixos/backups.nix (piece
+# 2.1) via modules/hosts/legion/default.nix's `backups.jobs`:
+#   - `backupSet`: list of paths, an explicit Backup Set allowlist
+#     (DESIGN.md State And Backup Boundaries). Must be a subset of the
+#     service's declared Volume mountpoint -- enforced below by the
+#     `backupSetViolations` assert. No service declares this yet; stateful
+#     services land in Phases 3-5.
+#   - `backupPauseUnits`: list of systemd unit names to stop before the
+#     snapshot and restart after, for SQLite-safe snapshots of a service
+#     whose Backup Set contains a live DB (e.g. Pocket ID, Actual Budget).
+#     Defaults to `[]` (no-op) when omitted.
 {lib}: let
   inventory = {
     legion-node1 = {
