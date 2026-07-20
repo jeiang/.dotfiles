@@ -300,7 +300,10 @@
         }
         {
           name = "hath";
-          # Direct TCP 8888, no DNS hostname.
+          # Direct TCP 8888, no DNS hostname. Fleet-wide interim opening
+          # (modules/hosts/legion/default.nix `++ [8888]`) narrows to just
+          # this entry's firewall scope during the piece 5.6 cutover
+          # runbook, not here -- see modules/nixos/hath.nix.
           publicHostnames = [];
           firewall = [
             {
@@ -314,6 +317,15 @@
             name = "legion-node4-hath";
             mountpoint = "/mnt/hath";
           };
+          # Cache is retained on the Volume (operationally required, 30 Gi)
+          # but deliberately excluded from the Backup Set -- it's a
+          # rebuildable download cache, not irreplaceable state
+          # (docs/MIGRATION.md Workload Inventory: H@H "retain: client
+          # login + 30 Gi cache"; only the login/config data is called out
+          # as needing retention). `data` below is hath-rust's --data-dir
+          # ("Login data location"), matching modules/nixos/hath.nix.
+          backupSet = ["/mnt/hath/data"];
+          backupPauseUnits = ["hath.service"];
         }
       ];
     };

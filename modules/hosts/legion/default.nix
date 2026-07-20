@@ -382,7 +382,12 @@ in {
             # today).
             ++ lib.optional
             (lib.any (service: service.name == "stirling-pdf") node.services)
-            self.nixosModules.stirling-pdf;
+            self.nixosModules.stirling-pdf
+            # Piece 5.4: H@H, same optional-import pattern, gated on the
+            # inventory node placing `hath` (legion-node4 today).
+            ++ lib.optional
+            (lib.any (service: service.name == "hath") node.services)
+            self.nixosModules.hath;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;
