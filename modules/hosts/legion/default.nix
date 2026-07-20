@@ -353,7 +353,13 @@ in {
             # today). Never imported on any other node.
             ++ lib.optional
             (lib.any (service: service.name == "netbird-server") node.services)
-            self.nixosModules.netbird-server;
+            self.nixosModules.netbird-server
+            # Piece 3.2: NetBird reverse proxy, same optional-import
+            # pattern, gated on the inventory node placing `netbird-proxy`
+            # (legion-node2 today, alongside netbird-server above).
+            ++ lib.optional
+            (lib.any (service: service.name == "netbird-proxy") node.services)
+            self.nixosModules.netbird-proxy;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;
