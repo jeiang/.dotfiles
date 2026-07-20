@@ -269,10 +269,14 @@ can interleave per-service once 0–2 land, subject to the safety rules.
   and relay with STUN 3478 on `legion-node2`. Secrets via sops: store
   encryption key, relay auth secret, IdP session cookie key, proxy token
   (values migrated from Bitwarden SM by the operator). Auth note
-  (discovered during 3.1): the deployed chart configures NetBird's own
-  embedded IdP (`/oauth2` issuer + session cookie key), not an external
-  Pocket ID OIDC client — the module mirrors that; no Pocket ID wiring
-  exists to carry over. Management URL stays `netbird.jeiang.dev:443`;
+  (discovered during 3.1): the chart configures NetBird's embedded IdP
+  (`/oauth2` issuer + session cookie key); the Pocket ID federation is
+  configured **at runtime in the GUI settings** (external OIDC provider),
+  so it lives in the server's retained database and migrates with the
+  state copy — nothing to wire in the module, but runbook 3.3 must verify
+  Pocket ID-federated login still works after cutover (Pocket ID remains
+  on the cluster at `auth.jeiang.dev` until Phase 4).
+  Management URL stays `netbird.jeiang.dev:443`;
   artemis's existing client keeps working. Dashboard assets are served
   from the edge (1.2).
   *Accept*: module evaluates with state dir on a declared Hetzner Volume
