@@ -173,6 +173,33 @@ table:
 - **legion-node5**: confirmed to own no workload after the above moves —
   ready for Phase 7.3 decommission.
 
+### Storage: Hetzner Volumes (operator decision, 2026-07-21)
+
+Corrects an earlier design gap (manual `/etc/fstab` mounting) surfaced by
+adversarial review: each retained-data service (NetBird server, Pocket ID,
+Actual Budget, H@H) gets a **new** per-service Hetzner Volume — not a reuse
+of its existing K3s `hcloud-volumes` PVC — provisioned via the `hcloud` CLI
+(`docs/runbooks/volume-provisioning.md`) and mounted **declaratively** in
+the flake by stable Hetzner Volume ID path
+(`/dev/disk/by-id/scsi-0HC_Volume_<id>`, `modules/hosts/legion/default.nix`
+`fileSystems`, `nofail`), never `/dev/sdb` and never through disko's
+destroy/format flow (`modules/hosts/legion/disko.nix` still manages only
+the root disk). Each service's systemd unit carries a mount guard
+(`unitConfig.RequiresMountsFor`/`ConditionPathIsMountPoint`) so it refuses
+to start against an unmounted directory. The dead `netbird-proxy` Volume
+pre-declared at piece 0.1 (superseded by piece 3.2's static-cert decision)
+is dropped from the inventory.
+
+The same review also landed three smaller fixes: the monitoring module's
+Blocky scrape target corrected to `legion-node2`'s private IP (it had been
+left pointing at node3 loopback after Blocky's piece 0.6 move);
+`docs/runbooks/restore.md`'s restic commands rewritten so credentials are
+read on the remote node inside the SSH command instead of via local
+command substitution; and a new
+[`docs/runbooks/secrets-preflight.md`](runbooks/secrets-preflight.md)
+enumerating every sops key each module reads, referenced from the
+per-service runbooks.
+
 ## Cutover Safety Rules
 
 These gate every runbook; they implement IMPROVEMENTS §4's "verify backup
