@@ -26,7 +26,7 @@
     website = inputs.website.packages.${system}.default;
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
     billSplitter = "${inputs.bill-splitter.packages.${system}.default}/dist";
-    netbirdDashboard = self.packages.${system}.netbird-dashboard;
+    netbirdDashboard = config.services.netbird.server.dashboard.finalDrv;
 
     # Bare `crowdsec`/`appsec` HTTP handler directives (below, gated on
     # cfg.crowdsec.enable so a disabled toggle renders byte-identical
@@ -325,6 +325,7 @@
 
             handle {
               ${appsecLine}root * ${netbirdDashboard}
+              try_files {path} /index.html
               file_server
             }
           }
@@ -383,7 +384,23 @@
             CROWDSEC_LAPI_KEY=${config.sops.placeholder."caddy/crowdsec-lapi-key"}
           '';
       };
-      services.caddy.environmentFile = config.sops.templates."caddy.env".path;
+      services = {
+        caddy.environmentFile = config.sops.templates."caddy.env".path;
+
+        netbird.server.dashboard = {
+          enable = true;
+          managementServer = "https://netbird.jeiang.dev";
+          settings = {
+            AUTH_AUDIENCE = "netbird-dashboard";
+            AUTH_CLIENT_ID = "netbird-dashboard";
+            AUTH_AUTHORITY = "https://netbird.jeiang.dev/oauth2";
+            AUTH_SUPPORTED_SCOPES = "openid profile email groups";
+            AUTH_REDIRECT_URI = "/nb-auth";
+            AUTH_SILENT_REDIRECT_URI = "/nb-silent-auth";
+            USE_AUTH0 = false;
+          };
+        };
+      };
 
       # piece 0.6 capacity audit, docs/MIGRATION.md.
       systemd.services.caddy.serviceConfig.MemoryMax = "256M";
