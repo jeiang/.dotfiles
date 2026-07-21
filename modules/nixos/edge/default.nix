@@ -4,8 +4,7 @@
   ...
 }: {
   # docs/MIGRATION.md piece 1.1/1.2: Edge Node Caddy. Imported only for the
-  # inventory's edge node (modules/hosts/legion/default.nix), alongside K3s
-  # until the runbook (piece 1.5) cuts DNS over.
+  # inventory's edge node (modules/hosts/legion/default.nix).
   flake.nixosModules.edge = {
     config,
     lib,

@@ -7,9 +7,6 @@
   publicV4Gateway = "172.31.1.1";
   publicV6Gateway = "fe80::1";
 
-  podCIDRv4 = "10.42.0.0/16";
-  serviceCIDRv4 = "10.43.0.0/16";
-
   legionNodes = {
     legion-node1 = {
       bootstrap = true;
@@ -22,30 +19,18 @@
       privateIPv4 = "172.17.0.2";
       publicIPv4 = "178.156.201.35";
       publicIPv6 = "2a01:4ff:f0:a1ff::1";
-      agent = true;
     };
 
     legion-node3 = {
       privateIPv4 = "172.17.0.3";
       publicIPv4 = "178.156.186.147";
       publicIPv6 = "2a01:4ff:f0:c52a::1";
-      agent = true;
     };
 
     legion-node4 = {
       privateIPv4 = "172.17.0.4";
       publicIPv4 = "178.156.191.180";
       publicIPv6 = "2a01:4ff:f0:ca96::1";
-      agent = true;
-    };
-
-    legion-node5 = {
-      # Keep the gap at .5: this is the node's existing address, and changing
-      # cluster networking requires confirming the live host state first.
-      privateIPv4 = "172.17.0.6";
-      publicIPv4 = "178.156.253.100";
-      publicIPv6 = "2a01:4ff:f4:13f7::1";
-      agent = true;
     };
   };
 
@@ -70,15 +55,7 @@
   in
     lib.unique (map (o: o.port) (builtins.filter (o: o.proto == proto && o.scope == scope) openings));
 
-  bootstrapNode = builtins.head (builtins.attrValues (lib.filterAttrs (_: node: node.bootstrap or false) validatedLegionNodes));
   nodeHostname = name: "${lib.removePrefix "legion-" name}.jeiang.dev";
-  apiTlsSans =
-    [
-      "pinard.co.tt"
-      "aidanpinard.co"
-      "jeiang.dev"
-    ]
-    ++ map nodeHostname (builtins.attrNames validatedLegionNodes);
 
   mkWan = {
     publicIPv4,
@@ -119,7 +96,6 @@ in {
         self.nixosModules.sharedConfiguration
         self.nixosModules.sops
         self.nixosModules.legionHardware
-        # self.nixosModules.k3s
         self.nixosModules.backups
         # Piece 3.4: every legion node becomes a NetBird peer, reusing
         # artemis's existing client module unmodified (it stays untouched
@@ -254,26 +230,12 @@ in {
       ];
 
       boot = {
+        # Required by services.netbird's useRoutingFeatures = "both"
+        # (self.nixosModules.netbird, imported fleet-wide above).
         kernel.sysctl = {
           "net.ipv4.ip_forward" = 1;
           "net.ipv6.conf.all.forwarding" = 1;
-          "net.bridge.bridge-nf-call-iptables" = 1;
-          "net.bridge.bridge-nf-call-ip6tables" = 1;
         };
-
-        kernelModules = [
-          "br_netfilter"
-          "overlay"
-          "nf_conntrack"
-          "nf_nat"
-          "ip_tables"
-          "iptable_nat"
-          "iptable_filter"
-          "ip6_tables"
-          "ip6table_nat"
-          "ip6table_filter"
-          "vxlan"
-        ];
 
         loader.grub.enable = true;
         tmp.cleanOnBoot = true;
@@ -293,41 +255,18 @@ in {
         ];
       };
 
-      services.k3s = {
-        serverAddr = "https://${bootstrapNode.privateIPv4}:6443";
-
-        extraFlags = [
-          "--flannel-iface=enp7s0"
-          "--kubelet-arg=cloud-provider=external"
-        ];
-      };
-
       # Piece 0.2: re-enable the host firewall (hardware.nix flips
       # networking.firewall.enable) with openings derived from the Legion
-      # service inventory above, plus the live K3s-era data path that isn't
-      # yet represented in the inventory:
-      #  - K3s control (6443/10250 tcp, 8472 udp) is opened by
-      #    modules/nixos/k3s.nix already.
-      #  - Traefik NodePorts targeted by the Hetzner LB (legion-lb1, TCP
-      #    web/websecure) and its health checks arrive over the private
-      #    network: the LB is annotated `use-private-ip: true` (confirmed
-      #    live: NodePorts 30693/tcp, 30297/tcp on the `traefik` Service),
-      #    so they're covered by the enp7s0 trust below rather than pinned
-      #    here, since NodePort numbers are not stable across Service
-      #    recreation.
+      # service inventory above, plus:
       #  - STUN (UDP 3478) and H@H's hostPort (TCP 8888) are opened
-      #    fleet-wide "for now": the live K3s scheduler can place those
-      #    pods on any node today (the NetBird relay has moved nodes
-      #    before), and the target placement (netbird-relay on
-      #    legion-node2, hath on legion-node4; see _service-inventory.nix)
-      #    only takes effect once pieces 3.1/5.4 land. Narrow this during
-      #    their cutover runbooks.
+      #    fleet-wide rather than pinned to their owning node
+      #    (_service-inventory.nix: netbird-relay on legion-node2, hath on
+      #    legion-node4).
       networking.firewall = {
         allowedTCPPorts = firewallPortsFor config.networking.hostName "tcp" "public" ++ [8888];
         allowedUDPPorts = firewallPortsFor config.networking.hostName "udp" "public" ++ [3478];
-        # Backend transport boundary (DESIGN.md): K3s/kubelet, flannel
-        # VXLAN, and Hetzner LB->NodePort traffic all arrive on the
-        # private interface already.
+        # Backend transport boundary (DESIGN.md): cross-node service
+        # traffic arrives on the private interface already.
         trustedInterfaces = ["enp7s0"];
       };
 
@@ -347,51 +286,10 @@ in {
                 systemd.network.networks."10-wan" = mkWan {
                   inherit (node) publicIPv4 publicIPv6;
                 };
-
-                services.k3s = {
-                  nodeIP = "${node.privateIPv4}";
-                  role =
-                    if (node.agent or false)
-                    then "agent"
-                    else "server";
-                  extraFlags = lib.mkIf (!node.agent or false) (
-                    [
-                      # Required before installing hcloud-cloud-controller-manager.
-                      "--disable-cloud-controller"
-
-                      # Required when using MetalLB instead of K3s ServiceLB.
-                      "--disable=servicelb"
-
-                      # Avoid competing default storage classes when using Hetzner CSI.
-                      "--disable=local-storage"
-
-                      # Dual-stack must be set when the cluster is first created.
-                      "--cluster-cidr=${podCIDRv4}"
-                      "--service-cidr=${serviceCIDRv4}"
-                    ]
-                    ++ map (san: "--tls-san=${san}") apiTlsSans
-                    ++ [
-                      "--kube-apiserver-arg=oidc-issuer-url=https://auth.jeiang.dev"
-                      "--kube-apiserver-arg=oidc-client-id=44213aa3-11eb-401d-922c-c7f81c3a9e37"
-                      "--kube-apiserver-arg=oidc-username-claim=preferred_username"
-                      "--kube-apiserver-arg=oidc-username-prefix=-"
-                      "--kube-apiserver-arg=oidc-groups-claim=groups"
-                      "--kube-apiserver-arg=oidc-groups-prefix="
-                    ]
-                  );
-                };
               }
-
-              (lib.mkIf (node.bootstrap or false) {
-                services.k3s = {
-                  serverAddr = lib.mkForce "";
-                  clusterInit = true;
-                };
-              })
             ]
             # Piece 1.1: Caddy Edge Node module, only for the inventory's
-            # edge node. Runs alongside K3s until the runbook (piece 1.5)
-            # cuts DNS over.
+            # edge node.
             ++ lib.optional (node.edge or false) self.nixosModules.edge
             # Piece 1.3: CrowdSec engine, same edge-node condition as
             # above. Both modules share the edge.crowdsec.enable toggle.

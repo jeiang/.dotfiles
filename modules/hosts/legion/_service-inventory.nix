@@ -382,11 +382,6 @@
         }
       ];
     };
-
-    legion-node5 = {
-      edge = false;
-      services = [];
-    };
   };
 
   allServices = lib.concatMap (node: node.services) (builtins.attrValues inventory);

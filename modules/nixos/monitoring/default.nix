@@ -36,7 +36,6 @@ _: {
       "172.17.0.2"
       "172.17.0.3"
       "172.17.0.4"
-      "172.17.0.6" # legion-node5 (private address gap at .5 is intentional, DESIGN.md)
     ];
 
     vmPort = 8428; # services.victoriametrics default listenAddress
