@@ -91,7 +91,9 @@ existing K3s CSI volumes** (the ones already holding the live PVC data) and
 reattaches them directly to the target host node — no new volume, no file
 copy. Section 5 overwrites those four `hcloudVolumeId` values with the CSI
 volume IDs discovered in Section 1. Do not reuse the currently-committed
-IDs; they point at empty disks.
+IDs; they point at empty disks. They stay attached-or-idle as a mid-flight
+fallback and are only deleted once Section 11's verification is stable —
+see Section 14.
 
 ---
 
@@ -960,6 +962,32 @@ the cutover (no fixed window specified here — this is a full downtime
 migration, not a staged one with its own two-week rollback window like the
 individual service runbooks; use judgment):
 
+- **Delete the four empty pre-created volumes.** These are the
+  superseded-plan disks called out in Section 0.5 — `106426277`,
+  `106426282`, `106426288`, `106426290` — **not** the reused CSI volumes
+  now recorded in `modules/hosts/legion/_service-inventory.nix`'s
+  `hcloudVolumeId` fields (those came from Section 1.2 and hold the live,
+  now-in-service data; never delete those). The four empty ones were kept
+  attached-or-idle up to this point deliberately, as a mid-flight fallback
+  — only delete them once Section 11's verification is stable. Detach
+  first if still attached to a node:
+  ```sh
+  hcloud volume list -o columns=id,name,server
+  ```
+  If any of the four show a `server` value, detach before deleting:
+  ```sh
+  hcloud volume detach 106426277
+  hcloud volume detach 106426282
+  hcloud volume detach 106426288
+  hcloud volume detach 106426290
+  ```
+  Then delete all four so they stop lingering and billing:
+  ```sh
+  hcloud volume delete 106426277
+  hcloud volume delete 106426282
+  hcloud volume delete 106426288
+  hcloud volume delete 106426290
+  ```
 - Optionally wipe now-unused K3s state left on each root disk:
   `/var/lib/rancher/k3s`, `/var/lib/kubelet`, `/etc/rancher/k3s` (per
   `modules/nixos/k3s.nix`'s `persistence.directories` list — these paths
