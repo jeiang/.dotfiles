@@ -204,6 +204,26 @@ in {
           (validatedLegionNodes.${config.networking.hostName}.services or []))
       );
 
+      # Declarative Hetzner Volume mounts, derived from this node's own
+      # inventory entries (docs/runbooks/volume-provisioning.md). A
+      # service contributes nothing here until its `volume.hcloudVolumeId`
+      # is filled in by the operator after creating the Volume -- same
+      # "empty until populated" pattern as `backups.jobs` above. `nofail`
+      # is required so a missing/late Volume never blocks boot (SSH and
+      # deploy access must stay available); the service itself is kept
+      # off an unmounted directory by its own mount guard
+      # (`unitConfig.ConditionPathIsMountPoint`, see each service module).
+      fileSystems = lib.listToAttrs (
+        map (service:
+          lib.nameValuePair service.volume.mountpoint {
+            device = "/dev/disk/by-id/scsi-0HC_Volume_${service.volume.hcloudVolumeId}";
+            fsType = "ext4";
+            options = ["nofail" "x-systemd.device-timeout=10s"];
+          })
+        (builtins.filter (service: (service.volume or {}) ? hcloudVolumeId)
+          (validatedLegionNodes.${config.networking.hostName}.services or []))
+      );
+
       users = {
         groups.deploy = {};
         users.deploy = {

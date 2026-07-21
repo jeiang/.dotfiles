@@ -17,6 +17,17 @@
 #     snapshot and restart after, for SQLite-safe snapshots of a service
 #     whose Backup Set contains a live DB (e.g. Pocket ID, Actual Budget).
 #     Defaults to `[]` (no-op) when omitted.
+#
+# Optional fields on a stateful service's `volume` attrset, consumed by
+# modules/hosts/legion/default.nix's declarative `fileSystems` derivation
+# (docs/runbooks/volume-provisioning.md):
+#   - `hcloudVolumeId`: string, the numeric Hetzner Volume ID from
+#     `hcloud volume describe`. Unset until the operator provisions the
+#     Volume and fills it in -- a service's entry generates no
+#     `fileSystems` mount until then (`fileSystems` derivation filters on
+#     `service.volume ? hcloudVolumeId`).
+#   - `sizeGiB`: int, the recommended Volume size for the provisioning
+#     runbook. Not consumed by any Nix evaluation, documentation only.
 {lib}: let
   inventory = {
     legion-node1 = {
@@ -130,6 +141,7 @@
           volume = {
             name = "legion-node2-netbird";
             mountpoint = "/mnt/netbird";
+            sizeGiB = 10;
           };
           # Retained-data service (Cutover Safety Rule 1). pauseUnits stops
           # the server before the snapshot: its store.engine is sqlite
@@ -170,11 +182,14 @@
               scope = "private";
             }
           ];
-          stateful = true;
-          volume = {
-            name = "legion-node2-netbird-proxy";
-            mountpoint = "/mnt/netbird-proxy";
-          };
+          # Stateless (piece 3.2, modules/nixos/netbird-server/proxy.nix):
+          # the proxy consumes an externally-provisioned static wildcard
+          # cert (security.acme, node-local /var/lib/acme, reissued via
+          # DNS-01) instead of its own ACME state, so it has no Volume.
+          # No `legion-node2-netbird-proxy` Volume entry either -- it was
+          # pre-declared at piece 0.1 in anticipation of a built-in-ACME
+          # fallback that piece 3.2 didn't take; dead, dropped here.
+          stateful = false;
         }
         {
           # DNS points at the edge (legion-node1); Caddy proxies here
@@ -200,6 +215,7 @@
           volume = {
             name = "legion-node2-pocket-id";
             mountpoint = "/mnt/pocket-id";
+            sizeGiB = 10;
           };
           # Retained-data service (Cutover Safety Rule 1). pauseUnits
           # stops the service before the snapshot: its DB is SQLite
@@ -319,6 +335,7 @@
           volume = {
             name = "legion-node4-actual-budget";
             mountpoint = "/mnt/actual-budget";
+            sizeGiB = 10;
           };
           # Retained-data service (Cutover Safety Rule 1). pauseUnits stops
           # the service before the snapshot: server-files/account.sqlite is
@@ -344,6 +361,7 @@
           volume = {
             name = "legion-node4-hath";
             mountpoint = "/mnt/hath";
+            sizeGiB = 40;
           };
           # Backup Set covers both the login/config data (`data`,
           # hath-rust's --data-dir) and the 30 Gi download cache
