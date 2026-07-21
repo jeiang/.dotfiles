@@ -31,6 +31,7 @@
     # modules/hosts/legion/_service-inventory.nix.
     relayPort = 8080;
     stunPort = 3478;
+    metricsPort = 9091;
 
     # Rendered to match the deployed chart's shape exactly
     # (k8s-manifests netbird/templates/server.yaml's render-config
@@ -175,6 +176,7 @@
             NB_ENABLE_STUN = "true";
             NB_STUN_PORTS = toString stunPort;
             NB_LOG_LEVEL = "info";
+            NB_METRICS_PORT = toString metricsPort;
           };
           serviceConfig = {
             ExecStart = lib.getExe relayPkg;
