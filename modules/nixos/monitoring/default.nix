@@ -311,6 +311,7 @@ _: {
       prometheus.alertmanager = {
         enable = true;
         environmentFile = config.sops.templates."alertmanager.env".path;
+        checkConfig = false;
         configuration = {
           route = {
             receiver = "discord-notifications";
