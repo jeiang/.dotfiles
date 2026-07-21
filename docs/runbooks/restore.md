@@ -50,15 +50,22 @@ e.g. `.../legion-restic-backups/legion-node2/pocket-id`.
 ## List snapshots
 
 Run on the node owning the service (its systemd units run as `root`, and
-`RESTIC_PASSWORD_FILE`/S3 credentials are only readable there):
+`RESTIC_PASSWORD_FILE`/S3 credentials are only readable there). Every
+command below reads the credentials **inside** the SSH command, on the
+remote node — not via local command substitution: the operator's
+workstation doesn't have `/run/secrets/restic/s4-env`, and even where it
+does (running this from a node itself), local substitution would leak the
+decrypted secret into the local shell's environment/history instead of
+staying on the node that's allowed to read it.
 
 ```sh
 ssh <node>.jeiang.dev -- sudo systemctl cat restic-backups-<service>.service
-ssh <node>.jeiang.dev -- sudo -E env \
+ssh <node>.jeiang.dev -- sudo bash -lc '
+  set -a; source /run/secrets/restic/s4-env; set +a
   RESTIC_PASSWORD_FILE=/run/secrets/restic/password \
-  $(sudo cat /run/secrets/restic/s4-env | xargs) \
-  restic -r s3:https://s3.eu-central-1.s4.mega.io/legion-restic-backups/<node>/<service> \
-  snapshots
+    restic -r s3:https://s3.eu-central-1.s4.mega.io/legion-restic-backups/<node>/<service> \
+    snapshots
+'
 ```
 
 Confirm a recent snapshot exists (daily schedule, `docs/MIGRATION.md` piece
@@ -70,11 +77,12 @@ Never restore directly over live data first. Pick the latest snapshot ID
 from the listing above and restore it somewhere disposable:
 
 ```sh
-ssh <node>.jeiang.dev -- sudo -E env \
+ssh <node>.jeiang.dev -- sudo bash -lc '
+  set -a; source /run/secrets/restic/s4-env; set +a
   RESTIC_PASSWORD_FILE=/run/secrets/restic/password \
-  $(sudo cat /run/secrets/restic/s4-env | xargs) \
-  restic -r s3:https://s3.eu-central-1.s4.mega.io/legion-restic-backups/<node>/<service> \
-  restore <snapshot-id> --target /tmp/restic-restore-<service>
+    restic -r s3:https://s3.eu-central-1.s4.mega.io/legion-restic-backups/<node>/<service> \
+    restore <snapshot-id> --target /tmp/restic-restore-<service>
+'
 ```
 
 ## Verify content
@@ -105,11 +113,12 @@ separately):
 
 ```sh
 ssh <node>.jeiang.dev -- sudo systemctl stop <service>.service
-ssh <node>.jeiang.dev -- sudo -E env \
+ssh <node>.jeiang.dev -- sudo bash -lc '
+  set -a; source /run/secrets/restic/s4-env; set +a
   RESTIC_PASSWORD_FILE=/run/secrets/restic/password \
-  $(sudo cat /run/secrets/restic/s4-env | xargs) \
-  restic -r s3:https://s3.eu-central-1.s4.mega.io/legion-restic-backups/<node>/<service> \
-  restore <snapshot-id> --target / --overwrite always
+    restic -r s3:https://s3.eu-central-1.s4.mega.io/legion-restic-backups/<node>/<service> \
+    restore <snapshot-id> --target / --overwrite always
+'
 ssh <node>.jeiang.dev -- sudo systemctl start <service>.service
 ```
 
