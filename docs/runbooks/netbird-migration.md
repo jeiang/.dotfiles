@@ -6,7 +6,9 @@ Experimental Cluster (`k8s-manifests/netbird` chart) to `legion-node2`
 (`modules/nixos/netbird-server/`, pieces 3.1/3.2). Review
 [`AGENTS.md`](../../AGENTS.md) before running any command here, and
 [`docs/runbooks/restore.md`](restore.md) for the Restic mechanics this
-runbook's Safety Rule 1 step depends on.
+runbook's Safety Rule 1 step depends on, and
+[`docs/runbooks/secrets-preflight.md`](secrets-preflight.md) before your
+first deploy of `legion-node2` with these services enabled.
 
 This runbook assumes [`docs/runbooks/edge-cutover.md`](edge-cutover.md) has
 already landed the Edge Node (Caddy routes for `netbird.jeiang.dev` and the
@@ -38,25 +40,25 @@ this runbook — see `docs/runbooks/restore.md` if they don't already exist.
 
 ### Hetzner Volume
 
-Attach, format, and mount a Hetzner Volume at `/mnt/netbird` on
-`legion-node2` (inventory entry `legion-node2-netbird`,
-`modules/hosts/legion/_service-inventory.nix`) before the first deploy with
-`netbird-server` enabled. Neither this flake nor
-`modules/nixos/netbird-server/default.nix` declares a `fileSystems` entry for
-it (Hetzner Volume mounting is an external prerequisite per `DESIGN.md`) —
-add a durable mount (e.g. an `/etc/fstab` line by device UUID/ID) yourself so
-it survives a reboot, not just a one-off `mount` command. Confirm it's
-mounted (`ssh node2.jeiang.dev -- findmnt /mnt/netbird`) before proceeding;
-otherwise the module's `tmpfiles.rules` creates an empty `/mnt/netbird`
-directory on the root disk instead, and NetBird's state silently lands on
-disposable storage.
+Provision and mount a Hetzner Volume at `/mnt/netbird` on `legion-node2`
+before the first deploy with `netbird-server` enabled — follow
+[`docs/runbooks/volume-provisioning.md`](volume-provisioning.md) end to
+end (create the Volume with `hcloud`, paste its ID into the
+`legion-node2-netbird` inventory entry's `hcloudVolumeId` in
+`modules/hosts/legion/_service-inventory.nix`, deploy). This replaces the
+old "add an `/etc/fstab` line by hand" instruction: the mount is now
+declarative (`modules/hosts/legion/default.nix` derives `fileSystems` from
+the inventory) and guarded (`netbird-server.service` won't start unless
+`/mnt/netbird` is actually mounted). Confirm it's mounted
+(`ssh node2.jeiang.dev -- findmnt /mnt/netbird`) before proceeding — until
+then the guarded unit simply won't start (`ConditionPathIsMountPoint`
+fails), the expected state before this step, not a failure.
 
-`/mnt/netbird-proxy` (the Volume the inventory also pre-declared at piece
-0.1) is **not** needed by this runbook or by `netbird-proxy.nix` — piece 3.2
-determined the proxy consumes an externally-provisioned static wildcard
-certificate instead of its own ACME state, so it carries no required
-persistent data. Leave that Volume detached; nothing here or in the module
-mounts it.
+`netbird-proxy` needs no Volume of its own — piece 3.2 determined the proxy
+consumes an externally-provisioned static wildcard certificate instead of
+its own ACME state, so it carries no required persistent data
+(`modules/hosts/legion/_service-inventory.nix`'s `netbird-proxy` entry
+declares `stateful = false` and no `volume`).
 
 ### Hetzner Cloud Firewall
 

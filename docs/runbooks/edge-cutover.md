@@ -3,7 +3,9 @@
 Operator runbook for [`docs/MIGRATION.md`](../MIGRATION.md) piece 1.5: moving
 public traffic from the Hetzner Load Balancer/Traefik (Experimental Cluster)
 to the Edge Node (`legion-node1`, `modules/nixos/edge/`). Review
-[`AGENTS.md`](../../AGENTS.md) before running any command here.
+[`AGENTS.md`](../../AGENTS.md) before running any command here, and
+[`docs/runbooks/secrets-preflight.md`](secrets-preflight.md) before your
+first deploy of `legion-node1`.
 
 This runbook only cuts DNS for the Edge Node's own routes. It does not
 delete the Hetzner Load Balancer, remove Traefik, or touch K3s — those are

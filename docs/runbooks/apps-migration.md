@@ -10,7 +10,9 @@ covers piece 5.7 (NetBird DNS repoint for Blocky) as its own section below,
 per `docs/MIGRATION.md`'s "may fold into 5.6". Review
 [`AGENTS.md`](../../AGENTS.md) before running any command here, and
 [`docs/runbooks/restore.md`](restore.md) for the Restic mechanics that Actual
-Budget's Safety Rule 1 step depends on.
+Budget's Safety Rule 1 step depends on, and
+[`docs/runbooks/secrets-preflight.md`](secrets-preflight.md) before your
+first deploy of `legion-node4` with these services enabled.
 
 This runbook assumes [`docs/runbooks/edge-cutover.md`](edge-cutover.md) has
 already landed the Edge Node (the `attic.jeiang.dev` and `budget.jeiang.dev`
@@ -49,23 +51,27 @@ declare a `backupSet` (it has no local state).
 
 ### Hetzner Volumes
 
-Attach, format, and mount these on `legion-node4` before the first deploy
-with the corresponding service enabled (inventory entries,
-`modules/hosts/legion/_service-inventory.nix`). Attic needs none (stateless):
+Provision and mount these on `legion-node4` before the first deploy with
+the corresponding service enabled — follow
+[`docs/runbooks/volume-provisioning.md`](volume-provisioning.md) end to
+end (create the Volume with `hcloud`, paste its ID into the service's
+`hcloudVolumeId` in `modules/hosts/legion/_service-inventory.nix`, deploy).
+This replaces the old "add an `/etc/fstab` line by hand" instruction: the
+mount is now declarative (`modules/hosts/legion/default.nix` derives
+`fileSystems` from the inventory) and guarded (the service's systemd unit
+won't start unless its Volume is actually mounted). Attic needs none
+(stateless):
 
 | Service | Mountpoint | Inventory Volume name |
 | --- | --- | --- |
 | Actual Budget | `/mnt/actual-budget` | `legion-node4-actual-budget` |
 | H@H | `/mnt/hath` | `legion-node4-hath` |
 
-Neither this flake nor the individual modules declare a `fileSystems` entry
-for any of these (Hetzner Volume mounting is an external prerequisite per
-`DESIGN.md`) — add a durable mount (e.g. an `/etc/fstab` line by device
-UUID/ID) for each so it survives a reboot. Confirm each is mounted before
-proceeding (`ssh node4.jeiang.dev -- findmnt /mnt/actual-budget /mnt/hath`);
-otherwise the service's own `systemd.tmpfiles.rules`/`StateDirectory`
-creates an empty directory on the root disk instead, and the copied-in data
-below silently lands on disposable storage.
+Confirm each is mounted before proceeding
+(`ssh node4.jeiang.dev -- findmnt /mnt/actual-budget /mnt/hath`) — until a
+service's Volume is provisioned and its `hcloudVolumeId` set, its guarded
+unit simply won't start (`ConditionPathIsMountPoint` fails), which is the
+expected state before this step, not a failure.
 
 ### Deploy
 

@@ -5,7 +5,9 @@ Pocket ID from the Experimental Cluster (`k8s-manifests/idp` chart) to
 `legion-node2` (`modules/nixos/pocket-id.nix`, piece 4.1). Review
 [`AGENTS.md`](../../AGENTS.md) before running any command here, and
 [`docs/runbooks/restore.md`](restore.md) for the Restic mechanics this
-runbook's Safety Rule 1 step depends on.
+runbook's Safety Rule 1 step depends on, and
+[`docs/runbooks/secrets-preflight.md`](secrets-preflight.md) before your
+first deploy of `legion-node2` with `pocket-id` enabled.
 
 This runbook assumes [`docs/runbooks/edge-cutover.md`](edge-cutover.md) has
 already landed the Edge Node (the `auth.jeiang.dev` Caddy route exists and is
@@ -31,17 +33,20 @@ this runbook — see `docs/runbooks/restore.md` if they don't already exist.
 
 ### Hetzner Volume
 
-Attach, format, and mount a Hetzner Volume at `/mnt/pocket-id` on
-`legion-node2` (inventory entry `legion-node2-pocket-id`,
-`modules/hosts/legion/_service-inventory.nix`) before the first deploy with
-`pocket-id` enabled. Neither this flake nor `modules/nixos/pocket-id.nix`
-declares a `fileSystems` entry for it (Hetzner Volume mounting is an
-external prerequisite per `DESIGN.md`) — add a durable mount (e.g. an
-`/etc/fstab` line by device UUID/ID) so it survives a reboot. Confirm it's
-mounted (`ssh node2.jeiang.dev -- findmnt /mnt/pocket-id`) before proceeding;
-otherwise `services.pocket-id`'s own `systemd.tmpfiles.rules` creates an
-empty `/mnt/pocket-id` directory on the root disk instead, and Pocket ID's
-state silently lands on disposable storage.
+Provision and mount a Hetzner Volume at `/mnt/pocket-id` on
+`legion-node2` before the first deploy with `pocket-id` enabled — follow
+[`docs/runbooks/volume-provisioning.md`](volume-provisioning.md) end to
+end (create the Volume with `hcloud`, paste its ID into the
+`legion-node2-pocket-id` inventory entry's `hcloudVolumeId` in
+`modules/hosts/legion/_service-inventory.nix`, deploy). This replaces the
+old "add an `/etc/fstab` line by hand" instruction: the mount is now
+declarative (`modules/hosts/legion/default.nix` derives `fileSystems` from
+the inventory) and guarded (`pocket-id.service` won't start unless
+`/mnt/pocket-id` is actually mounted). Confirm it's mounted
+(`ssh node2.jeiang.dev -- findmnt /mnt/pocket-id`) before proceeding —
+until then the guarded unit simply won't start
+(`ConditionPathIsMountPoint` fails), the expected state before this step,
+not a failure.
 
 ### Deploy
 
