@@ -139,9 +139,10 @@
           ];
           stateful = true;
           volume = {
-            name = "legion-node2-netbird";
+            name = "legion-netbird";
             mountpoint = "/mnt/netbird";
             sizeGiB = 10;
+            hcloudVolumeId = "106426277";
           };
           # Retained-data service (Cutover Safety Rule 1). pauseUnits stops
           # the server before the snapshot: its store.engine is sqlite
@@ -213,8 +214,9 @@
           ];
           stateful = true;
           volume = {
-            name = "legion-node2-pocket-id";
+            name = "legion-pocket-id";
             mountpoint = "/mnt/pocket-id";
+            hcloudVolumeId = "106426282";
             sizeGiB = 10;
           };
           # Retained-data service (Cutover Safety Rule 1). pauseUnits
@@ -333,8 +335,9 @@
           ];
           stateful = true;
           volume = {
-            name = "legion-node4-actual-budget";
+            name = "legion-actual-budget";
             mountpoint = "/mnt/actual-budget";
+            hcloudVolumeId = "106426288";
             sizeGiB = 10;
           };
           # Retained-data service (Cutover Safety Rule 1). pauseUnits stops
@@ -359,8 +362,9 @@
           ];
           stateful = true;
           volume = {
-            name = "legion-node4-hath";
+            name = "legion-hath";
             mountpoint = "/mnt/hath";
+            hcloudVolumeId = "106426290";
             sizeGiB = 40;
           };
           # Backup Set covers both the login/config data (`data`,
