@@ -157,7 +157,6 @@ in {
         netbird.clients.default.login = {
           enable = true;
           setupKeyFile = config.sops.secrets."netbird/setup-key".path;
-          systemdDependencies = ["sops-install-secrets.service"];
         };
 
         # Piece 6.1: fleet-wide node_exporter, one per Legion node, scraped
