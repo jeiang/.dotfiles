@@ -33,5 +33,14 @@ _: {
 
     # piece 0.6 capacity audit, docs/MIGRATION.md.
     systemd.services.actual.serviceConfig.MemoryMax = "320M";
+
+    # Mount guard (Codex review C2): refuse to start unless ${dataDir} is
+    # actually mounted, so a missing/late Volume never silently
+    # initializes a fresh server-files/account.sqlite on the root disk
+    # instead of the retained data.
+    systemd.services.actual.unitConfig = {
+      RequiresMountsFor = [dataDir];
+      ConditionPathIsMountPoint = dataDir;
+    };
   };
 }

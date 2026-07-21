@@ -38,6 +38,14 @@
       after = ["network-online.target"];
       wants = ["network-online.target"];
       wantedBy = ["multi-user.target"];
+      # Mount guard (Codex review C2): refuse to start unless ${dataDir}
+      # is actually mounted, so a missing/late Volume never silently
+      # initializes fresh login/cache data on the root disk instead of
+      # the retained data.
+      unitConfig = {
+        RequiresMountsFor = [dataDir];
+        ConditionPathIsMountPoint = dataDir;
+      };
       serviceConfig = {
         ExecStart = lib.escapeShellArgs [
           (lib.getExe hathPkg)

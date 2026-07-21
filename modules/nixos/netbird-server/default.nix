@@ -138,6 +138,14 @@
           after = ["network-online.target"];
           wants = ["network-online.target"];
           wantedBy = ["multi-user.target"];
+          # Mount guard (Codex review C2): refuse to start unless
+          # ${dataDir} is actually mounted, so a missing/late Volume never
+          # silently initializes a fresh sqlite store.engine on the root
+          # disk instead of the retained data.
+          unitConfig = {
+            RequiresMountsFor = [dataDir];
+            ConditionPathIsMountPoint = dataDir;
+          };
           serviceConfig = {
             ExecStart = "${lib.getExe serverPkg} --config ${config.sops.templates."netbird-server-config.yaml".path}";
             Restart = "on-failure";

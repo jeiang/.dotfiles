@@ -71,6 +71,15 @@ _: {
     # same as every other MemoryMax override in this repo.
     systemd.services.pocket-id.serviceConfig.MemoryMax = "256M";
 
+    # Mount guard (Codex review C2): refuse to start unless ${dataDir} is
+    # actually mounted, so a missing/late Volume never silently
+    # initializes a fresh sqlite DB on the root disk instead of the
+    # retained data.
+    systemd.services.pocket-id.unitConfig = {
+      RequiresMountsFor = [dataDir];
+      ConditionPathIsMountPoint = dataDir;
+    };
+
     sops = {
       secrets = {
         "pocket-id/encryption-key" = {};
