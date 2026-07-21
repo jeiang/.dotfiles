@@ -12,7 +12,6 @@ canonical terms and the GitHub issue tracker for open work.
 | `artemis` | Performance-oriented workstation with an impermanent root, recoverable via explicit off-node backups |
 | `legion-node1` | The Caddy Edge Node |
 | `legion-node2` through `legion-node4` | Host their assigned Host-Native Services per the Legion inventory |
-| `legion-node5` | Decommissioned |
 
 Artemis's custom kernel, desktop stack, gaming and VR configuration,
 impermanent root, and hardware-specific rules are intentionally host-specific.
