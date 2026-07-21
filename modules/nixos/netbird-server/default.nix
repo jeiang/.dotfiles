@@ -32,6 +32,7 @@
     relayPort = 8080;
     stunPort = 3478;
     metricsPort = 9091;
+    healthcheckPort = 9001;
 
     # Rendered to match the deployed chart's shape exactly
     # (k8s-manifests netbird/templates/server.yaml's render-config
@@ -177,6 +178,7 @@
             NB_STUN_PORTS = toString stunPort;
             NB_LOG_LEVEL = "info";
             NB_METRICS_PORT = toString metricsPort;
+            NB_HEALTH_LISTEN_ADDRESS = ":${toString healthcheckPort}";
           };
           serviceConfig = {
             ExecStart = lib.getExe relayPkg;
