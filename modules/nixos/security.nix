@@ -7,7 +7,8 @@
         extraRules = [
           {
             groups = ["wheel"];
-            persist = true;
+            noPass = true;
+            keepEnv = true;
           }
         ];
       };
