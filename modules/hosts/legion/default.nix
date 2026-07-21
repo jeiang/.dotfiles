@@ -119,7 +119,7 @@ in {
         self.nixosModules.sharedConfiguration
         self.nixosModules.sops
         self.nixosModules.legionHardware
-        self.nixosModules.k3s
+        # self.nixosModules.k3s
         self.nixosModules.backups
         # Piece 3.4: every legion node becomes a NetBird peer, reusing
         # artemis's existing client module unmodified (it stays untouched
