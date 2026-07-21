@@ -173,6 +173,7 @@ _: {
             # route (`reverse_proxy ${node3}:3000`).
             domain = "grafana.jeiang.dev";
             root_url = "https://grafana.jeiang.dev";
+            http_addr = "0.0.0.0";
           };
           auth = {
             disable_login_form = true;
