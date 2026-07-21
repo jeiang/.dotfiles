@@ -30,7 +30,7 @@ _: {
     # modules/nixos/edge/default.nix already accepts for its own node2/
     # node3/node4 consts.
     node1 = "172.17.0.1"; # Edge: Caddy admin/metrics, CrowdSec metrics
-    node2 = "172.17.0.2"; # NetBird server metrics
+    node2 = "172.17.0.2"; # NetBird server metrics, Blocky metrics
     legionPrivateIPs = [
       "172.17.0.1"
       "172.17.0.2"
@@ -135,13 +135,18 @@ _: {
             ];
           }
           {
-            # modules/nixos/blocky.nix: same node, no explicit prometheus
-            # section (metrics ride the existing `ports.http` listener,
-            # per that module's own comment).
+            # modules/nixos/blocky.nix: moved to legion-node2 (piece 0.6
+            # capacity audit, docs/MIGRATION.md) -- this node (node3)
+            # scrapes it cross-node over the private network (Blocky
+            # binds :8000 on all interfaces, enp7s0 is a trusted
+            # interface, same reachability pattern as every other
+            # cross-node backend in this module). No explicit prometheus
+            # section on Blocky's side (metrics ride the existing
+            # `ports.http` listener, per that module's own comment).
             job_name = "blocky";
             static_configs = [
               {
-                targets = ["127.0.0.1:8000"];
+                targets = ["${node2}:8000"];
                 labels.type = "dns";
               }
             ];
