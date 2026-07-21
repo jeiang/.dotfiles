@@ -465,8 +465,11 @@ in {
     deploy.nodes =
       builtins.mapAttrs (name: _: {
         hostname = nodeHostname name;
-        # The first activation removes doas, so disable its doas-based waiter:
-        # deploy .#legion-nodeN --ssh-user aidanp --sudo='doas -u' --magic-rollback=false -- --impure
+        # Bootstrap: on a node that predates this config the `deploy` user
+        # doesn't exist yet, so the first deploy runs as an existing admin
+        # over the node's current doas, with magic-rollback off because the
+        # first activation removes the doas-based rollback waiter:
+        # deploy .#legion-nodeN --ssh-user aidanp --sudo='doas -u' --magic-rollback=false
         sshUser = "deploy";
         sudo = "sudo -u";
         profiles.system = {
