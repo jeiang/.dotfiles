@@ -12,10 +12,7 @@ Personal Nix flake for the Artemis workstation and Legion service hosts.
   and persistence procedures.
 - [`docs/DESIGN.md`](docs/DESIGN.md): system roles, architecture, and design rules.
 - [`CONTEXT.md`](CONTEXT.md): canonical terminology.
-- [`docs/IMPROVEMENTS.md`](docs/IMPROVEMENTS.md): ordered backlog of open work.
 - [`docs/adr/`](docs/adr/): architectural decisions and trade-offs.
-- [`docs/MIGRATION.md`](docs/MIGRATION.md): phased plan for migrating Legion
-  to Host-Native Services.
-- [`docs/runbooks/`](docs/runbooks/): operator runbooks for cutover, backup
-  restore, and decommission steps.
+- [`docs/runbooks/`](docs/runbooks/): operator runbooks, including backup
+  restore.
 - [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md): project name and source credits.

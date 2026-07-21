@@ -1,16 +1,11 @@
 # Runbook: Restic Restore
 
-Operator runbook for [`docs/MIGRATION.md`](../MIGRATION.md) piece 2.1
-(`modules/nixos/backups.nix`) and Cutover Safety Rule 1: a retained-data
-service's Kubernetes release is removed only after its Restic backup has
-run **and a restore has been verified**. Review
-[`AGENTS.md`](../../AGENTS.md) before running any command here.
+Operator runbook for restoring a Host-Native Service's Backup Set
+(`modules/nixos/backups.nix`). Review [`AGENTS.md`](../../AGENTS.md) before
+running any command here.
 
 This runbook restores a single service's Backup Set from its Mega S4 Restic
-repository. It does not cover provisioning the bucket itself or the
-Kubernetes-side backup/copy steps in each service's own migration runbook
-(`docs/runbooks/apps-migration.md`, `docs/runbooks/pocket-id-migration.md`,
-etc.) -- this is the Restic-specific half only.
+repository. It does not cover provisioning the bucket itself.
 
 ## Prerequisites
 
@@ -68,8 +63,8 @@ ssh <node>.jeiang.dev -- sudo bash -lc '
 '
 ```
 
-Confirm a recent snapshot exists (daily schedule, `docs/MIGRATION.md` piece
-2.1) before proceeding.
+Confirm a recent snapshot exists (daily schedule, `modules/nixos/backups.nix`)
+before proceeding.
 
 ## Restore to a scratch directory
 
@@ -87,8 +82,7 @@ ssh <node>.jeiang.dev -- sudo bash -lc '
 
 ## Verify content
 
-Required verification step (Safety Rule 1) before trusting the backup for
-cutover or disaster recovery:
+Required before trusting the backup for disaster recovery:
 
 - Confirm every path from the service's `backupSet`
   (`modules/hosts/legion/_service-inventory.nix`) is present under
@@ -107,9 +101,7 @@ cutover or disaster recovery:
 ## Restore to the live path (service stopped)
 
 Only after scratch-directory verification passes, and only when actually
-recovering from data loss (not as a routine step in every cutover -- the
-per-service migration runbooks handle the initial PVC-to-Volume copy
-separately):
+recovering from data loss:
 
 ```sh
 ssh <node>.jeiang.dev -- sudo systemctl stop <service>.service
@@ -125,20 +117,8 @@ ssh <node>.jeiang.dev -- sudo systemctl start <service>.service
 Confirm the service starts cleanly and serves traffic before considering
 the restore complete.
 
-## Cutover verification (Safety Rule 1)
-
-Per service, during its own migration runbook, exercise this full
-procedure once against a real snapshot before deleting that service's
-Kubernetes release:
-
-1. Confirm a daily snapshot has actually run (`systemctl status restic-backups-<service>.timer` and the snapshot listing above).
-2. Restore it to a scratch directory and verify content, per above.
-3. Record the verification (date, snapshot ID) in the service's own migration runbook entry.
-
-Only then does Cutover Safety Rule 1 clear for that service.
-
 ## Retention
 
-`--keep-daily 30` (`modules/nixos/backups.nix`, `IMPROVEMENTS.md` §1): each
-daily backup run prunes snapshots older than 30 daily generations. A
-snapshot ID from more than 30 days ago will not be listed.
+`--keep-daily 30` (`modules/nixos/backups.nix`): each daily backup run
+prunes snapshots older than 30 daily generations. A snapshot ID from more
+than 30 days ago will not be listed.

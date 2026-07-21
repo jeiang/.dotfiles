@@ -46,11 +46,10 @@ operator actions. Review the target and generated configuration before using
 `deploy`, `clean-deploy`, `install`, `disko-format`, or a `sops-*` recipe. The
 fleet-wide deployment helper is not a substitute for staged node verification.
 
-Legion is mid-migration to Host-Native Services
-([`docs/MIGRATION.md`](MIGRATION.md)). Follow the matching runbook in
-[`docs/runbooks/`](runbooks/) before cutting DNS or removing a Kubernetes
-deployment for a service; the Experimental Cluster stays the live deployment
-for a service until its runbook is complete.
+Legion runs Host-Native Services placed per the Legion inventory
+(`modules/hosts/legion/_service-inventory.nix`). See
+[`docs/runbooks/`](runbooks/) for operator runbooks, including backup
+restore.
 
 ## Artemis Persistence
 
