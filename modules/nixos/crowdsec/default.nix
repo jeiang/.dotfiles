@@ -1,7 +1,7 @@
 _: {
-  # docs/MIGRATION.md piece 1.3: CrowdSec engine (LAPI + log processor +
-  # AppSec) for the Edge Node, composed from nixpkgs' first-party
-  # services.crowdsec. Imported only for the inventory's edge node
+  # CrowdSec engine (LAPI + log processor + AppSec) for the Edge Node,
+  # composed from nixpkgs' first-party services.crowdsec. Imported only
+  # for the inventory's edge node
   # (modules/hosts/legion/default.nix), same condition as
   # self.nixosModules.edge, and gated by the same edge.crowdsec.enable
   # switch that module declares (one toggle for the LAPI/AppSec engine and
@@ -14,9 +14,9 @@ _: {
   }: let
     cfg = config.edge.crowdsec;
 
-    # k8s-manifests crowdsec/values.yaml lapi.service / appsec service
-    # ports; modules/nixos/edge/default.nix already hardcodes
-    # appsec_url http://127.0.0.1:7422, so 7422 isn't a free choice here.
+    # LAPI/AppSec service ports; modules/nixos/edge/default.nix already
+    # hardcodes appsec_url http://127.0.0.1:7422, so 7422 isn't a free
+    # choice here.
     lapiPort = 8080;
     appsecPort = 7422;
 
@@ -54,8 +54,8 @@ _: {
         settings.general.api.server = {
           enable = true;
           # 0.0.0.0, not 127.0.0.1 (the module default): edge Caddy's
-          # bouncer (loopback) and legion-node2's future netbird-proxy
-          # bouncer (piece 3.2, private network) both need to reach this.
+          # bouncer (loopback) and legion-node2's netbird-proxy bouncer
+          # (private network) both need to reach this.
           # "Private-interface only" reachability from outside the host is
           # enforced by the firewall, not the bind address -- see the
           # "crowdsec" entry's firewall.scope in
@@ -67,12 +67,11 @@ _: {
           listen_uri = "0.0.0.0:${toString lapiPort}";
         };
 
-        # docs/MIGRATION.md piece 6.1: legion-node3's monitoring module
-        # scrapes this over the private network, same reachability
-        # reasoning (and the same 0.0.0.0-plus-firewall pattern) as
-        # listen_uri above -- the module default (127.0.0.1) would make it
-        # unreachable from another node. Port matches
-        # k8s-manifests/crowdsec/values.yaml `listen_port: 6060`.
+        # legion-node3's monitoring module scrapes this over the private
+        # network, same reachability reasoning (and the same
+        # 0.0.0.0-plus-firewall pattern) as listen_uri above -- the module
+        # default (127.0.0.1) would make it unreachable from another node.
+        # Uses the module's default port, 6060.
         settings.general.prometheus.listen_addr = "0.0.0.0";
 
         localConfig = {
@@ -96,17 +95,12 @@ _: {
             }
           ];
 
-          # Attic exception (docs/MIGRATION.md piece 1.3), mirroring
-          # /Users/aidanp/Projects/k8s-manifests/crowdsec/values.yaml's
-          # `attic-cache-whitelist` s02-enrich parser whitelist: Attic
-          # NAR/narinfo clients (CI runners in particular) legitimately
-          # fetch in high-volume bursts that otherwise read as
-          # http-crawl/probing. `evt.Meta.target_fqdn` is the field
-          # crowdsecurity/caddy-logs sets from the request Host (verified
-          # against
-          # https://github.com/crowdsecurity/hub parsers/s01-parse/crowdsecurity/caddy-logs.yaml),
-          # the Caddy-native equivalent of the cluster's Traefik router-name
-          # match.
+          # Attic exception: Attic NAR/narinfo clients (CI runners in
+          # particular) legitimately fetch in high-volume bursts that
+          # otherwise read as http-crawl/probing. `evt.Meta.target_fqdn`
+          # is the field crowdsecurity/caddy-logs sets from the request
+          # Host (verified against
+          # https://github.com/crowdsecurity/hub parsers/s01-parse/crowdsecurity/caddy-logs.yaml).
           parsers.s02Enrich = [
             {
               name = "jeiang/attic-cache-whitelist";
@@ -120,21 +114,19 @@ _: {
         };
       };
 
-      # NetBird stream exclusion (docs/MIGRATION.md piece 1.3), mirroring
-      # k8s-manifests crowdsec/README.md's "NetBird AppSec Allow Hook":
-      # NetBird's high-churn gRPC/WebSocket routes (the same paths
-      # modules/nixos/edge/default.nix's netbird.jeiang.dev block
-      # dispatches on) must not be blocked by generic AppSec inspection.
-      # services.crowdsec only supports installing *hub* appsec-configs
-      # declaratively (services.crowdsec.hub.appSecConfigs); there's no
-      # typed option for custom local appsec-config content, so this ships
-      # as a raw file at the path cscli itself would install one to
-      # (confirmed against crowdsecurity/crowdsec's pkg/cwhub/item.go:
-      # APPSEC_CONFIGS = "appsec-configs", installed under
-      # services.crowdsec's confDir, /etc/crowdsec/). inband_rules mirror
-      # the cluster's crs-vpatch config (base-config + vpatch-*, no
-      # out-of-band CRS -- the cluster disabled that ruleset after
-      # false-positive decisions on this same NetBird traffic).
+      # NetBird stream exclusion: NetBird's high-churn gRPC/WebSocket
+      # routes (the same paths modules/nixos/edge/default.nix's
+      # netbird.jeiang.dev block dispatches on) must not be blocked by
+      # generic AppSec inspection. services.crowdsec only supports
+      # installing *hub* appsec-configs declaratively
+      # (services.crowdsec.hub.appSecConfigs); there's no typed option for
+      # custom local appsec-config content, so this ships as a raw file
+      # at the path cscli itself would install one to (confirmed against
+      # crowdsecurity/crowdsec's pkg/cwhub/item.go: APPSEC_CONFIGS =
+      # "appsec-configs", installed under services.crowdsec's confDir,
+      # /etc/crowdsec/). inband_rules only (base-config + vpatch-*, no
+      # out-of-band CRS -- that ruleset produces false-positive decisions
+      # on this same NetBird traffic).
       environment.etc."crowdsec/appsec-configs/jeiang-appsec-caddy.yaml".text = ''
         name: ${localAppsecConfigName}
         default_remediation: ban
@@ -154,19 +146,17 @@ _: {
               - SetRemediation("allow")
       '';
 
-      # Bouncer keys (docs/MIGRATION.md piece 1.3). The nixos crowdsec
-      # module has no declarative `services.crowdsec.bouncers`-style option
-      # (checked nixos/modules/services/security/crowdsec.nix); `cscli
-      # bouncers add NAME --key <key>` accepts an explicit key, so
-      # register both known bouncers idempotently once the LAPI's database
-      # exists. The edge Caddy bouncer reuses
-      # modules/nixos/edge/default.nix's existing
+      # Bouncer keys. The nixos crowdsec module has no declarative
+      # `services.crowdsec.bouncers`-style option (checked
+      # nixos/modules/services/security/crowdsec.nix); `cscli bouncers add
+      # NAME --key <key>` accepts an explicit key, so register both known
+      # bouncers idempotently once the LAPI's database exists. The edge
+      # Caddy bouncer reuses modules/nixos/edge/default.nix's existing
       # `caddy/crowdsec-lapi-key` secret (same value Caddy sends as
       # CROWDSEC_LAPI_KEY, so registering it here is what makes that key
-      # valid). The netbird-proxy bouncer key is new here; piece 3.2 grants
-      # legion-node2 access to it via `just sops-updatekeys` and consumes
-      # it for the netbird-proxy bouncer client -- an operator step, since
-      # its module doesn't exist yet.
+      # valid). The netbird-proxy bouncer key grants legion-node2 access
+      # via `just sops-updatekeys`, consumed by
+      # modules/nixos/netbird-server/proxy.nix's bouncer client.
       sops.secrets."crowdsec/bouncer-netbird-proxy-key" = {};
 
       systemd.services = {
@@ -193,14 +183,12 @@ _: {
           '';
         };
 
-        # piece 0.6 capacity audit, docs/MIGRATION.md.
         crowdsec.serviceConfig.MemoryMax = "512M";
 
-        # Fail-open startup ordering (docs/MIGRATION.md Confirmed Decisions
-        # and piece 1.3): `wants`+`after`, not `requires` -- Caddy must
-        # still start and serve traffic if crowdsec.service is stopped or
-        # missing. The hslatman bouncer plugin's own defaults carry the
-        # rest of the fail-open posture: `enable_hard_fails` stays
+        # Fail-open startup ordering: `wants`+`after`, not `requires` --
+        # Caddy must still start and serve traffic if crowdsec.service is
+        # stopped or missing. The hslatman bouncer plugin's own defaults
+        # carry the rest of the fail-open posture: `enable_hard_fails` stays
         # unset/false (Caddy doesn't fail to start if the LAPI is
         # unreachable) and modules/nixos/edge/default.nix sets
         # `appsec_fail_open` (AppSec connection errors are ignored, not

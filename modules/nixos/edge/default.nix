@@ -3,8 +3,8 @@
   inputs,
   ...
 }: {
-  # docs/MIGRATION.md piece 1.1/1.2: Edge Node Caddy. Imported only for the
-  # inventory's edge node (modules/hosts/legion/default.nix).
+  # Edge Node Caddy. Imported only for the inventory's edge node
+  # (modules/hosts/legion/default.nix).
   flake.nixosModules.edge = {
     config,
     lib,
@@ -15,12 +15,11 @@
     system = pkgs.stdenv.hostPlatform.system;
 
     # Legion private-network addresses (modules/hosts/legion/default.nix
-    # `legionNodes`); backends below don't exist yet (later phases), so
-    # these routes may 502 until their service lands.
-    node1 = "172.17.0.1"; # This node's own private address (metrics bind, piece 6.1)
-    node2 = "172.17.0.2"; # NetBird server/relay (3.1), Pocket ID (4.1)
-    node3 = "172.17.0.3"; # Monitoring/Grafana (6.1)
-    node4 = "172.17.0.4"; # Attic (5.1), Actual Budget (5.2); Stirling PDF (5.3) deferred, see stirling-pdf.nix
+    # `legionNodes`).
+    node1 = "172.17.0.1"; # This node's own private address (metrics bind)
+    node2 = "172.17.0.2"; # NetBird server/relay, Pocket ID
+    node3 = "172.17.0.3"; # Monitoring/Grafana
+    node4 = "172.17.0.4"; # Attic, Actual Budget; Stirling PDF deferred, see stirling-pdf.nix
 
     website = inputs.website.packages.${system}.default;
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
@@ -38,12 +37,12 @@
     options.edge.crowdsec.enable = lib.mkEnableOption ''
       the CrowdSec bouncer HTTP + AppSec handlers on the edge, and (shared
       switch, modules/nixos/crowdsec/default.nix) the CrowdSec engine
-      itself. Off by default: piece 1.3's engine module cleanly evaluates,
-      but the sops secrets it and this option's Caddy wiring both need
+      itself. Off by default: the engine module cleanly evaluates, but the
+      sops secrets it and this option's Caddy wiring both need
       (caddy/crowdsec-lapi-url, caddy/crowdsec-lapi-key,
       crowdsec/bouncer-netbird-proxy-key) are not yet in
       modules/nixos/sops/secrets.yaml, so activation would fail. Flip once
-      those exist (docs/runbooks/edge-cutover.md CrowdSec enablement step).
+      those secrets exist.
     '';
 
     config = {
@@ -53,9 +52,8 @@
 
         # Default logger doubles as the access log for every site block
         # below (Caddy uses a custom logger named "default" for both
-        # purposes). JSON file, not journald: piece 1.3's CrowdSec log
-        # acquisition reads a stable file path instead of mapping journal
-        # fields.
+        # purposes). JSON file, not journald: CrowdSec's log acquisition
+        # reads a stable file path instead of mapping journal fields.
         logFormat = ''
           level INFO
           output file ${config.services.caddy.logDir}/access.log {
@@ -66,8 +64,8 @@
         '';
 
         globalConfig = ''
-          # docs/MIGRATION.md piece 6.1: the top-level `metrics` global
-          # option turns on Prometheus metrics collection for every HTTP
+          # The top-level `metrics` global option turns on Prometheus
+          # metrics collection for every HTTP
           # server config below (the older `servers { metrics }` nested
           # form is deprecated as of the pinned caddy 2.11.4 -- confirmed
           # via `caddy adapt`'s own warning). Deliberately NOT exposed by
@@ -99,12 +97,11 @@
               layer4 {
                 @netbird_proxy tls sni proxy.jeiang.dev *.proxy.jeiang.dev
                 route @netbird_proxy {
-                  # RAW passthrough: legion-node2's netbird-proxy (piece
-                  # 3.2) terminates TLS itself. Without proxy_protocol
-                  # below, the RP's CrowdSec bouncer would see every
-                  # passthrough client as this edge node's private IP
-                  # (flagged in piece 3.2's report) and could ban the
-                  # edge outright, blocking all passthrough traffic.
+                  # RAW passthrough: legion-node2's netbird-proxy
+                  # terminates TLS itself. Without proxy_protocol below,
+                  # the RP's CrowdSec bouncer would see every passthrough
+                  # client as this edge node's private IP and could ban
+                  # the edge outright, blocking all passthrough traffic.
                   #
                   # v2 is the JSON field caddy-l4 v0.1.2's l4proxy.Handler
                   # exposes (modules/l4proxy/proxy.go `ProxyProtocol
@@ -141,8 +138,8 @@
             order crowdsec first
             order appsec after crowdsec
 
-            # Fail-open posture (docs/MIGRATION.md Confirmed Decisions):
-            # enable_hard_fails stays off (default) so Caddy still starts
+            # Fail-open posture: enable_hard_fails stays off (default) so
+            # Caddy still starts
             # if the LAPI is unreachable, and appsec_fail_open ignores
             # AppSec connection errors instead of blocking traffic.
             crowdsec {
@@ -160,7 +157,7 @@
         '';
 
         extraConfig = ''
-          # --- Prometheus metrics (piece 6.1), private network only ------
+          # --- Prometheus metrics, private network only ------------------
           # Port 2020, deliberately NOT 2019: Caddy's admin API keeps
           # listening at its module default (127.0.0.1:2019) since it's no
           # longer reconfigured above, and site blocks sharing a port are
@@ -182,8 +179,8 @@
           }
 
           # --- jeiang.dev + *.jeiang.dev: one DNS-01 wildcard cert -------
-          # (docs/MIGRATION.md TLS strategy). Every other jeiang.dev site
-          # block below has no explicit `tls` directive: Caddy 2.10+
+          # Every other jeiang.dev site block below has no explicit `tls`
+          # directive: Caddy 2.10+
           # reuses this already-managed wildcard for them instead of
           # requesting a second certificate per hostname (see
           # https://caddyserver.com/docs/automatic-https#wildcard-certificates).
@@ -205,9 +202,9 @@
             }
           }
 
-          # aidanpinard.co / pinard.co.tt: separate DNS-01 certs per
-          # docs/MIGRATION.md (Hetzner-hosted zones, not part of the
-          # jeiang.dev wildcard SAN).
+          # aidanpinard.co / pinard.co.tt: separate DNS-01 certs
+          # (Hetzner-hosted zones, not part of the jeiang.dev wildcard
+          # SAN).
           aidanpinard.co {
             ${crowdsecLine}${appsecLine}tls {
               dns hetzner {env.HETZNER_DNS_TOKEN}
@@ -224,7 +221,7 @@
             file_server
           }
 
-          # --- noelejoshua.com: jkmn-website (piece 1.2), new input -------
+          # --- noelejoshua.com: jkmn-website, new input -------------------
           # noelejoshua.com is not in Hetzner DNS: no explicit `tls`
           # directive, so this falls back to Caddy's standard automatic
           # HTTPS (HTTP-01/TLS-ALPN-01), per the TLS strategy section.
@@ -233,28 +230,25 @@
             file_server
           }
 
-          # --- auth.jeiang.dev: Pocket ID (piece 4.1) ---------------------
-          # Port 1411 matches the deployed pocket-id image's listen port
-          # (k8s-manifests idp/values.yaml `pocketId.port`).
+          # --- auth.jeiang.dev: Pocket ID ---------------------------------
+          # Port 1411 is Pocket ID's default listen port.
           auth.jeiang.dev {
             ${crowdsecLine}${appsecLine}reverse_proxy ${node2}:1411
           }
 
-          # --- attic.jeiang.dev: Attic (piece 5.1) ------------------------
-          # Long timeouts for NAR uploads (docs/MIGRATION.md, >= 15m).
-          # Port 8080 matches k8s-manifests attic/values.yaml `server.port`.
+          # --- attic.jeiang.dev: Attic ------------------------------------
+          # Long timeouts for NAR uploads (>= 15m).
+          # Port 8080 is Attic's server port.
           # crowdsec (IP-decision check) applies -- it's cheap and the
           # engine's own attic-cache-whitelist parser
           # (modules/nixos/crowdsec/default.nix) already keeps bursty NAR
           # traffic from generating bad-IP decisions in the first place.
-          # appsec is deliberately skipped here: the k8s-manifests Traefik
-          # deployment ran AppSec globally on every route including this
-          # one, but its own README documents Attic NAR uploads as
+          # appsec is deliberately skipped here: Attic NAR uploads are
           # legitimate high-volume bursts that need a whitelist to avoid
           # false positives -- skipping the deep-inspection handler on this
-          # route entirely is the Caddyfile-level equivalent for a
-          # single-node fail-open edge, avoiding both the false-positive
-          # risk and the cost of body inspection on large NAR blobs.
+          # route entirely is the fail-open-friendly choice for a
+          # single-node edge, avoiding both the false-positive risk and
+          # the cost of body inspection on large NAR blobs.
           attic.jeiang.dev {
             ${crowdsecLine}reverse_proxy ${node4}:8080 {
               transport http {
@@ -265,35 +259,32 @@
             }
           }
 
-          # --- budget.jeiang.dev: Actual Budget (piece 5.2) ---------------
-          # Port 5006 matches k8s-manifests actual-budget/values.yaml
-          # `service.port`.
+          # --- budget.jeiang.dev: Actual Budget ---------------------------
+          # Port 5006 matches Actual Budget's configured listen port
+          # (modules/nixos/actual-budget.nix).
           budget.jeiang.dev {
             ${crowdsecLine}${appsecLine}reverse_proxy ${node4}:5006
           }
 
-          # --- grafana.jeiang.dev: monitoring stack (piece 6.1) -----------
+          # --- grafana.jeiang.dev: monitoring stack -----------------------
           # Port 3000 is Grafana's default listen port.
           grafana.jeiang.dev {
             ${crowdsecLine}${appsecLine}reverse_proxy ${node3}:3000
           }
 
-          # --- netbird.jeiang.dev: NetBird server/relay (piece 3.1) -------
-          # Route split mirrors the live k8s-manifests
-          # netbird/templates/ingress.yaml: gRPC/h2c for signal +
-          # management + proxy registration, plain REST for api/oauth2 +
-          # the dashboard<->management WebSocket, a separate port for the
-          # relay WebSocket, and the dashboard static assets (piece 1.2)
-          # as the default fallback. Long read timeouts for the streaming
-          # routes.
+          # --- netbird.jeiang.dev: NetBird server/relay -------------------
+          # Route split: gRPC/h2c for signal + management + proxy
+          # registration, plain REST for api/oauth2 + the
+          # dashboard<->management WebSocket, a separate port for the
+          # relay WebSocket, and the dashboard static assets as the
+          # default fallback. Long read timeouts for the streaming routes.
           netbird.jeiang.dev {
             # crowdsec (IP-decision check, cheap, no body/stream buffering)
             # applies to the whole site including the gRPC/WebSocket
             # routes below. appsec (deep request inspection) is placed
             # only in the fallback dashboard handle at the bottom, not in
             # @grpc/@backend/@relay: those are NetBird's long-lived
-            # streams (docs/MIGRATION.md piece 1.3 exclusion), and
-            # modules/nixos/crowdsec/default.nix's local
+            # streams, and modules/nixos/crowdsec/default.nix's local
             # jeiang/appsec-caddy config already carries an on_match
             # allow-rule for these same paths as a second layer -- skipping
             # the handler here avoids paying for AppSec inspection on
@@ -329,7 +320,7 @@
             }
           }
 
-          # --- bill-split.jeiang.dev: bill-splitter (piece 1.2) -----------
+          # --- bill-split.jeiang.dev: bill-splitter -----------------------
           # jeiang/bill-splitter's flake now builds a static site to
           # $out/dist (verified via `nix flake show`/`nix build`), so it's
           # served the same way as the other static sites above.
@@ -344,11 +335,11 @@
           }
 
           # --- jellyfin.plyrex.dev / seerr.plyrex.dev / pdf.plyrex.dev: ---
-          # placeholders. jellyfin/seerr are piece 1.4 (Tailscale backend
-          # deferred); pdf.plyrex.dev joins them here as of the piece 0.6
-          # capacity audit (docs/MIGRATION.md) dropping Stirling PDF's
-          # placement -- same "degrade gracefully, stay internally
-          # consistent" treatment rather than leaving the route dangling.
+          # placeholders. jellyfin/seerr have a deferred Tailscale backend;
+          # pdf.plyrex.dev joins them here since Stirling PDF currently has
+          # no host placement (see stirling-pdf.nix) -- same "degrade
+          # gracefully, stay internally consistent" treatment rather than
+          # leaving the route dangling.
           # 503 rather than 200: accurately signals "temporarily
           # unavailable" instead of looking like real content that a
           # client or proxy might cache. Not in Hetzner DNS, so (like
@@ -401,7 +392,6 @@
         };
       };
 
-      # piece 0.6 capacity audit, docs/MIGRATION.md.
       systemd.services.caddy.serviceConfig.MemoryMax = "256M";
 
       # 80/443 tcp public are already opened for legion-node1 by the

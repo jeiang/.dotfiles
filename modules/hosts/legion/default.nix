@@ -49,7 +49,7 @@
     lib.mapAttrs (name: node: node // (legionServices.${name} or {})) legionNodes;
 
   # tcp/udp ports a node's placed services open, scoped to "public" or
-  # "private" per their firewall.scope (docs/MIGRATION.md piece 0.1/0.2).
+  # "private" per their firewall.scope.
   firewallPortsFor = nodeName: proto: scope: let
     openings = lib.concatMap (service: service.firewall or []) (validatedLegionNodes.${nodeName}.services or []);
   in
@@ -97,37 +97,36 @@ in {
         self.nixosModules.sops
         self.nixosModules.legionHardware
         self.nixosModules.backups
-        # Piece 3.4: every legion node becomes a NetBird peer, reusing
-        # artemis's existing client module unmodified (it stays untouched
-        # -- only this host layer adds the setup-key wiring below).
-        # Replaces the dropped Kubernetes routing peer for peer-only
-        # services (Blocky DNS, raw VictoriaMetrics/VictoriaLogs, Phase
-        # 5). legion-node1 (the edge) and legion-node2 (the future
-        # netbird-server host) become peers too -- harmless, and node2
-        # enrolling as a peer of the server it will later host is exactly
-        # how the existing K8s NetBird server is reached today.
+        # Every legion node becomes a NetBird peer, reusing artemis's
+        # existing client module unmodified (it stays untouched -- only
+        # this host layer adds the setup-key wiring below). Replaces the
+        # dropped Kubernetes routing peer for peer-only services (Blocky
+        # DNS, raw VictoriaMetrics/VictoriaLogs). legion-node1 (the edge)
+        # and legion-node2 (the netbird-server host) become peers too --
+        # harmless, and node2 enrolling as a peer of the server it also
+        # hosts is exactly how NetBird is reached today.
         self.nixosModules.netbird
         self.diskoConfigurations.legion
       ];
 
-      # Piece 3.4 setup-key enrollment (docs/MIGRATION.md): declared here,
-      # not in modules/nixos/netbird.nix, since it's specific to Legion's
-      # fleet enrollment rather than the general client module artemis
-      # also uses. `services.netbird.clients.default` itself comes from
+      # Setup-key enrollment: declared here, not in
+      # modules/nixos/netbird.nix, since it's specific to Legion's fleet
+      # enrollment rather than the general client module artemis also
+      # uses. `services.netbird.clients.default` itself comes from
       # self.nixosModules.netbird above; this only adds the login fields
       # nixpkgs' services.netbird module exposes for declarative setup-key
       # enrollment (nixos/modules/services/networking/netbird.nix
       # `clients.<name>.login.*`).
       #
-      # Bootstrap circularity guard: this must never point host DNS at the
-      # future Blocky instance (piece 5.5) as the primary resolver. Legion
-      # nodes keep systemd-networkd's normal DHCP/upstream resolvers
+      # Bootstrap circularity guard: this must never point host DNS at
+      # the Blocky instance as the primary resolver. Legion nodes keep
+      # systemd-networkd's normal DHCP/upstream resolvers
       # (modules/hosts/legion/hardware.nix `useNetworkd = true`; nothing
       # here or in self.nixosModules.netbird touches
-      # networking.nameservers or services.resolved), so `netbird.jeiang.dev`
-      # always resolves via public DNS before the tunnel is up -- never via
-      # Blocky-over-NetBird. Piece 5.5/5.7 must preserve this when Blocky
-      # lands.
+      # networking.nameservers or services.resolved), so
+      # `netbird.jeiang.dev` always resolves via public DNS before the
+      # tunnel is up -- never via Blocky-over-NetBird. This must be
+      # preserved if Blocky's placement ever changes.
       sops.secrets."netbird/setup-key" = {};
       services = {
         netbird.clients.default.login = {
@@ -135,7 +134,7 @@ in {
           setupKeyFile = config.sops.secrets."netbird/setup-key".path;
         };
 
-        # Piece 6.1: fleet-wide node_exporter, one per Legion node, scraped
+        # Fleet-wide node_exporter, one per Legion node, scraped
         # by legion-node3's monitoring module
         # (modules/nixos/monitoring/default.nix `job_name = "node"`). Not
         # a "placed" service in the inventory sense
@@ -147,7 +146,7 @@ in {
         # added to the public allowlist below).
         prometheus.exporters.node.enable = true;
 
-        # Piece 6.1 log shipping: journald from every Legion node to
+        # Log shipping: journald from every Legion node to
         # legion-node3's VictoriaLogs, via systemd-journal-upload (nixpkgs
         # `services.journald.upload`) pointed at VictoriaLogs' journald
         # ingestion route. systemd-journal-upload always appends `/upload`
@@ -164,11 +163,9 @@ in {
         };
       };
 
-      # Piece 2.1: Restic backup jobs derived from this node's own
-      # inventory entry -- non-empty on legion-node2 as of piece 3.1
-      # (netbird-server); modules/nixos/backups.nix evaluates to zero
-      # services.restic.backups jobs on every other node until its own
-      # stateful service lands (Phases 4-5).
+      # Restic backup jobs derived from this node's own inventory entry;
+      # modules/nixos/backups.nix evaluates to zero services.restic.backups
+      # jobs on a node with no stateful services in its inventory entry.
       backups.jobs = lib.listToAttrs (
         map (service:
           lib.nameValuePair service.name {
@@ -180,10 +177,10 @@ in {
       );
 
       # Declarative Hetzner Volume mounts, derived from this node's own
-      # inventory entries (docs/runbooks/volume-provisioning.md). A
-      # service contributes nothing here until its `volume.hcloudVolumeId`
-      # is filled in by the operator after creating the Volume -- same
-      # "empty until populated" pattern as `backups.jobs` above. `nofail`
+      # inventory entries. A service contributes nothing here until its
+      # `volume.hcloudVolumeId` is filled in by the operator after
+      # creating the Volume -- same "empty until populated" pattern as
+      # `backups.jobs` above. `nofail`
       # is required so a missing/late Volume never blocks boot (SSH and
       # deploy access must stay available); the service itself is kept
       # off an unmounted directory by its own mount guard
@@ -255,7 +252,7 @@ in {
         ];
       };
 
-      # Piece 0.2: re-enable the host firewall (hardware.nix flips
+      # Re-enable the host firewall (hardware.nix flips
       # networking.firewall.enable) with openings derived from the Legion
       # service inventory above, plus:
       #  - STUN (UDP 3478) and H@H's hostPort (TCP 8888) are opened
@@ -288,71 +285,68 @@ in {
                 };
               }
             ]
-            # Piece 1.1: Caddy Edge Node module, only for the inventory's
-            # edge node.
+            # Caddy Edge Node module, only for the inventory's edge node.
             ++ lib.optional (node.edge or false) self.nixosModules.edge
-            # Piece 1.3: CrowdSec engine, same edge-node condition as
-            # above. Both modules share the edge.crowdsec.enable toggle.
+            # CrowdSec engine, same edge-node condition as above. Both
+            # modules share the edge.crowdsec.enable toggle.
             ++ lib.optional (node.edge or false) self.nixosModules.crowdsec
-            # Piece 3.1: NetBird server + relay, only for the inventory
-            # node that places `netbird-server`
+            # NetBird server + relay, only for the inventory node that
+            # places `netbird-server`
             # (modules/hosts/legion/_service-inventory.nix, legion-node2
             # today). Never imported on any other node.
             ++ lib.optional
             (lib.any (service: service.name == "netbird-server") node.services)
             self.nixosModules.netbird-server
-            # Piece 3.2: NetBird reverse proxy, same optional-import
-            # pattern, gated on the inventory node placing `netbird-proxy`
-            # (legion-node2 today, alongside netbird-server above).
+            # NetBird reverse proxy, same optional-import pattern, gated
+            # on the inventory node placing `netbird-proxy` (legion-node2
+            # today, alongside netbird-server above).
             ++ lib.optional
             (lib.any (service: service.name == "netbird-proxy") node.services)
             self.nixosModules.netbird-proxy
-            # Piece 4.1: Pocket ID, same optional-import pattern, gated on
-            # the inventory node placing `pocket-id` (legion-node2 today,
+            # Pocket ID, same optional-import pattern, gated on the
+            # inventory node placing `pocket-id` (legion-node2 today,
             # alongside netbird-server/netbird-proxy above).
             ++ lib.optional
             (lib.any (service: service.name == "pocket-id") node.services)
             self.nixosModules.pocket-id
-            # Piece 5.1: Attic, same optional-import pattern, gated on the
-            # inventory node placing `attic` (legion-node4 today).
+            # Attic, same optional-import pattern, gated on the inventory
+            # node placing `attic` (legion-node4 today).
             ++ lib.optional
             (lib.any (service: service.name == "attic") node.services)
             self.nixosModules.attic
-            # Piece 5.2: Actual Budget, same optional-import pattern, gated
-            # on the inventory node placing `actual-budget` (legion-node4
+            # Actual Budget, same optional-import pattern, gated on the
+            # inventory node placing `actual-budget` (legion-node4
             # today).
             ++ lib.optional
             (lib.any (service: service.name == "actual-budget") node.services)
             self.nixosModules.actual-budget
-            # Piece 5.3: Stirling PDF, same optional-import pattern, gated
-            # on the inventory node placing `stirling-pdf`. No node places
-            # it as of the piece 0.6 capacity audit (docs/MIGRATION.md,
-            # modules/hosts/legion/_service-inventory.nix) -- this stays as
-            # dead-but-harmless gating rather than being removed, so the
-            # module (kept in the tree, deferred) needs no code change here
-            # to be revived: place it in the inventory again and this
-            # import wakes up automatically.
+            # Stirling PDF, same optional-import pattern, gated on the
+            # inventory node placing `stirling-pdf`. No node currently
+            # places it (modules/hosts/legion/_service-inventory.nix) --
+            # this stays as dead-but-harmless gating rather than being
+            # removed, so the module (kept in the tree, deferred) needs
+            # no code change here to be revived: place it in the
+            # inventory again and this import wakes up automatically.
             ++ lib.optional
             (lib.any (service: service.name == "stirling-pdf") node.services)
             self.nixosModules.stirling-pdf
-            # Piece 5.4: H@H, same optional-import pattern, gated on the
-            # inventory node placing `hath` (legion-node4 today).
+            # H@H, same optional-import pattern, gated on the inventory
+            # node placing `hath` (legion-node4 today).
             ++ lib.optional
             (lib.any (service: service.name == "hath") node.services)
             self.nixosModules.hath
-            # Piece 5.5: Blocky, same optional-import pattern, gated on the
-            # inventory node placing `blocky` (legion-node2 today, moved
-            # from legion-node3 by the piece 0.6 capacity audit). Requires
-            # piece 3.4 (self.nixosModules.netbird, imported fleet-wide
-            # above) for both trustedInterfaces and the client service name
-            # modules/nixos/blocky.nix orders after.
+            # Blocky, same optional-import pattern, gated on the
+            # inventory node placing `blocky` (legion-node2 today).
+            # Requires self.nixosModules.netbird (imported fleet-wide
+            # above) for both trustedInterfaces and the client service
+            # name modules/nixos/blocky.nix orders after.
             ++ lib.optional
             (lib.any (service: service.name == "blocky") node.services)
             self.nixosModules.blocky
-            # Piece 6.1: monitoring composition (VictoriaMetrics,
-            # VictoriaLogs, Grafana, vmalert, Alertmanager), same
-            # optional-import pattern, gated on the inventory node placing
-            # `monitoring` (legion-node3 today).
+            # Monitoring composition (VictoriaMetrics, VictoriaLogs,
+            # Grafana, vmalert, Alertmanager), same optional-import
+            # pattern, gated on the inventory node placing `monitoring`
+            # (legion-node3 today).
             ++ lib.optional
             (lib.any (service: service.name == "monitoring") node.services)
             self.nixosModules.monitoring;

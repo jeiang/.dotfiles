@@ -19,10 +19,10 @@
       nftables.enable = true;
       tempAddresses = "disabled";
 
-      # ADR 0002 / docs/MIGRATION.md piece 0.2: Host-Native Services bind
-      # directly on the nodes, so the NixOS firewall replaces reliance on
-      # the Hetzner Cloud Firewall. Openings are derived in
-      # modules/hosts/legion/default.nix from the service inventory.
+      # Host-native services bind directly on the nodes, so the NixOS
+      # firewall replaces reliance on the Hetzner Cloud Firewall. Openings
+      # are derived in modules/hosts/legion/default.nix from the service
+      # inventory.
       firewall.enable = true;
     };
   };

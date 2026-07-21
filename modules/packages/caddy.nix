@@ -13,7 +13,7 @@
       # http/appsec plugins share one go.mod at the repo root, so build-info
       # reports the parent module path instead of the subpackage path,
       # tripping the check as a false positive. `caddy list-modules` is
-      # verified manually instead (see docs/MIGRATION.md piece 0.3).
+      # verified manually instead.
       doInstallCheck = false;
     };
   };

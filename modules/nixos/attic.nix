@@ -3,19 +3,19 @@
   inputs,
   ...
 }: {
-  # docs/MIGRATION.md piece 5.1: Attic (jeiang/attic fork, OIDC-enabled) for
-  # legion-node4, behind the edge at attic.jeiang.dev
-  # (modules/nixos/edge/default.nix `attic.jeiang.dev { reverse_proxy
-  # ${node4}:8080 ... }`). First-party `services.atticd`, imported from the
-  # fork's own module (inputs.attic.nixosModules.atticd) rather than
-  # nixpkgs' upstream one: the fork's Rust binary has an extra `oidc` config
-  # section stock attic lacks, and the module's `checked-attic-server.toml`
-  # build step runs `${cfg.package}/bin/atticd --mode check-config` against
-  # whichever module owns `settings` -- pairing the fork's module with the
-  # fork's `attic-server` package (confirmed present via `nix flake show`
-  # against the pinned inputs.attic rev) keeps the config schema and binary
-  # in lockstep. Stateless (Confirmed Decisions: external managed Postgres +
-  # Mega S4, no local state) -- no Volume, no backupSet; the
+  # Attic (jeiang/attic fork, OIDC-enabled) for legion-node4, behind the
+  # edge at attic.jeiang.dev (modules/nixos/edge/default.nix
+  # `attic.jeiang.dev { reverse_proxy ${node4}:8080 ... }`). First-party
+  # `services.atticd`, imported from the fork's own module
+  # (inputs.attic.nixosModules.atticd) rather than nixpkgs' upstream one:
+  # the fork's Rust binary has an extra `oidc` config section stock attic
+  # lacks, and the module's `checked-attic-server.toml` build step runs
+  # `${cfg.package}/bin/atticd --mode check-config` against whichever
+  # module owns `settings` -- pairing the fork's module with the fork's
+  # `attic-server` package (confirmed present via `nix flake show` against
+  # the pinned inputs.attic rev) keeps the config schema and binary in
+  # lockstep. Stateless (external managed Postgres + Mega S4, no local
+  # state) -- no Volume, no backupSet; the
   # modules/hosts/legion/_service-inventory.nix `attic` entry already
   # reflects this (stateful = false, no volume).
   flake.nixosModules.attic = {
@@ -33,7 +33,7 @@
       enable = true;
       package = self.packages.${system}.attic-server;
 
-      # Piece 5.1: ATTIC_SERVER_DATABASE_URL (external managed Postgres),
+      # ATTIC_SERVER_DATABASE_URL (external managed Postgres),
       # AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY (Mega S4), and
       # ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64 (signing key) all arrive as
       # plain env vars through this file -- none of the four are readable
@@ -68,17 +68,15 @@
         api-endpoint = "https://attic.jeiang.dev/";
         require-proof-of-possession = true;
 
-        # Concurrency/memory tuning carried from the cluster
-        # (k8s-manifests attic/values.yaml, docs/MIGRATION.md RAM notes):
-        # 16 concurrent authenticated uploads, but chunk inserts are
-        # throttled to 2 concurrent (SQLite write-lock contention bridge,
-        # per the chart's own comment) to fit the MemoryMax below.
+        # Concurrency/memory tuning: 16 concurrent authenticated uploads,
+        # but chunk inserts are throttled to 2 concurrent (SQLite
+        # write-lock contention) to fit the MemoryMax below.
         max-concurrent-uploads = 16;
         max-concurrent-chunk-uploads = 2;
 
         database = {
           # url deliberately absent -- see the mkForce comment above.
-          mmap-size = 134217728; # 128 MiB, matches the chart
+          mmap-size = 134217728; # 128 MiB
           max-connections = 32;
         };
 
@@ -109,12 +107,9 @@
           default-retention-period = "0 seconds";
         };
 
-        # OIDC provider config mirrors the live cluster config
-        # (k8s-manifests attic/values.yaml `oidc.githubActions`/
-        # `oidc.pocketId`, rendered 1:1 by attic/templates/configmap.yaml
-        # into `[[oidc.providers]]` blocks) -- none of these values are
-        # secret (issuer/jwks-url/audience are public OIDC metadata), so
-        # they're safe in the store-rendered settings.
+        # OIDC provider config: none of these values are secret
+        # (issuer/jwks-url/audience are public OIDC metadata), so they're
+        # safe in the store-rendered settings.
         oidc.providers = [
           {
             name = "github-actions";
@@ -207,10 +202,7 @@
       };
     };
 
-    # docs/MIGRATION.md RAM notes: "Attic was tuned to fit a 512 Mi limit"
-    # in the cluster, but the *live* chart (k8s-manifests attic/values.yaml
-    # `resources.limits.memory`) actually ran 768Mi. Piece 0.6 capacity
-    # audit raises this to 896M (measured steady-state, docs/MIGRATION.md).
+    # 896M, based on measured steady-state RAM usage.
     systemd.services.atticd.serviceConfig.MemoryMax = "896M";
 
     sops = {

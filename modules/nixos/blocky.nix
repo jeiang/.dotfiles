@@ -1,12 +1,9 @@
 _: {
-  # docs/MIGRATION.md piece 5.5: Blocky DNS for legion-node2 (moved from
-  # legion-node3 by the piece 0.6 capacity audit), reachable only from
-  # NetBird peers (replaces the dropped Kubernetes NetworkResource).
-  # First-party `services.blocky` (DESIGN.md Service Ownership) -- config
-  # mirrors k8s-manifests/blocky-dns/values.yaml `blocky.config` 1:1
-  # (blocklists, upstreams, ports, logging); that chart sets no explicit
-  # prometheus section (metrics ride the same `ports.http` listener), so
-  # none is added here either.
+  # Blocky DNS for legion-node2 (moved from legion-node3 for capacity
+  # reasons), reachable only from NetBird peers (replaces the dropped
+  # Kubernetes NetworkResource). First-party `services.blocky` (DESIGN.md
+  # Service Ownership). No explicit prometheus section is configured:
+  # metrics ride the same `ports.http` listener.
   flake.nixosModules.blocky = {config, ...}: {
     services.blocky = {
       enable = true;
@@ -42,18 +39,17 @@ _: {
       };
     };
 
-    # "on the node's NetBird address" (docs/MIGRATION.md piece 5.5): the
-    # NetBird interface's IP isn't known at eval time (assigned by the
+    # The NetBird interface's IP isn't known at eval time (assigned by the
     # tunnel at runtime), so `services.blocky.settings.ports.dns` above
     # stays a bare port (binds 0.0.0.0, every interface) rather than an
-    # `<ip>:53` pin. Reachability is scoped by the firewall instead: piece
-    # 3.4 imports modules/nixos/netbird.nix fleet-wide, which already adds
-    # the client's interface to `networking.firewall.trustedInterfaces`
-    # (modules/nixos/netbird.nix) -- combined with 53 never being added to
-    # this node's public/private inventory-derived openings
+    # `<ip>:53` pin. Reachability is scoped by the firewall instead:
+    # modules/nixos/netbird.nix is imported fleet-wide, which already adds
+    # the client's interface to `networking.firewall.trustedInterfaces` --
+    # combined with 53 never being added to this node's public/private
+    # inventory-derived openings
     # (modules/hosts/legion/_service-inventory.nix `blocky.firewall = []`),
     # that leaves port 53 open only on the NetBird interface, i.e. reachable
-    # from NetBird peers only, exactly as the plan requires.
+    # from NetBird peers only.
     #
     # Startup ordering: wait for the NetBird tunnel so Blocky's port-53
     # listener doesn't win a race against the interface it's meant to serve
@@ -66,14 +62,11 @@ _: {
       wants = [(config.services.netbird.clients.default.service.name + ".service")];
     };
 
-    # Replica count drops 2 -> 1 vs. the chart (docs/MIGRATION.md piece
-    # 5.5): peer DNS becomes a single point of failure on legion-node2.
-    # Accepted by the operator; no host-native equivalent of the chart's
-    # `replicaCount`/HPA is added.
+    # Single point of failure: peer DNS runs as a single instance on
+    # legion-node2, no replica/HPA equivalent. Accepted by the operator.
 
-    # piece 0.6 capacity audit, docs/MIGRATION.md: the old 1.22 GiB "peak"
-    # reading was an artifact of a prior no-limits config; blocklist load
-    # already caps real usage at <=350 MiB.
+    # The old 1.22 GiB "peak" reading was an artifact of a prior no-limits
+    # config; blocklist load caps real usage at <=350 MiB.
     systemd.services.blocky.serviceConfig.MemoryMax = "512M";
 
     # Stateless (Workload Inventory: Blocky "none"): blocklists are

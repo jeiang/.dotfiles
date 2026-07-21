@@ -1,22 +1,21 @@
 _: {
-  # docs/MIGRATION.md piece 6.1: monitoring composition module for
-  # legion-node3 (VictoriaMetrics, VictoriaLogs, Grafana, vmalert,
-  # Alertmanager). Local composition module (DESIGN.md Service Ownership):
-  # several first-party modules configured as one service boundary.
-  # Imported only for the inventory node placing `monitoring`
-  # (modules/hosts/legion/default.nix, legion-node3 today, same
-  # optional-import pattern as modules/nixos/blocky.nix). Fleet-wide bits
-  # this module depends on (node_exporter, journald log shipping to this
-  # node's VictoriaLogs) live in modules/hosts/legion/default.nix's
-  # legionConfiguration instead, per docs/MIGRATION.md's "fleet-wide bits
-  # ... go in legionConfiguration" instruction -- they're not "placed"
-  # services owned by a single inventory entry.
+  # Monitoring composition module for legion-node3 (VictoriaMetrics,
+  # VictoriaLogs, Grafana, vmalert, Alertmanager). Local composition
+  # module (DESIGN.md Service Ownership): several first-party modules
+  # configured as one service boundary. Imported only for the inventory
+  # node placing `monitoring` (modules/hosts/legion/default.nix,
+  # legion-node3 today, same optional-import pattern as
+  # modules/nixos/blocky.nix). Fleet-wide bits this module depends on
+  # (node_exporter, journald log shipping to this node's VictoriaLogs)
+  # live in modules/hosts/legion/default.nix's legionConfiguration
+  # instead -- they're not "placed" services owned by a single inventory
+  # entry.
   #
-  # Reset allowed (docs/MIGRATION.md Confirmed Decisions): all state below
-  # is node-local disposable storage under /var/lib (systemd's
-  # StateDirectory mechanism, services.victoriametrics/victorialogs have no
-  # option to point elsewhere) -- no Hetzner Volume, no backupSet, matching
-  # the `monitoring` inventory entry (modules/hosts/legion/_service-inventory.nix,
+  # Reset allowed: all state below is node-local disposable storage under
+  # /var/lib (systemd's StateDirectory mechanism,
+  # services.victoriametrics/victorialogs have no option to point
+  # elsewhere) -- no Hetzner Volume, no backupSet, matching the
+  # `monitoring` inventory entry (modules/hosts/legion/_service-inventory.nix,
   # `stateful = false`).
   flake.nixosModules.monitoring = {
     config,
@@ -41,9 +40,7 @@ _: {
     vmPort = 8428; # services.victoriametrics default listenAddress
     vlPort = 9428; # services.victorialogs default listenAddress
 
-    # docs/MIGRATION.md piece 6.1 chart mirror: k8s-manifests
-    # monitoring/values.yaml vmsingle/vlsingle both set
-    # `spec.retentionPeriod: "1"` (one month -- VictoriaMetrics/VictoriaLogs
+    # retentionPeriod "1" means one month (VictoriaMetrics/VictoriaLogs
     # count an unsuffixed retentionPeriod in months). Neither
     # nixpkgs-pinned module accepts a bare "1" typed differently, so both
     # get the identical string.
@@ -51,17 +48,10 @@ _: {
 
     dashboardsDir = pkgs.linkFarm "grafana-dashboards" [
       {
-        # k8s-manifests/crowdsec/crowdsec-vmservicescrape.yaml scrapes
-        # CrowdSec at :6060/metrics (mirrored below); this is the matching
-        # dashboard the plan carries, extracted from
-        # k8s-manifests/monitoring/crowdsec-dashboard-configmap.yaml's
-        # embedded `crowdsec.json` (its own `data:`/YAML wrapper stripped,
-        # JSON body unchanged) -- no other dashboard is carried: the chart
-        # relies on the upstream vm/victoria-metrics-k8s-stack's bundled
-        # sidecar-loaded dashboards for node/VM visibility, which
-        # values.yaml never pins to specific IDs, so there is nothing
-        # concrete to reproduce here (gap noted in
-        # docs/runbooks/monitoring-cutover.md).
+        # CrowdSec is scraped at :6060/metrics (mirrored below); this is
+        # the matching Grafana dashboard for it. No other dashboard is
+        # carried here: there's no concrete node/VM dashboard to
+        # reproduce yet -- a gap for future work.
         name = "crowdsec.json";
         path = ./crowdsec-dashboard.json;
       }
@@ -102,14 +92,9 @@ _: {
           }
           {
             # modules/nixos/crowdsec/default.nix's engine, prometheus
-            # section (default enabled, port 6060, matches
-            # k8s-manifests/crowdsec/values.yaml `listen_port: 6060` and
-            # its VMServiceScrape's `path: /metrics`). Only populated once
-            # `edge.crowdsec.enable` flips true
-            # (docs/runbooks/edge-cutover.md "CrowdSec enablement") --
-            # until then this target legitimately reads down, same as the
-            # edge's own routes that 502 pre-cutover elsewhere in this
-            # repo.
+            # section (default enabled, port 6060). Only populated once
+            # `edge.crowdsec.enable` is true -- until then this target
+            # legitimately reads down.
             job_name = "crowdsec";
             static_configs = [
               {
@@ -120,11 +105,8 @@ _: {
           }
           {
             # modules/nixos/netbird-server/default.nix's unified server,
-            # `metricsPort: 9090` in its rendered config.yaml
-            # (k8s-manifests/netbird/values.yaml `server.metricsPort:
-            # 9090` is the only metrics port the chart configures -- the
-            # relay has no matching chart-side scrape config, so none is
-            # added here either).
+            # `metricsPort: 9090` in its rendered config.yaml. The relay
+            # has no metrics endpoint, so none is scraped here either.
             job_name = "netbird-server";
             static_configs = [
               {
@@ -134,9 +116,8 @@ _: {
             ];
           }
           {
-            # modules/nixos/blocky.nix: moved to legion-node2 (piece 0.6
-            # capacity audit, docs/MIGRATION.md) -- this node (node3)
-            # scrapes it cross-node over the private network (Blocky
+            # modules/nixos/blocky.nix: runs on legion-node2 -- this node
+            # (node3) scrapes it cross-node over the private network (Blocky
             # binds :8000 on all interfaces, enp7s0 is a trusted
             # interface, same reachability pattern as every other
             # cross-node backend in this module). No explicit prometheus
@@ -189,10 +170,8 @@ _: {
             # secret in this module.
             secret_key = "$__file{${config.sops.secrets."grafana/secret-key".path}}";
           };
-          # Pocket ID generic OAuth (k8s-manifests monitoring/values.yaml
-          # `grafana.grafana.ini."auth.generic_oauth"`, client id
-          # unchanged -- carried as-is, not a secret). client_secret is
-          # deliberately absent here: delivered via
+          # Pocket ID generic OAuth. client_secret is deliberately absent
+          # here: delivered via
           # GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET in the sops-templated
           # environment file below instead of the Nix-store-rendered ini
           # (DESIGN.md State And Backup Boundaries: runtime secrets via
@@ -218,8 +197,8 @@ _: {
         # Grafana's built-in "prometheus" datasource type works against it
         # unmodified -- no plugin needed, and it keeps the carried
         # CrowdSec dashboard's `${datasource}` template variable (which
-        # filters on `query: "prometheus"`, k8s-manifests/crowdsec's
-        # dashboard JSON) working without changes. VictoriaLogs has no
+        # filters on `query: "prometheus"`) working without changes.
+        # VictoriaLogs has no
         # built-in Grafana datasource type, so its dedicated community
         # plugin is still needed (declarativePlugins below).
         provision = {
@@ -249,16 +228,11 @@ _: {
 
       # vmalert: rules evaluated against this node's own VictoriaMetrics,
       # notifications sent to this node's own Alertmanager (both loopback,
-      # same node). docs/MIGRATION.md piece 6.1: the chart's own alerting
-      # relied on the upstream vm/victoria-metrics-k8s-stack's bundled
-      # `defaultRules` (dozens of Kubernetes-specific rule groups, none of
-      # which apply to a single host-native node) plus nothing of its own
-      # (k8s-manifests monitoring/values.yaml has no `vmalert.spec.rules`
-      # override) -- there is no concrete rule set to carry 1:1. This
-      # starts with the minimal meaningful set docs/MIGRATION.md's
-      # fallback describes (instance/service down, disk pressure, memory
-      # pressure); gap and upgrade path noted in
-      # docs/runbooks/monitoring-cutover.md.
+      # same node). There is no concrete Kubernetes-era rule set that
+      # applies to a single host-native node, so this starts with the
+      # minimal meaningful set below (instance/service down, disk
+      # pressure, memory pressure); expanding it is a gap and upgrade path
+      # for future work.
       vmalert.instances.default = {
         enable = true;
         settings = {
@@ -304,10 +278,8 @@ _: {
         ];
       };
 
-      # Alertmanager: existing Discord webhook retained
-      # (docs/MIGRATION.md Confirmed Decisions "Alerting is retained"),
-      # routing/grouping copied from k8s-manifests
-      # monitoring/values.yaml `alertmanager.config`.
+      # Alertmanager: Discord webhook, with routing/grouping configured
+      # below.
       prometheus.alertmanager = {
         enable = true;
         environmentFile = config.sops.templates."alertmanager.env".path;
@@ -339,12 +311,7 @@ _: {
       };
     };
 
-    # docs/MIGRATION.md RAM notes / piece 0.1 "every service gets a
-    # systemd MemoryMax derived from the audit": values below are the
-    # piece 0.6 capacity audit's measured steady-state figures
-    # (docs/MIGRATION.md), superseding the chart's own limits
-    # (k8s-manifests monitoring/values.yaml `*.spec.resources.limits.memory`)
-    # that this module started from.
+    # Values below are measured steady-state figures.
     systemd.services = {
       victoriametrics.serviceConfig.MemoryMax = "640M";
       victorialogs.serviceConfig.MemoryMax = "448M";
@@ -389,8 +356,8 @@ _: {
       };
     };
 
-    # docs/MIGRATION.md piece 6.1 log shipping (mechanism chosen and
-    # documented in modules/hosts/legion/default.nix, where the fleet-wide
+    # Log shipping (mechanism chosen and documented in
+    # modules/hosts/legion/default.nix, where the fleet-wide
     # `services.journald.upload` client side lives): VictoriaLogs' journald
     # ingestion route is `/insert/journald/upload` (confirmed against the
     # pinned victorialogs 1.51.0 binary's embedded route strings), and
