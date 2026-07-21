@@ -52,7 +52,7 @@
       # Same operator identity that owns the other Hetzner-DNS domains this
       # flake issues certs for (aidanpinard.co, via Caddy's ACME on the
       # edge); Let's Encrypt requires a contact address for the account.
-      email = "aidan@aidanpinard.co";
+      defaults.email = "aidan@aidanpinard.co";
 
       certs.${certName} = {
         extraDomainNames = ["*.${domain}"];
