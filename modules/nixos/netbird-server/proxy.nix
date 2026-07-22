@@ -150,6 +150,15 @@
       environment = {
         NB_PROXY_ADDRESS = ":443";
         NB_PROXY_DOMAIN = domain;
+        # Health probe (liveness/readiness). The default localhost:8080
+        # collides with the netbird-relay's WS port on this node
+        # (modules/nixos/netbird-server/default.nix relayPort = 8080). Move
+        # it into the netbird health band: server health :9000, relay
+        # health :9001, so this proxy takes 9002. Loopback-only -- it's a
+        # local probe, and this binary exposes no separate metrics endpoint
+        # (only --debug-endpoint, off by default, and --acme-addr, unused
+        # with the DNS-01 static certs above).
+        NB_PROXY_HEALTH_ADDRESS = "localhost:9002";
         # The proxy sends its access token as gRPC per-RPC credentials,
         # which gRPC refuses to transmit over a plaintext transport -- so
         # the management connection MUST be TLS (there is no insecure
