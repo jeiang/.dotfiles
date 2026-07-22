@@ -143,3 +143,36 @@ jobs:
           nix profile install "github:jeiang/attic/${attic_rev}#attic-client"
           ./.ci/attic-login-push.sh
           ./.ci/attic-push-retry.sh "ci:$ATTIC_CACHE" $PATHS
+
+  # Aggregate gate: a single, stable status context that reflects the whole
+  # matrix, for branch protection to require. The `build` job above fans out
+  # into one context per discovered check (`build (toplevel-legion-node1)`,
+  # `build (package-caddy)`, ...) whose set changes as checks are added or
+  # removed, and there is no bare `build` context — so requiring the matrix
+  # directly is either brittle (name-per-check) or never satisfiable (a `build`
+  # requirement stays perpetually pending, silently blocking every merge). This
+  # job depends on the whole matrix and succeeds only if discovery and every
+  # matrix leg did, so `all-checks` is the one context to mark required in the
+  # branch ruleset.
+  #
+  # `if: always()` is required: without it, a failed matrix leg would skip this
+  # job, and a *skipped* required check blocks the PR just like a failing one
+  # (with no red signal explaining why). Running always lets it turn the result
+  # into an explicit pass/fail. Note `needs.build.result` collapses the whole
+  # matrix — it is `success` only when every leg succeeded, and `failure` if any
+  # leg failed — and the best-effort `Push to Attic` step above is
+  # `continue-on-error`, so a cache-push hiccup never fails a leg or this gate.
+  all-checks:
+    needs: [discover, build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify discovery and all matrix checks passed
+        run: |
+          echo "discover: ${{ needs.discover.result }}"
+          echo "build:    ${{ needs.build.result }}"
+          if [[ "${{ needs.discover.result }}" != "success" || "${{ needs.build.result }}" != "success" ]]; then
+            echo "::error::One or more required checks did not succeed."
+            exit 1
+          fi
+          echo "All checks passed."
