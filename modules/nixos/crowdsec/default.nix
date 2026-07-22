@@ -110,6 +110,33 @@ _: {
                 expression = ["evt.Meta.target_fqdn == 'attic.jeiang.dev'"];
               };
             }
+            {
+              # Source-IP whitelist (not an expression): the `whitelist.ip`/
+              # `whitelist.cidr` parser-node fields match against the
+              # event's own source IP (pkg/parser/whitelist.go
+              # `CheckIPsWL`/`ParseIPSources`, same mechanism the
+              # crowdsecurity/whitelists hub collection uses for
+              # RFC1918/loopback) -- the right construct here since this is
+              # whitelisting *who's connecting*, not a request attribute.
+              # Covers the Hetzner private network (legion-node1's
+              # netbird-proxy app-level + OS-level bouncers both dial the
+              # LAPI over 172.17.0.0/16, inside this range) and the
+              # operator's NetBird mesh range (100.89.0.0/16 IPv4,
+              # fd1a:6b4d:62e5:46a::/64 IPv6 -- assigned via the NetBird
+              # dashboard, not declared anywhere in Nix): tunnel-origin and
+              # inter-node traffic must never generate a ban, on either the
+              # edge's own Caddy log source or a future acquisition source.
+              name = "jeiang/mesh-whitelist";
+              description = "Never generate bans against Hetzner private network or NetBird mesh traffic";
+              whitelist = {
+                reason = "Hetzner private network / NetBird mesh, never bans";
+                cidr = [
+                  "172.16.0.0/12"
+                  "100.89.0.0/16"
+                  "fd1a:6b4d:62e5:46a::/64"
+                ];
+              };
+            }
           ];
         };
       };
@@ -156,8 +183,11 @@ _: {
       # CROWDSEC_LAPI_KEY, so registering it here is what makes that key
       # valid). The netbird-proxy bouncer key grants legion-node2 access
       # via `just sops-updatekeys`, consumed by
-      # modules/nixos/netbird-server/proxy.nix's bouncer client.
+      # modules/nixos/netbird-server/proxy.nix's bouncer client. Same
+      # pattern for the legion-node2-firewall bouncer key, consumed by
+      # that module's services.crowdsec-firewall-bouncer.
       sops.secrets."crowdsec/bouncer-netbird-proxy-key" = {};
+      sops.secrets."crowdsec/bouncer-legion-node2-firewall" = {};
 
       systemd.services = {
         crowdsec-bouncers = {
@@ -180,6 +210,7 @@ _: {
             set -euo pipefail
             ${registerBouncer "edge-caddy" config.sops.secrets."caddy/crowdsec-lapi-key".path}
             ${registerBouncer "netbird-proxy" config.sops.secrets."crowdsec/bouncer-netbird-proxy-key".path}
+            ${registerBouncer "legion-node2-firewall" config.sops.secrets."crowdsec/bouncer-legion-node2-firewall".path}
           '';
         };
 
