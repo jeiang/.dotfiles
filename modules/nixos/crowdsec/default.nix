@@ -227,9 +227,18 @@ _: {
             RemainAfterExit = true;
           };
           script = let
+            # The module's `cscli` is a wrapper (writeShellScriptBin) baking
+            # in `-c <store crowdsec.yaml>` plus the sudo-to-crowdsec-user
+            # logic; there's no default /etc/crowdsec/config.yaml, so the raw
+            # binary won't find its config. The wrapper is exposed only via
+            # environment.systemPackages (not a referenceable option), so
+            # invoke it from the system profile. This unit is `after`
+            # crowdsec.service (Type=notify), so the LAPI DB exists and the
+            # DynamicUser `crowdsec` account the wrapper sudo's to is live.
+            cscli = "/run/current-system/sw/bin/cscli";
             registerBouncer = name: keyPath: ''
-              if ! cscli bouncers list -o json | grep -q "\"name\": \"${name}\""; then
-                cscli bouncers add ${lib.escapeShellArg name} --key "$(cat ${lib.escapeShellArg keyPath})"
+              if ! ${cscli} bouncers list -o json | grep -q "\"name\": \"${name}\""; then
+                ${cscli} bouncers add ${lib.escapeShellArg name} --key "$(cat ${lib.escapeShellArg keyPath})"
               fi
             '';
           in ''
