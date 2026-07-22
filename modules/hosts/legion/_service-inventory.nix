@@ -24,6 +24,18 @@
 #     `service.volume ? hcloudVolumeId`).
 #   - `sizeGiB`: int, the recommended Volume size for provisioning. Not
 #     consumed by any Nix evaluation, documentation only.
+#
+# Optional per-service fields, consumed by
+# modules/hosts/legion/default.nix's firewall derivation
+# (docs/adr/0002-expose-the-netbird-reverse-proxy-directly.md):
+#   - `firewallPortRanges`: list of `{from; to; proto; scope;}`, a bounded
+#     port range opened wholesale on this node's host firewall (e.g. a
+#     reserved range for ad-hoc Layer-4 services). Never opened wholesale
+#     on the Hetzner Cloud Firewall side -- that stays a manual per-port
+#     gate. Defaults to `[]` when omitted.
+#   - `publishedPorts`: list of `{port; proto;}`, durable module-owned
+#     ports opened (public scope) on this node's host firewall alongside
+#     `firewall` above. Defaults to `[]` when omitted.
 {lib}: let
   inventory = {
     legion-node1 = {
@@ -169,16 +181,46 @@
         }
         {
           name = "netbird-proxy";
-          # proxy.jeiang.dev/*.proxy.jeiang.dev resolve to the edge, which
-          # passes the TLS connection through to this node's port 443.
+          # proxy.jeiang.dev/*.proxy.jeiang.dev resolve directly to this
+          # node (docs/adr/0002-expose-the-netbird-reverse-proxy-directly.md):
+          # no edge hop, the proxy terminates its own TLS on its own
+          # public :443.
           publicHostnames = [];
           firewall = [
             {
               port = 443;
               proto = "tcp";
-              scope = "private";
+              scope = "public";
             }
           ];
+          # Reserved range for ad-hoc Layer-4 published services
+          # (docs/adr/0002): opened once on this node's host firewall,
+          # never opened wholesale on the Hetzner Cloud Firewall side --
+          # each in-range port still needs its own manual Hetzner Cloud
+          # Firewall rule to actually be reachable.
+          firewallPortRanges = [
+            {
+              from = 40000;
+              to = 45000;
+              proto = "tcp";
+              scope = "public";
+            }
+            {
+              from = 40000;
+              to = 45000;
+              proto = "udp";
+              scope = "public";
+            }
+          ];
+          # Durable, module-owned published ports (docs/adr/0002): empty
+          # for now -- this is where a future durable published service
+          # declares its exact {port; proto;}, opened on this node's host
+          # firewall the same way `firewall` is (still needs a matching
+          # manual Hetzner Cloud Firewall rule). The full cross-host
+          # abstraction letting a module declare both a service and its
+          # public exposure together is deferred until a durable service
+          # actually needs it.
+          publishedPorts = [];
           # Stateless (modules/nixos/netbird-server/proxy.nix): the proxy
           # consumes an externally-provisioned static wildcard cert
           # (security.acme, node-local /var/lib/acme, reissued via

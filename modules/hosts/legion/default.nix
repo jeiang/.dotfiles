@@ -45,11 +45,26 @@
     lib.mapAttrs (name: node: node // (legionServices.${name} or {})) legionNodes;
 
   # tcp/udp ports a node's placed services open, scoped to "public" or
-  # "private" per their firewall.scope.
+  # "private" per their firewall.scope. `publishedPorts` entries
+  # (docs/adr/0002-expose-the-netbird-reverse-proxy-directly.md) are
+  # folded in here too, always "public" scope: same shape as `firewall`
+  # (exact ports), just declared separately since they're the durable
+  # published-ports hook rather than a fixed service backend port.
   firewallPortsFor = nodeName: proto: scope: let
-    openings = lib.concatMap (service: service.firewall or []) (validatedLegionNodes.${nodeName}.services or []);
+    services = validatedLegionNodes.${nodeName}.services or [];
+    exactOpenings = lib.concatMap (service: service.firewall or []) services;
+    publishedOpenings = lib.concatMap (service: map (p: p // {scope = "public";}) (service.publishedPorts or [])) services;
   in
-    lib.unique (map (o: o.port) (builtins.filter (o: o.proto == proto && o.scope == scope) openings));
+    lib.unique (map (o: o.port) (builtins.filter (o: o.proto == proto && o.scope == scope) (exactOpenings ++ publishedOpenings)));
+
+  # tcp/udp port *ranges* a node's placed services open, scoped the same
+  # way as firewallPortsFor -- separate derivation since
+  # networking.firewall.allowedTCPPortRanges/allowedUDPPortRanges take
+  # `{from; to;}` attrsets, not bare ports.
+  firewallPortRangesFor = nodeName: proto: scope: let
+    openings = lib.concatMap (service: service.firewallPortRanges or []) (validatedLegionNodes.${nodeName}.services or []);
+  in
+    map (o: {inherit (o) from to;}) (builtins.filter (o: o.proto == proto && o.scope == scope) openings);
 
   nodeHostname = name: "${lib.removePrefix "legion-" name}.jeiang.dev";
 
@@ -258,6 +273,8 @@ in {
       networking.firewall = {
         allowedTCPPorts = firewallPortsFor config.networking.hostName "tcp" "public" ++ [8888];
         allowedUDPPorts = firewallPortsFor config.networking.hostName "udp" "public" ++ [3478];
+        allowedTCPPortRanges = firewallPortRangesFor config.networking.hostName "tcp" "public";
+        allowedUDPPortRanges = firewallPortRangesFor config.networking.hostName "udp" "public";
         # Backend transport boundary (DESIGN.md): cross-node service
         # traffic arrives on the private interface already.
         trustedInterfaces = ["enp7s0"];
