@@ -85,12 +85,17 @@ _: {
           # Local-API machine credentials. nixpkgs derives
           # general.api.client.credentials_path from this and its own setup
           # script auto-registers the engine's machine into it (`cscli
-          # machine add --auto` when the file is empty), so enabling the
-          # LAPI server without a path here coerces null at eval. Kept in
-          # the StateDirectory (/var/lib/crowdsec, guaranteed writable by
-          # the service, ReadWritePaths) so the credentials persist across
-          # reboots rather than re-registering each boot.
-          lapi.credentialsFile = "/var/lib/crowdsec/local_api_credentials.yaml";
+          # machines add --auto` when the file is empty), so enabling the
+          # LAPI server without a path here coerces null at eval. Must be in
+          # confDir (/etc/crowdsec), crowdsec's upstream-default credentials
+          # location and one of the dirs the module's own tmpfiles create
+          # crowdsec-owned (0750) + lists in ReadWritePaths -- so the setup
+          # script (running as the crowdsec user) can write it. NOT the
+          # StateDirectory root /var/lib/crowdsec: only its `state`/`hub`
+          # subdirs are tmpfiles-owned, and a direct write to the
+          # DynamicUser StateDirectory root gets permission denied. Persists
+          # across reboots rather than re-registering each boot.
+          lapi.credentialsFile = "/etc/crowdsec/local_api_credentials.yaml";
 
           general.api.server = {
             enable = true;
