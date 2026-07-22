@@ -233,6 +233,16 @@ in {
               command = "/nix/store/*/activate-rs";
               options = ["NOPASSWD"];
             }
+            # Magic rollback: after activation succeeds, deploy-rs confirms
+            # over a second SSH session with `sudo -u root rm
+            # /tmp/deploy-rs-canary-<hash>` (src/deploy.rs confirm_profile).
+            # Bare `rm` resolves to the system path for the deploy user, so
+            # match it there; without this rule sudo prompts for a password,
+            # the confirmation times out, and every deploy rolls back.
+            {
+              command = "/run/current-system/sw/bin/rm /tmp/deploy-rs-canary-*";
+              options = ["NOPASSWD"];
+            }
           ];
         }
       ];
