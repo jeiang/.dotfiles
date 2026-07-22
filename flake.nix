@@ -10,15 +10,11 @@
     devenv.inputs.nixpkgs.follows = "nixpkgs";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
-    nix2container.url = "github:nlewo/nix2container";
-    nix2container.inputs.nixpkgs.follows = "nixpkgs";
-    mk-shell-bin.url = "github:rrbutani/nix-mk-shell-bin";
 
     # system management inputs
     impermanence.url = "github:nix-community/impermanence";
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs";
-    nixos-facter-modules.url = "github:numtide/nixos-facter-modules";
     deploy-rs.url = "github:serokell/deploy-rs";
     nix-index-database.url = "github:nix-community/nix-index-database";
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
@@ -36,8 +32,6 @@
     dsearch.inputs.nixpkgs.follows = "nixpkgs";
 
     # Packages
-    nix-minecraft.url = "github:Infinidoge/nix-minecraft";
-    nix-minecraft.inputs.nixpkgs.follows = "nixpkgs";
     website.url = "github:jeiang/website";
     website.inputs.nixpkgs.follows = "nixpkgs";
     # jkmn-website: plain stdenvNoCC static build with no external deps
