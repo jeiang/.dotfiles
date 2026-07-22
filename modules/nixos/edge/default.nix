@@ -34,16 +34,18 @@
     crowdsecLine = lib.optionalString cfg.crowdsec.enable "crowdsec\n            ";
     appsecLine = lib.optionalString cfg.crowdsec.enable "appsec\n            ";
   in {
-    options.edge.crowdsec.enable = lib.mkEnableOption ''
-      the CrowdSec bouncer HTTP + AppSec handlers on the edge, and (shared
-      switch, modules/nixos/crowdsec/default.nix) the CrowdSec engine
-      itself. Off by default: the engine module cleanly evaluates, but the
-      sops secrets it and this option's Caddy wiring both need
-      (caddy/crowdsec-lapi-url, caddy/crowdsec-lapi-key,
-      crowdsec/bouncer-netbird-proxy-key) are not yet in
-      modules/nixos/sops/secrets.yaml, so activation would fail. Flip once
-      those secrets exist.
-    '';
+    options.edge.crowdsec.enable =
+      lib.mkEnableOption ''
+        the CrowdSec bouncer HTTP + AppSec handlers on the edge, and (shared
+        switch, modules/nixos/crowdsec/default.nix) the CrowdSec engine
+        itself. On by default; the sops secrets it and the Caddy wiring need
+        (caddy/crowdsec-lapi-url, caddy/crowdsec-lapi-key,
+        crowdsec/bouncer-netbird-proxy-key,
+        crowdsec/bouncer-legion-node2-firewall) must be present in
+        modules/nixos/sops/secrets.yaml or activation fails. Toggle off to
+        deploy the edge without CrowdSec
+      ''
+      // {default = true;};
 
     config = {
       services.caddy = {

@@ -51,28 +51,40 @@ _: {
           "crowdsecurity/dateparse-enrich"
         ];
 
-        settings.general.api.server = {
-          enable = true;
-          # 0.0.0.0, not 127.0.0.1 (the module default): edge Caddy's
-          # bouncer (loopback) and legion-node2's netbird-proxy bouncer
-          # (private network) both need to reach this.
-          # "Private-interface only" reachability from outside the host is
-          # enforced by the firewall, not the bind address -- see the
-          # "crowdsec" entry's firewall.scope in
-          # modules/hosts/legion/_service-inventory.nix and
-          # networking.firewall.trustedInterfaces in
-          # modules/hosts/legion/default.nix (enp7s0 is trusted; the
-          # public interface never gets an allowedTCPPorts entry for this
-          # port).
-          listen_uri = "0.0.0.0:${toString lapiPort}";
-        };
+        settings = {
+          # Local-API machine credentials. nixpkgs derives
+          # general.api.client.credentials_path from this and its own setup
+          # script auto-registers the engine's machine into it (`cscli
+          # machine add --auto` when the file is empty), so enabling the
+          # LAPI server without a path here coerces null at eval. Kept in
+          # the StateDirectory (/var/lib/crowdsec, guaranteed writable by
+          # the service, ReadWritePaths) so the credentials persist across
+          # reboots rather than re-registering each boot.
+          lapi.credentialsFile = "/var/lib/crowdsec/local_api_credentials.yaml";
 
-        # legion-node3's monitoring module scrapes this over the private
-        # network, same reachability reasoning (and the same
-        # 0.0.0.0-plus-firewall pattern) as listen_uri above -- the module
-        # default (127.0.0.1) would make it unreachable from another node.
-        # Uses the module's default port, 6060.
-        settings.general.prometheus.listen_addr = "0.0.0.0";
+          general.api.server = {
+            enable = true;
+            # 0.0.0.0, not 127.0.0.1 (the module default): edge Caddy's
+            # bouncer (loopback) and legion-node2's netbird-proxy bouncer
+            # (private network) both need to reach this.
+            # "Private-interface only" reachability from outside the host is
+            # enforced by the firewall, not the bind address -- see the
+            # "crowdsec" entry's firewall.scope in
+            # modules/hosts/legion/_service-inventory.nix and
+            # networking.firewall.trustedInterfaces in
+            # modules/hosts/legion/default.nix (enp7s0 is trusted; the
+            # public interface never gets an allowedTCPPorts entry for this
+            # port).
+            listen_uri = "0.0.0.0:${toString lapiPort}";
+          };
+
+          # legion-node3's monitoring module scrapes this over the private
+          # network, same reachability reasoning (and the same
+          # 0.0.0.0-plus-firewall pattern) as listen_uri above -- the module
+          # default (127.0.0.1) would make it unreachable from another node.
+          # Uses the module's default port, 6060.
+          general.prometheus.listen_addr = "0.0.0.0";
+        };
 
         localConfig = {
           acquisitions = [
