@@ -273,9 +273,25 @@
               }
             }
 
+            # The dashboard (netbird-dashboard 2.x) is a Next.js `output:
+            # "export"` static build: every route is pre-rendered to its own
+            # top-level file (`networks.html`, `peers.html`, ...), not a
+            # single-page app served from one index.html. So a direct hit on
+            # `/networks` must resolve to `networks.html`; the `{path}.html`
+            # candidate is what does that. Without it, `try_files` skips the
+            # `networks/` dir (RSC `.txt` payloads, no HTML index) and falls
+            # straight through to `/index.html` -- serving the home page's
+            # document at the /networks URL, which makes Next's App Router
+            # hydrate with the wrong route tree and hard-reload forever (the
+            # deep-link "loading loop"; client-side nav works because it
+            # fetches the `.txt` RSC payloads directly). This mirrors
+            # NetBird's own reference nginx config's
+            # `try_files $uri $uri.html $uri/ =404` (dashboard
+            # docker/default.conf); the final `/index.html` keeps the
+            # SPA-style fallback for anything unmatched.
             handle {
               ${appsecLine}root * ${netbirdDashboard}
-              try_files {path} /index.html
+              try_files {path} {path}.html {path}/index.html /index.html
               file_server
             }
           }
