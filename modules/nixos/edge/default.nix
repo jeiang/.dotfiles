@@ -81,48 +81,6 @@
           # only the metrics output, nothing administrative.
           metrics
 
-          # caddy-l4 + the HTTP app both wanting :443 is exactly the case
-          # covered by caddy-l4's own "combining apps" example
-          # (github.com/mholt/caddy-l4/blob/master/docs/examples/combining_apps.md):
-          # giving layer4 its own :443 listener conflicts with the HTTP
-          # app's :443 listener, so instead `layer4` is registered as a
-          # *listener wrapper* on the HTTP app's :443 server, ahead of the
-          # `tls` wrapper. A connection matching the NetBird proxy SNI is
-          # proxied as raw bytes and never reaches the `tls` wrapper (no
-          # local termination); everything else falls through to `tls`
-          # and is handled by the ordinary site blocks below. Port 80 is
-          # untouched (plain HTTP app listener) for redirects/HTTP-01.
-          servers :443 {
-            listener_wrappers {
-              layer4 {
-                @netbird_proxy tls sni proxy.jeiang.dev *.proxy.jeiang.dev
-                route @netbird_proxy {
-                  # RAW passthrough: legion-node2's netbird-proxy
-                  # terminates TLS itself. Without proxy_protocol below,
-                  # the RP's CrowdSec bouncer would see every passthrough
-                  # client as this edge node's private IP and could ban
-                  # the edge outright, blocking all passthrough traffic.
-                  #
-                  # v2 is the JSON field caddy-l4 v0.1.2's l4proxy.Handler
-                  # exposes (modules/l4proxy/proxy.go `ProxyProtocol
-                  # string json:"proxy_protocol"`, Caddyfile sub-directive
-                  # `proxy_protocol <v1|v2>`, verified against the
-                  # mholt/caddy-l4@v0.1.2 tag pinned in
-                  # modules/packages/caddy.nix). This MUST be enabled on
-                  # BOTH ends -- here and NB_PROXY_PROXY_PROTOCOL in
-                  # modules/nixos/netbird-server/proxy.nix -- or the TLS
-                  # stream breaks: one side prepending a PROXY v2 header
-                  # the other side doesn't expect is read as garbage
-                  # ClientHello bytes.
-                  proxy tcp/${node2}:443 {
-                    proxy_protocol v2
-                  }
-                }
-              }
-              tls
-            }
-          }
-
           ${lib.optionalString cfg.crowdsec.enable ''
             # Handler ordering: neither the `crowdsec` nor `appsec` HTTP
             # handler directive registers a position in Caddy's default
