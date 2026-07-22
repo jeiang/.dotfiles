@@ -59,6 +59,10 @@ This repo manages live systems, disks, cluster membership, and secrets. Treat op
 - When touching K3s configuration, preserve bootstrap/control-plane intent and avoid changes that could force cluster reinitialization unless explicitly requested.
 - Impermanence (`modules/nixos/impermanence.nix`) never migrates existing data, and on artemis `persistence.nukeRoot.enable` rolls the entire root btrfs subvolume back to empty every boot — not just `/root`. When adding or changing a `persistence.*` entry (system paths, or a host's `persistence.data`/`persistence.cache`), explicitly document or perform the matching copy of existing state into its `/persist` target before a reboot or activation that would otherwise lose it. `just migrate-persist` (`modules/hosts/artemis/migrate-persist.sh`) runs that copy on artemis itself from the live `persistence.*` config; it must be run on the target host, not from a dev checkout, and re-run after any further persistence changes before rebooting. Never assume the module migrates state for you.
 
+## CI Secrets
+
+- `FLAKE_LOCK_PAT`: fine-grained PAT used by `.github/workflows/update-flake-inputs.yml` so its flake-lock update PRs trigger CI (the default `GITHUB_TOKEN` cannot trigger further workflow runs). **Expires 2027-07-22** — rotate it before then, or the workflow's PRs will stop getting CI runs with no obvious error.
+
 ## Common Commands
 
 - `just fmt`: format files and run statix autofixes/checks.
