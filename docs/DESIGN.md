@@ -3,30 +3,18 @@
 This flake is the single-operator source of truth for the Artemis workstation
 and Legion service hosts, not a reusable NixOS framework. This document records
 its architecture and design rules. See [`CONTEXT.md`](../CONTEXT.md) for
-canonical terms and [`docs/IMPROVEMENTS.md`](IMPROVEMENTS.md) for open work.
+canonical terms and the GitHub issue tracker for open work.
 
 ## System Roles
 
-| System | Current role | Accepted direction |
-| --- | --- | --- |
-| `artemis` | Performance-oriented workstation with an impermanent root | Remain a recoverable workstation with explicit off-node backups |
-| `legion-node1` | K3s server and bootstrap node | Become the single Caddy Edge Node |
-| `legion-node2` through `legion-node4` | K3s agents | Host explicitly assigned NixOS services |
-| `legion-node5` | K3s agent | Decommission after service migration |
+| System | Role |
+| --- | --- |
+| `artemis` | Performance-oriented workstation with an impermanent root, recoverable via explicit off-node backups |
+| `legion-node1` | The Caddy Edge Node |
+| `legion-node2` through `legion-node4` | Host their assigned Host-Native Services per the Legion inventory |
 
 Artemis's custom kernel, desktop stack, gaming and VR configuration,
 impermanent root, and hardware-specific rules are intentionally host-specific.
-
-The single K3s server is intentional because each Legion node has roughly 2 GB
-of RAM and the other four nodes need that memory for workloads. The personal
-services in K3s are transitional rather than a commitment to Kubernetes as
-their final runtime. The accepted target is a four-node Legion Fleet of
-Host-Native Services. See
-[ADR 0002](adr/0002-migrate-legion-to-host-native-services.md).
-
-Current configuration must continue to describe the Experimental Cluster until
-each migration step lands. Do not write target-state documentation as though it
-were already deployed.
 
 ## Module Boundaries
 
@@ -36,8 +24,10 @@ were already deployed.
   `flake.nixosModules.*` output. System wiring such as services, systemd units,
   firewall rules, and filesystem layout does not belong here.
 - `modules/nixos/`: reusable NixOS modules for base configuration, desktop,
-  K3s, sops, security, Hyprland, and related system features. These modules
-  consume package outputs through
+  sops, security, Hyprland, and related system features, including the
+  Host-Native Service modules for the Legion Fleet (`edge/`, `crowdsec/`,
+  `netbird-server/`, `monitoring/`, and the per-application modules). These
+  modules consume package outputs through
   `self.packages.${pkgs.stdenv.hostPlatform.system}` or the corresponding
   `self'.packages`/`selfpkgs` surface. They do not define package overrides or
   wrapper flags inline.
@@ -99,7 +89,7 @@ files, flags, or a curated `PATH` of runtime dependencies.
   wrapped binary must be what executes from system packages, desktop launchers,
   keybinds, and systemd units. If multiple launch paths exist and the repo does
   not prove that they use the wrapper, keep the current mechanism and record the
-  uncertainty in `docs/IMPROVEMENTS.md`.
+  uncertainty as a GitHub issue.
 - `wrapPackage` replaces the selected binary entry point and symlinks the other
   package outputs through unchanged. Other binaries, libraries, and metadata
   remain available from the original package.
@@ -123,14 +113,10 @@ intentional instead of moving it into a generalized abstraction.
 
 ## Intentional Host Decisions
 
-- Legion currently disables the NixOS firewall because the Experimental
-  Cluster relies on Hetzner Cloud Firewall. ADR 0002 changes the target policy:
-  Host-Native Services must re-enable host firewalls before they bind directly
-  on the nodes.
-- Legion intentionally has one K3s server. Control-plane high availability
-  would consume RAM needed for experimentation and transitional workloads.
-- `legion-node5` intentionally uses private address `172.17.0.6`; do not close
-  the gap at `.5` while the node remains live.
+- Legion enables the NixOS firewall (`modules/hosts/legion/hardware.nix`),
+  rather than relying solely on the Hetzner Cloud Firewall. Openings are
+  derived in `modules/hosts/legion/default.nix` from the Legion service
+  inventory (`_service-inventory.nix`).
 - Artemis uses a host-specific CachyOS kernel built for its Zen 4 CPU with the
   BORE scheduler, full LTO, and an AutoFDO profile.
 - Artemis stripes root across three NVMe drives with btrfs RAID0. Local

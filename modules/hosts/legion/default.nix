@@ -7,12 +7,8 @@
   publicV4Gateway = "172.31.1.1";
   publicV6Gateway = "fe80::1";
 
-  podCIDRv4 = "10.42.0.0/16";
-  serviceCIDRv4 = "10.43.0.0/16";
-
   legionNodes = {
     legion-node1 = {
-      bootstrap = true;
       privateIPv4 = "172.17.0.1";
       publicIPv4 = "178.156.226.145";
       publicIPv6 = "2a01:4ff:f0:6b8e::1";
@@ -22,50 +18,55 @@
       privateIPv4 = "172.17.0.2";
       publicIPv4 = "178.156.201.35";
       publicIPv6 = "2a01:4ff:f0:a1ff::1";
-      agent = true;
     };
 
     legion-node3 = {
       privateIPv4 = "172.17.0.3";
       publicIPv4 = "178.156.186.147";
       publicIPv6 = "2a01:4ff:f0:c52a::1";
-      agent = true;
     };
 
     legion-node4 = {
       privateIPv4 = "172.17.0.4";
       publicIPv4 = "178.156.191.180";
       publicIPv6 = "2a01:4ff:f0:ca96::1";
-      agent = true;
-    };
-
-    legion-node5 = {
-      # Keep the gap at .5: this is the node's existing address, and changing
-      # cluster networking requires confirming the live host state first.
-      privateIPv4 = "172.17.0.6";
-      publicIPv4 = "178.156.253.100";
-      publicIPv6 = "2a01:4ff:f4:13f7::1";
-      agent = true;
     };
   };
 
-  bootstrapNodes = lib.filterAttrs (_: node: node.bootstrap or false) legionNodes;
   nodeAddresses = lib.concatMap (node: [node.privateIPv4 node.publicIPv4 node.publicIPv6]) (builtins.attrValues legionNodes);
 
-  validatedLegionNodes = assert lib.assertMsg (builtins.length (builtins.attrNames bootstrapNodes) == 1)
-  "Legion inventory must define exactly one bootstrap node";
-  assert lib.assertMsg (builtins.length nodeAddresses == builtins.length (lib.unique nodeAddresses))
-  "Legion inventory must not reuse an IP address"; legionNodes;
+  legionServices = import ./_service-inventory.nix {inherit lib;};
+  unknownServicePlacements = builtins.filter (name: !(legionNodes ? ${name})) (builtins.attrNames legionServices);
 
-  bootstrapNode = builtins.head (builtins.attrValues (lib.filterAttrs (_: node: node.bootstrap or false) validatedLegionNodes));
+  validatedLegionNodes = assert lib.assertMsg (builtins.length nodeAddresses == builtins.length (lib.unique nodeAddresses))
+  "Legion inventory must not reuse an IP address";
+  assert lib.assertMsg (unknownServicePlacements == [])
+  "Legion service inventory places services on unknown nodes: ${builtins.concatStringsSep ", " unknownServicePlacements}";
+    lib.mapAttrs (name: node: node // (legionServices.${name} or {})) legionNodes;
+
+  # tcp/udp ports a node's placed services open, scoped to "public" or
+  # "private" per their firewall.scope. `publishedPorts` entries
+  # (docs/adr/0002-expose-the-netbird-reverse-proxy-directly.md) are
+  # folded in here too, always "public" scope: same shape as `firewall`
+  # (exact ports), just declared separately since they're the durable
+  # published-ports hook rather than a fixed service backend port.
+  firewallPortsFor = nodeName: proto: scope: let
+    services = validatedLegionNodes.${nodeName}.services or [];
+    exactOpenings = lib.concatMap (service: service.firewall or []) services;
+    publishedOpenings = lib.concatMap (service: map (p: p // {scope = "public";}) (service.publishedPorts or [])) services;
+  in
+    lib.unique (map (o: o.port) (builtins.filter (o: o.proto == proto && o.scope == scope) (exactOpenings ++ publishedOpenings)));
+
+  # tcp/udp port *ranges* a node's placed services open, scoped the same
+  # way as firewallPortsFor -- separate derivation since
+  # networking.firewall.allowedTCPPortRanges/allowedUDPPortRanges take
+  # `{from; to;}` attrsets, not bare ports.
+  firewallPortRangesFor = nodeName: proto: scope: let
+    openings = lib.concatMap (service: service.firewallPortRanges or []) (validatedLegionNodes.${nodeName}.services or []);
+  in
+    map (o: {inherit (o) from to;}) (builtins.filter (o: o.proto == proto && o.scope == scope) openings);
+
   nodeHostname = name: "${lib.removePrefix "legion-" name}.jeiang.dev";
-  apiTlsSans =
-    [
-      "pinard.co.tt"
-      "aidanpinard.co"
-      "jeiang.dev"
-    ]
-    ++ map nodeHostname (builtins.attrNames validatedLegionNodes);
 
   mkWan = {
     publicIPv4,
@@ -95,15 +96,116 @@
   };
 in {
   flake = {
-    nixosModules.legionConfiguration = {pkgs, ...}: {
+    nixosModules.legionConfiguration = {
+      pkgs,
+      config,
+      lib,
+      ...
+    }: {
       imports = [
         self.nixosModules.base
         self.nixosModules.sharedConfiguration
         self.nixosModules.sops
         self.nixosModules.legionHardware
-        self.nixosModules.k3s
+        self.nixosModules.backups
+        # Every legion node becomes a NetBird peer, reusing artemis's
+        # existing client module unmodified (it stays untouched -- only
+        # this host layer adds the setup-key wiring below). Replaces the
+        # dropped Kubernetes routing peer for peer-only services (Blocky
+        # DNS, raw VictoriaMetrics/VictoriaLogs). legion-node1 (the edge)
+        # and legion-node2 (the netbird-server host) become peers too --
+        # harmless, and node2 enrolling as a peer of the server it also
+        # hosts is exactly how NetBird is reached today.
+        self.nixosModules.netbird
         self.diskoConfigurations.legion
       ];
+
+      # Setup-key enrollment: declared here, not in
+      # modules/nixos/netbird.nix, since it's specific to Legion's fleet
+      # enrollment rather than the general client module artemis also
+      # uses. `services.netbird.clients.default` itself comes from
+      # self.nixosModules.netbird above; this only adds the login fields
+      # nixpkgs' services.netbird module exposes for declarative setup-key
+      # enrollment (nixos/modules/services/networking/netbird.nix
+      # `clients.<name>.login.*`).
+      #
+      # Bootstrap circularity guard: this must never point host DNS at
+      # the Blocky instance as the primary resolver. Legion nodes keep
+      # systemd-networkd's normal DHCP/upstream resolvers
+      # (modules/hosts/legion/hardware.nix `useNetworkd = true`; nothing
+      # here or in self.nixosModules.netbird touches
+      # networking.nameservers or services.resolved), so
+      # `netbird.jeiang.dev` always resolves via public DNS before the
+      # tunnel is up -- never via Blocky-over-NetBird. This must be
+      # preserved if Blocky's placement ever changes.
+      sops.secrets."netbird/setup-key" = {};
+      services = {
+        netbird.clients.default.login = {
+          enable = true;
+          setupKeyFile = config.sops.secrets."netbird/setup-key".path;
+        };
+
+        # Fleet-wide node_exporter, one per Legion node, scraped
+        # by legion-node3's monitoring module
+        # (modules/nixos/monitoring/default.nix `job_name = "node"`). Not
+        # a "placed" service in the inventory sense
+        # (modules/hosts/legion/_service-inventory.nix): every node runs
+        # it unconditionally, so it lives here rather than as a per-node
+        # inventory entry. Default bind (all interfaces) + no
+        # `openFirewall`: same private-network-only reachability as every
+        # other cross-node backend in this repo (trustedInterfaces, never
+        # added to the public allowlist below).
+        prometheus.exporters.node.enable = true;
+
+        # Log shipping: journald from every Legion node to
+        # legion-node3's VictoriaLogs, via systemd-journal-upload (nixpkgs
+        # `services.journald.upload`) pointed at VictoriaLogs' journald
+        # ingestion route. systemd-journal-upload always appends `/upload`
+        # to the configured URL itself, and VictoriaLogs registers the
+        # matching route at `/insert/journald/upload` (confirmed against
+        # the pinned victorialogs 1.51.0 binary's embedded route strings)
+        # -- so the URL below must end at `/insert/journald`, not
+        # `/upload`. Chosen over vlagent/promtail-style shippers: fully
+        # declarative, no extra service to configure per-node, and
+        # VictoriaLogs supports this ingestion path natively.
+        journald.upload = {
+          enable = true;
+          settings.Upload.URL = "http://${legionNodes.legion-node3.privateIPv4}:9428/insert/journald";
+        };
+      };
+
+      # Restic backup jobs derived from this node's own inventory entry;
+      # modules/nixos/backups.nix evaluates to zero services.restic.backups
+      # jobs on a node with no stateful services in its inventory entry.
+      backups.jobs = lib.listToAttrs (
+        map (service:
+          lib.nameValuePair service.name {
+            paths = service.backupSet;
+            pauseUnits = service.backupPauseUnits or [];
+          })
+        (builtins.filter (service: service ? backupSet)
+          (validatedLegionNodes.${config.networking.hostName}.services or []))
+      );
+
+      # Declarative Hetzner Volume mounts, derived from this node's own
+      # inventory entries. A service contributes nothing here until its
+      # `volume.hcloudVolumeId` is filled in by the operator after
+      # creating the Volume -- same "empty until populated" pattern as
+      # `backups.jobs` above. `nofail`
+      # is required so a missing/late Volume never blocks boot (SSH and
+      # deploy access must stay available); the service itself is kept
+      # off an unmounted directory by its own mount guard
+      # (`unitConfig.ConditionPathIsMountPoint`, see each service module).
+      fileSystems = lib.listToAttrs (
+        map (service:
+          lib.nameValuePair service.volume.mountpoint {
+            device = "/dev/disk/by-id/scsi-0HC_Volume_${service.volume.hcloudVolumeId}";
+            fsType = "ext4";
+            options = ["nofail" "x-systemd.device-timeout=10s"];
+          })
+        (builtins.filter (service: (service.volume or {}) ? hcloudVolumeId)
+          (validatedLegionNodes.${config.networking.hostName}.services or []))
+      );
 
       users = {
         groups.deploy = {};
@@ -136,26 +238,12 @@ in {
       ];
 
       boot = {
+        # Required by services.netbird's useRoutingFeatures = "both"
+        # (self.nixosModules.netbird, imported fleet-wide above).
         kernel.sysctl = {
           "net.ipv4.ip_forward" = 1;
           "net.ipv6.conf.all.forwarding" = 1;
-          "net.bridge.bridge-nf-call-iptables" = 1;
-          "net.bridge.bridge-nf-call-ip6tables" = 1;
         };
-
-        kernelModules = [
-          "br_netfilter"
-          "overlay"
-          "nf_conntrack"
-          "nf_nat"
-          "ip_tables"
-          "iptable_nat"
-          "iptable_filter"
-          "ip6_tables"
-          "ip6table_nat"
-          "ip6table_filter"
-          "vxlan"
-        ];
 
         loader.grub.enable = true;
         tmp.cleanOnBoot = true;
@@ -175,13 +263,21 @@ in {
         ];
       };
 
-      services.k3s = {
-        serverAddr = "https://${bootstrapNode.privateIPv4}:6443";
-
-        extraFlags = [
-          "--flannel-iface=enp7s0"
-          "--kubelet-arg=cloud-provider=external"
-        ];
+      # Re-enable the host firewall (hardware.nix flips
+      # networking.firewall.enable) with openings derived from the Legion
+      # service inventory above, plus:
+      #  - STUN (UDP 3478) and H@H's hostPort (TCP 8888) are opened
+      #    fleet-wide rather than pinned to their owning node
+      #    (_service-inventory.nix: netbird-relay on legion-node2, hath on
+      #    legion-node4).
+      networking.firewall = {
+        allowedTCPPorts = firewallPortsFor config.networking.hostName "tcp" "public" ++ [8888];
+        allowedUDPPorts = firewallPortsFor config.networking.hostName "udp" "public" ++ [3478];
+        allowedTCPPortRanges = firewallPortRangesFor config.networking.hostName "tcp" "public";
+        allowedUDPPortRanges = firewallPortRangesFor config.networking.hostName "udp" "public";
+        # Backend transport boundary (DESIGN.md): cross-node service
+        # traffic arrives on the private interface already.
+        trustedInterfaces = ["enp7s0"];
       };
 
       nixpkgs.hostPlatform = "x86_64-linux";
@@ -191,64 +287,93 @@ in {
     nixosConfigurations = let
       mkLegionSystem = name: node:
         inputs.nixpkgs.lib.nixosSystem {
-          modules = [
-            self.nixosModules.legionConfiguration
-            {
-              networking.hostName = name;
+          modules =
+            [
+              self.nixosModules.legionConfiguration
+              {
+                networking.hostName = name;
 
-              systemd.network.networks."10-wan" = mkWan {
-                inherit (node) publicIPv4 publicIPv6;
-              };
-
-              services.k3s = {
-                nodeIP = "${node.privateIPv4}";
-                role =
-                  if (node.agent or false)
-                  then "agent"
-                  else "server";
-                extraFlags = lib.mkIf (!node.agent or false) (
-                  [
-                    # Required before installing hcloud-cloud-controller-manager.
-                    "--disable-cloud-controller"
-
-                    # Required when using MetalLB instead of K3s ServiceLB.
-                    "--disable=servicelb"
-
-                    # Avoid competing default storage classes when using Hetzner CSI.
-                    "--disable=local-storage"
-
-                    # Dual-stack must be set when the cluster is first created.
-                    "--cluster-cidr=${podCIDRv4}"
-                    "--service-cidr=${serviceCIDRv4}"
-                  ]
-                  ++ map (san: "--tls-san=${san}") apiTlsSans
-                  ++ [
-                    "--kube-apiserver-arg=oidc-issuer-url=https://auth.jeiang.dev"
-                    "--kube-apiserver-arg=oidc-client-id=44213aa3-11eb-401d-922c-c7f81c3a9e37"
-                    "--kube-apiserver-arg=oidc-username-claim=preferred_username"
-                    "--kube-apiserver-arg=oidc-username-prefix=-"
-                    "--kube-apiserver-arg=oidc-groups-claim=groups"
-                    "--kube-apiserver-arg=oidc-groups-prefix="
-                  ]
-                );
-              };
-            }
-
-            (lib.mkIf (node.bootstrap or false) {
-              services.k3s = {
-                serverAddr = lib.mkForce "";
-                clusterInit = true;
-              };
-            })
-          ];
+                systemd.network.networks."10-wan" = mkWan {
+                  inherit (node) publicIPv4 publicIPv6;
+                };
+              }
+            ]
+            # Caddy Edge Node module, only for the inventory's edge node.
+            ++ lib.optional (node.edge or false) self.nixosModules.edge
+            # CrowdSec engine, same edge-node condition as above. Both
+            # modules share the edge.crowdsec.enable toggle.
+            ++ lib.optional (node.edge or false) self.nixosModules.crowdsec
+            # NetBird server + relay, only for the inventory node that
+            # places `netbird-server`
+            # (modules/hosts/legion/_service-inventory.nix, legion-node2
+            # today). Never imported on any other node.
+            ++ lib.optional
+            (lib.any (service: service.name == "netbird-server") node.services)
+            self.nixosModules.netbird-server
+            # NetBird reverse proxy, same optional-import pattern, gated
+            # on the inventory node placing `netbird-proxy` (legion-node2
+            # today, alongside netbird-server above).
+            ++ lib.optional
+            (lib.any (service: service.name == "netbird-proxy") node.services)
+            self.nixosModules.netbird-proxy
+            # Pocket ID, same optional-import pattern, gated on the
+            # inventory node placing `pocket-id` (legion-node2 today,
+            # alongside netbird-server/netbird-proxy above).
+            ++ lib.optional
+            (lib.any (service: service.name == "pocket-id") node.services)
+            self.nixosModules.pocket-id
+            # Attic, same optional-import pattern, gated on the inventory
+            # node placing `attic` (legion-node4 today).
+            ++ lib.optional
+            (lib.any (service: service.name == "attic") node.services)
+            self.nixosModules.attic
+            # Actual Budget, same optional-import pattern, gated on the
+            # inventory node placing `actual-budget` (legion-node4
+            # today).
+            ++ lib.optional
+            (lib.any (service: service.name == "actual-budget") node.services)
+            self.nixosModules.actual-budget
+            # Stirling PDF, same optional-import pattern, gated on the
+            # inventory node placing `stirling-pdf`. No node currently
+            # places it (modules/hosts/legion/_service-inventory.nix) --
+            # this stays as dead-but-harmless gating rather than being
+            # removed, so the module (kept in the tree, deferred) needs
+            # no code change here to be revived: place it in the
+            # inventory again and this import wakes up automatically.
+            ++ lib.optional
+            (lib.any (service: service.name == "stirling-pdf") node.services)
+            self.nixosModules.stirling-pdf
+            # H@H, same optional-import pattern, gated on the inventory
+            # node placing `hath` (legion-node4 today).
+            ++ lib.optional
+            (lib.any (service: service.name == "hath") node.services)
+            self.nixosModules.hath
+            # Blocky, same optional-import pattern, gated on the
+            # inventory node placing `blocky` (legion-node2 today).
+            # Requires self.nixosModules.netbird (imported fleet-wide
+            # above) for both trustedInterfaces and the client service
+            # name modules/nixos/blocky.nix orders after.
+            ++ lib.optional
+            (lib.any (service: service.name == "blocky") node.services)
+            self.nixosModules.blocky
+            # Monitoring composition (VictoriaMetrics, VictoriaLogs,
+            # Grafana, vmalert, Alertmanager), same optional-import
+            # pattern, gated on the inventory node placing `monitoring`
+            # (legion-node3 today).
+            ++ lib.optional
+            (lib.any (service: service.name == "monitoring") node.services)
+            self.nixosModules.monitoring;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;
     deploy.nodes =
       builtins.mapAttrs (name: _: {
         hostname = nodeHostname name;
-        # The first activation removes doas, so disable its doas-based waiter:
-        # deploy .#legion-nodeN --ssh-user aidanp --sudo='doas -u' --magic-rollback=false -- --impure
+        # Bootstrap: on a node that predates this config the `deploy` user
+        # doesn't exist yet, so the first deploy runs as an existing admin
+        # over the node's current doas, with magic-rollback off because the
+        # first activation removes the doas-based rollback waiter:
+        # deploy .#legion-nodeN --ssh-user aidanp --sudo='doas -u' --magic-rollback=false
         sshUser = "deploy";
         sudo = "sudo -u";
         profiles.system = {

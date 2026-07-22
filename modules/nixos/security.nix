@@ -1,13 +1,17 @@
 {
   flake.nixosModules.doas = {pkgs, ...}: {
     security = {
-      sudo.enable = false;
+      sudo = {
+        enable = false;
+        wheelNeedsPassword = false;
+      };
       doas = {
         enable = true;
         extraRules = [
           {
             groups = ["wheel"];
-            persist = true;
+            noPass = true;
+            keepEnv = true;
           }
         ];
       };

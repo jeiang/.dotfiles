@@ -40,6 +40,14 @@
     nix-minecraft.inputs.nixpkgs.follows = "nixpkgs";
     website.url = "github:jeiang/website";
     website.inputs.nixpkgs.follows = "nixpkgs";
+    # jkmn-website: plain stdenvNoCC static build with no external deps
+    # beyond nixpkgs, so following our pin is safe.
+    portfolio.url = "github:joshua-noel/portfolio";
+    portfolio.inputs.nixpkgs.follows = "nixpkgs";
+    # bill-splitter: plain stdenvNoCC static build ($out/dist) with no
+    # external deps beyond nixpkgs, same reasoning as portfolio above.
+    bill-splitter.url = "github:jeiang/bill-splitter";
+    bill-splitter.inputs.nixpkgs.follows = "nixpkgs";
     # Deliberately not following our nixpkgs: attic-client is built with
     # attic's own nixpkgs pin and pushed to the Attic cache by jeiang/attic's
     # own CI. Following ours here would give attic-client a different

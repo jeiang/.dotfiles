@@ -43,16 +43,36 @@
         "nixpkgs-stable": "nixpkgs-stable"
       },
       "locked": {
-        "lastModified": 1784465223,
-        "narHash": "sha256-MTbh3rPuyDXMXhX0aPpbt3roopKo1tpBrxFzqtDzbDE=",
+        "lastModified": 1784469122,
+        "narHash": "sha256-VB89AS4wmRYeBl4bw05NwsNMUe8r+tGJGW/KgxEnpP4=",
         "owner": "jeiang",
         "repo": "attic",
-        "rev": "f263498f5dd855f6845a4099b7b1b2098dec6321",
+        "rev": "7e0a356cf10ed1a6b4bb5b565faed8be35d5607e",
         "type": "github"
       },
       "original": {
         "owner": "jeiang",
         "repo": "attic",
+        "type": "github"
+      }
+    },
+    "bill-splitter": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1784528603,
+        "narHash": "sha256-WXuS4AdmKtgH4Uy6lpDWvbJU07/1zPncxoEQzUsPjGc=",
+        "owner": "jeiang",
+        "repo": "bill-splitter",
+        "rev": "8061ad4e36bcf2fb9053535bcf1ee928f4bfdbba",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "bill-splitter",
         "type": "github"
       }
     },
@@ -1253,6 +1273,26 @@
         "type": "github"
       }
     },
+    "portfolio": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1784464881,
+        "narHash": "sha256-p0R3awrmYAVW3KTAK42s6rpkMhS2GtJT17oLy0LWqf8=",
+        "owner": "joshua-noel",
+        "repo": "portfolio",
+        "rev": "44d790950bf9fc4a16c2fdb62e8441ae11e31070",
+        "type": "github"
+      },
+      "original": {
+        "owner": "joshua-noel",
+        "repo": "portfolio",
+        "type": "github"
+      }
+    },
     "pre-commit-hooks": {
       "inputs": {
         "flake-compat": "flake-compat_5",
@@ -1278,6 +1318,7 @@
     "root": {
       "inputs": {
         "attic": "attic",
+        "bill-splitter": "bill-splitter",
         "deploy-rs": "deploy-rs",
         "devenv": "devenv",
         "disko": "disko",
@@ -1295,6 +1336,7 @@
         "nix2container": "nix2container",
         "nixos-facter-modules": "nixos-facter-modules",
         "nixpkgs": "nixpkgs_5",
+        "portfolio": "portfolio",
         "sops-nix": "sops-nix",
         "treefmt-nix": "treefmt-nix_2",
         "website": "website",

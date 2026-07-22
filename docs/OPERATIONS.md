@@ -46,6 +46,11 @@ operator actions. Review the target and generated configuration before using
 `deploy`, `clean-deploy`, `install`, `disko-format`, or a `sops-*` recipe. The
 fleet-wide deployment helper is not a substitute for staged node verification.
 
+Legion runs Host-Native Services placed per the Legion inventory
+(`modules/hosts/legion/_service-inventory.nix`). See
+[`docs/runbooks/`](runbooks/) for operator runbooks, including backup
+restore.
+
 ## Artemis Persistence
 
 Artemis rolls its root btrfs subvolume back to empty on every boot. The

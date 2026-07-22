@@ -13,12 +13,7 @@ _Avoid_: Desktop host, Legion node
 **Legion Fleet**:
 The resource-constrained remote NixOS systems managed together as service
 hosts.
-_Avoid_: K3s cluster, Experimental Cluster
-
-**Experimental Cluster**:
-The transitional K3s environment on the Legion Fleet, used for Kubernetes
-experimentation while it temporarily hosts services.
-_Avoid_: Legion Fleet, production cluster
+_Avoid_: K3s cluster
 
 **Host-Native Service**:
 A service whose placement, configuration, state, and lifecycle are managed

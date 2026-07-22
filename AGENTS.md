@@ -7,7 +7,7 @@ This file applies to the entire repository.
 `cornn-flaek` is a Nix flake for personal NixOS systems:
 
 - `artemis`: desktop NixOS host.
-- `legion-node1` through `legion-node5`: K3s server hosts.
+- `legion-node1` through `legion-node4`: host-native service hosts (`legion-node1` is the Caddy edge node).
 
 The flake is built with `flake-parts` and `import-tree`. Keep changes aligned with the existing module layout and prefer extending established patterns over introducing new structure.
 
@@ -16,9 +16,9 @@ The flake is built with `flake-parts` and `import-tree`. Keep changes aligned wi
 - `flake.nix`: top-level inputs and `flake-parts` entrypoint.
 - `modules/parts.nix`: shared flake option definitions and supported systems.
 - `modules/hosts/`: host-specific NixOS, hardware, disko, and facter files.
-- `modules/nixos/`: reusable NixOS modules for base configuration, desktop, K3s, sops, security, Hyprland, and related system features.
+- `modules/nixos/`: reusable NixOS modules for base configuration, desktop, sops, security, Hyprland, and related system features.
 - `modules/packages/`: package definitions, overrides, and wrapped-program (CLI/application) configuration.
-- `docs/`: operations, design, and decision documentation — see `docs/OPERATIONS.md` for operator procedures, `docs/DESIGN.md` for module boundaries and intentional host decisions, and `docs/IMPROVEMENTS.md` for the open backlog.
+- `docs/`: operations, design, and decision documentation — see `docs/OPERATIONS.md` for operator procedures and `docs/DESIGN.md` for module boundaries and intentional host decisions.
 - `justfile`: common formatting, checking, deploy, install, sops, disko, and helper commands.
 - `assets/`: image assets referenced by the system configuration.
 
