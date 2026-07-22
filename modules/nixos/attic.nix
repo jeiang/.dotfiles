@@ -26,8 +26,45 @@
   }: let
     system = pkgs.stdenv.hostPlatform.system;
     serverPort = 8080; # matches modules/nixos/edge/default.nix node4:8080
+
+    # The fork's `CachePermission` (token/src/lib.rs) serde-renames every
+    # field to one of these short keys and has no `deny_unknown_fields`, so
+    # a rule using any other key (a typo, or the long-form field name) is
+    # silently dropped with every permission defaulting to `false` -- an
+    # empty grant that `atticd --mode check-config` does NOT catch, because
+    # `deny_unknown_fields` on `OidcRuleConfig` only covers the `claims`/
+    # `caches` keys, not the permission attrset nested inside `caches`.
+    # This assertion is the only thing standing between a typo here and a
+    # silently-empty OIDC grant.
+    validAtticCachePermissionKeys = ["r" "w" "d" "cc" "cr" "cq" "cd"];
+
+    oidcCachePermissionKeyErrors =
+      lib.concatMap (
+        provider:
+          lib.concatMap (
+            rule:
+              lib.concatMap (
+                cacheName: let
+                  keys = builtins.attrNames rule.caches.${cacheName};
+                  unknown = lib.subtractLists validAtticCachePermissionKeys keys;
+                in
+                  lib.optional (unknown != [])
+                  "services.atticd.settings.oidc: provider '${provider.name}' rule for claims ${builtins.toJSON rule.claims}, cache '${cacheName}': unknown permission key(s) [${lib.concatStringsSep ", " unknown}]. attic (jeiang/attic fork) silently drops unrecognized cache-permission keys and defaults every permission to false, producing an empty grant with no error from `atticd --mode check-config`. Valid keys: ${lib.concatStringsSep ", " validAtticCachePermissionKeys}."
+              )
+              (builtins.attrNames rule.caches)
+          )
+          provider.rules
+      )
+      config.services.atticd.settings.oidc.providers;
   in {
     imports = [inputs.attic.nixosModules.atticd];
+
+    assertions =
+      map (message: {
+        assertion = false;
+        inherit message;
+      })
+      oidcCachePermissionKeyErrors;
 
     services.atticd = {
       enable = true;
@@ -120,30 +157,46 @@
             token-validity = "12 hours";
             rules = [
               {
+                # Keys are the fork's serde-renamed short forms (`token/src/lib.rs`
+                # `CachePermission`: pull->r, push->w, delete->d, create_cache->cc,
+                # configure_cache->cr, configure_cache_retention->cq,
+                # destroy_cache->cd). `CachePermission` has no `deny_unknown_fields`,
+                # so any other key name (e.g. the long-form `pull`/`push`/...) is
+                # silently dropped and every permission defaults to `false` --
+                # an empty grant with no error, which `atticd --mode
+                # check-config` does not catch either. The `assertions` entry
+                # below (built from `oidcCachePermissionKeyErrors`) is what
+                # actually rejects unknown keys here.
+                #
+                # Values are `1`/`0`, not Nix `true`/`false`: every field also
+                # carries `#[serde_as(as = "BoolFromInt")]`, so the wire (TOML)
+                # representation must be an integer -- a real TOML boolean
+                # fails to parse (confirmed against the atticd binary: "invalid
+                # type: boolean `false`, expected an integer 0 or 1").
                 claims = {
                   repository_owner_id = "31970261";
                   ref_protected = "true";
                 };
                 caches.default = {
-                  pull = true;
-                  push = true;
-                  delete = false;
-                  create = false;
-                  configure = false;
-                  configure-retention = false;
-                  destroy = false;
+                  r = 1;
+                  w = 1;
+                  d = 0;
+                  cc = 0;
+                  cr = 0;
+                  cq = 0;
+                  cd = 0;
                 };
               }
               {
                 claims.repository_owner_id = "31970261";
                 caches.default = {
-                  pull = true;
-                  push = false;
-                  delete = false;
-                  create = false;
-                  configure = false;
-                  configure-retention = false;
-                  destroy = false;
+                  r = 1;
+                  w = 0;
+                  d = 0;
+                  cc = 0;
+                  cr = 0;
+                  cq = 0;
+                  cd = 0;
                 };
               }
             ];
@@ -163,37 +216,37 @@
               {
                 claims.attic_role = "admin";
                 caches."*" = {
-                  pull = true;
-                  push = true;
-                  delete = true;
-                  create = true;
-                  configure = true;
-                  configure-retention = true;
-                  destroy = true;
+                  r = 1;
+                  w = 1;
+                  d = 1;
+                  cc = 1;
+                  cr = 1;
+                  cq = 1;
+                  cd = 1;
                 };
               }
               {
                 claims.attic_role = "writer";
                 caches."*" = {
-                  pull = true;
-                  push = true;
-                  delete = false;
-                  create = false;
-                  configure = false;
-                  configure-retention = false;
-                  destroy = false;
+                  r = 1;
+                  w = 1;
+                  d = 0;
+                  cc = 0;
+                  cr = 0;
+                  cq = 0;
+                  cd = 0;
                 };
               }
               {
                 claims.attic_role = "reader";
                 caches."*" = {
-                  pull = true;
-                  push = false;
-                  delete = false;
-                  create = false;
-                  configure = false;
-                  configure-retention = false;
-                  destroy = false;
+                  r = 1;
+                  w = 0;
+                  d = 0;
+                  cc = 0;
+                  cr = 0;
+                  cq = 0;
+                  cd = 0;
                 };
               }
             ];
