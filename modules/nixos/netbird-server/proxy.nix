@@ -150,10 +150,21 @@
       environment = {
         NB_PROXY_ADDRESS = ":443";
         NB_PROXY_DOMAIN = domain;
-        # Loopback on the same node as the server (its config.yaml
-        # `server.listenAddress` is plain-HTTP ":80", so http:// here is
-        # correct, not a downgrade).
-        NB_PROXY_MANAGEMENT_ADDRESS = "http://127.0.0.1:80";
+        # The proxy sends its access token as gRPC per-RPC credentials,
+        # which gRPC refuses to transmit over a plaintext transport -- so
+        # the management connection MUST be TLS (there is no insecure
+        # `--mgmt` option; the flag's default is the cloud
+        # https://api.netbird.io:443). The local server listens plain-HTTP
+        # :80 (TLS is edge-terminated), so point at the public URL: DNS
+        # resolves netbird.jeiang.dev to the edge (legion-node1), which
+        # terminates TLS and proxies the ManagementService/ProxyService
+        # gRPC (h2c) back to this node's server:80
+        # (modules/nixos/edge/default.nix @grpc route). This is a hairpin
+        # (node2 -> edge -> node2) and couples the proxy's control path to
+        # the edge, but the proxy is a management client like any other and
+        # this is NetBird's intended path; the data path (proxy.jeiang.dev
+        # -> this node) stays direct.
+        NB_PROXY_MANAGEMENT_ADDRESS = "https://netbird.jeiang.dev";
         NB_PROXY_CERTIFICATE_DIRECTORY = acmeCertDir;
         NB_PROXY_CERTIFICATE_FILE = "fullchain.pem";
         NB_PROXY_CERTIFICATE_KEY_FILE = "key.pem";
