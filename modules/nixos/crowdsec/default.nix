@@ -21,6 +21,36 @@ _: {
     appsecPort = 7422;
 
     localAppsecConfigName = "jeiang/appsec-caddy";
+
+    # Custom local AppSec config (not a hub item). NetBird's high-churn
+    # gRPC/WebSocket routes must not be blocked by generic AppSec
+    # inspection. inband_rules only (base-config + vpatch-*, no
+    # out-of-band CRS -- that ruleset produces false-positive decisions on
+    # this same NetBird traffic). Delivered into /etc/crowdsec/appsec-configs/
+    # by the tmpfiles rules below, NOT environment.etc: the nixpkgs module's
+    # tmpfiles own confDir + its subdirs as the crowdsec user (0750) so cscli
+    # can symlink hub appsec-configs (crowdsecurity/virtual-patching) in, but
+    # it doesn't pre-create appsec-configs/. An environment.etc entry there
+    # makes the dir root-owned and blocks that install ("permission denied"
+    # symlinking virtual-patching.yaml).
+    appsecConfigFile = pkgs.writeText "jeiang-appsec-caddy.yaml" ''
+      name: ${localAppsecConfigName}
+      default_remediation: ban
+      inband_rules:
+        - crowdsecurity/base-config
+        - crowdsecurity/vpatch-*
+      on_match:
+        - filter: >-
+            req.Host == "netbird.jeiang.dev" &&
+            (req.URL.Path startsWith "/signalexchange.SignalExchange/" ||
+            req.URL.Path startsWith "/management.ManagementService/" ||
+            req.URL.Path startsWith "/management.ProxyService/" ||
+            req.URL.Path startsWith "/ws-proxy/")
+          apply:
+            - CancelEvent()
+            - CancelAlert()
+            - SetRemediation("allow")
+    '';
   in {
     config = lib.mkIf cfg.enable {
       services.crowdsec = {
@@ -153,37 +183,16 @@ _: {
         };
       };
 
-      # NetBird stream exclusion: NetBird's high-churn gRPC/WebSocket
-      # routes (the same paths modules/nixos/edge/default.nix's
-      # netbird.jeiang.dev block dispatches on) must not be blocked by
-      # generic AppSec inspection. services.crowdsec only supports
-      # installing *hub* appsec-configs declaratively
-      # (services.crowdsec.hub.appSecConfigs); there's no typed option for
-      # custom local appsec-config content, so this ships as a raw file
-      # at the path cscli itself would install one to (confirmed against
-      # crowdsecurity/crowdsec's pkg/cwhub/item.go: APPSEC_CONFIGS =
-      # "appsec-configs", installed under services.crowdsec's confDir,
-      # /etc/crowdsec/). inband_rules only (base-config + vpatch-*, no
-      # out-of-band CRS -- that ruleset produces false-positive decisions
-      # on this same NetBird traffic).
-      environment.etc."crowdsec/appsec-configs/jeiang-appsec-caddy.yaml".text = ''
-        name: ${localAppsecConfigName}
-        default_remediation: ban
-        inband_rules:
-          - crowdsecurity/base-config
-          - crowdsecurity/vpatch-*
-        on_match:
-          - filter: >-
-              req.Host == "netbird.jeiang.dev" &&
-              (req.URL.Path startsWith "/signalexchange.SignalExchange/" ||
-              req.URL.Path startsWith "/management.ManagementService/" ||
-              req.URL.Path startsWith "/management.ProxyService/" ||
-              req.URL.Path startsWith "/ws-proxy/")
-            apply:
-              - CancelEvent()
-              - CancelAlert()
-              - SetRemediation("allow")
-      '';
+      # NetBird stream exclusion (see appsecConfigFile in the let block for
+      # what this config does and why it's delivered this way). Create
+      # appsec-configs/ crowdsec-owned -- mirroring the nixpkgs module's own
+      # confDir tmpfiles (0750, crowdsec:crowdsec) -- so cscli can symlink
+      # the hub crowdsecurity/virtual-patching appsec-config into it, then
+      # drop our local config alongside as a symlink to the store file.
+      systemd.tmpfiles.rules = [
+        "d /etc/crowdsec/appsec-configs 0750 ${config.services.crowdsec.user} ${config.services.crowdsec.group} -"
+        "L+ /etc/crowdsec/appsec-configs/jeiang-appsec-caddy.yaml - - - - ${appsecConfigFile}"
+      ];
 
       # Bouncer keys. The nixos crowdsec module has no declarative
       # `services.crowdsec.bouncers`-style option (checked
