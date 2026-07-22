@@ -1,7 +1,9 @@
 {self, ...}: {
-  # NetBird reverse proxy (`netbird-proxy`) for legion-node2, receiving
-  # the edge's raw SNI passthrough for proxy.jeiang.dev/*.proxy.jeiang.dev
-  # (modules/nixos/edge/default.nix). Sibling file to
+  # NetBird reverse proxy (`netbird-proxy`) for legion-node2, a public
+  # service binding its own :443 and terminating its own TLS -- DNS for
+  # proxy.jeiang.dev/*.proxy.jeiang.dev points straight at this node,
+  # there is no edge hop (docs/adr/0002-expose-the-netbird-reverse-proxy-directly.md).
+  # Sibling file to
   # modules/nixos/netbird-server/default.nix: same node, same service
   # boundary, imported under the same optional pattern
   # (modules/hosts/legion/default.nix, gated on the inventory placing
@@ -20,9 +22,12 @@
 
     # legion-node1's private address (modules/hosts/legion/default.nix
     # legionNodes.legion-node1.privateIPv4) and CrowdSec's LAPI port
-    # (modules/nixos/crowdsec/default.nix lapiPort) -- the edge bouncer
-    # never sees this passthrough traffic, so the proxy runs its own
-    # bouncer against the same LAPI over the private network.
+    # (modules/nixos/crowdsec/default.nix lapiPort) -- this node is public
+    # and terminates its own traffic directly, so remediation runs here
+    # against the single LAPI over the private network: this module's own
+    # app-level bouncer (per-service IP reputation, below) and the
+    # OS-level services.crowdsec-firewall-bouncer (whole-node bans,
+    # legion-node2 only, below).
     node1PrivateIp = "172.17.0.1";
     lapiPort = 8080;
 
@@ -93,6 +98,14 @@
         # stored under its own name since sops secrets are declared (and
         # keyed to recipients) per host.
         "netbird-proxy/hetzner-dns-token" = {};
+        # OS-level firewall bouncer key (services.crowdsec-firewall-bouncer
+        # below), registered at node1's LAPI by
+        # modules/nixos/crowdsec/default.nix under the bouncer name
+        # "legion-node2-firewall". Declared here even though the value
+        # doesn't exist in secrets.yaml yet -- same precedent as the other
+        # secrets in this block; `just sops-updatekeys` grants this host
+        # once it does.
+        "crowdsec/bouncer-legion-node2-firewall" = {};
       };
 
       templates = {
@@ -144,19 +157,14 @@
         NB_PROXY_CERTIFICATE_DIRECTORY = acmeCertDir;
         NB_PROXY_CERTIFICATE_FILE = "fullchain.pem";
         NB_PROXY_CERTIFICATE_KEY_FILE = "key.pem";
-        # Counterpart to the edge's `proxy_protocol v2` on the l4 proxy
-        # handler dialing this node (modules/nixos/edge/default.nix) --
-        # BOTH ends must agree or the TLS stream breaks. Verified against
-        # the nixpkgs-pinned v0.74.3 source
-        # (proxy/cmd/proxy/cmd/root.go flag wiring, proxy/server.go
-        # `ProxyProtocol bool` / `wrapProxyProtocol`): the flag is a
-        # boolean toggle (auto-detects v1/v2 on read, unlike caddy-l4's
-        # explicit `v2`), and TrustedProxies gates which source IPs may
-        # send the header at all -- connections from anyone else have it
-        # stripped/rejected rather than trusted, so this also prevents a
-        # spoofed PROXY header from a non-edge peer forging client IPs.
-        NB_PROXY_PROXY_PROTOCOL = "true";
-        NB_PROXY_TRUSTED_PROXIES = "${node1PrivateIp}/32";
+        # No PROXY protocol: this node is public (docs/adr/0002), so every
+        # connection arrives directly from the real client with no
+        # upstream sender to trust. NB_PROXY_PROXY_PROTOCOL/
+        # NB_PROXY_TRUSTED_PROXIES are left unset (both default false/empty
+        # upstream), which is required, not just simpler -- turning PROXY
+        # protocol on here with no peer actually sending the header would
+        # make the proxy expect a header that never arrives and break
+        # every direct connection.
         # Explicit false (matches the binary's default): documents the
         # TLS strategy decision above in the running config, not just in
         # comments.
@@ -177,11 +185,12 @@
         NB_PROXY_LOG_LEVEL = "info";
         # supports-custom-ports defaults to true upstream (preserves the
         # ability to freely add custom ports); nothing to set here. Custom
-        # published-service ports are opened by the operator per service
-        # (NetBird dashboard
-        # + a matching `networking.firewall.allowedTCPPorts`/`allowedUDPPorts`
-        # addition for legion-node2 when a service is actually published --
-        # the inventory can't pre-declare ports it doesn't know about yet).
+        # published-service ports are opened via the host/Hetzner firewalls
+        # (docs/adr/0002-expose-the-netbird-reverse-proxy-directly.md): the
+        # reserved range 40000-45000 for ad-hoc services, or the inventory's
+        # `publishedPorts` for durable ones
+        # (modules/hosts/legion/_service-inventory.nix netbird-proxy entry)
+        # -- this module needs no change either way.
       };
       serviceConfig = {
         ExecStart = lib.getExe proxyPkg;
@@ -195,6 +204,27 @@
         AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
         MemoryMax = "128M";
       };
+    };
+
+    # OS-level CrowdSec remediation for this node (docs/adr/0002): the
+    # app-level bouncer above only enforces per-service, chosen in the
+    # NetBird dashboard; this bouncer drops banned source IPs at the
+    # nftables layer for the whole node, regardless of which service (or
+    # port) they hit. Talks to the same LAPI as the app-level bouncer,
+    # over the private network.
+    services.crowdsec-firewall-bouncer = {
+      enable = true;
+      settings = {
+        mode = "nftables";
+        api_url = "http://${node1PrivateIp}:${toString lapiPort}";
+      };
+      # Not registerBouncer.enable: that registers (and stores the key)
+      # against a *local* `crowdsec` service, which this node doesn't run
+      # -- registration happens once on node1, where the LAPI's database
+      # lives (modules/nixos/crowdsec/default.nix `legion-node2-firewall`
+      # bouncer registration). This bouncer only consumes that
+      # pre-registered key.
+      secrets.apiKeyPath = config.sops.secrets."crowdsec/bouncer-legion-node2-firewall".path;
     };
   };
 }
