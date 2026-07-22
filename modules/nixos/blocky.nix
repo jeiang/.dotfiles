@@ -21,7 +21,10 @@ _: {
         };
         customDNS.mapping = {};
         ports = {
-          dns = 53;
+          # 553, not the standard 53: NetBird's own embedded DNS resolver
+          # binds 53 on this host, so Blocky is reached on 553 instead
+          # (still NetBird-peer-only, see below).
+          dns = 553;
           http = 8000;
         };
         upstreams.groups.default = [
@@ -42,16 +45,16 @@ _: {
     # The NetBird interface's IP isn't known at eval time (assigned by the
     # tunnel at runtime), so `services.blocky.settings.ports.dns` above
     # stays a bare port (binds 0.0.0.0, every interface) rather than an
-    # `<ip>:53` pin. Reachability is scoped by the firewall instead:
+    # `<ip>:553` pin. Reachability is scoped by the firewall instead:
     # modules/nixos/netbird.nix is imported fleet-wide, which already adds
     # the client's interface to `networking.firewall.trustedInterfaces` --
-    # combined with 53 never being added to this node's public/private
+    # combined with 553 never being added to this node's public/private
     # inventory-derived openings
     # (modules/hosts/legion/_service-inventory.nix `blocky.firewall = []`),
-    # that leaves port 53 open only on the NetBird interface, i.e. reachable
+    # that leaves port 553 open only on the NetBird interface, i.e. reachable
     # from NetBird peers only.
     #
-    # Startup ordering: wait for the NetBird tunnel so Blocky's port-53
+    # Startup ordering: wait for the NetBird tunnel so Blocky's port-553
     # listener doesn't win a race against the interface it's meant to serve
     # (harmless either way since the bind is 0.0.0.0, but blocklist
     # downloads need working egress, which the client's own network-online
