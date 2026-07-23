@@ -367,7 +367,7 @@
                 "/run/credentials"
                 "/run/secrets"
                 "/var/lib/private"
-                "/var/lib/sops-nix"
+                "-/var/lib/sops-nix"
               ];
               ReadOnlyPaths = [
                 "${stateDir}/approval-status"
@@ -517,7 +517,7 @@
                 "/run/credentials"
                 "/run/secrets"
                 "/var/lib/private"
-                "/var/lib/sops-nix"
+                "-/var/lib/sops-nix"
               ];
               ReadWritePaths = [
                 workspace
