@@ -96,9 +96,12 @@
         # Seed the Hermes auth store from the Codex OAuth tokens. The gateway
         # resolves the openai-codex provider from ~/.hermes/auth.json (not
         # CODEX_HOME), so without this it reports "No Codex credentials
-        # stored". Seed only when absent — Hermes manages token refresh
-        # afterward and self-heals refresh_token rotation from CODEX_HOME.
-        if [ ! -e ${stateDir}/.hermes/auth.json ]; then
+        # stored". Seed whenever the store lacks a usable openai-codex access
+        # token (missing file, empty/invalid store, or a stub left by a failed
+        # start) but never when Hermes already holds a good token — Hermes
+        # manages refresh afterward and self-heals rotation from CODEX_HOME.
+        if ! jq -e '(.providers["openai-codex"].tokens.access_token // "") | length > 0' \
+            ${stateDir}/.hermes/auth.json >/dev/null 2>&1; then
           umask 077
           jq -n --slurpfile c ${config.sops.secrets."hermes/codex-auth.json".path} \
             '{providers: {"openai-codex": {tokens: $c[0].tokens, last_refresh: (now | todateiso8601), auth_mode: "chatgpt"}}}' \
