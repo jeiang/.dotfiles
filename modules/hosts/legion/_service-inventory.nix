@@ -316,13 +316,10 @@
           stateful = false;
         }
         {
-          # Telegram-facing agent. The Volume ID is filled only after the
-          # capacity gate and Hetzner provisioning pass; its mount guard
-          # keeps Hermes off until then.
+          # Telegram-facing agent, activated per docs/runbooks/hermes-activation.md
+          # once the Volume, secrets, and OAuth enrollment were in place.
           name = "hermes";
-          # Keep the service staged until the capacity gate, Volume creation,
-          # and SOPS/OAuth enrollment have all completed.
-          enabled = false;
+          enabled = true;
           publicHostnames = [];
           firewall = [];
           stateful = true;
@@ -330,6 +327,7 @@
             name = "legion-hermes";
             mountpoint = "/mnt/hermes";
             sizeGiB = 10;
+            hcloudVolumeId = "106445720";
           };
           backupSet = ["/mnt/hermes"];
         }
