@@ -53,19 +53,31 @@ targets.
 _Avoid_: Human Administrator, personal account
 
 **Hermes Agent**:
-A Telegram-facing personal agent that prepares repository changes and reports
-observed fleet state without holding deployment or publication authority.
+A Telegram-facing personal agent that prepares repository changes, reports
+observed fleet state, and submits bounded actions for human approval without
+holding deployment, root, or publication credentials.
 _Avoid_: Deployment Identity, cluster operator
 
-**Publication Broker**:
-A separate identity that publishes an approved Hermes worktree branch to
-GitHub; it is the only Hermes-related identity with repository write access.
-_Avoid_: Hermes Agent, Deployment Identity
+**Approval Broker**:
+The Telegram human-approval boundary that publishes exact approved commits and
+routes approved actions without executing arbitrary commands itself. It is the
+only Hermes-related identity with repository write credentials.
+_Avoid_: Publication Broker, Hermes Agent, Approved Command Runner
+
+**Approved Command Runner**:
+A credential-free identity that executes one human-approved command within the
+Hermes workspace and its fixed resource and network limits.
+_Avoid_: Approval Broker, Deployment Identity, root shell
+
+**Agent Memory**:
+The compact native memory and user profile that Hermes maintains automatically
+and submits for review from a reserved Knowledge Base subtree.
+_Avoid_: Session history, general knowledge
 
 **Knowledge Base**:
-A private, reviewed Markdown repository that holds durable operational facts
-and links to their source revisions.
-_Avoid_: Session history, agent memory
+A private Markdown repository containing reviewed, explicitly directed general
+knowledge and a reserved subtree for Agent Memory.
+_Avoid_: Session history, Observed Snapshot
 
 **Observed Snapshot**:
 A timestamped, bounded report of current host and service state; it is not a
