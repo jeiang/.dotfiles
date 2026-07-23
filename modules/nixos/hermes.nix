@@ -51,16 +51,8 @@
       "${stateDir}/.hermes/.env" = "deny"
       "${stateDir}/.hermes/auth.json" = "deny"
       "${stateDir}/codex/auth.json" = "deny"
-      "${stateDir}/publisher" = "deny"
-      "${stateDir}/commands" = "deny"
-      "${stateDir}/command-results" = "deny"
-      "/etc/ssh" = "deny"
-      "/home" = "deny"
-      "/root" = "deny"
-      "/run/credentials" = "deny"
-      "/run/secrets" = "deny"
-      "/var/lib/private" = "deny"
-      "/var/lib/sops-nix" = "deny"
+      # systemd InaccessiblePaths already masks host credentials and broker
+      # state before Codex constructs its nested bubblewrap namespace.
       "/nix/var/nix/daemon-socket/socket" = "deny"
 
       [permissions.hermes.filesystem.":workspace_roots"]
