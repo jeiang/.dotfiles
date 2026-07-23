@@ -163,6 +163,13 @@ jobs:
       # FLAKE_LOCK_PAT must be a PAT (fine-grained: Contents + Pull requests
       # read/write on this repo, or classic with the `repo` scope) stored as
       # a repo secret.
+      #
+      # main requires signed commits, so the commit this action makes also
+      # needs a verifiable signature -- sign-commits pulls in a dedicated
+      # bot GPG key (see AGENTS.md for the secret name and setup steps) and
+      # signs with it; the commit's author/committer identity then comes
+      # from that key's UID, not from git-author-*/git-committer-* (unused
+      # here since those inputs only apply when sign-commits is false).
       - name: Update selected inputs and open PR
         uses: DeterminateSystems/update-flake-lock@834c491b2ece4de0bbd00d85214bb5e83b4da5c6 # v28
         with:
@@ -171,3 +178,5 @@ jobs:
           branch: update-flake-lock/tracked-inputs
           commit-msg: "chore(flake): update flake inputs"
           pr-title: "chore(flake): update flake inputs"
+          sign-commits: true
+          gpg-private-key: ${{ secrets.FLAKE_LOCK_GPG_PRIVATE_KEY }}
