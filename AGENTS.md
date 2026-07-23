@@ -62,6 +62,7 @@ This repo manages live systems, disks, cluster membership, and secrets. Treat op
 ## CI Secrets
 
 - `FLAKE_LOCK_PAT`: fine-grained PAT used by `.github/workflows/update-flake-inputs.yml` so its flake-lock update PRs trigger CI (the default `GITHUB_TOKEN` cannot trigger further workflow runs). **Expires 2027-07-22** — rotate it before then, or the workflow's PRs will stop getting CI runs with no obvious error.
+- `FLAKE_LOCK_GPG_PRIVATE_KEY`: ASCII-armored private key for a dedicated `flake-lock-bot` GPG key, used by the same workflow to sign its commits (`main` requires signed commits, so unsigned bot commits can't be merged). The key's UID email must be a verified email on the account holding `FLAKE_LOCK_PAT` (this repo uses that account's GitHub-provided `<id>+<login>@users.noreply.github.com` address, which is verified automatically with no separate confirmation step), and its public half must be added as a GPG key on that same account.
 
 ## Common Commands
 
