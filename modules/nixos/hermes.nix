@@ -137,6 +137,10 @@
       };
       fallback_providers = [];
       timezone = "America/Port_of_Spain";
+      streaming = {
+        enabled = true;
+        transport = "auto";
+      };
       agent.reasoning_effort = "medium";
       memory = {
         memory_enabled = true;
