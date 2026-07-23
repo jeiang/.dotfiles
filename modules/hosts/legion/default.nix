@@ -155,7 +155,39 @@ in {
         # `openFirewall`: same private-network-only reachability as every
         # other cross-node backend in this repo (trustedInterfaces, never
         # added to the public allowlist below).
-        prometheus.exporters.node.enable = true;
+        prometheus.exporters.node = {
+          enable = true;
+          # systemd collector: exposes node_systemd_unit_state per unit,
+          # feeding the SystemdUnitFailed alert
+          # (modules/nixos/monitoring/default.nix fleet-health group).
+          # Option names verified against the pinned nixpkgs node exporter
+          # module (nixos/modules/services/monitoring/prometheus/exporters/node.nix:
+          # `enabledCollectors` renders `--collector.<name>`, `extraFlags`
+          # is appended verbatim after `--web.listen-address`).
+          enabledCollectors = ["systemd"];
+          # Scope the systemd collector to an explicit include-list rather
+          # than letting it enumerate every unit on the box. The default
+          # (`--collector.systemd.unit-include=.+`) would emit a
+          # node_systemd_unit_state series for every unit * every state on
+          # all 4 nodes -- hundreds of series -- straight into
+          # legion-node3's memory-constrained VictoriaMetrics (MemoryMax
+          # 640M, modules/nixos/monitoring/default.nix). This anchored
+          # allowlist keeps cardinality to the placed first-party service
+          # units only (the union across the whole fleet -- some units
+          # exist only on the node that places them, which is fine: the
+          # collector simply matches whatever is present per node). Unit
+          # names verified by grepping each module's `systemd.services.<n>`
+          # (services.atticd -> atticd.service, services.actual ->
+          # actual.service, monitoring's vmalert instance ->
+          # vmalert-default.service, services.journald.upload ->
+          # systemd-journal-upload.service, etc.). Flag name
+          # `--collector.systemd.unit-include` (a full-match regexp)
+          # confirmed against the pinned node_exporter 1.12.0 binary. The
+          # trailing `\.service` restricts matches to service units.
+          extraFlags = [
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|atticd|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload)\\.service"
+          ];
+        };
 
         # Log shipping: journald from every Legion node to
         # legion-node3's VictoriaLogs, via systemd-journal-upload (nixpkgs

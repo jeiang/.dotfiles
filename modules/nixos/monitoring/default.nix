@@ -30,6 +30,7 @@ _: {
     # node3/node4 consts.
     node1 = "172.17.0.1"; # Edge: Caddy admin/metrics, CrowdSec metrics
     node2 = "172.17.0.2"; # NetBird server metrics, Blocky metrics
+    node4 = "172.17.0.4"; # H@H (hath-rust) metrics
     legionPrivateIPs = [
       "172.17.0.1"
       "172.17.0.2"
@@ -128,6 +129,44 @@ _: {
               {
                 targets = ["${node2}:8000"];
                 labels.type = "dns";
+              }
+            ];
+          }
+          {
+            # H@H (hath-rust) on legion-node4
+            # (modules/nixos/hath.nix, runs with `--enable-metrics`).
+            # Verified against the nixpkgs-pinned hath-rust 1.17.0 source
+            # (github.com/james58899/hath-rust v1.17.0): `--enable-metrics`
+            # registers a single `/metrics` route (src/server/mod.rs
+            # `router.route("/metrics", get(route::metrics))`) on the *same*
+            # listener as the H@H client itself -- there is no separate
+            # metrics port. That listener is the `--port 8888` socket
+            # (src/main.rs `bind(SocketAddr::from(([0,0,0,0], port)))`), so
+            # the endpoint is 172.17.0.4:8888/metrics -- the port already
+            # opened public-scope for H@H
+            # (modules/hosts/legion/_service-inventory.nix hath.firewall +
+            # modules/hosts/legion/default.nix `++ [8888]`), reachable
+            # cross-node over the trusted private interface (enp7s0) like
+            # every other backend here. No new firewall entry needed: it's
+            # the existing H@H port, not a separate metrics port.
+            #
+            # scheme = "https" (not the default http): that same listener is
+            # TLS-wrapped (src/server/mod.rs wraps every connection in a
+            # `TlsAcceptor`), so /metrics is only served over TLS. The cert
+            # is the H@H-network-issued client cert fetched at startup from
+            # the H@H RPC server (src/main.rs `client.get_cert()`), issued
+            # for the client's hath.network identity -- it has no SAN for
+            # 172.17.0.4, so `tls_config.insecure_skip_verify` is required
+            # (this is a private-interface scrape, transport trust is the
+            # enp7s0 boundary, not this cert). Path left at the /metrics
+            # default (matches the route above).
+            job_name = "hath";
+            scheme = "https";
+            tls_config.insecure_skip_verify = true;
+            static_configs = [
+              {
+                targets = ["${node4}:8888"];
+                labels.type = "hath";
               }
             ];
           }
@@ -271,6 +310,25 @@ _: {
                 annotations = {
                   summary = "Memory usage above 90% on {{ $labels.instance }}";
                   description = "{{ $labels.instance }} has used over 90% of memory for 10 minutes.";
+                };
+              }
+              {
+                # Emitted by node_exporter's systemd collector, enabled
+                # fleet-wide in modules/hosts/legion/default.nix
+                # (enabledCollectors = ["systemd"], scoped to a first-party
+                # unit-include allowlist). The collector publishes one
+                # `node_systemd_unit_state{name,state,type}` series per
+                # (unit, state) with value 1 for the unit's current state
+                # (confirmed against the pinned node_exporter 1.12.0), so a
+                # failed unit shows up as `state="failed"` == 1. `$labels.name`
+                # is the collector's unit-name label (e.g. "hath.service").
+                alert = "SystemdUnitFailed";
+                expr = ''node_systemd_unit_state{state="failed"} == 1'';
+                for = "5m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "systemd unit {{ $labels.name }} failed on {{ $labels.instance }}";
+                  description = "{{ $labels.name }} on {{ $labels.instance }} has been in the failed state for 5 minutes.";
                 };
               }
             ];
