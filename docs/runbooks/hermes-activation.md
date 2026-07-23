@@ -56,13 +56,14 @@ Done when: main contains the enabled entry.
 3. If hermes-agent logs an auth failure, authenticate the seeded Codex CLI
   as the `hermes` user and confirm `gpt-5.6-terra` is accepted.
 4. Create the worktrees as `hermes`, cloned from the local mirrors (Hermes
-  owns them and never holds a GitHub credential):
+  owns them and never holds a GitHub credential). `HOME=/mnt/hermes` makes git
+  read the hermes-owned `.gitconfig` that hermes-state-init writes, which
+  marks the publisher-owned mirrors as safe — no `git config --global` needed
+  (the wrapped git redirects `--global` into a read-only store path anyway):
 
   ```fish
-  sudo -u hermes git config --global --add safe.directory /mnt/hermes/mirrors/jeiang__.dotfiles.git
-  sudo -u hermes git config --global --add safe.directory /mnt/hermes/mirrors/jeiang__knowledge-base.git
-  sudo -u hermes git -C /mnt/hermes/worktrees clone /mnt/hermes/mirrors/jeiang__.dotfiles.git cornn-flaek
-  sudo -u hermes git -C /mnt/hermes/worktrees clone /mnt/hermes/mirrors/jeiang__knowledge-base.git knowledge-base
+  sudo -u hermes env HOME=/mnt/hermes git -C /mnt/hermes/worktrees clone /mnt/hermes/mirrors/jeiang__.dotfiles.git cornn-flaek
+  sudo -u hermes env HOME=/mnt/hermes git -C /mnt/hermes/worktrees clone /mnt/hermes/mirrors/jeiang__knowledge-base.git knowledge-base
   ```
 
 5. Send `/start` to the publisher bot once, then create the two cron jobs
