@@ -1,0 +1,273 @@
+{
+  "__inputs": [],
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "victoriametrics-logs-datasource",
+      "name": "VictoriaLogs",
+      "version": "0.29.0"
+    },
+    {
+      "type": "panel",
+      "id": "logs",
+      "name": "Logs",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Central log-visibility board for the Legion fleet. Logs are shipped from every node via systemd-journal-upload to legion-node3's VictoriaLogs journald ingestion route (/insert/journald/upload) and queried through the victoriametrics-logs-datasource plugin (uid 'victorialogs'). Field names are VictoriaLogs' verbatim journald names (verified against the pinned victorialogs 1.51.0 binary, defaults in effect since modules/nixos/monitoring/default.nix sets no -journald.* flags): host = _HOSTNAME, systemd unit = _SYSTEMD_UNIT, priority = PRIORITY (journald numeric 0-7: 0=emerg 1=alert 2=crit 3=err 4=warning 5=notice 6=info 7=debug), message = _msg (mapped from journald MESSAGE), timestamp = _time (from __REALTIME_TIMESTAMP, the -journald.timeField default). The node/unit/severity template variables enumerate these fields' values via the plugin's fieldValue variable query (/select/logsql/field_values); the plugin rewrites 'field:$var' filters into 'field:in(...)' and expands an 'All' selection to 'field:in(*)'. Note: because 'All' expands to in(*) (field must be present), records lacking _SYSTEMD_UNIT (e.g. kernel-transport lines) are not shown when the unit variable is set -- this board is service-log oriented.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "id": 2,
+      "title": "Log volume",
+      "type": "timeseries",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
+      },
+      "description": "Ingested log lines over time, bucketed per node, respecting the node/unit/severity variables. Uses the plugin's 'Range' query type (/select/logsql/stats_query_range); the bucket step is left unset so Grafana derives it from the panel interval.",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "spanNulls": false,
+            "showPoints": "never",
+            "pointSize": 5,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "axisLabel": "",
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "expr": "_HOSTNAME:$node _SYSTEMD_UNIT:$unit PRIORITY:$severity | stats by (_HOSTNAME) count() logs",
+          "queryType": "statsRange",
+          "legendFormat": "{{_HOSTNAME}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Log stream",
+      "type": "logs",
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "victorialogs"
+      },
+      "description": "Live log lines for the selected node/unit/severity, newest first. Uses the plugin's 'Raw Logs' query type (/select/logsql/query) with direction=desc and a 500-line cap.",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 20
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "expr": "_HOSTNAME:$node _SYSTEMD_UNIT:$unit PRIORITY:$severity",
+          "queryType": "instant",
+          "direction": "desc",
+          "maxLines": 500
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": [
+    "fleet",
+    "logs"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "node",
+        "label": "Node",
+        "description": "Host the log came from (_HOSTNAME). 'All' expands to _HOSTNAME:in(*).",
+        "type": "query",
+        "datasource": {
+          "type": "victoriametrics-logs-datasource",
+          "uid": "victorialogs"
+        },
+        "query": {
+          "refId": "VictoriaLogsVariableQueryEditor-VariableQuery",
+          "type": "fieldValue",
+          "field": "_HOSTNAME",
+          "query": "*"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {},
+        "options": [],
+        "hide": 0,
+        "skipUrlSync": false
+      },
+      {
+        "name": "unit",
+        "label": "Unit",
+        "description": "systemd unit that emitted the log (_SYSTEMD_UNIT). Values are scoped to the selected node via the _HOSTNAME:$node filter. 'All' expands to _SYSTEMD_UNIT:in(*).",
+        "type": "query",
+        "datasource": {
+          "type": "victoriametrics-logs-datasource",
+          "uid": "victorialogs"
+        },
+        "query": {
+          "refId": "VictoriaLogsVariableQueryEditor-VariableQuery",
+          "type": "fieldValue",
+          "field": "_SYSTEMD_UNIT",
+          "query": "_HOSTNAME:$node"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {},
+        "options": [],
+        "hide": 0,
+        "skipUrlSync": false
+      },
+      {
+        "name": "severity",
+        "label": "Severity",
+        "description": "journald PRIORITY, numeric 0-7 (0=emerg 1=alert 2=crit 3=err 4=warning 5=notice 6=info 7=debug). Enumerated from the PRIORITY field; the log panels map these numbers to level names for display. 'All' expands to PRIORITY:in(*).",
+        "type": "query",
+        "datasource": {
+          "type": "victoriametrics-logs-datasource",
+          "uid": "victorialogs"
+        },
+        "query": {
+          "refId": "VictoriaLogsVariableQueryEditor-VariableQuery",
+          "type": "fieldValue",
+          "field": "PRIORITY",
+          "query": "*"
+        },
+        "refresh": 2,
+        "sort": 3,
+        "multi": true,
+        "includeAll": true,
+        "current": {},
+        "options": [],
+        "hide": 0,
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Logs",
+  "uid": "logs",
+  "version": 1,
+  "weekStart": ""
+}

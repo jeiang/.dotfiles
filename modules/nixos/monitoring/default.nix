@@ -30,6 +30,7 @@ _: {
     # node3/node4 consts.
     node1 = "172.17.0.1"; # Edge: Caddy admin/metrics, CrowdSec metrics
     node2 = "172.17.0.2"; # NetBird server metrics, Blocky metrics
+    node4 = "172.17.0.4"; # H@H (hath-rust) metrics
     legionPrivateIPs = [
       "172.17.0.1"
       "172.17.0.2"
@@ -40,6 +41,60 @@ _: {
     vmPort = 8428; # services.victoriametrics default listenAddress
     vlPort = 9428; # services.victorialogs default listenAddress
 
+    # blackbox_exporter listen port. Kept at the nixpkgs module default
+    # (services.prometheus.exporters.blackbox.port, 9115); named here so
+    # the loopback scrape target and the exporter enable-block below agree
+    # on one value. The exporter binds loopback only (listenAddress
+    # "127.0.0.1" below): VictoriaMetrics scrapes it on this same node
+    # (node3), so it needs no private- or public-scope firewall opening at
+    # all.
+    blackboxPort = 9115;
+
+    # blackbox_exporter probe-module definitions
+    # (docs/adr/0003-probe-service-health-from-inside-the-private-network.md).
+    # Rendered to a store-path YAML file via pkgs.formats.yaml so the
+    # nixpkgs module's build-time `blackbox_exporter --config.check`
+    # (services.prometheus.exporters.blackbox.enableConfigCheck, default
+    # on) sees a real store path and no store-copy warning fires.
+    # preferred_ip_protocol "ip4" on both modules: every probe target is an
+    # IPv4 literal on the Legion private network, and blackbox otherwise
+    # defaults to attempting ip6 first.
+    blackboxConfig = (pkgs.formats.yaml {}).generate "blackbox-exporter.yml" {
+      modules = {
+        # http_2xx: default valid_status_codes (the whole 2xx range) is
+        # left unset because every HTTP target below answers in 2xx on the
+        # exact path it is probed at -- verified per target against the
+        # nixpkgs-pinned sources:
+        #   - pocket-id  /healthz -> 204 No Content (pocket-id backend
+        #     internal/controller/healthz_controller.go
+        #     `c.Status(http.StatusNoContent)`; 204 is inside 2xx).
+        #   - actual     /health  -> 200 {"status":"UP"} (actual
+        #     sync-server src/app.ts `res.status(200).json(...)`).
+        #   - attic      /        -> 200 HTML placeholder (attic-server
+        #     server/src/api/mod.rs root route returns `Html<..>`, a 200).
+        http_2xx = {
+          prober = "http";
+          timeout = "5s";
+          http.preferred_ip_protocol = "ip4";
+        };
+        # tcp_connect: pure TCP-handshake reachability, used for
+        # netbird-server's :80. That port multiplexes gRPC + the management
+        # HTTP API (modules/nixos/netbird-server/default.nix
+        # `listenAddress: ":80"`), so a plain HTTP/1.1 GET is not a reliable
+        # liveness check; a completed TCP connect is exactly the "answers on
+        # its backend port" signal docs/adr/0003 calls for. (The server's
+        # dedicated `healthcheckAddress: ":9000"` is deliberately not used:
+        # :9000 is not declared in modules/hosts/legion/_service-inventory.nix,
+        # so probing it would need the firewall change docs/adr/0003 avoids;
+        # :80 already is declared, see the scrape job below.)
+        tcp_connect = {
+          prober = "tcp";
+          timeout = "5s";
+          tcp.preferred_ip_protocol = "ip4";
+        };
+      };
+    };
+
     # retentionPeriod "1" means one month (VictoriaMetrics/VictoriaLogs
     # count an unsuffixed retentionPeriod in months). Neither
     # nixpkgs-pinned module accepts a bare "1" typed differently, so both
@@ -49,11 +104,128 @@ _: {
     dashboardsDir = pkgs.linkFarm "grafana-dashboards" [
       {
         # CrowdSec is scraped at :6060/metrics (mirrored below); this is
-        # the matching Grafana dashboard for it. No other dashboard is
-        # carried here: there's no concrete node/VM dashboard to
-        # reproduce yet -- a gap for future work.
+        # the matching Grafana dashboard for it. Only populated once
+        # `edge.crowdsec.enable` is true, but the board is carried
+        # regardless.
         name = "crowdsec.json";
         path = ./crowdsec-dashboard.json;
+      }
+      {
+        # "Node Exporter Full" (grafana.com dashboard #1860), vendored as a
+        # store file so nothing is fetched at build time (pure-eval CI /
+        # offline build). The vendored revision already uses a
+        # `${ds_prometheus}` datasource *template variable* (type
+        # "datasource", query "prometheus") -- same file-provisioning-safe
+        # pattern as crowdsec-dashboard.json's `${datasource}` var -- so it
+        # resolves against the VictoriaMetrics (prometheus-type) datasource
+        # with no interactive import step. Its `$job`/`$nodename`/`$node`
+        # variables populate from node_uname_info, whose labels match our
+        # `job="node"` scrape and `instance="<ip>:9100"` targets.
+        name = "node-exporter-full.json";
+        path = ./node-exporter-full.json;
+      }
+      {
+        # Hand-authored fleet landing board (per-node CPU/mem/disk, scrape
+        # up/down, failed systemd units, backend probe failures). References
+        # the VictoriaMetrics datasource by its fixed uid ("victoriametrics",
+        # set below) rather than a datasource variable, since it targets that
+        # one datasource directly.
+        name = "fleet-overview.json";
+        path = ./fleet-overview.json;
+      }
+      # --- Per-service boards (Part D). Each targets one scrape job below.
+      # Hand-authored boards reference the VictoriaMetrics datasource by its
+      # fixed uid ("victoriametrics") like fleet-overview.json; the two
+      # vendored boards resolve it via a `datasource`-type template variable
+      # (query "prometheus", current "Default") that binds to the same
+      # isDefault datasource, the file-provisioning-safe pattern
+      # node-exporter-full.json / crowdsec-dashboard.json already use. All
+      # PromQL was checked against the nixpkgs-pinned service sources so
+      # panels reference real exposed metric names.
+      {
+        # Hand-authored board for the edge Caddy reverse proxy (job "caddy",
+        # 172.17.0.1:2020). Metric names verified against caddy v2.11.4
+        # (modules/caddyhttp/metrics.go + reverseproxy/metrics.go): request
+        # rate/latency percentiles from caddy_http_request_duration_seconds_*,
+        # status-code breakdown from that histogram's _count series (which
+        # carries `code`; caddy_http_requests_total does not),
+        # caddy_reverse_proxy_upstreams_healthy, response bytes, Go runtime.
+        name = "caddy.json";
+        path = ./caddy.json;
+      }
+      {
+        # Vendored "Blocky" board (grafana.com #13768 revision 8), whose
+        # metric names match blocky 0.33.0 exactly (verified against
+        # resolver/metrics_resolver.go + metrics/metrics_event_publisher.go:
+        # blocky_query_total, blocky_response_total, blocky_cache_entries,
+        # blocky_denylist_cache_entries, blocky_request_duration_seconds, ...).
+        # Adapted for file provisioning: __inputs emptied, the VAR_BLOCKY_URL
+        # input placeholder resolved to its upstream default, uid pinned. Its
+        # $job/$instance variables populate from blocky_build_info, matching
+        # our job "blocky" scrape (172.17.0.2:8000).
+        name = "blocky.json";
+        path = ./blocky.json;
+      }
+      {
+        # Hand-authored board for the NetBird management server (job
+        # "netbird-server", 172.17.0.2:9090). Instruments verified against
+        # netbird v0.74.3 (management/server/telemetry/{grpc,http_api}_
+        # metrics.go). Those are OpenTelemetry instruments exported by the
+        # otel prometheus exporter v0.64.0 with defaults, so counter names may
+        # gain `_total` and the *.duration.ms histograms may gain a
+        # `_milliseconds` unit suffix -- not recoverable from source without a
+        # live scrape -- so the board's selectors match __name__ with the
+        # verified base name plus an optional suffix (PromQL regexes are
+        # anchored, so they can't collide). No peer/account gauges exist here:
+        # those live in a PostHog usage payload (metrics/selfhosted.go), not
+        # /metrics.
+        name = "netbird-server.json";
+        path = ./netbird-server.json;
+      }
+      {
+        # Hand-authored board for the H@H client (hath-rust, job "hath",
+        # 172.17.0.4:8888/metrics over https). Metric names verified against
+        # hath-rust v1.17.0 (src/metrics.rs): a prometheus-client
+        # Registry::with_prefix("hath"), so counters carry `_total` and
+        # register_with_unit(Bytes/Seconds) appends `_bytes`/`_seconds`
+        # (hath_cache_sent_total, hath_cache_sent_size_bytes_total,
+        # hath_cache_sent_duration_seconds_*, hath_connections,
+        # hath_cache_size_bytes/_capacity_bytes/_count, hath_download_*,
+        # hath_uptime_seconds_total).
+        name = "hath.json";
+        path = ./hath.json;
+      }
+      {
+        # Vendored "Prometheus Blackbox Exporter" board (grafana.com #7587
+        # revision 3). Covers our blackbox-http / blackbox-tcp jobs (the
+        # `$target` variable enumerates label_values(probe_success, instance),
+        # i.e. each probed URL/host:port). Adapted for file provisioning:
+        # __inputs emptied and every datasource ref repointed onto a
+        # `datasource`-type template variable (this old schemaVersion-16 board
+        # shipped with a per-panel ${DS_...} input instead). SSL-expiry and
+        # HTTP-version panels read empty by design -- our probes are private
+        # backends over plain http/tcp (docs/adr/0003), no TLS -- kept rather
+        # than deleted so the board stays a faithful copy of the upstream.
+        name = "blackbox.json";
+        path = ./blackbox.json;
+      }
+      {
+        # Hand-authored central log-visibility board (Part E). Unlike the
+        # metrics boards above it targets the VictoriaLogs datasource by its
+        # fixed uid ("victorialogs", set below), type
+        # victoriametrics-logs-datasource. Its node/unit/severity template
+        # variables enumerate journald field values via the plugin's
+        # fieldValue variable query (/select/logsql/field_values); the log
+        # panels filter on VictoriaLogs' verbatim journald field names --
+        # _HOSTNAME, _SYSTEMD_UNIT, PRIORITY (numeric 0-7), _msg (from
+        # journald MESSAGE), _time (from __REALTIME_TIMESTAMP) -- confirmed
+        # against the pinned victorialogs 1.51.0 binary's journald ingestion
+        # defaults (this module sets no -journald.* overrides, so
+        # -journald.timeField stays __REALTIME_TIMESTAMP and double-underscore
+        # metadata is dropped). The per-service boards above each also carry a
+        # collapsed "Logs" row pre-filtered to their own unit(s).
+        name = "logs.json";
+        path = ./logs.json;
       }
     ];
   in {
@@ -128,6 +300,147 @@ _: {
               {
                 targets = ["${node2}:8000"];
                 labels.type = "dns";
+              }
+            ];
+          }
+          {
+            # H@H (hath-rust) on legion-node4
+            # (modules/nixos/hath.nix, runs with `--enable-metrics`).
+            # Verified against the nixpkgs-pinned hath-rust 1.17.0 source
+            # (github.com/james58899/hath-rust v1.17.0): `--enable-metrics`
+            # registers a single `/metrics` route (src/server/mod.rs
+            # `router.route("/metrics", get(route::metrics))`) on the *same*
+            # listener as the H@H client itself -- there is no separate
+            # metrics port. That listener is the `--port 8888` socket
+            # (src/main.rs `bind(SocketAddr::from(([0,0,0,0], port)))`), so
+            # the endpoint is 172.17.0.4:8888/metrics -- the port already
+            # opened public-scope for H@H
+            # (modules/hosts/legion/_service-inventory.nix hath.firewall +
+            # modules/hosts/legion/default.nix `++ [8888]`), reachable
+            # cross-node over the trusted private interface (enp7s0) like
+            # every other backend here. No new firewall entry needed: it's
+            # the existing H@H port, not a separate metrics port.
+            #
+            # scheme = "https" (not the default http): that same listener is
+            # TLS-wrapped (src/server/mod.rs wraps every connection in a
+            # `TlsAcceptor`), so /metrics is only served over TLS. The cert
+            # is the H@H-network-issued client cert fetched at startup from
+            # the H@H RPC server (src/main.rs `client.get_cert()`), issued
+            # for the client's hath.network identity -- it has no SAN for
+            # 172.17.0.4, so `tls_config.insecure_skip_verify` is required
+            # (this is a private-interface scrape, transport trust is the
+            # enp7s0 boundary, not this cert). Path left at the /metrics
+            # default (matches the route above).
+            job_name = "hath";
+            scheme = "https";
+            tls_config.insecure_skip_verify = true;
+            static_configs = [
+              {
+                targets = ["${node4}:8888"];
+                labels.type = "hath";
+              }
+            ];
+          }
+          # --- Synthetic backend health probes via blackbox_exporter ---
+          # (docs/adr/0003-probe-service-health-from-inside-the-private-network.md).
+          # Standard blackbox relabel: the probe target starts life in
+          # __address__, is copied into the ?target= query param
+          # (__param_target), preserved verbatim as the `instance` label,
+          # and then __address__ is rewritten to the blackbox exporter's own
+          # loopback socket so VictoriaMetrics actually scrapes the
+          # exporter's /probe handler (which in turn probes ?target=).
+          #
+          # Every target port below is already declared private-scope in
+          # modules/hosts/legion/_service-inventory.nix -- pocket-id :1411
+          # and netbird-server :80 (legion-node2), actual-budget :5006 and
+          # attic :8080 (legion-node4) -- reachable cross-node over the
+          # trusted enp7s0 interface exactly like every metrics scrape
+          # above. So NO new host firewall opening and NO Hetzner Cloud
+          # Firewall rule is added for probing (docs/adr/0003 Consequences).
+          {
+            job_name = "blackbox-http";
+            metrics_path = "/probe";
+            params.module = ["http_2xx"];
+            # Full URLs (scheme + health path): the http prober probes the
+            # ?target= value verbatim, so scheme and path must be present.
+            # Paths chosen per target for a clean 2xx (see blackboxConfig in
+            # the `let` block for the per-target status-code verification).
+            # Split into two target blocks purely to carry a per-target `tier`
+            # label, which BlackboxProbeDown maps to the alert severity below.
+            static_configs = [
+              {
+                # pocket-id is the fleet SSO provider (auth.jeiang.dev): a
+                # down backend locks users out of every OAuth-gated service,
+                # so its probe failure is `critical` (pages), matching the
+                # netbird-server VPN target in the tcp job.
+                targets = ["http://${node2}:1411/healthz"];
+                labels = {
+                  type = "probe";
+                  tier = "critical";
+                };
+              }
+              {
+                # actual-budget (budget) and attic (Nix binary cache) are
+                # important but not auth-critical -- a stale cache or an
+                # unreachable budget app degrades, it doesn't lock the fleet
+                # out -- so these stay `warning`, same tier as
+                # SystemdUnitFailed.
+                targets = [
+                  "http://${node4}:5006/health"
+                  "http://${node4}:8080/"
+                ];
+                labels = {
+                  type = "probe";
+                  tier = "warning";
+                };
+              }
+            ];
+            relabel_configs = [
+              {
+                source_labels = ["__address__"];
+                target_label = "__param_target";
+              }
+              {
+                source_labels = ["__param_target"];
+                target_label = "instance";
+              }
+              {
+                target_label = "__address__";
+                replacement = "127.0.0.1:${toString blackboxPort}";
+              }
+            ];
+          }
+          {
+            job_name = "blackbox-tcp";
+            metrics_path = "/probe";
+            params.module = ["tcp_connect"];
+            static_configs = [
+              {
+                # host:port, no scheme, for the tcp prober. netbird-server
+                # :80 multiplexes gRPC + management HTTP, so a TCP connect
+                # is the robust liveness signal here (see blackboxConfig).
+                # `tier = "critical"`: netbird is the fleet VPN -- a down
+                # management/signal server breaks mesh connectivity, so this
+                # pages, same as the pocket-id SSO target in the http job.
+                targets = ["${node2}:80"];
+                labels = {
+                  type = "probe";
+                  tier = "critical";
+                };
+              }
+            ];
+            relabel_configs = [
+              {
+                source_labels = ["__address__"];
+                target_label = "__param_target";
+              }
+              {
+                source_labels = ["__param_target"];
+                target_label = "instance";
+              }
+              {
+                target_label = "__address__";
+                replacement = "127.0.0.1:${toString blackboxPort}";
               }
             ];
           }
@@ -207,12 +520,23 @@ _: {
             {
               name = "VictoriaMetrics";
               type = "prometheus";
+              # Stable, hand-picked uid so file-provisioned dashboards can
+              # reference this datasource deterministically (the
+              # fleet-overview.json panels point at `uid: victoriametrics`)
+              # instead of relying on Grafana's auto-generated random uid.
+              # Does not affect crowdsec.json / node-exporter-full.json,
+              # which resolve via a `datasource`-type template variable, not
+              # a fixed uid.
+              uid = "victoriametrics";
               url = "http://127.0.0.1:${toString vmPort}";
               isDefault = true;
             }
             {
               name = "VictoriaLogs";
               type = "victoriametrics-logs-datasource";
+              # Stable uid for the same reason as VictoriaMetrics above, so
+              # future log dashboards (Part E) can reference it by name.
+              uid = "victorialogs";
               url = "http://127.0.0.1:${toString vlPort}";
             }
           ];
@@ -273,9 +597,75 @@ _: {
                   description = "{{ $labels.instance }} has used over 90% of memory for 10 minutes.";
                 };
               }
+              {
+                # Emitted by node_exporter's systemd collector, enabled
+                # fleet-wide in modules/hosts/legion/default.nix
+                # (enabledCollectors = ["systemd"], scoped to a first-party
+                # unit-include allowlist). The collector publishes one
+                # `node_systemd_unit_state{name,state,type}` series per
+                # (unit, state) with value 1 for the unit's current state
+                # (confirmed against the pinned node_exporter 1.12.0), so a
+                # failed unit shows up as `state="failed"` == 1. `$labels.name`
+                # is the collector's unit-name label (e.g. "hath.service").
+                alert = "SystemdUnitFailed";
+                expr = ''node_systemd_unit_state{state="failed"} == 1'';
+                for = "5m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "systemd unit {{ $labels.name }} failed on {{ $labels.instance }}";
+                  description = "{{ $labels.name }} on {{ $labels.instance }} has been in the failed state for 5 minutes.";
+                };
+              }
+              {
+                # Backend liveness from blackbox_exporter's probes
+                # (docs/adr/0003-probe-service-health-from-inside-the-private-network.md;
+                # blackbox-http/blackbox-tcp scrape jobs above). probe_success
+                # is 0 when a probed backend does not answer on its private
+                # port. Severity is per-target, not fleet-uniform: the
+                # `tier` label set on each probe target in the scrape jobs
+                # above ("critical" for the pocket-id SSO and netbird VPN
+                # backends, "warning" for the actual/attic backends) is
+                # carried onto the alert series and mapped straight to
+                # `severity` via the vmalert label template below. Distinct
+                # from the critical fleet-wide TargetDown (up == 0), which
+                # fires when a scrape target vanishes entirely -- note a down
+                # backend here still leaves the blackbox exporter's own scrape
+                # up, so TargetDown would NOT catch it. The 5m `for` debounces
+                # service restarts. `$labels.instance` is the probed
+                # URL/host:port (set by the jobs' relabel_configs);
+                # `$labels.job` is blackbox-http or blackbox-tcp.
+                alert = "BlackboxProbeDown";
+                expr = "probe_success == 0";
+                for = "5m";
+                labels.severity = "{{ $labels.tier }}";
+                annotations = {
+                  summary = "Probe failing for {{ $labels.instance }}";
+                  description = "The {{ $labels.job }} probe for {{ $labels.instance }} has been failing for 5 minutes.";
+                };
+              }
             ];
           }
         ];
+      };
+
+      # blackbox_exporter: synthetic liveness probes of first-party service
+      # backends over the Legion private network
+      # (docs/adr/0003-probe-service-health-from-inside-the-private-network.md).
+      # Scraped by this node's own VictoriaMetrics via the blackbox-http /
+      # blackbox-tcp jobs in prometheusConfig.scrape_configs above; probe
+      # modules defined in blackboxConfig (the `let` block).
+      prometheus.exporters.blackbox = {
+        enable = true;
+        # Set explicitly to the module default so the scrape target's
+        # 127.0.0.1:${blackboxPort} above and the exporter cannot drift.
+        port = blackboxPort;
+        # Loopback-only: the sole scraper is VictoriaMetrics on this same
+        # node (node3), so the exporter needs no firewall surface at all --
+        # stricter than the cross-node backends this module scrapes, which
+        # at least ride enp7s0. Also keeps the exporter's /probe handler
+        # (an SSRF-shaped `GET /probe?target=` primitive) off the network.
+        listenAddress = "127.0.0.1";
+        configFile = blackboxConfig;
       };
 
       # Alertmanager: Discord webhook, with routing/grouping configured
@@ -329,6 +719,12 @@ _: {
       };
       "vmalert-default".serviceConfig.MemoryMax = "128M";
       alertmanager.serviceConfig.MemoryMax = "96M";
+      # blackbox_exporter is tiny -- a handful of concurrent probes on the
+      # scrape interval -- so 32M is comfortable headroom. Unit name is the
+      # nixpkgs exporter-wrapper convention `prometheus-<name>-exporter`
+      # (nixpkgs .../monitoring/prometheus/exporters.nix
+      # `systemd.services."prometheus-${name}-exporter"`).
+      prometheus-blackbox-exporter.serviceConfig.MemoryMax = "32M";
     };
 
     sops = {

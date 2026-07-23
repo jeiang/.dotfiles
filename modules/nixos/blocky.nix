@@ -2,8 +2,10 @@ _: {
   # Blocky DNS for legion-node2 (moved from legion-node3 for capacity
   # reasons), reachable only from NetBird peers (replaces the dropped
   # Kubernetes NetworkResource). First-party `services.blocky` (DESIGN.md
-  # Service Ownership). No explicit prometheus section is configured:
-  # metrics ride the same `ports.http` listener.
+  # Service Ownership). Prometheus metrics are served on the same
+  # `ports.http` listener at /metrics, but only when `prometheus.enable`
+  # is set below -- Blocky defaults it off, so without it :8000/metrics
+  # 404s and legion-node3's `blocky` scrape job reads down.
   flake.nixosModules.blocky = {config, ...}: {
     services.blocky = {
       enable = true;
@@ -20,6 +22,10 @@ _: {
           ];
         };
         customDNS.mapping = {};
+        # Expose Prometheus metrics on the ports.http listener (:8000/metrics),
+        # scraped by legion-node3's monitoring module (`job_name = "blocky"`).
+        # Off by default in Blocky, so this must be set explicitly.
+        prometheus.enable = true;
         ports = {
           # 553, not the standard 53: NetBird's own embedded DNS resolver
           # binds 53 on this host, so Blocky is reached on 553 instead
