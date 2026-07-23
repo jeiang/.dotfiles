@@ -2,6 +2,7 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -80,6 +81,11 @@ def validate(request):
 
 def mirror_path(repository):
     return mirrors / f"{repository.replace('/', '__')}.git"
+
+
+def archive(path, directory):
+    # ReadWritePaths creates distinct bind mounts, so rename can return EXDEV.
+    shutil.move(str(path), directory / path.name)
 
 
 def ensure_mirror(repository):
@@ -188,7 +194,7 @@ while True:
                 _, request = load_request(identifier)
                 announce(allowed_user, identifier, request)
             except Exception as error:
-                path.rename(rejected / path.name)
+                archive(path, rejected)
                 reply(allowed_user, f"Request {identifier} was rejected automatically: {error}")
         updates = telegram("getUpdates", offset=offset, timeout=30).get("result", [])
         for update in updates:
@@ -205,11 +211,11 @@ while True:
             try:
                 path, request = load_request(command[1])
                 if command[0] == "/reject":
-                    path.rename(rejected / path.name)
+                    archive(path, rejected)
                     reply(chat_id, "Request rejected.")
                     continue
                 repository, branch = publish(request)
-                path.rename(completed / path.name)
+                archive(path, completed)
                 reply(chat_id, f"Published {branch} to {repository} as a draft PR.")
             except Exception as error:
                 reply(chat_id, f"Request was not published: {error}")
