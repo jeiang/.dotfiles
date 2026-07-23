@@ -1,13 +1,20 @@
 import json
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import time
 
 
 def command(*args):
-    return subprocess.run(args, check=False, capture_output=True, text=True).stdout.strip()
+    # A missing binary raises FileNotFoundError before the process runs, which
+    # check=False does not catch; treat any failure to launch as empty output
+    # so an absent tool degrades a field instead of crashing the snapshot.
+    try:
+        return subprocess.run(args, check=False, capture_output=True, text=True).stdout.strip()
+    except OSError:
+        return ""
 
 
 def meminfo():
@@ -49,11 +56,11 @@ services = filter(None, os.environ.get("HERMES_SNAPSHOT_SERVICES", "").split(","
 volumes = filter(None, os.environ.get("HERMES_SNAPSHOT_VOLUMES", "").split(","))
 report = {
     "collected_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-    "hostname": command("hostname"),
+    "hostname": socket.gethostname(),
     "memory": meminfo(),
     "load_average": list(os.getloadavg()),
     "boot_id": open("/proc/sys/kernel/random/boot_id", encoding="utf-8").read().strip(),
-    "generation": command("readlink", "-f", "/run/current-system"),
+    "generation": os.path.realpath("/run/current-system"),
     "services": {name: unit(name) for name in services},
     "filesystems": [filesystem(path) for path in volumes if os.path.ismount(path)],
     "backup_units": backup_units(),

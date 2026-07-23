@@ -33,6 +33,10 @@
         services = {
           observed-snapshot = {
             description = "Write a bounded observed host snapshot";
+            # systemctl is the one external tool the snapshot still shells out
+            # to (service/backup unit states); everything else is read from
+            # /proc or the Python stdlib.
+            path = [pkgs.systemd];
             serviceConfig = {
               Type = "oneshot";
               User = "root";

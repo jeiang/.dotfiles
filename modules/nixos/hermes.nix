@@ -28,6 +28,29 @@
       '';
     };
     aggregateSnapshot = pkgs.writers.writePython3Bin "hermes-snapshot-aggregate" {flakeIgnore = ["E501"];} (builtins.readFile ./hermes-snapshot-aggregate.py);
+    # The persistent state lives on a nofail Hetzner Volume that mounts long
+    # after systemd-tmpfiles-setup runs, so tmpfiles cannot reliably create
+    # these directories on the volume (they land on the pre-mount mountpoint
+    # and get shadowed). This oneshot runs after the mount, in the host
+    # namespace, so the sandboxed services below can build their mount
+    # namespaces against directories that actually exist.
+    stateInit = pkgs.writeShellApplication {
+      name = "hermes-state-init";
+      runtimeInputs = [pkgs.coreutils];
+      text = ''
+        install -d -o hermes            -g hermes         -m 0700 ${stateDir}/codex
+        install -d -o hermes-publisher  -g hermes-publisher -m 0750 ${stateDir}/publisher
+        install -d -o hermes-publisher  -g hermes-publisher -m 0700 ${stateDir}/publisher/home
+        install -d -o hermes-publisher  -g hermes-publisher -m 0700 ${stateDir}/publisher/gh
+        install -d -o hermes-publisher  -g hermes-publisher -m 0750 ${stateDir}/publisher/completed
+        install -d -o hermes-publisher  -g hermes-publisher -m 0750 ${stateDir}/publisher/rejected
+        install -d -o hermes-publisher  -g hermes-publish  -m 0750 ${stateDir}/mirrors
+        install -d -o hermes            -g hermes-publish  -m 0750 ${workspace}
+        install -d -o hermes            -g hermes-publish  -m 2770 ${workspace}/.publisher-requests
+        install -d -o root              -g hermes          -m 0750 ${stateDir}/reports
+        install -d -o root              -g hermes          -m 0750 ${stateDir}/reports/history
+      '';
+    };
   in {
     imports = [inputs.hermes-agent.nixosModules.default];
 
@@ -124,7 +147,24 @@
 
       systemd = {
         services = {
+          hermes-state-init = {
+            description = "Create Hermes state directories on the mounted volume";
+            wantedBy = ["multi-user.target"];
+            before = ["hermes-agent.service" "hermes-publisher.service" "hermes-snapshot-aggregate.service"];
+            unitConfig = {
+              ConditionPathIsMountPoint = stateDir;
+              RequiresMountsFor = stateDir;
+            };
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = "${stateInit}/bin/hermes-state-init";
+            };
+          };
+
           hermes-agent = {
+            requires = ["hermes-state-init.service"];
+            after = ["hermes-state-init.service"];
             unitConfig = {
               ConditionPathIsMountPoint = stateDir;
               RequiresMountsFor = stateDir;
@@ -147,7 +187,8 @@
           hermes-publisher = {
             description = "Hermes GitHub publication approval broker";
             wantedBy = ["multi-user.target"];
-            after = ["network-online.target"];
+            requires = ["hermes-state-init.service"];
+            after = ["network-online.target" "hermes-state-init.service"];
             wants = ["network-online.target"];
             unitConfig = {
               ConditionPathIsMountPoint = stateDir;
@@ -181,7 +222,8 @@
 
           hermes-snapshot-aggregate = {
             description = "Aggregate fleet observed snapshots for Hermes";
-            after = ["network-online.target" "observed-snapshot.service"];
+            requires = ["hermes-state-init.service"];
+            after = ["network-online.target" "observed-snapshot.service" "hermes-state-init.service"];
             wants = ["network-online.target"];
             unitConfig = {
               ConditionPathIsMountPoint = stateDir;
@@ -207,23 +249,17 @@
           };
         };
 
-        # The Hermes agent owns its worktrees outright (single-writer .git);
-        # the publisher only ever reads them, via the hermes-publish group.
-        # The publisher's own tree, including the bare mirrors Hermes clones
-        # from, is publisher-owned so the agent cannot swap out directories
-        # that feed the credentialed git/gh processes.
+        # Directory creation is handled by hermes-state-init (post-mount, in
+        # the host namespace) because these paths live on a nofail Volume that
+        # mounts after systemd-tmpfiles-setup. The agent owns its worktrees
+        # outright (single-writer .git); the publisher only reads them, via the
+        # hermes-publish group; the publisher's own tree and the bare mirrors
+        # are publisher-owned so the agent cannot swap out directories feeding
+        # the credentialed git/gh processes. tmpfiles only ages out the
+        # snapshot history here (the `e` type never creates, so it is immune to
+        # the mount-ordering race above).
         tmpfiles.rules = [
-          "d ${stateDir}/codex 0700 hermes hermes - -"
-          "d ${stateDir}/publisher 0750 hermes-publisher hermes-publisher - -"
-          "d ${stateDir}/publisher/home 0700 hermes-publisher hermes-publisher - -"
-          "d ${stateDir}/publisher/gh 0700 hermes-publisher hermes-publisher - -"
-          "d ${stateDir}/publisher/completed 0750 hermes-publisher hermes-publisher - -"
-          "d ${stateDir}/publisher/rejected 0750 hermes-publisher hermes-publisher - -"
-          "d ${stateDir}/mirrors 0750 hermes-publisher hermes-publish - -"
-          "d ${workspace} 0750 hermes hermes-publish - -"
-          "d ${workspace}/.publisher-requests 2770 hermes hermes-publish - -"
-          "d ${stateDir}/reports 0750 root hermes - -"
-          "d ${stateDir}/reports/history 0750 root hermes 7d -"
+          "e ${stateDir}/reports/history - - - 7d"
         ];
       };
 
