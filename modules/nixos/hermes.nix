@@ -79,7 +79,7 @@
     # build their namespaces against.
     stateInit = pkgs.writeShellApplication {
       name = "hermes-state-init";
-      runtimeInputs = [pkgs.coreutils];
+      runtimeInputs = [pkgs.coreutils pkgs.jq];
       text = ''
         # Agent home == volume root; 0751 keeps it traversable by the
         # publisher (hermes-publish group / other) without granting write.
@@ -92,6 +92,20 @@
         install -o hermes -g hermes -m 0640 ${hermesConfig} ${stateDir}/.hermes/config.yaml
         install -o hermes -g hermes -m 0640 ${config.sops.secrets."hermes/env".path} ${stateDir}/.hermes/.env
         install -o hermes -g hermes -m 0640 ${hermesGitconfig} ${stateDir}/.gitconfig
+
+        # Seed the Hermes auth store from the Codex OAuth tokens. The gateway
+        # resolves the openai-codex provider from ~/.hermes/auth.json (not
+        # CODEX_HOME), so without this it reports "No Codex credentials
+        # stored". Seed only when absent — Hermes manages token refresh
+        # afterward and self-heals refresh_token rotation from CODEX_HOME.
+        if [ ! -e ${stateDir}/.hermes/auth.json ]; then
+          umask 077
+          jq -n --slurpfile c ${config.sops.secrets."hermes/codex-auth.json".path} \
+            '{providers: {"openai-codex": {tokens: $c[0].tokens, last_refresh: (now | todateiso8601), auth_mode: "chatgpt"}}}' \
+            > ${stateDir}/.hermes/auth.json
+          chown hermes:hermes ${stateDir}/.hermes/auth.json
+          chmod 0600 ${stateDir}/.hermes/auth.json
+        fi
 
         install -d -o hermes            -g hermes           -m 0700 ${stateDir}/codex
         install -d -o hermes-publisher  -g hermes-publisher -m 0750 ${stateDir}/publisher
