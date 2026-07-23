@@ -15,7 +15,10 @@ pending = pathlib.Path(os.environ["HERMES_PUBLISHER_PENDING"]).resolve()
 mirrors = pathlib.Path(os.environ["HERMES_PUBLISHER_MIRRORS"]).resolve()
 completed = root / "completed"
 rejected = root / "rejected"
-for directory in (pending, mirrors, completed, rejected):
+for directory in (pending, mirrors):
+    if not directory.is_dir():
+        raise RuntimeError(f"required publisher directory is missing: {directory}")
+for directory in (completed, rejected):
     directory.mkdir(parents=True, exist_ok=True)
 
 allowed_user = str(os.environ["HERMES_PUBLISHER_TELEGRAM_ALLOWED_USER"])
