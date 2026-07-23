@@ -206,6 +206,12 @@
               Environment = [
                 "CODEX_HOME=${stateDir}/codex"
                 "TZ=America/Port_of_Spain"
+                # This node has working DNS and direct reachability to
+                # api.telegram.org, so the adapter's DoH-discovered fallback-IP
+                # transport is pure downside here: it wedged startup
+                # indefinitely on an unreachable fallback chain. Force the
+                # direct httpx client instead.
+                "HERMES_TELEGRAM_DISABLE_FALLBACK_IPS=1"
               ];
               MemoryMax = "1G";
               CPUQuota = "100%";
