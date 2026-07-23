@@ -51,3 +51,23 @@ A privileged, non-human identity used only by automation to deploy system
 configurations. Its credentials grant administrative control of deployment
 targets.
 _Avoid_: Human Administrator, personal account
+
+**Hermes Agent**:
+A Telegram-facing personal agent that prepares repository changes and reports
+observed fleet state without holding deployment or publication authority.
+_Avoid_: Deployment Identity, cluster operator
+
+**Publication Broker**:
+A separate identity that publishes an approved Hermes worktree branch to
+GitHub; it is the only Hermes-related identity with repository write access.
+_Avoid_: Hermes Agent, Deployment Identity
+
+**Knowledge Base**:
+A private, reviewed Markdown repository that holds durable operational facts
+and links to their source revisions.
+_Avoid_: Session history, agent memory
+
+**Observed Snapshot**:
+A timestamped, bounded report of current host and service state; it is not a
+declaration of intended configuration.
+_Avoid_: Knowledge Base, desired state

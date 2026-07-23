@@ -50,6 +50,14 @@
     # installs the client from this input's locked rev (see
     # .github/workflows/ci.yml), so this lock is the single pin to bump.
     attic.url = "github:jeiang/attic";
+
+    # Hermes' NixOS module is upstream best-effort, so pin releases and
+    # update this input only through a focused, validated maintenance change.
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent/v2026.7.7";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
+    };
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);

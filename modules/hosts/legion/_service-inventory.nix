@@ -315,6 +315,22 @@
           # is now monitoring-only.
           stateful = false;
         }
+        {
+          # Telegram-facing agent, activated per docs/runbooks/hermes-activation.md
+          # once the Volume, secrets, and OAuth enrollment were in place.
+          name = "hermes";
+          enabled = true;
+          publicHostnames = [];
+          firewall = [];
+          stateful = true;
+          volume = {
+            name = "legion-hermes";
+            mountpoint = "/mnt/hermes";
+            sizeGiB = 10;
+            hcloudVolumeId = "106445720";
+          };
+          backupSet = ["/mnt/hermes"];
+        }
       ];
     };
 
