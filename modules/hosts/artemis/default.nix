@@ -11,15 +11,13 @@
     };
     nixosModules.artemisConfiguration = {pkgs, ...}: let
       # Desktop-only performance tuning: CachyOS kernel built for this host's
-      # zen4 CPU with the BORE scheduler and full LTO, guided by the AutoFDO
-      # profile in ./kernel.afdo. Not portable to other hosts as-is.
+      # zen4 CPU with the BORE scheduler and full LTO.
       originalKernel = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linux-cachyos-latest;
       kernel = originalKernel.override {
         pname = "linux-cachyos-bore-lto-zen4";
         processorOpt = "zen4";
         cpusched = "bore";
         lto = "full";
-        autofdo = ./kernel.afdo;
       };
     in {
       imports = [
@@ -72,9 +70,7 @@
           "/var/lib/netbird"
         ];
 
-        # User-level state. .mozilla/.cache/mozilla, .local/state/wireplumber,
-        # and .config/wivrn are already declared by the firefox, pipewire,
-        # and vr modules respectively, so they aren't repeated here.
+        # User-level state.
         data.directories = [
           "Desktop"
           "Documents"
@@ -167,8 +163,6 @@
           helpers = pkgs.callPackage "${inputs.nix-cachyos-kernel.outPath}/helpers.nix" {};
         in
           helpers.kernelModuleLLVMOverride (pkgs.linuxKernel.packagesFor kernel);
-        # extraModulePackages = [config.boot.kernelPackages.zenpower];
-        # kernelModules = ["zenpower"];
         blacklistedKernelModules = ["algif_aead"];
       };
       environment.variables = {
