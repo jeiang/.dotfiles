@@ -117,6 +117,7 @@ in {
         # harmless, and node2 enrolling as a peer of the server it also
         # hosts is exactly how NetBird is reached today.
         self.nixosModules.netbird
+        self.nixosModules.observedSnapshot
         self.diskoConfigurations.legion
       ];
 
@@ -183,9 +184,17 @@ in {
             paths = service.backupSet;
             pauseUnits = service.backupPauseUnits or [];
           })
-        (builtins.filter (service: service ? backupSet)
+        (builtins.filter (service: service ? backupSet && (service.volume or {}) ? hcloudVolumeId)
           (validatedLegionNodes.${config.networking.hostName}.services or []))
       );
+
+      observedSnapshot = {
+        bindAddress = legionNodes.${config.networking.hostName}.privateIPv4;
+        services = map (service: "${service.name}.service") (validatedLegionNodes.${config.networking.hostName}.services or []);
+        volumes =
+          map (service: service.volume.mountpoint)
+          (builtins.filter (service: service ? volume) (validatedLegionNodes.${config.networking.hostName}.services or []));
+      };
 
       # Declarative Hetzner Volume mounts, derived from this node's own
       # inventory entries. A service contributes nothing here until its
@@ -372,7 +381,15 @@ in {
             # (legion-node3 today).
             ++ lib.optional
             (lib.any (service: service.name == "monitoring") node.services)
-            self.nixosModules.monitoring;
+            self.nixosModules.monitoring
+            ++ lib.optional
+            (lib.any (service: service.name == "hermes") node.services)
+            self.nixosModules.hermes
+            ++ lib.optional
+            (lib.any (service: service.name == "hermes" && (service.enabled or false)) node.services)
+            {
+              hermes.enable = true;
+            };
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;

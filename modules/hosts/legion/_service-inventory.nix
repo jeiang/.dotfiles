@@ -315,6 +315,24 @@
           # is now monitoring-only.
           stateful = false;
         }
+        {
+          # Telegram-facing agent. The Volume ID is filled only after the
+          # capacity gate and Hetzner provisioning pass; its mount guard
+          # keeps Hermes off until then.
+          name = "hermes";
+          # Keep the service staged until the capacity gate, Volume creation,
+          # and SOPS/OAuth enrollment have all completed.
+          enabled = false;
+          publicHostnames = [];
+          firewall = [];
+          stateful = true;
+          volume = {
+            name = "legion-hermes";
+            mountpoint = "/mnt/hermes";
+            sizeGiB = 10;
+          };
+          backupSet = ["/mnt/hermes"];
+        }
       ];
     };
 
