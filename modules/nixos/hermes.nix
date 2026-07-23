@@ -28,27 +28,72 @@
       '';
     };
     aggregateSnapshot = pkgs.writers.writePython3Bin "hermes-snapshot-aggregate" {flakeIgnore = ["E501"];} (builtins.readFile ./hermes-snapshot-aggregate.py);
-    # The persistent state lives on a nofail Hetzner Volume that mounts long
-    # after systemd-tmpfiles-setup runs, so tmpfiles cannot reliably create
-    # these directories on the volume (they land on the pre-mount mountpoint
-    # and get shadowed). This oneshot runs after the mount, in the host
-    # namespace, so the sandboxed services below can build their mount
-    # namespaces against directories that actually exist.
+    hermesSettings = {
+      model = {
+        provider = "openai-codex";
+        default = "gpt-5.6-terra";
+        openai_runtime = "codex_app_server";
+      };
+      fallback_providers = [];
+      timezone = "America/Port_of_Spain";
+      agent.reasoning_effort = "medium";
+      memory = {
+        memory_enabled = true;
+        user_profile_enabled = true;
+        write_approval = false;
+      };
+      skills.write_approval = true;
+      unauthorized_dm_behavior = "ignore";
+      gateway.platforms.telegram.extra = {
+        # The SOPS environment file supplies TELEGRAM_ALLOWED_USERS. Hermes
+        # treats an empty allowlist as unrestricted. Telegram group IDs are
+        # numeric, so this impossible nonempty entry denies every group while
+        # direct-message authorization stays environment-based.
+        allowed_chats = ["__hermes_dm_only__"];
+        group_allowed_chats = [];
+        guest_mode = false;
+        observe_unmentioned_group_messages = false;
+      };
+    };
+    # config.yaml is exactly `builtins.toJSON settings` upstream (JSON is valid
+    # YAML); reproduced here so hermes-state-init can install it post-mount.
+    hermesConfig = pkgs.writeText "hermes-config.yaml" (builtins.toJSON hermesSettings);
+    # The persistent state lives on a nofail Hetzner Volume that mounts after
+    # both systemd-tmpfiles-setup and the system activation script that the
+    # upstream module uses to create ${stateDir}/.hermes, config.yaml, and
+    # .env. Those all run pre-mount, so their output lands on the shadowed
+    # pre-mount mountpoint and the volume root stays root:root and empty. This
+    # oneshot runs after the mount, in the host namespace, and is the single
+    # authority for the on-volume layout: it owns the volume root as the hermes
+    # home, recreates the agent's ~/.hermes tree with config.yaml and .env, and
+    # creates the publisher/mirror/report directories the sandboxed services
+    # build their namespaces against.
     stateInit = pkgs.writeShellApplication {
       name = "hermes-state-init";
       runtimeInputs = [pkgs.coreutils];
       text = ''
-        install -d -o hermes            -g hermes         -m 0700 ${stateDir}/codex
+        # Agent home == volume root; 0751 keeps it traversable by the
+        # publisher (hermes-publish group / other) without granting write.
+        install -d -o hermes -g hermes -m 0751 ${stateDir}
+        install -d -o hermes -g hermes -m 2770 ${stateDir}/.hermes
+        for sub in cron sessions logs memories plugins; do
+          install -d -o hermes -g hermes -m 2770 "${stateDir}/.hermes/$sub"
+        done
+        install -d -o hermes -g hermes -m 0750 ${stateDir}/home
+        install -o hermes -g hermes -m 0640 ${hermesConfig} ${stateDir}/.hermes/config.yaml
+        install -o hermes -g hermes -m 0640 ${config.sops.secrets."hermes/env".path} ${stateDir}/.hermes/.env
+
+        install -d -o hermes            -g hermes           -m 0700 ${stateDir}/codex
         install -d -o hermes-publisher  -g hermes-publisher -m 0750 ${stateDir}/publisher
         install -d -o hermes-publisher  -g hermes-publisher -m 0700 ${stateDir}/publisher/home
         install -d -o hermes-publisher  -g hermes-publisher -m 0700 ${stateDir}/publisher/gh
         install -d -o hermes-publisher  -g hermes-publisher -m 0750 ${stateDir}/publisher/completed
         install -d -o hermes-publisher  -g hermes-publisher -m 0750 ${stateDir}/publisher/rejected
-        install -d -o hermes-publisher  -g hermes-publish  -m 0750 ${stateDir}/mirrors
-        install -d -o hermes            -g hermes-publish  -m 0750 ${workspace}
-        install -d -o hermes            -g hermes-publish  -m 2770 ${workspace}/.publisher-requests
-        install -d -o root              -g hermes          -m 0750 ${stateDir}/reports
-        install -d -o root              -g hermes          -m 0750 ${stateDir}/reports/history
+        install -d -o hermes-publisher  -g hermes-publish   -m 0750 ${stateDir}/mirrors
+        install -d -o hermes            -g hermes-publish   -m 0750 ${workspace}
+        install -d -o hermes            -g hermes-publish   -m 2770 ${workspace}/.publisher-requests
+        install -d -o root              -g hermes           -m 0750 ${stateDir}/reports
+        install -d -o root              -g hermes           -m 0750 ${stateDir}/reports/history
       '';
     };
   in {
@@ -116,33 +161,11 @@
         environmentFiles = [config.sops.secrets."hermes/env".path];
         extraDependencyGroups = ["messaging"];
         extraPackages = [pkgs.codex];
-        settings = {
-          model = {
-            provider = "openai-codex";
-            default = "gpt-5.6-terra";
-            openai_runtime = "codex_app_server";
-          };
-          fallback_providers = [];
-          timezone = "America/Port_of_Spain";
-          agent.reasoning_effort = "medium";
-          memory = {
-            memory_enabled = true;
-            user_profile_enabled = true;
-            write_approval = false;
-          };
-          skills.write_approval = true;
-          unauthorized_dm_behavior = "ignore";
-          gateway.platforms.telegram.extra = {
-            # The SOPS environment file supplies TELEGRAM_ALLOWED_USERS.
-            # Hermes treats an empty allowlist as unrestricted. Telegram group
-            # IDs are numeric, so this impossible nonempty entry denies every
-            # group while direct-message authorization stays environment-based.
-            allowed_chats = ["__hermes_dm_only__"];
-            group_allowed_chats = [];
-            guest_mode = false;
-            observe_unmentioned_group_messages = false;
-          };
-        };
+        # The upstream activation script also renders this to config.yaml, but
+        # pre-mount (shadowed); hermes-state-init reinstalls the same content
+        # onto the volume. Kept here so the module's own settings-aware logic
+        # (e.g. mcp_servers merge) still sees the configuration.
+        settings = hermesSettings;
       };
 
       systemd = {
