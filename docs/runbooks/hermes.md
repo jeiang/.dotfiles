@@ -1,7 +1,6 @@
 # Hermes Operations
 
-One-time activation lives in `hermes-activation.md` until Hermes is enabled;
-this file covers the flows that recur for as long as Hermes runs.
+This file covers the flows that recur for as long as Hermes runs.
 
 ## Publication requests
 

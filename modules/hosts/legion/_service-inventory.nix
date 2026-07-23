@@ -316,8 +316,8 @@
           stateful = false;
         }
         {
-          # Telegram-facing agent, activated per docs/runbooks/hermes-activation.md
-          # once the Volume, secrets, and OAuth enrollment were in place.
+          # Telegram-facing agent with its persistent volume, secrets, and
+          # OAuth enrollment configured.
           name = "hermes";
           enabled = true;
           publicHostnames = [];
