@@ -58,6 +58,15 @@
     # config.yaml is exactly `builtins.toJSON settings` upstream (JSON is valid
     # YAML); reproduced here so hermes-state-init can install it post-mount.
     hermesConfig = pkgs.writeText "hermes-config.yaml" (builtins.toJSON hermesSettings);
+    # The agent and Codex run plain pkgs.git, which refuses the mirrors as
+    # "dubious ownership" (they belong to hermes-publisher). Mark exactly the
+    # mirror paths safe in the hermes home gitconfig — HOME is the volume root,
+    # so this covers every git the agent spawns without a global config write.
+    mirrorPath = repo: "${stateDir}/mirrors/${builtins.replaceStrings ["/"] ["__"] repo}.git";
+    hermesGitconfig = pkgs.writeText "hermes-gitconfig" ''
+      [safe]
+      ${lib.concatMapStringsSep "\n" (repo: "\tdirectory = ${mirrorPath repo}") (builtins.attrNames config.hermes.publisherRepositories)}
+    '';
     # The persistent state lives on a nofail Hetzner Volume that mounts after
     # both systemd-tmpfiles-setup and the system activation script that the
     # upstream module uses to create ${stateDir}/.hermes, config.yaml, and
@@ -82,6 +91,7 @@
         install -d -o hermes -g hermes -m 0750 ${stateDir}/home
         install -o hermes -g hermes -m 0640 ${hermesConfig} ${stateDir}/.hermes/config.yaml
         install -o hermes -g hermes -m 0640 ${config.sops.secrets."hermes/env".path} ${stateDir}/.hermes/.env
+        install -o hermes -g hermes -m 0640 ${hermesGitconfig} ${stateDir}/.gitconfig
 
         install -d -o hermes            -g hermes           -m 0700 ${stateDir}/codex
         install -d -o hermes-publisher  -g hermes-publisher -m 0750 ${stateDir}/publisher
