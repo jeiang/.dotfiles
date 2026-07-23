@@ -9,25 +9,126 @@
     ...
   }: let
     inherit (config.hermes) stateDir workspace;
+    memoryCheckout = "${workspace}/knowledge-base-memory";
+    memoryDirectory = "${memoryCheckout}/memories/hermes";
+    commandTools = [
+      pkgs.bash
+      pkgs.coreutils
+      pkgs.curl
+      pkgs.devenv
+      pkgs.fd
+      pkgs.findutils
+      pkgs.gawk
+      pkgs.git
+      pkgs.gnused
+      pkgs.jq
+      pkgs.just
+      pkgs.nix
+      pkgs.openssh
+      pkgs.ripgrep
+    ];
     codexConfig = pkgs.writeText "hermes-codex-config.toml" ''
-      sandbox_mode = "workspace-write"
-      approval_policy = "on-request"
+      default_permissions = "hermes"
+      approval_policy = "never"
+      web_search = "live"
       model = "gpt-5.6-terra"
       model_reasoning_effort = "medium"
 
-      [sandbox_workspace_write]
-      writable_roots = ["${workspace}"]
-      network_access = false
+      [permissions.hermes]
+      extends = ":workspace"
+
+      [permissions.hermes.workspace_roots]
+      "${workspace}" = true
+
+      [permissions.hermes.filesystem]
+      ":root" = "read"
+      "/tmp" = "write"
+      "${workspace}" = "write"
+      "${stateDir}/.hermes/memories" = "write"
+      "${stateDir}/requests" = "write"
+      "${stateDir}/approval-status" = "read"
+      "${stateDir}/reports" = "read"
+      "${stateDir}/.hermes/.env" = "deny"
+      "${stateDir}/.hermes/auth.json" = "deny"
+      "${stateDir}/codex/auth.json" = "deny"
+      "${stateDir}/publisher" = "deny"
+      "${stateDir}/commands" = "deny"
+      "${stateDir}/command-results" = "deny"
+      "/etc/ssh" = "deny"
+      "/home" = "deny"
+      "/root" = "deny"
+      "/run/credentials" = "deny"
+      "/run/secrets" = "deny"
+      "/var/lib/private" = "deny"
+      "/var/lib/sops-nix" = "deny"
+      "/nix/var/nix/daemon-socket/socket" = "deny"
+
+      [permissions.hermes.filesystem.":workspace_roots"]
+      "." = "write"
+      ".git" = "write"
+      ".agents" = "read"
+      ".codex" = "read"
+      "AGENTS.md" = "read"
+
+      [permissions.hermes.network]
+      enabled = true
+      mode = "limited"
+      allow_local_binding = false
+
+      [permissions.hermes.network.domains]
+      "*" = "allow"
     '';
-    repositoriesFile = pkgs.writeText "hermes-publisher-repositories.json" (builtins.toJSON config.hermes.publisherRepositories);
-    publisher = pkgs.writeShellApplication {
-      name = "hermes-publisher";
+    publicationSourcesFile =
+      pkgs.writeText "hermes-publication-sources.json"
+      (builtins.toJSON config.hermes.publicationSources);
+    approvalBroker = pkgs.writeShellApplication {
+      name = "hermes-approval-broker";
       runtimeInputs = [pkgs.gh pkgs.git pkgs.python3];
       text = ''
-        exec ${pkgs.python3}/bin/python ${./hermes-publisher.py} "$@"
+        exec ${pkgs.python3}/bin/python ${./hermes-approval.py} broker "$@"
+      '';
+    };
+    approvalDispatcher = pkgs.writeShellApplication {
+      name = "hermes-approval-dispatcher";
+      runtimeInputs = [pkgs.python3 pkgs.systemd];
+      text = ''
+        exec ${pkgs.python3}/bin/python ${./hermes-approval.py} dispatch "$@"
+      '';
+    };
+    commandRunner = pkgs.writeShellApplication {
+      name = "hermes-command-runner";
+      runtimeInputs = [pkgs.python3] ++ commandTools;
+      text = ''
+        exec ${pkgs.python3}/bin/python ${./hermes-approval.py} run "$@"
+      '';
+    };
+    requestHelper = pkgs.writeShellApplication {
+      name = "hermes-request";
+      runtimeInputs = [pkgs.python3];
+      text = ''
+        exec ${pkgs.python3}/bin/python ${./hermes-approval.py} request "$@"
+      '';
+    };
+    memoryBatch = pkgs.writeShellApplication {
+      name = "hermes-memory-batch";
+      runtimeInputs = [pkgs.git pkgs.python3 requestHelper];
+      text = ''
+        exec ${pkgs.python3}/bin/python ${./hermes-approval.py} memory-batch
       '';
     };
     aggregateSnapshot = pkgs.writers.writePython3Bin "hermes-snapshot-aggregate" {flakeIgnore = ["E501"];} (builtins.readFile ./hermes-snapshot-aggregate.py);
+    workspaceInstructions = pkgs.writeText "hermes-workspace-AGENTS.md" ''
+      # Hermes workspace policy
+
+      - Work freely inside `${workspace}`, including Git metadata.
+      - Do not attempt to read credentials, broker state, approval queues, or the Nix daemon socket.
+      - Use `hermes-request command` for a command blocked by the normal permission profile.
+      - Use `hermes-request service` for an allowed Hermes service lifecycle action.
+      - Use `hermes-request publication` to publish an exact `codex/` branch commit. Hermes has no direct GitHub write credential.
+      - General knowledge may be written only when the user explicitly requests or directs it.
+      - Store native memory only in `knowledge-base-memory/memories/hermes`.
+      - Organize directed general knowledge by subject. Put structural reorganizations in a dedicated branch and validate internal Markdown links.
+    '';
     hermesSettings = {
       model = {
         provider = "openai-codex";
@@ -45,44 +146,29 @@
       skills.write_approval = true;
       unauthorized_dm_behavior = "ignore";
       gateway.platforms.telegram.extra = {
-        # The SOPS environment file supplies TELEGRAM_ALLOWED_USERS. Hermes
-        # treats an empty allowlist as unrestricted. Telegram group IDs are
-        # numeric, so this impossible nonempty entry denies every group while
-        # direct-message authorization stays environment-based.
         allowed_chats = ["__hermes_dm_only__"];
         group_allowed_chats = [];
         guest_mode = false;
         observe_unmentioned_group_messages = false;
       };
     };
-    # config.yaml is exactly `builtins.toJSON settings` upstream (JSON is valid
-    # YAML); reproduced here so hermes-state-init can install it post-mount.
     hermesConfig = pkgs.writeText "hermes-config.yaml" (builtins.toJSON hermesSettings);
-    # The agent and Codex run plain pkgs.git, which refuses the mirrors as
-    # "dubious ownership" (they belong to hermes-publisher). Mark exactly the
-    # mirror paths safe in the hermes home gitconfig — HOME is the volume root,
-    # so this covers every git the agent spawns without a global config write.
+    uniqueRepositories =
+      lib.unique
+      (lib.mapAttrsToList (_: source: source.repository) config.hermes.publicationSources);
     mirrorPath = repo: "${stateDir}/mirrors/${builtins.replaceStrings ["/"] ["__"] repo}.git";
     hermesGitconfig = pkgs.writeText "hermes-gitconfig" ''
+      [user]
+        name = Hermes Agent
+        email = 31970261+jeiang@users.noreply.github.com
       [safe]
-      ${lib.concatMapStringsSep "\n" (repo: "\tdirectory = ${mirrorPath repo}") (builtins.attrNames config.hermes.publisherRepositories)}
+        directory = *
+      ${lib.concatMapStringsSep "\n" (repo: "\tdirectory = ${mirrorPath repo}") uniqueRepositories}
     '';
-    # The persistent state lives on a nofail Hetzner Volume that mounts after
-    # both systemd-tmpfiles-setup and the system activation script that the
-    # upstream module uses to create ${stateDir}/.hermes, config.yaml, and
-    # .env. Those all run pre-mount, so their output lands on the shadowed
-    # pre-mount mountpoint and the volume root stays root:root and empty. This
-    # oneshot runs after the mount, in the host namespace, and is the single
-    # authority for the on-volume layout: it owns the volume root as the hermes
-    # home, recreates the agent's ~/.hermes tree with config.yaml and .env, and
-    # creates the publisher/mirror/report directories the sandboxed services
-    # build their namespaces against.
     stateInit = pkgs.writeShellApplication {
       name = "hermes-state-init";
-      runtimeInputs = [pkgs.coreutils pkgs.jq];
+      runtimeInputs = [pkgs.acl pkgs.coreutils pkgs.findutils pkgs.gnugrep pkgs.jq];
       text = ''
-        # Agent home == volume root; 0751 keeps it traversable by the
-        # publisher (hermes-publish group / other) without granting write.
         install -d -o hermes -g hermes -m 0751 ${stateDir}
         install -d -o hermes -g hermes -m 2770 ${stateDir}/.hermes
         for sub in cron sessions logs memories plugins; do
@@ -91,15 +177,8 @@
         install -d -o hermes -g hermes -m 0750 ${stateDir}/home
         install -o hermes -g hermes -m 0640 ${hermesConfig} ${stateDir}/.hermes/config.yaml
         install -o hermes -g hermes -m 0640 ${config.sops.secrets."hermes/env".path} ${stateDir}/.hermes/.env
-        install -o hermes -g hermes -m 0640 ${hermesGitconfig} ${stateDir}/.gitconfig
+        install -o hermes -g hermes-workspace -m 0644 ${hermesGitconfig} ${stateDir}/.gitconfig
 
-        # Seed the Hermes auth store from the Codex OAuth tokens. The gateway
-        # resolves the openai-codex provider from ~/.hermes/auth.json (not
-        # CODEX_HOME), so without this it reports "No Codex credentials
-        # stored". Seed whenever the store lacks a usable openai-codex access
-        # token (missing file, empty/invalid store, or a stub left by a failed
-        # start) but never when Hermes already holds a good token — Hermes
-        # manages refresh afterward and self-heals rotation from CODEX_HOME.
         if ! jq -e '(.providers["openai-codex"].tokens.access_token // "") | length > 0' \
             ${stateDir}/.hermes/auth.json >/dev/null 2>&1; then
           umask 077
@@ -110,17 +189,44 @@
           chmod 0600 ${stateDir}/.hermes/auth.json
         fi
 
-        install -d -o hermes            -g hermes           -m 0700 ${stateDir}/codex
-        install -d -o hermes-publisher  -g hermes-publisher -m 0750 ${stateDir}/publisher
-        install -d -o hermes-publisher  -g hermes-publisher -m 0700 ${stateDir}/publisher/home
-        install -d -o hermes-publisher  -g hermes-publisher -m 0700 ${stateDir}/publisher/gh
-        install -d -o hermes-publisher  -g hermes-publisher -m 0750 ${stateDir}/publisher/completed
-        install -d -o hermes-publisher  -g hermes-publisher -m 0750 ${stateDir}/publisher/rejected
-        install -d -o hermes-publisher  -g hermes-publish   -m 0750 ${stateDir}/mirrors
-        install -d -o hermes            -g hermes-publish   -m 0750 ${workspace}
-        install -d -o hermes            -g hermes-publish   -m 2770 ${workspace}/.publisher-requests
-        install -d -o root              -g hermes           -m 0750 ${stateDir}/reports
-        install -d -o root              -g hermes           -m 0750 ${stateDir}/reports/history
+        install -d -o hermes -g hermes -m 0700 ${stateDir}/codex
+        install -d -o hermes-approval-broker -g hermes-approval-broker -m 0750 ${stateDir}/publisher
+        install -d -o hermes-approval-broker -g hermes-approval-broker -m 0700 ${stateDir}/publisher/home
+        install -d -o hermes-approval-broker -g hermes-approval-broker -m 0700 ${stateDir}/publisher/gh
+        for sub in announced completed rejected dispatch; do
+          install -d -o hermes-approval-broker -g hermes-approval-broker -m 0750 "${stateDir}/publisher/$sub"
+        done
+        chown -R hermes-approval-broker:hermes-approval-broker ${stateDir}/publisher
+
+        install -d -o hermes-approval-broker -g hermes-publish -m 0750 ${stateDir}/mirrors
+        chown -R hermes-approval-broker:hermes-publish ${stateDir}/mirrors
+        install -d -o hermes-approval-broker -g hermes-requests -m 2730 ${stateDir}/requests
+        install -d -o hermes-approval-broker -g hermes-results -m 2770 ${stateDir}/approval-status
+        install -d -o root -g hermes-command -m 0750 ${stateDir}/commands
+        for sub in jobs cancel inflight processed; do
+          install -d -o root -g hermes-command -m 0750 "${stateDir}/commands/$sub"
+        done
+        install -d -o hermes-command -g hermes-results -m 2770 ${stateDir}/command-results
+        install -d -o hermes -g hermes -m 0750 ${stateDir}/memory-batch
+
+        install -d -o hermes -g hermes-workspace -m 2770 ${workspace}
+        if [ -d ${workspace}/.publisher-requests ] &&
+            find ${workspace}/.publisher-requests -mindepth 1 -print -quit | grep -q .; then
+          echo "legacy Hermes publication requests must be handled before activation" >&2
+          exit 1
+        fi
+        rmdir ${workspace}/.publisher-requests 2>/dev/null || true
+        find -P ${workspace} -type d -exec setfacl \
+          -m g:hermes-workspace:rwx,g:hermes-publish:r-x \
+          -m d:g:hermes-workspace:rwx,d:g:hermes-publish:r-x,d:m:rwx {} +
+        find -P ${workspace} -type f -exec setfacl \
+          -m g:hermes-workspace:rw-,g:hermes-publish:r-- {} +
+        find -P ${workspace} -type f -perm /111 -exec setfacl \
+          -m g:hermes-workspace:rwx,g:hermes-publish:r-x {} +
+        install --remove-destination -o root -g hermes-workspace -m 0444 ${workspaceInstructions} ${workspace}/AGENTS.md
+
+        install -d -o root -g hermes -m 0750 ${stateDir}/reports
+        install -d -o root -g hermes -m 0750 ${stateDir}/reports/history
       '';
     };
   in {
@@ -136,7 +242,7 @@
       workspace = lib.mkOption {
         type = lib.types.str;
         default = "${config.hermes.stateDir}/worktrees";
-        description = "Only directory writable to Codex app-server turns.";
+        description = "Workspace writable by Hermes and approved command execution.";
       };
       peerAddresses = lib.mkOption {
         type = lib.types.listOf lib.types.str;
@@ -146,13 +252,34 @@
         type = lib.types.str;
         description = "VictoriaMetrics base URL queried by the aggregator.";
       };
-      publisherRepositories = lib.mkOption {
-        type = lib.types.attrsOf lib.types.str;
+      publicationSources = lib.mkOption {
+        type = lib.types.attrsOf (lib.types.submodule {
+          options = {
+            repository = lib.mkOption {
+              type = lib.types.str;
+              description = "GitHub owner/repository allowed for publication.";
+            };
+            worktree = lib.mkOption {
+              type = lib.types.str;
+              description = "Fixed Hermes worktree used as the publication source.";
+            };
+          };
+        });
         default = {
-          "jeiang/.dotfiles" = "${config.hermes.workspace}/cornn-flaek";
-          "jeiang/knowledge-base" = "${config.hermes.workspace}/knowledge-base";
+          cornn-flaek = {
+            repository = "jeiang/.dotfiles";
+            worktree = "${config.hermes.workspace}/cornn-flaek";
+          };
+          knowledge-base = {
+            repository = "jeiang/knowledge-base";
+            worktree = "${config.hermes.workspace}/knowledge-base";
+          };
+          knowledge-base-memory = {
+            repository = "jeiang/knowledge-base";
+            worktree = "${config.hermes.workspace}/knowledge-base-memory";
+          };
         };
-        description = "Publication policy: repository to approved worktree path.";
+        description = "Named, fixed worktrees and repositories allowed for publication.";
       };
     };
 
@@ -169,8 +296,8 @@
           mode = "0400";
         };
         "hermes/publisher-env" = {
-          owner = "hermes-publisher";
-          group = "hermes-publisher";
+          owner = "hermes-approval-broker";
+          group = "hermes-approval-broker";
           mode = "0400";
         };
       };
@@ -179,19 +306,9 @@
         enable = true;
         inherit stateDir;
         workingDirectory = workspace;
-        # No authFile: model turns run through the `codex app-server`
-        # subprocess, which authenticates from CODEX_HOME/auth.json (the
-        # hermes/codex-auth.json seed). Hermes' own ~/.hermes/auth.json
-        # store is only used by the default (non-Codex) runtime, which
-        # this deployment never selects (openai_runtime = codex_app_server,
-        # fallback_providers = []).
         environmentFiles = [config.sops.secrets."hermes/env".path];
         extraDependencyGroups = ["messaging"];
-        extraPackages = [pkgs.codex];
-        # The upstream activation script also renders this to config.yaml, but
-        # pre-mount (shadowed); hermes-state-init reinstalls the same content
-        # onto the volume. Kept here so the module's own settings-aware logic
-        # (e.g. mcp_servers merge) still sees the configuration.
+        extraPackages = commandTools ++ [pkgs.codex requestHelper];
         settings = hermesSettings;
       };
 
@@ -200,7 +317,14 @@
           hermes-state-init = {
             description = "Create Hermes state directories on the mounted volume";
             wantedBy = ["multi-user.target"];
-            before = ["hermes-agent.service" "hermes-publisher.service" "hermes-snapshot-aggregate.service"];
+            before = [
+              "hermes-agent.service"
+              "hermes-approval-broker.service"
+              "hermes-approval-dispatcher.service"
+              "hermes-command-runner.service"
+              "hermes-memory-batch.service"
+              "hermes-snapshot-aggregate.service"
+            ];
             unitConfig = {
               ConditionPathIsMountPoint = stateDir;
               RequiresMountsFor = stateDir;
@@ -217,21 +341,41 @@
             after = ["hermes-state-init.service"];
             unitConfig = {
               ConditionPathIsMountPoint = stateDir;
+              ConditionPathIsDirectory = memoryDirectory;
               RequiresMountsFor = stateDir;
             };
             serviceConfig = {
               Environment = [
                 "CODEX_HOME=${stateDir}/codex"
                 "TZ=America/Port_of_Spain"
-                # This node has working DNS and direct reachability to
-                # api.telegram.org, so the adapter's DoH-discovered fallback-IP
-                # transport is pure downside here: it wedged startup
-                # indefinitely on an unreachable fallback chain. Force the
-                # direct httpx client instead.
+                "HERMES_APPROVAL_REQUESTS=${stateDir}/requests"
+                "HERMES_APPROVAL_STATUS=${stateDir}/approval-status"
                 "HERMES_TELEGRAM_DISABLE_FALLBACK_IPS=1"
               ];
               MemoryMax = "1G";
               CPUQuota = "100%";
+              ProtectProc = "invisible";
+              BindPaths = ["${memoryDirectory}:${stateDir}/.hermes/memories"];
+              InaccessiblePaths = [
+                "${stateDir}/publisher"
+                "${stateDir}/commands"
+                "${stateDir}/command-results"
+                "/etc/ssh"
+                "/home"
+                "/root"
+                "/run/credentials"
+                "/run/secrets"
+                "/var/lib/private"
+                "/var/lib/sops-nix"
+              ];
+              ReadOnlyPaths = [
+                "${stateDir}/approval-status"
+                "${stateDir}/mirrors"
+                "${stateDir}/reports"
+                "${workspace}/AGENTS.md"
+                "-${workspace}/.agents"
+                "-${workspace}/.codex"
+              ];
               ExecStartPre = lib.mkAfter [
                 "+${pkgs.coreutils}/bin/install -d -o hermes -g hermes -m 0700 ${stateDir}/codex"
                 "+${pkgs.bash}/bin/sh -c 'test -s ${stateDir}/codex/auth.json || ${pkgs.coreutils}/bin/install -o hermes -g hermes -m 0600 ${config.sops.secrets."hermes/codex-auth.json".path} ${stateDir}/codex/auth.json'"
@@ -240,8 +384,8 @@
             };
           };
 
-          hermes-publisher = {
-            description = "Hermes GitHub publication approval broker";
+          hermes-approval-broker = {
+            description = "Hermes Telegram approval and GitHub publication broker";
             wantedBy = ["multi-user.target"];
             requires = ["hermes-state-init.service"];
             after = ["network-online.target" "hermes-state-init.service"];
@@ -251,27 +395,174 @@
               RequiresMountsFor = stateDir;
             };
             serviceConfig = {
-              User = "hermes-publisher";
-              Group = "hermes-publisher";
+              User = "hermes-approval-broker";
+              Group = "hermes-approval-broker";
               Environment = [
                 "HOME=${stateDir}/publisher/home"
                 "GH_CONFIG_DIR=${stateDir}/publisher/gh"
-                "HERMES_PUBLISHER_PENDING=${workspace}/.publisher-requests"
-                "HERMES_PUBLISHER_MIRRORS=${stateDir}/mirrors"
-                "HERMES_PUBLISHER_REPOSITORIES_FILE=${repositoriesFile}"
+                "HERMES_APPROVAL_REQUESTS=${stateDir}/requests"
+                "HERMES_APPROVAL_STATUS=${stateDir}/approval-status"
+                "HERMES_APPROVAL_MIRRORS=${stateDir}/mirrors"
+                "HERMES_APPROVAL_SOURCES_FILE=${publicationSourcesFile}"
+                "HERMES_APPROVAL_AGENT_USER=hermes"
               ];
               EnvironmentFile = config.sops.secrets."hermes/publisher-env".path;
-              ExecStart = "${publisher}/bin/hermes-publisher ${stateDir}/publisher";
+              ExecStart = "${approvalBroker}/bin/hermes-approval-broker ${stateDir}/publisher";
               Restart = "always";
               RestartSec = "5s";
               NoNewPrivileges = true;
               PrivateTmp = true;
               ProtectSystem = "strict";
               ProtectHome = true;
+              ProtectProc = "invisible";
               ReadWritePaths = [
                 "${stateDir}/publisher"
                 "${stateDir}/mirrors"
-                "${workspace}/.publisher-requests"
+                "${stateDir}/requests"
+                "${stateDir}/approval-status"
+              ];
+            };
+          };
+
+          hermes-approval-dispatcher = {
+            description = "Dispatch approved Hermes commands and service actions";
+            wantedBy = ["multi-user.target"];
+            requires = ["hermes-state-init.service"];
+            after = ["hermes-state-init.service"];
+            unitConfig = {
+              ConditionPathIsMountPoint = stateDir;
+              RequiresMountsFor = stateDir;
+            };
+            serviceConfig = {
+              User = "root";
+              Group = "root";
+              Environment = [
+                "HERMES_APPROVAL_DISPATCH=${stateDir}/publisher/dispatch"
+                "HERMES_APPROVAL_STATUS=${stateDir}/approval-status"
+                "HERMES_APPROVAL_SOURCES_FILE=${publicationSourcesFile}"
+                "HERMES_APPROVAL_BROKER_USER=hermes-approval-broker"
+                "HERMES_COMMAND_GROUP=hermes-command"
+              ];
+              ExecStart = "${approvalDispatcher}/bin/hermes-approval-dispatcher ${stateDir}/commands";
+              Restart = "always";
+              RestartSec = "2s";
+              NoNewPrivileges = true;
+              PrivateTmp = true;
+              ProtectSystem = "strict";
+              ProtectHome = true;
+              ProtectProc = "invisible";
+              ReadWritePaths = [
+                "${stateDir}/publisher/dispatch"
+                "${stateDir}/commands"
+                "${stateDir}/approval-status"
+              ];
+            };
+          };
+
+          hermes-command-runner = {
+            description = "Run one approved Hermes command at a time";
+            wantedBy = ["multi-user.target"];
+            requires = ["hermes-state-init.service"];
+            after = ["network-online.target" "hermes-state-init.service"];
+            wants = ["network-online.target"];
+            path = commandTools;
+            unitConfig = {
+              ConditionPathIsMountPoint = stateDir;
+              RequiresMountsFor = stateDir;
+            };
+            serviceConfig = {
+              User = "hermes-command";
+              Group = "hermes-command";
+              Environment = [
+                "HOME=${stateDir}"
+                "HERMES_COMMAND_WORKSPACE=${workspace}"
+                "HERMES_COMMAND_RESULTS=${stateDir}/command-results"
+                "HERMES_APPROVAL_STATUS=${stateDir}/approval-status"
+                "HERMES_COMMAND_SHELL=${pkgs.bash}/bin/bash"
+                "XDG_CACHE_HOME=/tmp/cache"
+                "XDG_CONFIG_HOME=/tmp/config"
+              ];
+              ExecStart = "${commandRunner}/bin/hermes-command-runner ${stateDir}/commands";
+              Restart = "always";
+              RestartSec = "2s";
+              UMask = "0007";
+              MemoryMax = "500M";
+              CPUQuota = "100%";
+              NoNewPrivileges = true;
+              PrivateTmp = true;
+              ProtectSystem = "strict";
+              ProtectHome = true;
+              ProtectProc = "invisible";
+              RestrictAddressFamilies = ["AF_UNIX" "AF_INET" "AF_INET6"];
+              IPAddressDeny = [
+                "localhost"
+                "link-local"
+                "multicast"
+                "10.0.0.0/8"
+                "100.64.0.0/10"
+                "172.16.0.0/12"
+                "192.168.0.0/16"
+                "fc00::/7"
+                "fe80::/10"
+              ];
+              InaccessiblePaths = [
+                "${stateDir}/.hermes"
+                "${stateDir}/codex"
+                "${stateDir}/publisher"
+                "${stateDir}/requests"
+                "/etc/ssh"
+                "/home"
+                "/root"
+                "/run/credentials"
+                "/run/secrets"
+                "/var/lib/private"
+                "/var/lib/sops-nix"
+              ];
+              ReadWritePaths = [
+                workspace
+                "${stateDir}/approval-status"
+                "${stateDir}/command-results"
+              ];
+              ReadOnlyPaths = [
+                "${workspace}/AGENTS.md"
+                "-${workspace}/.agents"
+                "-${workspace}/.codex"
+              ];
+            };
+          };
+
+          hermes-memory-batch = {
+            description = "Commit Hermes native memory for human review";
+            requires = ["hermes-state-init.service"];
+            after = ["hermes-state-init.service"];
+            unitConfig = {
+              ConditionPathIsMountPoint = stateDir;
+              ConditionPathIsDirectory = memoryDirectory;
+              RequiresMountsFor = stateDir;
+            };
+            serviceConfig = {
+              Type = "oneshot";
+              User = "hermes";
+              Group = "hermes";
+              Environment = [
+                "HOME=${stateDir}"
+                "HERMES_MEMORY_CHECKOUT=${memoryCheckout}"
+                "HERMES_MEMORY_PENDING_ID=${stateDir}/memory-batch/pending-id"
+                "HERMES_APPROVAL_REQUESTS=${stateDir}/requests"
+                "HERMES_APPROVAL_STATUS=${stateDir}/approval-status"
+                "HERMES_REQUEST_BIN=${requestHelper}/bin/hermes-request"
+              ];
+              ExecStart = "${memoryBatch}/bin/hermes-memory-batch";
+              UMask = "0007";
+              NoNewPrivileges = true;
+              PrivateNetwork = true;
+              PrivateTmp = true;
+              ProtectSystem = "strict";
+              ProtectHome = true;
+              ReadWritePaths = [
+                memoryCheckout
+                "${stateDir}/memory-batch"
+                "${stateDir}/requests"
               ];
             };
           };
@@ -297,46 +588,62 @@
             };
           };
         };
-        timers.hermes-snapshot-aggregate = {
-          wantedBy = ["timers.target"];
-          timerConfig = {
-            OnBootSec = "7m";
-            OnUnitActiveSec = "15m";
+
+        timers = {
+          hermes-memory-batch = {
+            wantedBy = ["timers.target"];
+            timerConfig = {
+              OnCalendar = "*-*-* 04:00:00 UTC";
+              Persistent = true;
+            };
+          };
+          hermes-snapshot-aggregate = {
+            wantedBy = ["timers.target"];
+            timerConfig = {
+              OnBootSec = "7m";
+              OnUnitActiveSec = "15m";
+            };
           };
         };
 
-        # Directory creation is handled by hermes-state-init (post-mount, in
-        # the host namespace) because these paths live on a nofail Volume that
-        # mounts after systemd-tmpfiles-setup. The agent owns its worktrees
-        # outright (single-writer .git); the publisher only reads them, via the
-        # hermes-publish group; the publisher's own tree and the bare mirrors
-        # are publisher-owned so the agent cannot swap out directories feeding
-        # the credentialed git/gh processes. tmpfiles only ages out the
-        # snapshot history here (the `e` type never creates, so it is immune to
-        # the mount-ordering race above).
         tmpfiles.rules = [
           "e ${stateDir}/reports/history - - - 7d"
+          "e ${stateDir}/command-results - - - 30d"
+          "e ${stateDir}/commands/cancel - - - 30d"
+          "e ${stateDir}/commands/jobs - - - 30d"
+          "e ${stateDir}/commands/processed - - - 30d"
+          "e ${stateDir}/approval-status - - - 30d"
         ];
       };
 
       users = {
-        users.hermes = {
-          extraGroups = ["hermes-publish"];
-          # The state directory is also the hermes home; the default 0700
-          # home mode would keep the publisher from traversing to the
-          # worktrees, mirrors, and pending-request directories beneath it.
-          homeMode = "751";
-        };
-        users.hermes-publisher = {
-          isSystemUser = true;
-          group = "hermes-publisher";
-          home = "${stateDir}/publisher/home";
-          createHome = false;
-          extraGroups = ["hermes-publish"];
+        users = {
+          hermes = {
+            extraGroups = ["hermes-publish" "hermes-requests" "hermes-results" "hermes-workspace"];
+            homeMode = "751";
+          };
+          hermes-approval-broker = {
+            isSystemUser = true;
+            group = "hermes-approval-broker";
+            home = "${stateDir}/publisher/home";
+            createHome = false;
+            extraGroups = ["hermes-publish" "hermes-requests" "hermes-results"];
+          };
+          hermes-command = {
+            isSystemUser = true;
+            group = "hermes-command";
+            home = stateDir;
+            createHome = false;
+            extraGroups = ["hermes-publish" "hermes-results" "hermes-workspace"];
+          };
         };
         groups = {
-          hermes-publisher = {};
+          hermes-approval-broker = {};
+          hermes-command = {};
           hermes-publish = {};
+          hermes-requests = {};
+          hermes-results = {};
+          hermes-workspace = {};
         };
       };
     };

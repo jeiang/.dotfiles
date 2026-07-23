@@ -20,13 +20,13 @@
           touch $out
         '';
 
-        # Hermes ships staged behind `enabled = false` in the Legion
-        # inventory, so the regular toplevel checks never evaluate or build
-        # its configuration. This forces it on so the dormant config can't
-        # rot: an option typo fails eval here, a broken script derivation
-        # fails the build. Secrets are enrolled only at activation
-        # (docs/runbooks/hermes.md), so sops validation is skipped for this
-        # synthetic system.
+        hermes-approval = pkgs.runCommand "hermes-approval-check" {nativeBuildInputs = [pkgs.bash pkgs.coreutils pkgs.python3];} ''
+          python -B ${self}/modules/nixos/test_hermes_approval.py
+          touch $out
+        '';
+
+        # Keep an exact Hermes-focused system check that does not depend on
+        # local access to the encrypted production secrets.
         toplevel-legion-node3-hermes-enabled =
           (self.nixosConfigurations.legion-node3.extendModules {
             modules = [
