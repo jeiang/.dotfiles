@@ -133,6 +133,82 @@ _: {
         name = "fleet-overview.json";
         path = ./fleet-overview.json;
       }
+      # --- Per-service boards (Part D). Each targets one scrape job below.
+      # Hand-authored boards reference the VictoriaMetrics datasource by its
+      # fixed uid ("victoriametrics") like fleet-overview.json; the two
+      # vendored boards resolve it via a `datasource`-type template variable
+      # (query "prometheus", current "Default") that binds to the same
+      # isDefault datasource, the file-provisioning-safe pattern
+      # node-exporter-full.json / crowdsec-dashboard.json already use. All
+      # PromQL was checked against the nixpkgs-pinned service sources so
+      # panels reference real exposed metric names.
+      {
+        # Hand-authored board for the edge Caddy reverse proxy (job "caddy",
+        # 172.17.0.1:2020). Metric names verified against caddy v2.11.4
+        # (modules/caddyhttp/metrics.go + reverseproxy/metrics.go): request
+        # rate/latency percentiles from caddy_http_request_duration_seconds_*,
+        # status-code breakdown from that histogram's _count series (which
+        # carries `code`; caddy_http_requests_total does not),
+        # caddy_reverse_proxy_upstreams_healthy, response bytes, Go runtime.
+        name = "caddy.json";
+        path = ./caddy.json;
+      }
+      {
+        # Vendored "Blocky" board (grafana.com #13768 revision 8), whose
+        # metric names match blocky 0.33.0 exactly (verified against
+        # resolver/metrics_resolver.go + metrics/metrics_event_publisher.go:
+        # blocky_query_total, blocky_response_total, blocky_cache_entries,
+        # blocky_denylist_cache_entries, blocky_request_duration_seconds, ...).
+        # Adapted for file provisioning: __inputs emptied, the VAR_BLOCKY_URL
+        # input placeholder resolved to its upstream default, uid pinned. Its
+        # $job/$instance variables populate from blocky_build_info, matching
+        # our job "blocky" scrape (172.17.0.2:8000).
+        name = "blocky.json";
+        path = ./blocky.json;
+      }
+      {
+        # Hand-authored board for the NetBird management server (job
+        # "netbird-server", 172.17.0.2:9090). Instruments verified against
+        # netbird v0.74.3 (management/server/telemetry/{grpc,http_api}_
+        # metrics.go). Those are OpenTelemetry instruments exported by the
+        # otel prometheus exporter v0.64.0 with defaults, so counter names may
+        # gain `_total` and the *.duration.ms histograms may gain a
+        # `_milliseconds` unit suffix -- not recoverable from source without a
+        # live scrape -- so the board's selectors match __name__ with the
+        # verified base name plus an optional suffix (PromQL regexes are
+        # anchored, so they can't collide). No peer/account gauges exist here:
+        # those live in a PostHog usage payload (metrics/selfhosted.go), not
+        # /metrics.
+        name = "netbird-server.json";
+        path = ./netbird-server.json;
+      }
+      {
+        # Hand-authored board for the H@H client (hath-rust, job "hath",
+        # 172.17.0.4:8888/metrics over https). Metric names verified against
+        # hath-rust v1.17.0 (src/metrics.rs): a prometheus-client
+        # Registry::with_prefix("hath"), so counters carry `_total` and
+        # register_with_unit(Bytes/Seconds) appends `_bytes`/`_seconds`
+        # (hath_cache_sent_total, hath_cache_sent_size_bytes_total,
+        # hath_cache_sent_duration_seconds_*, hath_connections,
+        # hath_cache_size_bytes/_capacity_bytes/_count, hath_download_*,
+        # hath_uptime_seconds_total).
+        name = "hath.json";
+        path = ./hath.json;
+      }
+      {
+        # Vendored "Prometheus Blackbox Exporter" board (grafana.com #7587
+        # revision 3). Covers our blackbox-http / blackbox-tcp jobs (the
+        # `$target` variable enumerates label_values(probe_success, instance),
+        # i.e. each probed URL/host:port). Adapted for file provisioning:
+        # __inputs emptied and every datasource ref repointed onto a
+        # `datasource`-type template variable (this old schemaVersion-16 board
+        # shipped with a per-panel ${DS_...} input instead). SSL-expiry and
+        # HTTP-version panels read empty by design -- our probes are private
+        # backends over plain http/tcp (docs/adr/0003), no TLS -- kept rather
+        # than deleted so the board stays a faithful copy of the upstream.
+        name = "blackbox.json";
+        path = ./blackbox.json;
+      }
     ];
   in {
     services = {
