@@ -26,8 +26,9 @@ def write_report(target, report):
 
 
 target = sys.argv[1]
+metrics_base = sys.argv[2]
 snapshots = {}
-for address in sys.argv[2:]:
+for address in sys.argv[3:]:
     try:
         snapshots[address] = {"snapshot": get_json(f"http://{address}:9787/current.json")}
     except Exception as error:
@@ -35,7 +36,7 @@ for address in sys.argv[2:]:
 
 query = urllib.parse.urlencode({"query": "node_memory_MemAvailable_bytes"})
 try:
-    monitoring = get_json(f"http://127.0.0.1:8428/api/v1/query?{query}")
+    monitoring = get_json(f"{metrics_base}/api/v1/query?{query}")
 except Exception as error:
     monitoring = {"error": str(error)}
 

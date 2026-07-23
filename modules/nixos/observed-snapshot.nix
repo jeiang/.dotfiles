@@ -5,9 +5,15 @@
     ...
   }: let
     cfg = config.observedSnapshot;
-    snapshot = pkgs.writers.writePython3Bin "observed-snapshot" {} (builtins.readFile ./hermes-snapshot.py);
+    # The scripts keep readable line lengths; the writer's flake8 gate is
+    # still wanted for real defects, so only E501 is waived.
+    snapshot = pkgs.writers.writePython3Bin "observed-snapshot" {flakeIgnore = ["E501"];} (builtins.readFile ./hermes-snapshot.py);
   in {
     options.observedSnapshot = {
+      # Collection stays off until something actually consumes the
+      # snapshots (the Hermes aggregator); flipped fleet-wide by the same
+      # inventory gate that enables Hermes.
+      enable = lib.mkEnableOption "bounded observed host snapshots";
       bindAddress = lib.mkOption {
         type = lib.types.str;
         description = "Private address that serves the current snapshot.";
@@ -22,7 +28,7 @@
       };
     };
 
-    config = {
+    config = lib.mkIf cfg.enable {
       systemd = {
         services = {
           observed-snapshot = {
@@ -46,6 +52,7 @@
             requires = ["observed-snapshot.service"];
             serviceConfig = {
               ExecStart = "${pkgs.python3}/bin/python -m http.server 9787 --bind ${cfg.bindAddress} --directory /var/lib/observed-snapshot";
+              DynamicUser = true;
               Restart = "always";
               NoNewPrivileges = true;
               PrivateTmp = true;

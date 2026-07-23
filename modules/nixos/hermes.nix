@@ -19,14 +19,15 @@
       writable_roots = ["${workspace}"]
       network_access = false
     '';
+    repositoriesFile = pkgs.writeText "hermes-publisher-repositories.json" (builtins.toJSON config.hermes.publisherRepositories);
     publisher = pkgs.writeShellApplication {
       name = "hermes-publisher";
       runtimeInputs = [pkgs.gh pkgs.git pkgs.python3];
       text = ''
-        exec ${pkgs.python3}/bin/python ${./hermes-publisher.py}
+        exec ${pkgs.python3}/bin/python ${./hermes-publisher.py} "$@"
       '';
     };
-    aggregateSnapshot = pkgs.writers.writePython3Bin "hermes-snapshot-aggregate" {} (builtins.readFile ./hermes-snapshot-aggregate.py);
+    aggregateSnapshot = pkgs.writers.writePython3Bin "hermes-snapshot-aggregate" {flakeIgnore = ["E501"];} (builtins.readFile ./hermes-snapshot-aggregate.py);
   in {
     imports = [inputs.hermes-agent.nixosModules.default];
 
@@ -41,6 +42,22 @@
         type = lib.types.str;
         default = "${config.hermes.stateDir}/worktrees";
         description = "Only directory writable to Codex app-server turns.";
+      };
+      peerAddresses = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        description = "Private addresses whose observed snapshots are aggregated.";
+      };
+      metricsUrl = lib.mkOption {
+        type = lib.types.str;
+        description = "VictoriaMetrics base URL queried by the aggregator.";
+      };
+      publisherRepositories = lib.mkOption {
+        type = lib.types.attrsOf lib.types.str;
+        default = {
+          "jeiang/.dotfiles" = "${config.hermes.workspace}/cornn-flaek";
+          "jeiang/infrastructure-knowledge" = "${config.hermes.workspace}/infrastructure-knowledge";
+        };
+        description = "Publication policy: repository to approved worktree path.";
       };
     };
 
@@ -143,6 +160,8 @@
                 "HOME=${stateDir}/publisher/home"
                 "GH_CONFIG_DIR=${stateDir}/publisher/gh"
                 "HERMES_PUBLISHER_PENDING=${workspace}/.publisher-requests"
+                "HERMES_PUBLISHER_MIRRORS=${stateDir}/mirrors"
+                "HERMES_PUBLISHER_REPOSITORIES_FILE=${repositoriesFile}"
               ];
               EnvironmentFile = config.sops.secrets."hermes/publisher-env".path;
               ExecStart = "${publisher}/bin/hermes-publisher ${stateDir}/publisher";
@@ -152,7 +171,11 @@
               PrivateTmp = true;
               ProtectSystem = "strict";
               ProtectHome = true;
-              ReadWritePaths = ["${stateDir}/publisher" workspace];
+              ReadWritePaths = [
+                "${stateDir}/publisher"
+                "${stateDir}/mirrors"
+                "${workspace}/.publisher-requests"
+              ];
             };
           };
 
@@ -167,7 +190,12 @@
             serviceConfig = {
               Type = "oneshot";
               User = "root";
-              ExecStart = "${aggregateSnapshot}/bin/hermes-snapshot-aggregate ${stateDir}/reports/current.json 172.17.0.1 172.17.0.2 172.17.0.3 172.17.0.4";
+              ExecStart = lib.escapeShellArgs ([
+                  "${aggregateSnapshot}/bin/hermes-snapshot-aggregate"
+                  "${stateDir}/reports/current.json"
+                  config.hermes.metricsUrl
+                ]
+                ++ config.hermes.peerAddresses);
             };
           };
         };
@@ -179,15 +207,21 @@
           };
         };
 
+        # The Hermes agent owns its worktrees outright (single-writer .git);
+        # the publisher only ever reads them, via the hermes-publish group.
+        # The publisher's own tree, including the bare mirrors Hermes clones
+        # from, is publisher-owned so the agent cannot swap out directories
+        # that feed the credentialed git/gh processes.
         tmpfiles.rules = [
           "d ${stateDir}/codex 0700 hermes hermes - -"
-          "d ${stateDir}/publisher 2770 hermes hermes-publish - -"
+          "d ${stateDir}/publisher 0750 hermes-publisher hermes-publisher - -"
           "d ${stateDir}/publisher/home 0700 hermes-publisher hermes-publisher - -"
           "d ${stateDir}/publisher/gh 0700 hermes-publisher hermes-publisher - -"
-          "d ${workspace} 2770 hermes hermes-publish - -"
-          "d ${workspace}/.publisher-requests 2770 hermes hermes-publish - -"
           "d ${stateDir}/publisher/completed 0750 hermes-publisher hermes-publisher - -"
           "d ${stateDir}/publisher/rejected 0750 hermes-publisher hermes-publisher - -"
+          "d ${stateDir}/mirrors 0750 hermes-publisher hermes-publish - -"
+          "d ${workspace} 0750 hermes hermes-publish - -"
+          "d ${workspace}/.publisher-requests 2770 hermes hermes-publish - -"
           "d ${stateDir}/reports 0750 root hermes - -"
           "d ${stateDir}/reports/history 0750 root hermes 7d -"
         ];
@@ -196,6 +230,10 @@
       users = {
         users.hermes = {
           extraGroups = ["hermes-publish"];
+          # The state directory is also the hermes home; the default 0700
+          # home mode would keep the publisher from traversing to the
+          # worktrees, mirrors, and pending-request directories beneath it.
+          homeMode = "751";
         };
         users.hermes-publisher = {
           isSystemUser = true;

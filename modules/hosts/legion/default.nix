@@ -68,6 +68,16 @@
 
   nodeHostname = name: "${lib.removePrefix "legion-" name}.jeiang.dev";
 
+  # Observed snapshots exist only to feed the Hermes aggregator, so
+  # collection follows the same inventory gate as Hermes itself: nothing
+  # runs fleet-wide until the hermes entry flips to enabled.
+  hermesFleetEnabled = lib.any (node: lib.any (service: service.name == "hermes" && (service.enabled or false)) (node.services or [])) (builtins.attrValues validatedLegionNodes);
+
+  # The aggregator queries VictoriaMetrics wherever the inventory places
+  # `monitoring` (legion-node3 today), so a placement change stays a
+  # one-file inventory edit.
+  monitoringNode = lib.findFirst (node: lib.any (service: service.name == "monitoring") (node.services or [])) (throw "Legion inventory places no monitoring service") (builtins.attrValues validatedLegionNodes);
+
   mkWan = {
     publicIPv4,
     publicIPv6,
@@ -189,6 +199,7 @@ in {
       );
 
       observedSnapshot = {
+        enable = lib.mkDefault hermesFleetEnabled;
         bindAddress = legionNodes.${config.networking.hostName}.privateIPv4;
         services = map (service: "${service.name}.service") (validatedLegionNodes.${config.networking.hostName}.services or []);
         volumes =
@@ -382,9 +393,21 @@ in {
             ++ lib.optional
             (lib.any (service: service.name == "monitoring") node.services)
             self.nixosModules.monitoring
+            # Hermes, same optional-import pattern, gated on the inventory
+            # node placing `hermes`. Fleet facts (peer addresses, the
+            # monitoring endpoint) are filled from the inventory here so
+            # the module itself hardcodes nothing about this deployment;
+            # they are set whenever the module is imported so the staged
+            # (disabled) configuration stays evaluable.
             ++ lib.optional
             (lib.any (service: service.name == "hermes") node.services)
-            self.nixosModules.hermes
+            {
+              imports = [self.nixosModules.hermes];
+              hermes = {
+                peerAddresses = map (n: n.privateIPv4) (builtins.attrValues legionNodes);
+                metricsUrl = "http://${monitoringNode.privateIPv4}:8428";
+              };
+            }
             ++ lib.optional
             (lib.any (service: service.name == "hermes" && (service.enabled or false)) node.services)
             {
