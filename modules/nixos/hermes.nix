@@ -68,11 +68,6 @@
           group = "hermes";
           mode = "0400";
         };
-        "hermes/auth.json" = {
-          owner = "hermes";
-          group = "hermes";
-          mode = "0400";
-        };
         "hermes/codex-auth.json" = {
           owner = "hermes";
           group = "hermes";
@@ -89,7 +84,12 @@
         enable = true;
         inherit stateDir;
         workingDirectory = workspace;
-        authFile = config.sops.secrets."hermes/auth.json".path;
+        # No authFile: model turns run through the `codex app-server`
+        # subprocess, which authenticates from CODEX_HOME/auth.json (the
+        # hermes/codex-auth.json seed). Hermes' own ~/.hermes/auth.json
+        # store is only used by the default (non-Codex) runtime, which
+        # this deployment never selects (openai_runtime = codex_app_server,
+        # fallback_providers = []).
         environmentFiles = [config.sops.secrets."hermes/env".path];
         extraDependencyGroups = ["messaging"];
         extraPackages = [pkgs.codex];

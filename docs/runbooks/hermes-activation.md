@@ -24,18 +24,18 @@ are in hand.
 
 ## Phase B — secrets (~15 min, dev shell)
 
-Run `just sops-edit` and add these four entries. Do not print the values.
+Run `just sops-edit` and add these three entries. Do not print the values.
 
 1. `hermes/env`: `TELEGRAM_BOT_TOKEN` (Hermes bot), `TELEGRAM_ALLOWED_USERS`
   (your user ID), `TELEGRAM_HOME_CHANNEL`.
-2. `hermes/auth.json`: the Hermes OAuth seed.
-3. `hermes/codex-auth.json`: the Codex OAuth seed (`~/.codex/auth.json` from
-  a logged-in machine).
-4. `hermes/publisher-env`: `HERMES_PUBLISHER_TELEGRAM_BOT_TOKEN` (publisher
+2. `hermes/codex-auth.json`: the Codex OAuth seed (`~/.codex/auth.json` from
+  a logged-in machine). Model turns authenticate through the `codex
+  app-server` subprocess from this seed; Hermes has no separate auth store.
+3. `hermes/publisher-env`: `HERMES_PUBLISHER_TELEGRAM_BOT_TOKEN` (publisher
   bot), `HERMES_PUBLISHER_TELEGRAM_ALLOWED_USER` (your user ID), and
   `GH_TOKEN` (the PAT from Phase A).
 
-Done when: `just sops-edit` shows all four keys.
+Done when: `just sops-edit` shows all three keys.
 
 ## Phase C — enable and merge (~10 min + one CI run)
 
