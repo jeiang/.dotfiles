@@ -23,7 +23,8 @@ Hermes pulls repository content only from those local mirrors.
 
 ## Knowledge Base
 
-`jeiang/infrastructure-knowledge` is private, reviewed Markdown. Initialize
+`jeiang/knowledge-base` is private, reviewed Markdown, starting with
+infrastructure facts and growing to broader topics over time. Initialize
 it with `README.md` plus `systems/`, `services/`, `runbooks/`, `research/`,
 and `sources/`. Every imported or derived page records its source repository,
 source revision, source path, and collection timestamp in front matter. Search
@@ -40,12 +41,12 @@ unambiguous.
 ```fish
 sudo -u hermes env HOME=/mnt/hermes HERMES_HOME=/mnt/hermes/.hermes CODEX_HOME=/mnt/hermes/codex \
   hermes cron add '0 8 * * *' \
-  'Read only /mnt/hermes/reports/current.json and the reviewed infrastructure knowledge Markdown. Send a concise operational briefing. Cite each claim with the snapshot collected_at and the Markdown source path and revision. Do not change files, credentials, services, or jobs.' \
+  'Read only /mnt/hermes/reports/current.json and the reviewed knowledge-base Markdown. Send a concise operational briefing. Cite each claim with the snapshot collected_at and the Markdown source path and revision. Do not change files, credentials, services, or jobs.' \
   --name 'Operational briefing' --deliver telegram --workdir /mnt/hermes/worktrees
 
 sudo -u hermes env HOME=/mnt/hermes HERMES_HOME=/mnt/hermes/.hermes CODEX_HOME=/mnt/hermes/codex \
   hermes cron add '0 9 * * 1' \
-  'Read only the reviewed infrastructure knowledge Markdown and /mnt/hermes/reports/current.json. Report stale facts, missing source revisions, and configuration drift. Cite the source path, revision, and snapshot collected_at. Do not change files, credentials, services, or jobs.' \
+  'Read only the reviewed knowledge-base Markdown and /mnt/hermes/reports/current.json. Report stale facts, missing source revisions, and configuration drift. Cite the source path, revision, and snapshot collected_at. Do not change files, credentials, services, or jobs.' \
   --name 'Knowledge and configuration freshness review' --deliver telegram --workdir /mnt/hermes/worktrees
 ```
 

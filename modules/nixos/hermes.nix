@@ -55,7 +55,7 @@
         type = lib.types.attrsOf lib.types.str;
         default = {
           "jeiang/.dotfiles" = "${config.hermes.workspace}/cornn-flaek";
-          "jeiang/infrastructure-knowledge" = "${config.hermes.workspace}/infrastructure-knowledge";
+          "jeiang/knowledge-base" = "${config.hermes.workspace}/knowledge-base";
         };
         description = "Publication policy: repository to approved worktree path.";
       };

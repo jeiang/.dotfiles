@@ -11,9 +11,9 @@ Total: roughly 2 hours across five phases. Each phase is safe to stop after.
 1. In Telegram, ask @BotFather for two new bots: the Hermes bot and the
   publisher bot. Save both tokens for Phase B.
 2. Ask @userinfobot for your numeric Telegram user ID. Save it for Phase B.
-3. Create the private, empty GitHub repository `jeiang/infrastructure-knowledge`.
+3. Create the private, empty GitHub repository `jeiang/knowledge-base`.
 4. Create a fine-grained GitHub PAT limited to `jeiang/.dotfiles` and
-  `jeiang/infrastructure-knowledge`, with Contents and Pull requests
+  `jeiang/knowledge-base`, with Contents and Pull requests
   read/write. Save it for Phase B.
 5. Create a 10 GiB Hetzner Volume named `legion-hermes`, attach it to
   legion-node3, and note its numeric ID. On the node, format it:
@@ -60,9 +60,9 @@ Done when: main contains the enabled entry.
 
   ```fish
   sudo -u hermes git config --global --add safe.directory /mnt/hermes/mirrors/jeiang__.dotfiles.git
-  sudo -u hermes git config --global --add safe.directory /mnt/hermes/mirrors/jeiang__infrastructure-knowledge.git
+  sudo -u hermes git config --global --add safe.directory /mnt/hermes/mirrors/jeiang__knowledge-base.git
   sudo -u hermes git -C /mnt/hermes/worktrees clone /mnt/hermes/mirrors/jeiang__.dotfiles.git cornn-flaek
-  sudo -u hermes git -C /mnt/hermes/worktrees clone /mnt/hermes/mirrors/jeiang__infrastructure-knowledge.git infrastructure-knowledge
+  sudo -u hermes git -C /mnt/hermes/worktrees clone /mnt/hermes/mirrors/jeiang__knowledge-base.git knowledge-base
   ```
 
 5. Send `/start` to the publisher bot once, then create the two cron jobs
