@@ -41,6 +41,60 @@ _: {
     vmPort = 8428; # services.victoriametrics default listenAddress
     vlPort = 9428; # services.victorialogs default listenAddress
 
+    # blackbox_exporter listen port. Kept at the nixpkgs module default
+    # (services.prometheus.exporters.blackbox.port, 9115); named here so
+    # the loopback scrape target and the exporter enable-block below agree
+    # on one value. The exporter binds loopback only (listenAddress
+    # "127.0.0.1" below): VictoriaMetrics scrapes it on this same node
+    # (node3), so it needs no private- or public-scope firewall opening at
+    # all.
+    blackboxPort = 9115;
+
+    # blackbox_exporter probe-module definitions
+    # (docs/adr/0003-probe-service-health-from-inside-the-private-network.md).
+    # Rendered to a store-path YAML file via pkgs.formats.yaml so the
+    # nixpkgs module's build-time `blackbox_exporter --config.check`
+    # (services.prometheus.exporters.blackbox.enableConfigCheck, default
+    # on) sees a real store path and no store-copy warning fires.
+    # preferred_ip_protocol "ip4" on both modules: every probe target is an
+    # IPv4 literal on the Legion private network, and blackbox otherwise
+    # defaults to attempting ip6 first.
+    blackboxConfig = (pkgs.formats.yaml {}).generate "blackbox-exporter.yml" {
+      modules = {
+        # http_2xx: default valid_status_codes (the whole 2xx range) is
+        # left unset because every HTTP target below answers in 2xx on the
+        # exact path it is probed at -- verified per target against the
+        # nixpkgs-pinned sources:
+        #   - pocket-id  /healthz -> 204 No Content (pocket-id backend
+        #     internal/controller/healthz_controller.go
+        #     `c.Status(http.StatusNoContent)`; 204 is inside 2xx).
+        #   - actual     /health  -> 200 {"status":"UP"} (actual
+        #     sync-server src/app.ts `res.status(200).json(...)`).
+        #   - attic      /        -> 200 HTML placeholder (attic-server
+        #     server/src/api/mod.rs root route returns `Html<..>`, a 200).
+        http_2xx = {
+          prober = "http";
+          timeout = "5s";
+          http.preferred_ip_protocol = "ip4";
+        };
+        # tcp_connect: pure TCP-handshake reachability, used for
+        # netbird-server's :80. That port multiplexes gRPC + the management
+        # HTTP API (modules/nixos/netbird-server/default.nix
+        # `listenAddress: ":80"`), so a plain HTTP/1.1 GET is not a reliable
+        # liveness check; a completed TCP connect is exactly the "answers on
+        # its backend port" signal docs/adr/0003 calls for. (The server's
+        # dedicated `healthcheckAddress: ":9000"` is deliberately not used:
+        # :9000 is not declared in modules/hosts/legion/_service-inventory.nix,
+        # so probing it would need the firewall change docs/adr/0003 avoids;
+        # :80 already is declared, see the scrape job below.)
+        tcp_connect = {
+          prober = "tcp";
+          timeout = "5s";
+          tcp.preferred_ip_protocol = "ip4";
+        };
+      };
+    };
+
     # retentionPeriod "1" means one month (VictoriaMetrics/VictoriaLogs
     # count an unsuffixed retentionPeriod in months). Neither
     # nixpkgs-pinned module accepts a bare "1" typed differently, so both
@@ -167,6 +221,109 @@ _: {
               {
                 targets = ["${node4}:8888"];
                 labels.type = "hath";
+              }
+            ];
+          }
+          # --- Synthetic backend health probes via blackbox_exporter ---
+          # (docs/adr/0003-probe-service-health-from-inside-the-private-network.md).
+          # Standard blackbox relabel: the probe target starts life in
+          # __address__, is copied into the ?target= query param
+          # (__param_target), preserved verbatim as the `instance` label,
+          # and then __address__ is rewritten to the blackbox exporter's own
+          # loopback socket so VictoriaMetrics actually scrapes the
+          # exporter's /probe handler (which in turn probes ?target=).
+          #
+          # Every target port below is already declared private-scope in
+          # modules/hosts/legion/_service-inventory.nix -- pocket-id :1411
+          # and netbird-server :80 (legion-node2), actual-budget :5006 and
+          # attic :8080 (legion-node4) -- reachable cross-node over the
+          # trusted enp7s0 interface exactly like every metrics scrape
+          # above. So NO new host firewall opening and NO Hetzner Cloud
+          # Firewall rule is added for probing (docs/adr/0003 Consequences).
+          {
+            job_name = "blackbox-http";
+            metrics_path = "/probe";
+            params.module = ["http_2xx"];
+            # Full URLs (scheme + health path): the http prober probes the
+            # ?target= value verbatim, so scheme and path must be present.
+            # Paths chosen per target for a clean 2xx (see blackboxConfig in
+            # the `let` block for the per-target status-code verification).
+            # Split into two target blocks purely to carry a per-target `tier`
+            # label, which BlackboxProbeDown maps to the alert severity below.
+            static_configs = [
+              {
+                # pocket-id is the fleet SSO provider (auth.jeiang.dev): a
+                # down backend locks users out of every OAuth-gated service,
+                # so its probe failure is `critical` (pages), matching the
+                # netbird-server VPN target in the tcp job.
+                targets = ["http://${node2}:1411/healthz"];
+                labels = {
+                  type = "probe";
+                  tier = "critical";
+                };
+              }
+              {
+                # actual-budget (budget) and attic (Nix binary cache) are
+                # important but not auth-critical -- a stale cache or an
+                # unreachable budget app degrades, it doesn't lock the fleet
+                # out -- so these stay `warning`, same tier as
+                # SystemdUnitFailed.
+                targets = [
+                  "http://${node4}:5006/health"
+                  "http://${node4}:8080/"
+                ];
+                labels = {
+                  type = "probe";
+                  tier = "warning";
+                };
+              }
+            ];
+            relabel_configs = [
+              {
+                source_labels = ["__address__"];
+                target_label = "__param_target";
+              }
+              {
+                source_labels = ["__param_target"];
+                target_label = "instance";
+              }
+              {
+                target_label = "__address__";
+                replacement = "127.0.0.1:${toString blackboxPort}";
+              }
+            ];
+          }
+          {
+            job_name = "blackbox-tcp";
+            metrics_path = "/probe";
+            params.module = ["tcp_connect"];
+            static_configs = [
+              {
+                # host:port, no scheme, for the tcp prober. netbird-server
+                # :80 multiplexes gRPC + management HTTP, so a TCP connect
+                # is the robust liveness signal here (see blackboxConfig).
+                # `tier = "critical"`: netbird is the fleet VPN -- a down
+                # management/signal server breaks mesh connectivity, so this
+                # pages, same as the pocket-id SSO target in the http job.
+                targets = ["${node2}:80"];
+                labels = {
+                  type = "probe";
+                  tier = "critical";
+                };
+              }
+            ];
+            relabel_configs = [
+              {
+                source_labels = ["__address__"];
+                target_label = "__param_target";
+              }
+              {
+                source_labels = ["__param_target"];
+                target_label = "instance";
+              }
+              {
+                target_label = "__address__";
+                replacement = "127.0.0.1:${toString blackboxPort}";
               }
             ];
           }
@@ -331,9 +488,56 @@ _: {
                   description = "{{ $labels.name }} on {{ $labels.instance }} has been in the failed state for 5 minutes.";
                 };
               }
+              {
+                # Backend liveness from blackbox_exporter's probes
+                # (docs/adr/0003-probe-service-health-from-inside-the-private-network.md;
+                # blackbox-http/blackbox-tcp scrape jobs above). probe_success
+                # is 0 when a probed backend does not answer on its private
+                # port. Severity is per-target, not fleet-uniform: the
+                # `tier` label set on each probe target in the scrape jobs
+                # above ("critical" for the pocket-id SSO and netbird VPN
+                # backends, "warning" for the actual/attic backends) is
+                # carried onto the alert series and mapped straight to
+                # `severity` via the vmalert label template below. Distinct
+                # from the critical fleet-wide TargetDown (up == 0), which
+                # fires when a scrape target vanishes entirely -- note a down
+                # backend here still leaves the blackbox exporter's own scrape
+                # up, so TargetDown would NOT catch it. The 5m `for` debounces
+                # service restarts. `$labels.instance` is the probed
+                # URL/host:port (set by the jobs' relabel_configs);
+                # `$labels.job` is blackbox-http or blackbox-tcp.
+                alert = "BlackboxProbeDown";
+                expr = "probe_success == 0";
+                for = "5m";
+                labels.severity = "{{ $labels.tier }}";
+                annotations = {
+                  summary = "Probe failing for {{ $labels.instance }}";
+                  description = "The {{ $labels.job }} probe for {{ $labels.instance }} has been failing for 5 minutes.";
+                };
+              }
             ];
           }
         ];
+      };
+
+      # blackbox_exporter: synthetic liveness probes of first-party service
+      # backends over the Legion private network
+      # (docs/adr/0003-probe-service-health-from-inside-the-private-network.md).
+      # Scraped by this node's own VictoriaMetrics via the blackbox-http /
+      # blackbox-tcp jobs in prometheusConfig.scrape_configs above; probe
+      # modules defined in blackboxConfig (the `let` block).
+      prometheus.exporters.blackbox = {
+        enable = true;
+        # Set explicitly to the module default so the scrape target's
+        # 127.0.0.1:${blackboxPort} above and the exporter cannot drift.
+        port = blackboxPort;
+        # Loopback-only: the sole scraper is VictoriaMetrics on this same
+        # node (node3), so the exporter needs no firewall surface at all --
+        # stricter than the cross-node backends this module scrapes, which
+        # at least ride enp7s0. Also keeps the exporter's /probe handler
+        # (an SSRF-shaped `GET /probe?target=` primitive) off the network.
+        listenAddress = "127.0.0.1";
+        configFile = blackboxConfig;
       };
 
       # Alertmanager: Discord webhook, with routing/grouping configured
@@ -387,6 +591,12 @@ _: {
       };
       "vmalert-default".serviceConfig.MemoryMax = "128M";
       alertmanager.serviceConfig.MemoryMax = "96M";
+      # blackbox_exporter is tiny -- a handful of concurrent probes on the
+      # scrape interval -- so 32M is comfortable headroom. Unit name is the
+      # nixpkgs exporter-wrapper convention `prometheus-<name>-exporter`
+      # (nixpkgs .../monitoring/prometheus/exporters.nix
+      # `systemd.services."prometheus-${name}-exporter"`).
+      prometheus-blackbox-exporter.serviceConfig.MemoryMax = "32M";
     };
 
     sops = {
