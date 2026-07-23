@@ -1,0 +1,173 @@
+name: Update tracked flake inputs
+
+# Bumps flake inputs and opens a PR with the lock diff; the existing CI
+# workflow then validates the PR like any other change (see the
+# FLAKE_LOCK_PAT note below for why that requires a PAT), so a broken
+# upstream build blocks the merge rather than landing quietly on main.
+#
+# Scheduled runs only ever touch website, portfolio, and bill-splitter:
+# plain stdenvNoCC static builds that follow this flake's own nixpkgs pin
+# with no external deps (see the comments in flake.nix), so bumping them
+# unattended is low-risk. Every other input -- nixpkgs itself, the system
+# modules (hyprland, disko, sops-nix, ...), and attic (whose lock has its
+# own CI coupling, see ci.yml) -- is opt-in only, via workflow_dispatch
+# with the relevant box checked. A manual run reuses the same branch/PR as
+# the scheduled run rather than opening a separate one.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      nixpkgs:
+        description: "nixos/nixpkgs (nixos-unstable) -- almost every other input follows this pin, so this is the heaviest bump"
+        type: boolean
+        default: false
+      flake-parts:
+        description: "hercules-ci/flake-parts"
+        type: boolean
+        default: false
+      import-tree:
+        description: "vic/import-tree"
+        type: boolean
+        default: false
+      devenv:
+        description: "cachix/devenv"
+        type: boolean
+        default: false
+      treefmt-nix:
+        description: "numtide/treefmt-nix"
+        type: boolean
+        default: false
+      impermanence:
+        description: "nix-community/impermanence"
+        type: boolean
+        default: false
+      disko:
+        description: "nix-community/disko"
+        type: boolean
+        default: false
+      deploy-rs:
+        description: "serokell/deploy-rs"
+        type: boolean
+        default: false
+      nix-index-database:
+        description: "nix-community/nix-index-database"
+        type: boolean
+        default: false
+      hjem:
+        description: "feel-co/hjem"
+        type: boolean
+        default: false
+      sops-nix:
+        description: "Mic92/sops-nix"
+        type: boolean
+        default: false
+      wrapper-modules:
+        description: "BirdeeHub/nix-wrapper-modules"
+        type: boolean
+        default: false
+      nix-cachyos-kernel:
+        description: "xddxdd/nix-cachyos-kernel (release)"
+        type: boolean
+        default: false
+      hyprland:
+        description: "hyprwm/Hyprland"
+        type: boolean
+        default: false
+      dms:
+        description: "AvengeMedia/DankMaterialShell (stable)"
+        type: boolean
+        default: false
+      dsearch:
+        description: "AvengeMedia/danksearch"
+        type: boolean
+        default: false
+      website:
+        description: "jeiang/website (auto-updated weekly)"
+        type: boolean
+        default: true
+      portfolio:
+        description: "joshua-noel/portfolio (auto-updated weekly)"
+        type: boolean
+        default: true
+      bill-splitter:
+        description: "jeiang/bill-splitter (auto-updated weekly)"
+        type: boolean
+        default: true
+      attic:
+        description: "jeiang/attic -- bumping this can force a from-source attic-client build in ci.yml if the new rev isn't yet seeded in the Attic cache; see ci.yml for why attic doesn't follow nixpkgs"
+        type: boolean
+        default: false
+
+# Serializes runs instead of racing: update-flake-lock force-pushes a fixed
+# branch (see `branch:` below), so two overlapping runs (e.g. a manual
+# dispatch firing mid-schedule) would otherwise push that branch
+# concurrently. Runs are intentionally left to queue rather than cancel, so
+# a manual subset run never gets silently dropped by the next scheduled run.
+concurrency:
+  group: update-flake-inputs
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      # update-flake-lock pushes a branch and opens/updates a PR from it.
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # Substituter is only for speed (locking still needs to evaluate each
+      # input), same setup as ci.yml.
+      - name: Install Nix
+        uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+        with:
+          extra_nix_config: |
+            extra-substituters = https://attic.jeiang.dev/default
+            extra-trusted-public-keys = default:Xaqeg5b1ctNwH4sEWG+nt1kSpGPpFG0zivJUbZyCfdM=
+
+      # On a schedule trigger, github.event.inputs is empty (and the
+      # per-input defaults above don't apply -- those are only defaults for
+      # the manual-dispatch form), so the auto-update set is hardcoded here
+      # rather than inferred from checkbox defaults. On workflow_dispatch,
+      # only the checked boxes make it into the list, via jq over the raw
+      # inputs JSON rather than one env var per input (there are 20 of
+      # them).
+      - name: Select inputs to update
+        id: select
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_INPUTS_JSON: ${{ toJson(github.event.inputs) }}
+        run: |
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            selected=$(jq -r 'to_entries | map(select(.value == "true") | .key) | join(" ")' <<<"$EVENT_INPUTS_JSON")
+          else
+            selected="website portfolio bill-splitter"
+          fi
+          if [[ -z "$selected" ]]; then
+            echo "::error::No inputs selected to update."
+            exit 1
+          fi
+          echo "list=$selected" >> "$GITHUB_OUTPUT"
+
+      # A PAT is required here, not the default GITHUB_TOKEN: GitHub refuses
+      # to trigger further workflow runs (including ci.yml's `pull_request`
+      # gate) from a PR opened with the built-in token, as an anti-recursion
+      # safeguard. Without this, the auto-PR would open with no CI run on
+      # it, silently defeating the "CI validates the bump" design above.
+      # FLAKE_LOCK_PAT must be a PAT (fine-grained: Contents + Pull requests
+      # read/write on this repo, or classic with the `repo` scope) stored as
+      # a repo secret.
+      - name: Update selected inputs and open PR
+        uses: DeterminateSystems/update-flake-lock@834c491b2ece4de0bbd00d85214bb5e83b4da5c6 # v28
+        with:
+          token: ${{ secrets.FLAKE_LOCK_PAT }}
+          inputs: ${{ steps.select.outputs.list }}
+          branch: update-flake-lock/tracked-inputs
+          commit-msg: "chore(flake): update flake inputs"
+          pr-title: "chore(flake): update flake inputs"
