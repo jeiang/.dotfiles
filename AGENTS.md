@@ -35,6 +35,12 @@ Do not assume the local shell has the repo tools installed globally.
 - Format Nix code through the configured treefmt wrapper, which enables Alejandra, deadnix, and Stylua.
 - Keep changes focused. Do not reorganize module boundaries or rename hosts as incidental cleanup.
 
+## Runbooks
+
+- `docs/runbooks/` documents recurring flows or repeated actions (backups, restores, how-tos) — not one-time actions.
+- Exception: a one-time action that is intentionally delayed may get a committed runbook — setup for a currently disabled feature, or a scheduled removal of a deprecated object. Mark such a file at the top with its deletion condition (e.g. "Delete this file after X is enabled/removed."), and delete it once the action is done.
+- Features are enabled by default unless otherwise specified. A feature staged behind a disabled flag is the delayed-setup case above: its activation runbook ends with the flag flipped and the file deleted.
+
 ## Validation
 
 After changes, run:
