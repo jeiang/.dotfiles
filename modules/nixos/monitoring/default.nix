@@ -104,11 +104,34 @@ _: {
     dashboardsDir = pkgs.linkFarm "grafana-dashboards" [
       {
         # CrowdSec is scraped at :6060/metrics (mirrored below); this is
-        # the matching Grafana dashboard for it. No other dashboard is
-        # carried here: there's no concrete node/VM dashboard to
-        # reproduce yet -- a gap for future work.
+        # the matching Grafana dashboard for it. Only populated once
+        # `edge.crowdsec.enable` is true, but the board is carried
+        # regardless.
         name = "crowdsec.json";
         path = ./crowdsec-dashboard.json;
+      }
+      {
+        # "Node Exporter Full" (grafana.com dashboard #1860), vendored as a
+        # store file so nothing is fetched at build time (pure-eval CI /
+        # offline build). The vendored revision already uses a
+        # `${ds_prometheus}` datasource *template variable* (type
+        # "datasource", query "prometheus") -- same file-provisioning-safe
+        # pattern as crowdsec-dashboard.json's `${datasource}` var -- so it
+        # resolves against the VictoriaMetrics (prometheus-type) datasource
+        # with no interactive import step. Its `$job`/`$nodename`/`$node`
+        # variables populate from node_uname_info, whose labels match our
+        # `job="node"` scrape and `instance="<ip>:9100"` targets.
+        name = "node-exporter-full.json";
+        path = ./node-exporter-full.json;
+      }
+      {
+        # Hand-authored fleet landing board (per-node CPU/mem/disk, scrape
+        # up/down, failed systemd units, backend probe failures). References
+        # the VictoriaMetrics datasource by its fixed uid ("victoriametrics",
+        # set below) rather than a datasource variable, since it targets that
+        # one datasource directly.
+        name = "fleet-overview.json";
+        path = ./fleet-overview.json;
       }
     ];
   in {
@@ -403,12 +426,23 @@ _: {
             {
               name = "VictoriaMetrics";
               type = "prometheus";
+              # Stable, hand-picked uid so file-provisioned dashboards can
+              # reference this datasource deterministically (the
+              # fleet-overview.json panels point at `uid: victoriametrics`)
+              # instead of relying on Grafana's auto-generated random uid.
+              # Does not affect crowdsec.json / node-exporter-full.json,
+              # which resolve via a `datasource`-type template variable, not
+              # a fixed uid.
+              uid = "victoriametrics";
               url = "http://127.0.0.1:${toString vmPort}";
               isDefault = true;
             }
             {
               name = "VictoriaLogs";
               type = "victoriametrics-logs-datasource";
+              # Stable uid for the same reason as VictoriaMetrics above, so
+              # future log dashboards (Part E) can reference it by name.
+              uid = "victorialogs";
               url = "http://127.0.0.1:${toString vlPort}";
             }
           ];
