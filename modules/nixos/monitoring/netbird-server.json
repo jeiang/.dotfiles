@@ -42,7 +42,7 @@
       }
     ]
   },
-  "description": "Per-service board for the NetBird management server (job=\"netbird-server\", scraped at 172.17.0.2:9090). Instruments verified against netbird v0.74.3; counter/histogram selectors use __name__ regex with optional OTel-exporter suffixes (see panel descriptions). Datasource is the fixed provisioned uid \"victoriametrics\".",
+  "description": "Per-service board for the NetBird unified management + signal server (job=\"netbird-server\", scraped at 172.17.0.2:9090). Metric names taken verbatim from the live /metrics endpoint: the OTel Prometheus exporter appends unit suffixes to instrument names that already carry the unit (e.g. *_duration_ms_milliseconds, connected_streams_ratio, *_micro_microseconds). No peer/account totals are exposed (those go to PostHog, not /metrics). Datasource is the fixed provisioned uid \"victoriametrics\".",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -51,8 +51,8 @@
   "liveNow": false,
   "panels": [
     {
-      "id": 1,
-      "title": "gRPC server",
+      "id": 2,
+      "title": "Connections",
       "type": "row",
       "collapsed": false,
       "gridPos": {
@@ -64,19 +64,19 @@
       "panels": []
     },
     {
-      "id": 2,
+      "id": 3,
       "title": "Connected peer streams",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "victoriametrics"
       },
-      "description": "Active peer gRPC streams (management_grpc_connected_streams). 0 means no peers connected.",
+      "description": "Live gRPC streams from peers to the management server (management_grpc_connected_streams_ratio; the '_ratio' suffix is the OTel exporter's unit tag, the value is a stream count). 0 = no peers connected.",
       "gridPos": {
         "x": 0,
         "y": 1,
         "w": 6,
-        "h": 7
+        "h": 6
       },
       "fieldConfig": {
         "defaults": {
@@ -88,12 +88,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
+                "color": "blue",
                 "value": null
-              },
-              {
-                "color": "green",
-                "value": 1
               }
             ]
           },
@@ -128,259 +124,735 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(management_grpc_connected_streams{job=\"netbird-server\"})",
+          "expr": "sum(management_grpc_connected_streams_ratio{job=\"netbird-server\"})",
           "legendFormat": "",
           "range": true
         }
       ]
     },
     {
-      "id": 3,
-      "title": "gRPC request rate",
-      "type": "timeseries",
+      "id": 4,
+      "title": "Signal: active peers",
+      "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "victoriametrics"
       },
-      "description": "Requests/s per gRPC endpoint (sync/login/key request counters).",
+      "description": "Peers currently connected to the co-located signal server (signal_active_peers).",
       "gridPos": {
         "x": 6,
         "y": 1,
-        "w": 10,
-        "h": 7
+        "w": 6,
+        "h": 6
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisPlacement": "auto",
-            "gradientMode": "none"
-          },
+          "unit": "short",
           "color": {
-            "mode": "palette-classic"
+            "mode": "thresholds"
           },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "blue",
                 "value": null
               }
             ]
           },
-          "mappings": []
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "calcs": []
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "range": true,
-          "expr": "sum(rate({__name__=~\"management_grpc_sync_request_counter(_total)?\",job=\"netbird-server\"}[5m]))",
-          "legendFormat": "sync"
-        },
-        {
-          "refId": "B",
-          "range": true,
-          "expr": "sum(rate({__name__=~\"management_grpc_login_request_counter(_total)?\",job=\"netbird-server\"}[5m]))",
-          "legendFormat": "login"
-        },
-        {
-          "refId": "C",
-          "range": true,
-          "expr": "sum(rate({__name__=~\"management_grpc_key_request_counter(_total)?\",job=\"netbird-server\"}[5m]))",
-          "legendFormat": "key"
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "title": "Blocked / high-latency requests",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "victoriametrics"
-      },
-      "description": "Requests/s from blocked peers and slow logins (sync/login blocked counters, login high-latency counter).",
-      "gridPos": {
-        "x": 16,
-        "y": 1,
-        "w": 8,
-        "h": 7
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisPlacement": "auto",
-            "gradientMode": "none"
-          },
-          "color": {
-            "mode": "palette-classic"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "0"
+                }
               }
-            ]
-          },
-          "mappings": []
+            }
+          ]
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "calcs": []
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
       },
       "targets": [
         {
           "refId": "A",
-          "range": true,
-          "expr": "sum(rate({__name__=~\"management_grpc_sync_request_blocked_counter(_total)?\",job=\"netbird-server\"}[5m]))",
-          "legendFormat": "sync blocked"
-        },
-        {
-          "refId": "B",
-          "range": true,
-          "expr": "sum(rate({__name__=~\"management_grpc_login_request_blocked_counter(_total)?\",job=\"netbird-server\"}[5m]))",
-          "legendFormat": "login blocked"
-        },
-        {
-          "refId": "C",
-          "range": true,
-          "expr": "sum(rate({__name__=~\"management_grpc_login_request_high_latency_counter(_total)?\",job=\"netbird-server\"}[5m]))",
-          "legendFormat": "login high-latency"
+          "expr": "sum(signal_active_peers{job=\"netbird-server\"})",
+          "legendFormat": "",
+          "range": true
         }
       ]
     },
     {
       "id": 5,
-      "title": "gRPC latency",
-      "type": "row",
-      "collapsed": false,
-      "gridPos": {
-        "x": 0,
-        "y": 8,
-        "w": 24,
-        "h": 1
-      },
-      "panels": []
-    },
-    {
-      "id": 6,
-      "title": "Sync request duration",
-      "type": "timeseries",
+      "title": "Ephemeral peers pending",
+      "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "victoriametrics"
       },
-      "description": "Sync gRPC request-duration percentiles (histogram over management_grpc_sync_request_duration_ms).",
+      "description": "Ephemeral peers awaiting cleanup (management_ephemeral_peers_pending).",
       "gridPos": {
-        "x": 0,
-        "y": 9,
-        "w": 12,
-        "h": 8
+        "x": 12,
+        "y": 1,
+        "w": 6,
+        "h": 6
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "ms",
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "spanNulls": true,
-            "axisPlacement": "auto",
-            "gradientMode": "none"
-          },
+          "unit": "short",
           "color": {
-            "mode": "palette-classic"
+            "mode": "thresholds"
           },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "blue",
                 "value": null
               }
             ]
           },
-          "mappings": []
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "0"
+                }
+              }
+            }
+          ]
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "calcs": []
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
       },
       "targets": [
         {
           "refId": "A",
-          "range": true,
-          "expr": "histogram_quantile(0.50, sum by (le) (rate({__name__=~\"management_grpc_sync_request_duration_ms(_milliseconds)?_bucket\",job=\"netbird-server\"}[5m])))",
-          "legendFormat": "p50"
+          "expr": "sum(management_ephemeral_peers_pending{job=\"netbird-server\"})",
+          "legendFormat": "",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Proxy connections",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "Active management proxy connections (management_proxy_connection_count).",
+      "gridPos": {
+        "x": 18,
+        "y": 1,
+        "w": 6,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "0"
+                }
+              }
+            }
+          ]
         },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "targets": [
         {
-          "refId": "B",
-          "range": true,
-          "expr": "histogram_quantile(0.95, sum by (le) (rate({__name__=~\"management_grpc_sync_request_duration_ms(_milliseconds)?_bucket\",job=\"netbird-server\"}[5m])))",
-          "legendFormat": "p95"
+          "refId": "A",
+          "expr": "sum(management_proxy_connection_count{job=\"netbird-server\"})",
+          "legendFormat": "",
+          "range": true
         }
       ]
     },
     {
       "id": 7,
-      "title": "Login request duration",
+      "title": "gRPC management API",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 8,
+      "title": "Request rate",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "victoriametrics"
       },
-      "description": "Login gRPC request-duration percentiles (histogram over management_grpc_login_request_duration_ms).",
+      "description": "Requests/s per gRPC endpoint. Counters carry the OTel '_total' suffix.",
       "gridPos": {
-        "x": 12,
-        "y": 9,
+        "x": 0,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "sum(rate({__name__=\"management_grpc_sync_request_counter_total\",job=\"netbird-server\"}[$__rate_interval]))",
+          "legendFormat": "sync"
+        },
+        {
+          "refId": "B",
+          "range": true,
+          "expr": "sum(rate({__name__=\"management_grpc_login_request_counter_total\",job=\"netbird-server\"}[$__rate_interval]))",
+          "legendFormat": "login"
+        },
+        {
+          "refId": "C",
+          "range": true,
+          "expr": "sum(rate({__name__=\"management_grpc_key_request_counter_total\",job=\"netbird-server\"}[$__rate_interval]))",
+          "legendFormat": "key"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Sync duration",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "Peer sync gRPC latency percentiles. The instrument name ends in '_ms' and the OTel exporter appends '_milliseconds' (double unit), values in ms.",
+      "gridPos": {
+        "x": 8,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "histogram_quantile(0.50, sum by (le) (rate({__name__=\"management_grpc_sync_request_duration_ms_milliseconds_bucket\",job=\"netbird-server\"}[$__rate_interval])))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "range": true,
+          "expr": "histogram_quantile(0.95, sum by (le) (rate({__name__=\"management_grpc_sync_request_duration_ms_milliseconds_bucket\",job=\"netbird-server\"}[$__rate_interval])))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Login duration",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "Login gRPC latency percentiles (management_grpc_login_request_duration_ms_milliseconds).",
+      "gridPos": {
+        "x": 16,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "histogram_quantile(0.50, sum by (le) (rate({__name__=\"management_grpc_login_request_duration_ms_milliseconds_bucket\",job=\"netbird-server\"}[$__rate_interval])))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "range": true,
+          "expr": "histogram_quantile(0.95, sum by (le) (rate({__name__=\"management_grpc_login_request_duration_ms_milliseconds_bucket\",job=\"netbird-server\"}[$__rate_interval])))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Accounts, network map & store",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 12,
+      "title": "Peer update rate",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "Peer status/metadata updates per second across accounts.",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "sum(rate({__name__=\"management_account_peer_status_update_counter_total\",job=\"netbird-server\"}[$__rate_interval]))",
+          "legendFormat": "status"
+        },
+        {
+          "refId": "B",
+          "range": true,
+          "expr": "sum(rate({__name__=\"management_account_peer_meta_update_counter_total\",job=\"netbird-server\"}[$__rate_interval]))",
+          "legendFormat": "meta"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "title": "Peer status update p95",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "p95 duration of peer status updates (ms).",
+      "gridPos": {
+        "x": 8,
+        "y": 17,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "histogram_quantile(0.95, sum by (le) (rate({__name__=\"management_account_peer_status_update_duration_ms_milliseconds_bucket\",job=\"netbird-server\"}[$__rate_interval])))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "Network map build p95",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "p95 time to compute a peer's network map (ms).",
+      "gridPos": {
+        "x": 16,
+        "y": 17,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "histogram_quantile(0.95, sum by (le) (rate({__name__=\"management_account_get_peer_network_map_duration_ms_milliseconds_bucket\",job=\"netbird-server\"}[$__rate_interval])))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "Network map object count",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "Distribution of objects per computed network map (unit 'objects' appended by the exporter).",
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "histogram_quantile(0.50, sum by (le) (rate({__name__=\"management_account_network_map_object_count_objects_bucket\",job=\"netbird-server\"}[$__rate_interval])))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "range": true,
+          "expr": "histogram_quantile(0.95, sum by (le) (rate({__name__=\"management_account_network_map_object_count_objects_bucket\",job=\"netbird-server\"}[$__rate_interval])))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "title": "Store transaction p95",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "p95 store (DB) transaction duration (ms).",
+      "gridPos": {
+        "x": 8,
+        "y": 25,
         "w": 12,
         "h": 8
       },
@@ -428,43 +900,37 @@
         {
           "refId": "A",
           "range": true,
-          "expr": "histogram_quantile(0.50, sum by (le) (rate({__name__=~\"management_grpc_login_request_duration_ms(_milliseconds)?_bucket\",job=\"netbird-server\"}[5m])))",
-          "legendFormat": "p50"
-        },
-        {
-          "refId": "B",
-          "range": true,
-          "expr": "histogram_quantile(0.95, sum by (le) (rate({__name__=~\"management_grpc_login_request_duration_ms(_milliseconds)?_bucket\",job=\"netbird-server\"}[5m])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate({__name__=\"management_store_transaction_duration_ms_milliseconds_bucket\",job=\"netbird-server\"}[$__rate_interval])))",
           "legendFormat": "p95"
         }
       ]
     },
     {
-      "id": 8,
-      "title": "HTTP management API",
+      "id": 17,
+      "title": "Signal server",
       "type": "row",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 17,
+        "y": 33,
         "w": 24,
         "h": 1
       },
       "panels": []
     },
     {
-      "id": 9,
-      "title": "HTTP API request rate",
+      "id": 18,
+      "title": "Registrations rate",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "victoriametrics"
       },
-      "description": "Requests/s into the management HTTP API (management_http_request_counter).",
+      "description": "Peer (de)registrations/s on the signal server.",
       "gridPos": {
         "x": 0,
-        "y": 18,
-        "w": 12,
+        "y": 34,
+        "w": 8,
         "h": 8
       },
       "fieldConfig": {
@@ -511,24 +977,30 @@
         {
           "refId": "A",
           "range": true,
-          "expr": "sum(rate({__name__=~\"management_http_request_counter(_total)?\",job=\"netbird-server\"}[5m]))",
-          "legendFormat": "requests"
+          "expr": "sum(rate({__name__=\"signal_registrations_total\",job=\"netbird-server\"}[$__rate_interval]))",
+          "legendFormat": "registrations"
+        },
+        {
+          "refId": "B",
+          "range": true,
+          "expr": "sum(rate({__name__=\"signal_deregistrations_total\",job=\"netbird-server\"}[$__rate_interval]))",
+          "legendFormat": "deregistrations"
         }
       ]
     },
     {
-      "id": 10,
-      "title": "HTTP API response rate",
+      "id": 19,
+      "title": "Messages forwarded",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "victoriametrics"
       },
-      "description": "Responses/s from the management HTTP API (management_http_response_counter).",
+      "description": "Signal messages forwarded between peers per second.",
       "gridPos": {
-        "x": 12,
-        "y": 18,
-        "w": 12,
+        "x": 8,
+        "y": 34,
+        "w": 8,
         "h": 8
       },
       "fieldConfig": {
@@ -575,8 +1047,270 @@
         {
           "refId": "A",
           "range": true,
-          "expr": "sum(rate({__name__=~\"management_http_response_counter(_total)?\",job=\"netbird-server\"}[5m]))",
-          "legendFormat": "responses"
+          "expr": "sum(rate({__name__=\"signal_messages_forwarded_total\",job=\"netbird-server\"}[$__rate_interval]))",
+          "legendFormat": "forwarded"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "title": "Forward latency",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "Signal message forward latency percentiles (ms).",
+      "gridPos": {
+        "x": 16,
+        "y": 34,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "histogram_quantile(0.50, sum by (le) (rate({__name__=\"signal_message_forward_latency_milliseconds_bucket\",job=\"netbird-server\"}[$__rate_interval])))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "range": true,
+          "expr": "histogram_quantile(0.95, sum by (le) (rate({__name__=\"signal_message_forward_latency_milliseconds_bucket\",job=\"netbird-server\"}[$__rate_interval])))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "title": "Message size p95",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "p95 signal message size (bytes).",
+      "gridPos": {
+        "x": 0,
+        "y": 42,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "histogram_quantile(0.95, sum by (le) (rate({__name__=\"signal_message_size_bytes_bucket\",job=\"netbird-server\"}[$__rate_interval])))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "title": "Peer connection duration p95",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "p95 duration a peer stays connected to signal (seconds).",
+      "gridPos": {
+        "x": 8,
+        "y": 42,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "histogram_quantile(0.95, sum by (le) (rate({__name__=\"signal_peer_connection_duration_seconds_bucket\",job=\"netbird-server\"}[$__rate_interval])))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "title": "Registration delay p95",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "p95 peer registration delay on signal (ms).",
+      "gridPos": {
+        "x": 16,
+        "y": 42,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "histogram_quantile(0.95, sum by (le) (rate({__name__=\"signal_registration_delay_milliseconds_bucket\",job=\"netbird-server\"}[$__rate_interval])))",
+          "legendFormat": "p95"
         }
       ]
     },
@@ -590,7 +1324,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 50
       },
       "panels": [
         {
@@ -601,12 +1335,12 @@
             "type": "victoriametrics-logs-datasource",
             "uid": "victorialogs"
           },
-          "description": "Journald logs for this service from VictoriaLogs (datasource uid 'victorialogs'), newest first. Filtered on the verbatim journald unit field _SYSTEMD_UNIT (confirmed against the pinned victorialogs 1.51.0 journald ingestion defaults). 'Raw Logs' query type (/select/logsql/query).",
+          "description": "Journald logs for this service from VictoriaLogs, newest first. Filtered on the verbatim journald unit field _SYSTEMD_UNIT.",
           "gridPos": {
             "h": 12,
             "w": 24,
             "x": 0,
-            "y": 27
+            "y": 51
           },
           "fieldConfig": {
             "defaults": {},
@@ -645,7 +1379,8 @@
   "tags": [
     "netbird",
     "vpn",
-    "grpc"
+    "grpc",
+    "signal"
   ],
   "templating": {
     "list": []
