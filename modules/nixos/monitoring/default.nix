@@ -209,6 +209,24 @@ _: {
         name = "blackbox.json";
         path = ./blackbox.json;
       }
+      {
+        # Hand-authored central log-visibility board (Part E). Unlike the
+        # metrics boards above it targets the VictoriaLogs datasource by its
+        # fixed uid ("victorialogs", set below), type
+        # victoriametrics-logs-datasource. Its node/unit/severity template
+        # variables enumerate journald field values via the plugin's
+        # fieldValue variable query (/select/logsql/field_values); the log
+        # panels filter on VictoriaLogs' verbatim journald field names --
+        # _HOSTNAME, _SYSTEMD_UNIT, PRIORITY (numeric 0-7), _msg (from
+        # journald MESSAGE), _time (from __REALTIME_TIMESTAMP) -- confirmed
+        # against the pinned victorialogs 1.51.0 binary's journald ingestion
+        # defaults (this module sets no -journald.* overrides, so
+        # -journald.timeField stays __REALTIME_TIMESTAMP and double-underscore
+        # metadata is dropped). The per-service boards above each also carry a
+        # collapsed "Logs" row pre-filtered to their own unit(s).
+        name = "logs.json";
+        path = ./logs.json;
+      }
     ];
   in {
     services = {

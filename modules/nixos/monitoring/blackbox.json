@@ -942,6 +942,64 @@
         }
       ],
       "valueName": "current"
+    },
+    {
+      "id": 200,
+      "type": "row",
+      "title": "Logs",
+      "collapsed": true,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "panels": [
+        {
+          "id": 201,
+          "type": "logs",
+          "title": "Probed backend logs",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "description": "Journald logs for the four blackbox-probed backends (blackbox has no single owning unit, so this ORs their units via _SYSTEMD_UNIT:in(...)): pocket-id.service, actual.service, atticd.service, netbird-server.service. From VictoriaLogs (uid 'victorialogs'), newest first. Unit field _SYSTEMD_UNIT confirmed against pinned victorialogs 1.51.0 journald defaults.",
+          "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 18
+          },
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "options": {
+            "showTime": true,
+            "showLabels": false,
+            "showCommonLabels": false,
+            "wrapLogMessage": true,
+            "prettifyLogMessage": false,
+            "enableLogDetails": true,
+            "dedupStrategy": "none",
+            "sortOrder": "Descending"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "victoriametrics-logs-datasource",
+                "uid": "victorialogs"
+              },
+              "expr": "_SYSTEMD_UNIT:in(\"pocket-id.service\", \"actual.service\", \"atticd.service\", \"netbird-server.service\")",
+              "queryType": "instant",
+              "direction": "desc",
+              "maxLines": 500
+            }
+          ]
+        }
+      ]
     }
   ],
   "refresh": "10s",

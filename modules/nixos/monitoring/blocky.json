@@ -4336,6 +4336,64 @@
           ]
         }
       ]
+    },
+    {
+      "id": 100,
+      "type": "row",
+      "title": "Logs",
+      "collapsed": true,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 95
+      },
+      "panels": [
+        {
+          "id": 101,
+          "type": "logs",
+          "title": "Blocky logs",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "description": "Journald logs for this service from VictoriaLogs (datasource uid 'victorialogs'), newest first. Filtered on the verbatim journald unit field _SYSTEMD_UNIT (confirmed against the pinned victorialogs 1.51.0 journald ingestion defaults). 'Raw Logs' query type (/select/logsql/query).",
+          "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 96
+          },
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "options": {
+            "showTime": true,
+            "showLabels": false,
+            "showCommonLabels": false,
+            "wrapLogMessage": true,
+            "prettifyLogMessage": false,
+            "enableLogDetails": true,
+            "dedupStrategy": "none",
+            "sortOrder": "Descending"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "victoriametrics-logs-datasource",
+                "uid": "victorialogs"
+              },
+              "expr": "_SYSTEMD_UNIT:=\"blocky.service\"",
+              "queryType": "instant",
+              "direction": "desc",
+              "maxLines": 500
+            }
+          ]
+        }
+      ]
     }
   ],
   "preload": false,
