@@ -223,7 +223,8 @@
           -m g:hermes-workspace:rw-,g:hermes-publish:r-- {} +
         find -P ${workspace} -type f -perm /111 -exec setfacl \
           -m g:hermes-workspace:rwx,g:hermes-publish:r-x {} +
-        install --remove-destination -o root -g hermes-workspace -m 0444 ${workspaceInstructions} ${workspace}/AGENTS.md
+        rm -f ${workspace}/AGENTS.md
+        install -o root -g hermes-workspace -m 0444 ${workspaceInstructions} ${workspace}/AGENTS.md
 
         install -d -o root -g hermes -m 0750 ${stateDir}/reports
         install -d -o root -g hermes -m 0750 ${stateDir}/reports/history
