@@ -20,11 +20,6 @@
           touch $out
         '';
 
-        hermes-approval = pkgs.runCommand "hermes-approval-check" {nativeBuildInputs = [pkgs.bash pkgs.coreutils pkgs.python3];} ''
-          python -B ${self}/modules/nixos/test_hermes_approval.py
-          touch $out
-        '';
-
         # Keep an exact Hermes-focused system check that does not depend on
         # local access to the encrypted production secrets.
         toplevel-legion-node3-hermes-enabled =
