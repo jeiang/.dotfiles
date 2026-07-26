@@ -433,13 +433,38 @@ in {
             # (disabled) configuration stays evaluable.
             ++ lib.optional
             (lib.any (service: service.name == "hermes") node.services)
-            {
-              imports = [self.nixosModules.hermes];
+            ({config, ...}: {
+              imports = [inputs.hermes-agent-config.nixosModules.hermes];
               hermes = {
                 peerAddresses = map (n: n.privateIPv4) (builtins.attrValues legionNodes);
                 metricsUrl = "http://${monitoringNode.privateIPv4}:8428";
               };
-            }
+              # Ownership requirements moved here with the secrets: the
+              # extracted module now takes secret paths instead of owning
+              # secret names, per its `secretFiles` option descriptions.
+              sops.secrets = {
+                "hermes/env" = {
+                  owner = "hermes";
+                  group = "hermes";
+                  mode = "0400";
+                };
+                "hermes/codex-auth.json" = {
+                  owner = "hermes";
+                  group = "hermes";
+                  mode = "0400";
+                };
+                "hermes/publisher-env" = {
+                  owner = "hermes-approval-broker";
+                  group = "hermes-approval-broker";
+                  mode = "0400";
+                };
+              };
+              hermes.secretFiles = {
+                env = config.sops.secrets."hermes/env".path;
+                codexAuth = config.sops.secrets."hermes/codex-auth.json".path;
+                publisherEnv = config.sops.secrets."hermes/publisher-env".path;
+              };
+            })
             ++ lib.optional
             (lib.any (service: service.name == "hermes" && (service.enabled or false)) node.services)
             {

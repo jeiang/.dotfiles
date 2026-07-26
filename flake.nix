@@ -51,10 +51,11 @@
     # .github/workflows/ci.yml), so this lock is the single pin to bump.
     attic.url = "github:jeiang/attic";
 
-    # Hermes' NixOS module is upstream best-effort, so pin releases and
-    # update this input only through a focused, validated maintenance change.
-    hermes-agent = {
-      url = "github:NousResearch/hermes-agent/v2026.7.7";
+    # Extracted Hermes module and approval broker, maintained in their own
+    # flake. It carries the upstream hermes-agent pin, so that input is no
+    # longer declared here; bump this input to move the agent version.
+    hermes-agent-config = {
+      url = "github:jeiang/hermes-agent-config";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
     };
