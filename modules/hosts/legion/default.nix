@@ -450,6 +450,15 @@ in {
                   group = "hermes-calendar";
                   mode = "0400";
                 };
+                # The Approval Broker runs the Actual CLI, so it owns this
+                # one. The session token does not expire and cannot be
+                # revoked selectively, so it stays out of the agent entirely
+                # (hermes-agent-config ADR 0006).
+                "hermes/actual-env" = {
+                  owner = "hermes-approval-broker";
+                  group = "hermes-approval-broker";
+                  mode = "0400";
+                };
               };
               hermes.secretFiles = {
                 env = config.sops.secrets."hermes/env".path;
@@ -459,6 +468,10 @@ in {
               hermes.calendar = {
                 enable = true;
                 secretFile = config.sops.secrets."hermes/calendar-env".path;
+              };
+              hermes.actual = {
+                enable = true;
+                secretFile = config.sops.secrets."hermes/actual-env".path;
               };
             })
             ++ lib.optional
