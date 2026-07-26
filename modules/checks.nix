@@ -27,7 +27,6 @@
             modules = [
               {
                 hermes.enable = true;
-                observedSnapshot.enable = lib.mkForce true;
                 sops.validateSopsFiles = false;
               }
             ];

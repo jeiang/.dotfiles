@@ -68,12 +68,7 @@
 
   nodeHostname = name: "${lib.removePrefix "legion-" name}.jeiang.dev";
 
-  # Observed snapshots exist only to feed the Hermes aggregator, so
-  # collection follows the same inventory gate as Hermes itself: nothing
-  # runs fleet-wide until the hermes entry flips to enabled.
-  hermesFleetEnabled = lib.any (node: lib.any (service: service.name == "hermes" && (service.enabled or false)) (node.services or [])) (builtins.attrValues validatedLegionNodes);
-
-  # The aggregator queries VictoriaMetrics wherever the inventory places
+  # Hermes queries VictoriaMetrics wherever the inventory places
   # `monitoring` (legion-node3 today), so a placement change stays a
   # one-file inventory edit.
   monitoringNode = lib.findFirst (node: lib.any (service: service.name == "monitoring") (node.services or [])) (throw "Legion inventory places no monitoring service") (builtins.attrValues validatedLegionNodes);
@@ -127,7 +122,6 @@ in {
         # harmless, and node2 enrolling as a peer of the server it also
         # hosts is exactly how NetBird is reached today.
         self.nixosModules.netbird
-        self.nixosModules.observedSnapshot
         self.diskoConfigurations.legion
       ];
 
@@ -229,15 +223,6 @@ in {
         (builtins.filter (service: service ? backupSet && (service.volume or {}) ? hcloudVolumeId)
           (validatedLegionNodes.${config.networking.hostName}.services or []))
       );
-
-      observedSnapshot = {
-        enable = lib.mkDefault hermesFleetEnabled;
-        bindAddress = legionNodes.${config.networking.hostName}.privateIPv4;
-        services = map (service: "${service.name}.service") (validatedLegionNodes.${config.networking.hostName}.services or []);
-        volumes =
-          map (service: service.volume.mountpoint)
-          (builtins.filter (service: service ? volume) (validatedLegionNodes.${config.networking.hostName}.services or []));
-      };
 
       # Declarative Hetzner Volume mounts, derived from this node's own
       # inventory entries. A service contributes nothing here until its
@@ -436,7 +421,6 @@ in {
             ({config, ...}: {
               imports = [inputs.hermes-agent-config.nixosModules.hermes];
               hermes = {
-                peerAddresses = map (n: n.privateIPv4) (builtins.attrValues legionNodes);
                 metricsUrl = "http://${monitoringNode.privateIPv4}:8428";
               };
               # Ownership requirements moved here with the secrets: the
