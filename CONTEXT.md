@@ -53,33 +53,14 @@ targets.
 _Avoid_: Human Administrator, personal account
 
 **Hermes Agent**:
-A Telegram-facing personal agent that prepares repository changes, reports
-observed fleet state, and submits bounded actions for human approval without
-holding deployment, root, or publication credentials.
+A personal agent service this fleet hosts. Its own design, identities, and
+vocabulary belong to the `hermes-agent-config` repository; see that
+repository's `CONTEXT.md` for the full language.
 _Avoid_: Deployment Identity, cluster operator
 
-**Approval Broker**:
-The Telegram human-approval boundary that publishes exact approved commits and
-routes approved actions without executing arbitrary commands itself. It is the
-only Hermes-related identity with repository write credentials.
-_Avoid_: Publication Broker, Hermes Agent, Approved Command Runner
-
-**Approved Command Runner**:
-A credential-free identity that executes one human-approved command within the
-Hermes workspace and its fixed resource and network limits.
-_Avoid_: Approval Broker, Deployment Identity, root shell
-
-**Agent Memory**:
-The compact native memory and user profile that Hermes maintains automatically
-and submits for review from a reserved Knowledge Base subtree.
-_Avoid_: Session history, general knowledge
-
 **Knowledge Base**:
-A private Markdown repository containing reviewed, explicitly directed general
-knowledge and a reserved subtree for Agent Memory.
-_Avoid_: Session history, Observed Snapshot
-
-**Observed Snapshot**:
-A timestamped, bounded report of current host and service state; it is not a
-declaration of intended configuration.
-_Avoid_: Knowledge Base, desired state
+A private Markdown repository containing reviewed, explicitly directed
+general knowledge for Hermes, including its native memory. Referenced by
+`docs/runbooks/hermes-approval-migration.md` for this fleet's one-time
+migration; full ownership of the term lives in `hermes-agent-config`.
+_Avoid_: Session history
