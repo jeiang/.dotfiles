@@ -560,16 +560,15 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1785009660,
-        "narHash": "sha256-HzfsAjr7hDTuVww2wti+dwRoVgcOQhax5zB1nKFb46s=",
+        "lastModified": 1785079662,
+        "narHash": "sha256-mcFaFfc5bjlROT+IxH2O/WNxgP9HCde7yaR1auy1fuE=",
         "owner": "jeiang",
         "repo": "hermes-agent-config",
-        "rev": "3f416d752bba63f3145507bec0e3eeae6fbf90fc",
+        "rev": "ceeaa43db3f0ded85fa6079055d983cccbf128c2",
         "type": "github"
       },
       "original": {
         "owner": "jeiang",
-        "ref": "claude/hermes-agent-refactor-tools-68ed15",
         "repo": "hermes-agent-config",
         "type": "github"
       }
