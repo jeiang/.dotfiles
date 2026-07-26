@@ -442,11 +442,23 @@ in {
                   group = "hermes-approval-broker";
                   mode = "0400";
                 };
+                # Read only by the Calendar Credential Holder's own user,
+                # never by the agent: that separation is the whole point of
+                # the holder (hermes-agent-config ADR 0006).
+                "hermes/calendar-env" = {
+                  owner = "hermes-calendar";
+                  group = "hermes-calendar";
+                  mode = "0400";
+                };
               };
               hermes.secretFiles = {
                 env = config.sops.secrets."hermes/env".path;
                 codexAuth = config.sops.secrets."hermes/codex-auth.json".path;
                 publisherEnv = config.sops.secrets."hermes/publisher-env".path;
+              };
+              hermes.calendar = {
+                enable = true;
+                secretFile = config.sops.secrets."hermes/calendar-env".path;
               };
             })
             ++ lib.optional
