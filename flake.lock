@@ -560,11 +560,11 @@
         "treefmt-nix": "treefmt-nix_2"
       },
       "locked": {
-        "lastModified": 1785352830,
-        "narHash": "sha256-LL+LnUp9bPWfMQq8V8lxNXE30v9lv4B0fuU1sD+UxCA=",
+        "lastModified": 1785353681,
+        "narHash": "sha256-nkdDbJ8FVPl4tugAg6tmbHcDPPp0ZC1nWkaBIZ2BzjE=",
         "owner": "jeiang",
         "repo": "hermes-agent-config",
-        "rev": "6680c4c2dd910c567de4f08d6bb31ac95e712e09",
+        "rev": "0396e2c56ea106af418ce954f82e2f115a6f37f3",
         "type": "github"
       },
       "original": {
