@@ -430,6 +430,10 @@ in {
                     "command-runner"
                   ];
                 };
+                legacyScheduledJobIds = [
+                  "fd51c8b345d4"
+                  "2ca208a771ed"
+                ];
               };
               # Ownership requirements moved here with the secrets: the
               # extracted module now takes secret paths instead of owning
