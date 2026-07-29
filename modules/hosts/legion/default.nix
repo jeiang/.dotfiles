@@ -422,6 +422,14 @@ in {
               imports = [inputs.hermes-agent-config.nixosModules.hermes];
               hermes = {
                 metricsUrl = "http://${monitoringNode.privateIPv4}:8428";
+                network.privateEndpoints.victoriametrics = {
+                  address = monitoringNode.privateIPv4;
+                  port = 8428;
+                  units = [
+                    "agent"
+                    "command-runner"
+                  ];
+                };
               };
               # Ownership requirements moved here with the secrets: the
               # extracted module now takes secret paths instead of owning

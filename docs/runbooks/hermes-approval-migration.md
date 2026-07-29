@@ -21,9 +21,10 @@ without a separate explicit confirmation.
 8. As Hermes and `hermes-command`, create and edit files and Git metadata
     beneath `/mnt/hermes/worktrees`; confirm each identity can modify the
     other's files.
-9. Confirm ordinary public GET requests work while private addresses, local
-    binding, mutating methods, protected files, and direct Nix daemon access
-    fail.
+9. Confirm public Internet requests and the named VictoriaMetrics endpoint
+    work. Confirm loopback, metadata, an unlisted private address, local
+    binding, protected files, and direct agent access to the Nix daemon fail.
+    Repeat the network checks with IPv4, IPv6, redirects, and IPv4-mapped IPv6.
 10. Approve a bounded command and a Nix command. Confirm one-shot execution,
     status, cancellation, timeout, 64 KiB output limits, serialization, and the
     500 MiB systemd memory limit.
