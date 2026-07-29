@@ -4,13 +4,14 @@
 Knowledge Base memory checkout pass the live checks below.**
 
 This migration targets `legion-node3`. Do not deploy or delete existing memory
-without a separate explicit confirmation.
+without a separate explicit confirmation. Complete the separate
+`hermes-state-migration.md` runbook before deploying P10 or later.
 
-1. Confirm `/mnt/hermes/worktrees/.publisher-requests` contains no pending
+1. Confirm `/var/lib/hermes/worktrees/.publisher-requests` contains no pending
     legacy requests.
 2. Merge the Knowledge Base seed containing `memories/hermes/MEMORY.md`,
     `memories/hermes/USER.md`, `.gitignore`, and `AGENTS.md`.
-3. Create `/mnt/hermes/worktrees/knowledge-base-memory` from the local
+3. Create `/var/lib/hermes/worktrees/knowledge-base-memory` from the local
     publisher mirror, switch it to `codex/memory`, and confirm the memory files
     exist.
 4. Stop `hermes-agent`.
@@ -19,7 +20,7 @@ without a separate explicit confirmation.
 6. Run `just deploy legion-node3`.
 7. Verify the services and timers listed in `hermes.md`.
 8. As Hermes and `hermes-command`, create and edit files and Git metadata
-    beneath `/mnt/hermes/worktrees`; confirm each identity can modify the
+    beneath `/var/lib/hermes/worktrees`; confirm each identity can modify the
     other's files.
 9. Confirm public Internet requests and the named VictoriaMetrics endpoint
     work. Confirm loopback, metadata, an unlisted private address, local

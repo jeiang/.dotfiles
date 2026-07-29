@@ -87,12 +87,34 @@ _: {
             Persistent = true;
           };
           pruneOpts = ["--keep-daily 30"]; # 30-day retention
-          backupPrepareCommand = lib.optionalString (job.pauseUnits != []) ''
-            systemctl stop ${lib.concatStringsSep " " job.pauseUnits}
-          '';
-          backupCleanupCommand = lib.optionalString (job.pauseUnits != []) ''
-            systemctl start ${lib.concatStringsSep " " job.pauseUnits}
-          '';
+          backupPrepareCommand = lib.optionalString (job.pauseUnits != []) (let
+            stateFile = "/run/restic-backup-${name}-active-units";
+            units = lib.escapeShellArgs job.pauseUnits;
+          in ''
+            state_file=${lib.escapeShellArg stateFile}
+            if test -e "$state_file"; then
+              echo "previous backup pause state still exists: $state_file" >&2
+              exit 1
+            fi
+            install -m 0600 /dev/null "$state_file"
+            for unit in ${units}; do
+              if systemctl is-active --quiet "$unit"; then
+                printf '%s\n' "$unit" >> "$state_file"
+              fi
+            done
+            systemctl stop ${units}
+          '');
+          backupCleanupCommand = lib.optionalString (job.pauseUnits != []) (let
+            stateFile = "/run/restic-backup-${name}-active-units";
+          in ''
+            state_file=${lib.escapeShellArg stateFile}
+            if test -f "$state_file"; then
+              while IFS= read -r unit; do
+                systemctl start "$unit"
+              done < "$state_file"
+              rm -f "$state_file"
+            fi
+          '');
         })
         cfg.jobs;
     };

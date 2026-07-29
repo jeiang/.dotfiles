@@ -329,7 +329,21 @@
             sizeGiB = 10;
             hcloudVolumeId = "106445720";
           };
-          backupSet = ["/mnt/hermes"];
+          backupSet = ["/mnt/hermes/durable"];
+          backupPauseUnits = [
+            "hermes-agent.service"
+            "hermes-approval-broker.service"
+            "hermes-approval-dispatcher.socket"
+            "hermes-approval-dispatcher.service"
+            "hermes-command-runner.socket"
+            "hermes-command-runner.service"
+            "hermes-reminder-runner.socket"
+            "hermes-reminder-runner.service"
+            "hermes-memory-batch.timer"
+            "hermes-memory-batch.service"
+            "hermes-calendar-sync.timer"
+            "hermes-calendar-sync.service"
+          ];
         }
       ];
     };
