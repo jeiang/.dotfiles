@@ -422,6 +422,10 @@ in {
               imports = [inputs.hermes-agent-config.nixosModules.hermes];
               hermes = {
                 metricsUrl = "http://${monitoringNode.privateIPv4}:8428";
+                legacyScheduledJobIds = [
+                  "fd51c8b345d4"
+                  "2ca208a771ed"
+                ];
               };
               # Ownership requirements moved here with the secrets: the
               # extracted module now takes secret paths instead of owning
