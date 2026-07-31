@@ -26,6 +26,7 @@
   }: let
     system = pkgs.stdenv.hostPlatform.system;
     serverPort = 8080; # matches modules/nixos/edge/default.nix node4:8080
+    sopsFile = ./sops/secrets.attic.yaml;
 
     # The fork's `CachePermission` (token/src/lib.rs) serde-renames every
     # field to one of these short keys and has no `deny_unknown_fields`, so
@@ -260,10 +261,10 @@
 
     sops = {
       secrets = {
-        "attic/database-url" = {};
-        "attic/s3-access-key-id" = {};
-        "attic/s3-secret-access-key" = {};
-        "attic/token-rs256-secret-base64" = {};
+        "attic/database-url" = {inherit sopsFile;};
+        "attic/s3-access-key-id" = {inherit sopsFile;};
+        "attic/s3-secret-access-key" = {inherit sopsFile;};
+        "attic/token-rs256-secret-base64" = {inherit sopsFile;};
       };
 
       # No `owner` set: services.atticd runs with DynamicUser = true (the

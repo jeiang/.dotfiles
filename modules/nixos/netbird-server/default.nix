@@ -24,6 +24,8 @@
     # concern.
     dataDir = "/mnt/netbird";
 
+    sopsFile = ../sops/secrets.netbird-server.yaml;
+
     # Matches modules/nixos/edge/default.nix's @relay backend port
     # (`reverse_proxy ${node2}:8080`) and the
     # `netbird-relay` firewall entry in
@@ -97,9 +99,9 @@
     # first -- same as the edge module's hetzner-dns-token).
     sops = {
       secrets = {
-        "netbird/store-encryption-key" = {};
-        "netbird/relay-auth-secret" = {};
-        "netbird/idp-session-cookie-encryption-key" = {};
+        "netbird/store-encryption-key" = {inherit sopsFile;};
+        "netbird/relay-auth-secret" = {inherit sopsFile;};
+        "netbird/idp-session-cookie-encryption-key" = {inherit sopsFile;};
       };
 
       templates = {

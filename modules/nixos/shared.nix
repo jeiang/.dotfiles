@@ -3,7 +3,9 @@
     pkgs,
     config,
     ...
-  }: {
+  }: let
+    sopsFile = ./sops/secrets.passwords.yaml;
+  in {
     imports = [
       self.nixosModules.hjem
       self.nixosModules.nix
@@ -26,8 +28,14 @@
         hashedPasswordFile = config.sops.secrets."passwords/root".path;
       };
     };
-    sops.secrets."passwords/aidanp".neededForUsers = true;
-    sops.secrets."passwords/root".neededForUsers = true;
+    sops.secrets."passwords/aidanp" = {
+      inherit sopsFile;
+      neededForUsers = true;
+    };
+    sops.secrets."passwords/root" = {
+      inherit sopsFile;
+      neededForUsers = true;
+    };
     zramSwap.enable = true;
     services.openssh = {
       enable = true;

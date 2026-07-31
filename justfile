@@ -20,7 +20,7 @@ deploy system *args:
 
 # Run this after editing .sops.yaml
 sops-updatekeys:
-  sops updatekeys $(fd "secrets.(yaml|env|ini|json)" | fzf)
+  sops updatekeys $(fd "secrets.([^.]+.)?(yaml|env|ini|json)" | fzf)
 
 # Edit or view the secrets
 sops-edit:

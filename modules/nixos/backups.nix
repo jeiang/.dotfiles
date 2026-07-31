@@ -64,9 +64,11 @@ _: {
       # passwords to differ) and one shared S3 credential env file
       # (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY for the Mega S4 access
       # key scoped to the bucket above).
-      sops.secrets = {
-        "restic/password" = {};
-        "restic/s4-env" = {};
+      sops.secrets = let
+        sopsFile = ./sops/secrets.restic.yaml;
+      in {
+        "restic/password" = {inherit sopsFile;};
+        "restic/s4-env" = {inherit sopsFile;};
       };
 
       services.restic.backups =

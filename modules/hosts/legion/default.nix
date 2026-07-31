@@ -143,7 +143,7 @@ in {
       # `netbird.jeiang.dev` always resolves via public DNS before the
       # tunnel is up -- never via Blocky-over-NetBird. This must be
       # preserved if Blocky's placement ever changes.
-      sops.secrets."netbird/setup-key" = {};
+      sops.secrets."netbird/setup-key".sopsFile = ../../nixos/sops/secrets.netbird-client.yaml;
       services = {
         netbird.clients.default.login = {
           enable = true;
@@ -418,7 +418,9 @@ in {
             # (disabled) configuration stays evaluable.
             ++ lib.optional
             (lib.any (service: service.name == "hermes") node.services)
-            ({config, ...}: {
+            ({config, ...}: let
+              sopsFile = ../../nixos/sops/secrets.hermes.yaml;
+            in {
               imports = [inputs.hermes-agent-config.nixosModules.hermes];
               hermes = {
                 metricsUrl = "http://${monitoringNode.privateIPv4}:8428";
@@ -428,16 +430,19 @@ in {
               # secret names, per its `secretFiles` option descriptions.
               sops.secrets = {
                 "hermes/env" = {
+                  inherit sopsFile;
                   owner = "hermes";
                   group = "hermes";
                   mode = "0400";
                 };
                 "hermes/codex-auth.json" = {
+                  inherit sopsFile;
                   owner = "hermes";
                   group = "hermes";
                   mode = "0400";
                 };
                 "hermes/publisher-env" = {
+                  inherit sopsFile;
                   owner = "hermes-approval-broker";
                   group = "hermes-approval-broker";
                   mode = "0400";
@@ -446,6 +451,7 @@ in {
                 # never by the agent: that separation is the whole point of
                 # the holder (hermes-agent-config ADR 0006).
                 "hermes/calendar-env" = {
+                  inherit sopsFile;
                   owner = "hermes-calendar";
                   group = "hermes-calendar";
                   mode = "0400";
@@ -455,6 +461,7 @@ in {
                 # revoked selectively, so it stays out of the agent entirely
                 # (hermes-agent-config ADR 0006).
                 "hermes/actual-env" = {
+                  inherit sopsFile;
                   owner = "hermes-approval-broker";
                   group = "hermes-approval-broker";
                   mode = "0400";

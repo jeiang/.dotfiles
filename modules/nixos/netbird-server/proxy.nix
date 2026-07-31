@@ -20,6 +20,12 @@
     domain = "proxy.jeiang.dev";
     certName = domain;
 
+    # Two shards feed this module (docs/DESIGN.md "Secret Shard";
+    # docs/adr/0006): its own netbird-proxy secrets, and the CrowdSec
+    # bouncer keys shared with modules/nixos/crowdsec/default.nix.
+    netbirdProxySopsFile = ../sops/secrets.netbird-proxy.yaml;
+    crowdsecSopsFile = ../sops/secrets.crowdsec.yaml;
+
     # legion-node1's private address (modules/hosts/legion/default.nix
     # legionNodes.legion-node1.privateIPv4) and CrowdSec's LAPI port
     # (modules/nixos/crowdsec/default.nix lapiPort) -- this node is public
@@ -87,25 +93,26 @@
         # secrets.yaml yet -- sops-nix only checks at activation time,
         # same precedent as modules/nixos/netbird-server/default.nix's
         # secrets.
-        "netbird/proxy-token" = {};
+        "netbird/proxy-token" = {sopsFile = netbirdProxySopsFile;};
         # Reuses the bouncer key modules/nixos/crowdsec/default.nix
         # registers at node1's LAPI; legion-node2 needs `just
         # sops-updatekeys` run against it once this secret has a real
-        # value.
-        "crowdsec/bouncer-netbird-proxy-key" = {};
+        # value. Stored in the crowdsec shard (that module's shard), not
+        # the netbird-proxy shard -- this module reads from both.
+        "crowdsec/bouncer-netbird-proxy-key" = {sopsFile = crowdsecSopsFile;};
         # Same Hetzner DNS API token value as the edge's
         # `caddy/hetzner-dns-token` (modules/nixos/edge/default.nix),
         # stored under its own name since sops secrets are declared (and
         # keyed to recipients) per host.
-        "netbird-proxy/hetzner-dns-token" = {};
+        "netbird-proxy/hetzner-dns-token" = {sopsFile = netbirdProxySopsFile;};
         # OS-level firewall bouncer key (services.crowdsec-firewall-bouncer
         # below), registered at node1's LAPI by
         # modules/nixos/crowdsec/default.nix under the bouncer name
         # "legion-node2-firewall". Declared here even though the value
         # doesn't exist in secrets.yaml yet -- same precedent as the other
         # secrets in this block; `just sops-updatekeys` grants this host
-        # once it does.
-        "crowdsec/bouncer-legion-node2-firewall" = {};
+        # once it does. Same crowdsec shard as the bouncer key above.
+        "crowdsec/bouncer-legion-node2-firewall" = {sopsFile = crowdsecSopsFile;};
       };
 
       templates = {

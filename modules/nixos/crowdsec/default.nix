@@ -13,6 +13,7 @@ _: {
     ...
   }: let
     cfg = config.edge.crowdsec;
+    sopsFile = ../sops/secrets.crowdsec.yaml;
 
     # LAPI/AppSec service ports; modules/nixos/edge/default.nix already
     # hardcodes appsec_url http://127.0.0.1:7422, so 7422 isn't a free
@@ -212,8 +213,8 @@ _: {
       # modules/nixos/netbird-server/proxy.nix's bouncer client. Same
       # pattern for the legion-node2-firewall bouncer key, consumed by
       # that module's services.crowdsec-firewall-bouncer.
-      sops.secrets."crowdsec/bouncer-netbird-proxy-key" = {};
-      sops.secrets."crowdsec/bouncer-legion-node2-firewall" = {};
+      sops.secrets."crowdsec/bouncer-netbird-proxy-key" = {inherit sopsFile;};
+      sops.secrets."crowdsec/bouncer-legion-node2-firewall" = {inherit sopsFile;};
 
       systemd.services = {
         crowdsec-bouncers = {
