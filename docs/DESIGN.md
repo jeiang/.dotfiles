@@ -68,8 +68,12 @@ lost.
   should be backed up.
 - When repository-managed persistence is enabled for a host, its Backup Set
   must be a subset of that persistence configuration.
-- Runtime service secrets use sops-nix files encrypted only to the Human
-  Administrator and assigned host. Do not give every host access to every
+- Runtime service secrets are split into per-service **Secret Shards**
+  (`modules/nixos/sops/secrets.<shard>.yaml`, one `.sops.yaml` creation rule
+  each), tied to the NixOS module(s) that consume their secrets. Each shard is
+  encrypted to the Human Administrator plus the host(s) that run those
+  consuming module(s); a secret consumed by modules on more than one host is
+  encrypted to all of them. Do not give every host access to every
   application secret.
 
 DNS, Hetzner Cloud Firewalls, servers, and Volumes are provisioned outside this

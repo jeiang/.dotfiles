@@ -31,6 +31,8 @@ _: {
     node1 = "172.17.0.1"; # Edge: Caddy admin/metrics, CrowdSec metrics
     node2 = "172.17.0.2"; # NetBird server metrics, Blocky metrics
     node4 = "172.17.0.4"; # H@H (hath-rust) metrics
+
+    sopsFile = ../sops/secrets.monitoring.yaml;
     legionPrivateIPs = [
       "172.17.0.1"
       "172.17.0.2"
@@ -729,14 +731,17 @@ _: {
 
     sops = {
       secrets = {
-        "grafana/oauth-client-secret" = {};
+        "grafana/oauth-client-secret" = {inherit sopsFile;};
         # Read directly by the Grafana process (its `$__file{}` provider,
         # not systemd's EnvironmentFile), so -- unlike
         # alertmanager/discord-webhook below -- this needs an explicit
         # owner: the default sops-nix mode (0400, root-owned) would
         # otherwise be unreadable by the `grafana` user.
-        "grafana/secret-key" = {owner = "grafana";};
-        "alertmanager/discord-webhook" = {};
+        "grafana/secret-key" = {
+          inherit sopsFile;
+          owner = "grafana";
+        };
+        "alertmanager/discord-webhook" = {inherit sopsFile;};
       };
       templates = {
         "grafana.env" = {

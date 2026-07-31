@@ -331,13 +331,15 @@
       # and add a `caddy: hetzner-dns-token: <token>` entry before first
       # deploying the edge node (sops-nix only checks this at activation
       # time, not eval time, so it's safe to land the module first).
-      sops.secrets =
+      sops.secrets = let
+        sopsFile = ../sops/secrets.caddy.yaml;
+      in
         {
-          "caddy/hetzner-dns-token" = {};
+          "caddy/hetzner-dns-token" = {inherit sopsFile;};
         }
         // lib.optionalAttrs cfg.crowdsec.enable {
-          "caddy/crowdsec-lapi-url" = {};
-          "caddy/crowdsec-lapi-key" = {};
+          "caddy/crowdsec-lapi-url" = {inherit sopsFile;};
+          "caddy/crowdsec-lapi-key" = {inherit sopsFile;};
         };
 
       sops.templates."caddy.env" = {

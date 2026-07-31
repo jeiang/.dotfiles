@@ -15,6 +15,7 @@ _: {
     # "data/pocket-id.db", UPLOAD_PATH "data/uploads") resolve to
     # ${dataDir}/data/*.
     dataDir = "/mnt/pocket-id";
+    sopsFile = ./sops/secrets.pocket-id.yaml;
   in {
     services.pocket-id = {
       enable = true;
@@ -70,8 +71,8 @@ _: {
 
     sops = {
       secrets = {
-        "pocket-id/encryption-key" = {};
-        "pocket-id/static-api-key" = {};
+        "pocket-id/encryption-key" = {inherit sopsFile;};
+        "pocket-id/static-api-key" = {inherit sopsFile;};
       };
       templates."pocket-id.env" = {
         owner = config.services.pocket-id.user;
