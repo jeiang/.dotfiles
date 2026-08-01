@@ -50,15 +50,6 @@
     # installs the client from this input's locked rev (see
     # .github/workflows/ci.yml), so this lock is the single pin to bump.
     attic.url = "github:jeiang/attic";
-
-    # Extracted Hermes module and approval broker, maintained in their own
-    # flake. It carries the upstream hermes-agent pin, so that input is no
-    # longer declared here; bump this input to move the agent version.
-    hermes-agent-config = {
-      url = "github:jeiang/hermes-agent-config";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-parts.follows = "flake-parts";
-    };
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);

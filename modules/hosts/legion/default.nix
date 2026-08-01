@@ -68,11 +68,6 @@
 
   nodeHostname = name: "${lib.removePrefix "legion-" name}.jeiang.dev";
 
-  # Hermes queries VictoriaMetrics wherever the inventory places
-  # `monitoring` (legion-node3 today), so a placement change stays a
-  # one-file inventory edit.
-  monitoringNode = lib.findFirst (node: lib.any (service: service.name == "monitoring") (node.services or [])) (throw "Legion inventory places no monitoring service") (builtins.attrValues validatedLegionNodes);
-
   mkWan = {
     publicIPv4,
     publicIPv6,
@@ -409,83 +404,7 @@ in {
             # (legion-node3 today).
             ++ lib.optional
             (lib.any (service: service.name == "monitoring") node.services)
-            self.nixosModules.monitoring
-            # Hermes, same optional-import pattern, gated on the inventory
-            # node placing `hermes`. Fleet facts (peer addresses, the
-            # monitoring endpoint) are filled from the inventory here so
-            # the module itself hardcodes nothing about this deployment;
-            # they are set whenever the module is imported so the staged
-            # (disabled) configuration stays evaluable.
-            ++ lib.optional
-            (lib.any (service: service.name == "hermes") node.services)
-            ({config, ...}: let
-              sopsFile = ../../nixos/sops/secrets.hermes.yaml;
-            in {
-              imports = [inputs.hermes-agent-config.nixosModules.hermes];
-              hermes = {
-                metricsUrl = "http://${monitoringNode.privateIPv4}:8428";
-              };
-              # Ownership requirements moved here with the secrets: the
-              # extracted module now takes secret paths instead of owning
-              # secret names, per its `secretFiles` option descriptions.
-              sops.secrets = {
-                "hermes/env" = {
-                  inherit sopsFile;
-                  owner = "hermes";
-                  group = "hermes";
-                  mode = "0400";
-                };
-                "hermes/codex-auth.json" = {
-                  inherit sopsFile;
-                  owner = "hermes";
-                  group = "hermes";
-                  mode = "0400";
-                };
-                "hermes/publisher-env" = {
-                  inherit sopsFile;
-                  owner = "hermes-approval-broker";
-                  group = "hermes-approval-broker";
-                  mode = "0400";
-                };
-                # Read only by the Calendar Credential Holder's own user,
-                # never by the agent: that separation is the whole point of
-                # the holder (hermes-agent-config ADR 0006).
-                "hermes/calendar-env" = {
-                  inherit sopsFile;
-                  owner = "hermes-calendar";
-                  group = "hermes-calendar";
-                  mode = "0400";
-                };
-                # The Approval Broker runs the Actual CLI, so it owns this
-                # one. The session token does not expire and cannot be
-                # revoked selectively, so it stays out of the agent entirely
-                # (hermes-agent-config ADR 0006).
-                "hermes/actual-env" = {
-                  inherit sopsFile;
-                  owner = "hermes-approval-broker";
-                  group = "hermes-approval-broker";
-                  mode = "0400";
-                };
-              };
-              hermes.secretFiles = {
-                env = config.sops.secrets."hermes/env".path;
-                codexAuth = config.sops.secrets."hermes/codex-auth.json".path;
-                publisherEnv = config.sops.secrets."hermes/publisher-env".path;
-              };
-              hermes.calendar = {
-                enable = true;
-                secretFile = config.sops.secrets."hermes/calendar-env".path;
-              };
-              hermes.actual = {
-                enable = true;
-                secretFile = config.sops.secrets."hermes/actual-env".path;
-              };
-            })
-            ++ lib.optional
-            (lib.any (service: service.name == "hermes" && (service.enabled or false)) node.services)
-            {
-              hermes.enable = true;
-            };
+            self.nixosModules.monitoring;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;

@@ -51,16 +51,3 @@ A privileged, non-human identity used only by automation to deploy system
 configurations. Its credentials grant administrative control of deployment
 targets.
 _Avoid_: Human Administrator, personal account
-
-**Hermes Agent**:
-A personal agent service this fleet hosts. Its own design, identities, and
-vocabulary belong to the `hermes-agent-config` repository; see that
-repository's `CONTEXT.md` for the full language.
-_Avoid_: Deployment Identity, cluster operator
-
-**Knowledge Base**:
-A private Markdown repository containing reviewed, explicitly directed
-general knowledge for Hermes, including its native memory. Referenced by
-`docs/runbooks/hermes-approval-migration.md` for this fleet's one-time
-migration; full ownership of the term lives in `hermes-agent-config`.
-_Avoid_: Session history

@@ -315,22 +315,6 @@
           # is now monitoring-only.
           stateful = false;
         }
-        {
-          # Telegram-facing agent; recurring operations and the current
-          # approval migration are documented under docs/runbooks/.
-          name = "hermes";
-          enabled = true;
-          publicHostnames = [];
-          firewall = [];
-          stateful = true;
-          volume = {
-            name = "legion-hermes";
-            mountpoint = "/mnt/hermes";
-            sizeGiB = 10;
-            hcloudVolumeId = "106445720";
-          };
-          backupSet = ["/mnt/hermes"];
-        }
       ];
     };
 
