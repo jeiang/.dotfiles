@@ -93,13 +93,6 @@ creation_rules:
       - *user_aidanp
       - *server_legion_node3
 
-  # modules/hosts/legion/default.nix (hermes inline block).
-  - path_regex: secrets\.hermes\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *server_legion_node3
-
   # modules/nixos/attic.nix.
   - path_regex: secrets\.attic\.yaml$
     key_groups:

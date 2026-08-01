@@ -19,18 +19,6 @@
           statix check ${self}
           touch $out
         '';
-
-        # Keep an exact Hermes-focused system check that does not depend on
-        # local access to the encrypted production secrets.
-        toplevel-legion-node3-hermes-enabled =
-          (self.nixosConfigurations.legion-node3.extendModules {
-            modules = [
-              {
-                hermes.enable = true;
-                sops.validateSopsFiles = false;
-              }
-            ];
-          }).config.system.build.toplevel;
       }
     );
   };
