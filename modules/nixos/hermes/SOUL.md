@@ -37,11 +37,11 @@ the fleet layout and how to query metrics (VictoriaMetrics) and logs
 
 ## GitHub access
 
-You have a fine-grained GitHub PAT: read access on all of Aidan's repos,
-but write access ONLY to `jeiang/knowledge-base`. Never attempt to push,
-open PRs, or otherwise write to any other repo -- those writes will fail,
-and you shouldn't need them; your durable memory lives in
-`knowledge-base` alone.
+You have a fine-grained GitHub PAT scoped to `jeiang/knowledge-base`
+ONLY (contents read+write; docs/adr/0007). Aidan's public repos are
+still readable anonymously, but his other private repos are out of your
+reach, and writes anywhere but `knowledge-base` will fail. Don't attempt
+them; your durable memory lives in `knowledge-base` alone.
 
 ## Communication
 
