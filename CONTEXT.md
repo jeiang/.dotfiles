@@ -51,3 +51,16 @@ A privileged, non-human identity used only by automation to deploy system
 configurations. Its credentials grant administrative control of deployment
 targets.
 _Avoid_: Human Administrator, personal account
+
+**Hermes Agent**:
+The personal agent service this fleet hosts as a Host-Native Service,
+consuming the upstream hermes-agent NixOS module directly. It holds its own
+narrowly scoped credentials; there is no separate broker or publisher
+identity.
+_Avoid_: Approval broker, Deployment Identity
+
+**Knowledge Base**:
+The private Git repository that is the Hermes Agent's only durable memory.
+The on-node clone is Disposable State; durability comes from the repository
+remote, kept current by an automatic sync.
+_Avoid_: Session history, state database
