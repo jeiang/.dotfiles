@@ -83,17 +83,22 @@ just deploy legion-node3
 
 ## First-boot, one-time codex adoption
 
-The module seeds Codex-CLI-shaped OAuth tokens at
-`${stateDir}/.codex/auth.json` (`stateDir` defaults to `/var/lib/hermes`),
-but Hermes does not auto-import that file into its own auth store on a cold
-start -- see the long comment in `modules/nixos/hermes/default.nix` above
-`sops.secrets`. After the first deploy, adopt it manually:
+Codex auth needs a one-time interactive OAuth device-code flow on the
+node after the first deploy (and again after a node rebuild, since Hermes'
+auth store is Disposable State on the root disk). Verified against the
+pinned rev: a cold start with an empty auth store raises
+`codex_auth_missing`, which is excluded from the self-heal import in
+`resolve_codex_runtime_credentials` (`hermes_cli/auth.py`), and the
+`auth add openai-codex` path goes straight to a fresh device-code login --
+it never imports the module's seeded `~/.codex/auth.json` on an empty
+store (that seed only feeds self-heal when the store holds a *malformed*
+token pair). The flow prints a URL plus a code, so it works fine over SSH:
 
 ```sh
 ssh node3.jeiang.dev
 sudo -u hermes HOME=/var/lib/hermes \
   "$(systemctl cat hermes-agent | grep -o '/nix/store/[^ ]*/bin/hermes' | head -1)" \
-  auth openai-codex
+  auth add openai-codex
 ```
 
 The store-path dance is because the `hermes` CLI is not on any system PATH
@@ -101,10 +106,6 @@ The store-path dance is because the `hermes` CLI is not on any system PATH
 (`services.hermes-agent.addToSystemPackages` stays off), so it is extracted
 from the unit's `ExecStart` here. `HOME` must be set explicitly too: the
 unit sets `HOME=/var/lib/hermes` for the service, but `sudo` does not.
-
-Accept the "Import these credentials?" prompt. This is one-time only: once
-Hermes' own auth store holds a token pair, its self-heal path takes over for
-future refreshes.
 
 ## Verify
 

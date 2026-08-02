@@ -145,13 +145,14 @@
     # `resolve_codex_runtime_credentials()`'s automatic self-heal path only
     # fires once Hermes' own store already holds a *broken* token (error
     # codes for a missing access/refresh token or an invalid shape), not the
-    # totally-empty `codex_auth_missing` case a first deploy starts in. So a
-    # one-time interactive `hermes auth openai-codex` (accepting the "Import
-    # these credentials?" prompt) is still needed after first deploy to
-    # actually adopt this seed into Hermes' own store; this preStart's job
-    # is only to guarantee that seed file exists and is current for that
-    # step, and for the self-heal path to find afterwards once Hermes has a
-    # store of its own.
+    # totally-empty `codex_auth_missing` case a first deploy starts in. Nor
+    # does `hermes auth add openai-codex` import it -- that goes straight to
+    # a fresh device-code login (the interactive "Import these credentials?"
+    # adoption prompt exists only for the Nous provider on this rev). So the
+    # one-time interactive `hermes auth add openai-codex` device flow is
+    # required after first deploy (docs/runbooks/hermes.md); this seed's
+    # only remaining job is the malformed-store self-heal case, and only
+    # while its sops copy holds unexpired tokens.
     sops.secrets = {
       # TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS, GITHUB_TOKEN --
       # environmentFiles above merges this into $HERMES_HOME/.env at
