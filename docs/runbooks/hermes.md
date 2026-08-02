@@ -91,8 +91,16 @@ start -- see the long comment in `modules/nixos/hermes/default.nix` above
 
 ```sh
 ssh node3.jeiang.dev
-sudo -u hermes -H hermes auth openai-codex
+sudo -u hermes HOME=/var/lib/hermes \
+  "$(systemctl cat hermes-agent | grep -o '/nix/store/[^ ]*/bin/hermes' | head -1)" \
+  auth openai-codex
 ```
+
+The store-path dance is because the `hermes` CLI is not on any system PATH
+-- it lives only inside the service's own package
+(`services.hermes-agent.addToSystemPackages` stays off), so it is extracted
+from the unit's `ExecStart` here. `HOME` must be set explicitly too: the
+unit sets `HOME=/var/lib/hermes` for the service, but `sudo` does not.
 
 Accept the "Import these credentials?" prompt. This is one-time only: once
 Hermes' own auth store holds a token pair, its self-heal path takes over for
