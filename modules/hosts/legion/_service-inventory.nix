@@ -315,6 +315,31 @@
           # is now monitoring-only.
           stateful = false;
         }
+        {
+          # Hermes Agent (CONTEXT.md "Hermes Agent",
+          # modules/nixos/hermes/default.nix). Placed here rather than a
+          # dedicated node: it queries this node's own VictoriaMetrics/
+          # VictoriaLogs over localhost (SERVERS.md), so co-locating avoids
+          # a cross-node hop for its heaviest read traffic.
+          name = "hermes";
+          # Telegram long-polling is outbound-only: no DNS hostname, no
+          # Caddy route.
+          publicHostnames = [];
+          # No inbound ports at all: the agent only makes outbound
+          # connections (Telegram long-polling, GitHub, and
+          # VictoriaMetrics/VictoriaLogs over localhost -- not even the
+          # NetBird-only reachability pattern the `monitoring` entry above
+          # documents for its own raw ports).
+          firewall = [];
+          # Deliberate call, not an oversight: the on-node state (agent
+          # sessions under stateDir, the Knowledge Base clone) is
+          # Disposable State (CONTEXT.md) -- durable knowledge lives in the
+          # jeiang/knowledge-base remote, kept current by the module's own
+          # hermes-kb-sync timer, and secrets live in sops (already backed
+          # by the repo's sops workflow). Nothing here needs a Hetzner
+          # Volume or a Backup Set (CONTEXT.md "Knowledge Base").
+          stateful = false;
+        }
       ];
     };
 
