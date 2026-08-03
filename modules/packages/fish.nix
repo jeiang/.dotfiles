@@ -1,6 +1,7 @@
 {inputs, ...}: {
   perSystem = {
     pkgs,
+    lib,
     self',
     ...
   }: let
@@ -13,9 +14,15 @@
       # fish
       ''
         function fish_greeting
-          nitch
+          ${lib.optionalString (!pkgs.stdenv.hostPlatform.isDarwin) "nitch"}
         end
+        ${lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
 
+          # Bitwarden's Mac App Store build is sandboxed (docs/adr/0009); its
+          # SSH agent socket lives under the container path instead of
+          # ~/.bitwarden-ssh-agent.sock.
+          set -gx SSH_AUTH_SOCK $HOME/Library/Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock
+        ''}
         status is-interactive; and begin
           source ${donefish}
           zoxide init fish --cmd cd | source
@@ -45,14 +52,18 @@
       {
         inherit pkgs;
         package = pkgs.fish;
-        runtimePkgs = with pkgs; [
-          self'.packages.starship
-          eza
-          fzf
-          jq
-          nitch
-          zoxide
-        ];
+        runtimePkgs = with pkgs;
+          [
+            self'.packages.starship
+            eza
+            fzf
+            jq
+          ]
+          # nitch is Linux-only in the pinned nixpkgs.
+          ++ lib.optional (!pkgs.stdenv.hostPlatform.isDarwin) nitch
+          ++ [
+            zoxide
+          ];
         flags = {
           "-C" = "source ${fishConf}";
         };
