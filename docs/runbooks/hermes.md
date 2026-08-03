@@ -67,10 +67,10 @@ To disable Hermes entirely: remove the `hermes` entry from
 `modules/hosts/legion/_service-inventory.nix` and redeploy `legion-node3`
 (the module only imports when the inventory places it -- the same
 optional-import pattern `modules/hosts/legion/default.nix` uses for
-`attic.nix`/`actual-budget.nix`).
+`attic/default.nix`/`actual-budget.nix`).
 
 The state directory on `legion-node3`'s root disk (agent sessions, the
 Knowledge Base clone) is Disposable State and can be deleted freely -- no
 Hetzner Volume, no Backup Set. The durable copies are the
-`jeiang/knowledge-base` remote and the `secrets.hermes.yaml` sops shard;
-neither is affected by deleting node-local state.
+`jeiang/knowledge-base` remote and the `modules/nixos/hermes/secrets.yaml`
+sops shard; neither is affected by deleting node-local state.

@@ -26,7 +26,7 @@
   }: let
     system = pkgs.stdenv.hostPlatform.system;
     serverPort = 8080; # matches modules/nixos/edge/default.nix node4:8080
-    sopsFile = ./sops/secrets.attic.yaml;
+    sopsFile = ./secrets.yaml;
 
     # The fork's `CachePermission` (token/src/lib.rs) serde-renames every
     # field to one of these short keys and has no `deny_unknown_fields`, so

@@ -24,7 +24,7 @@
     # concern.
     dataDir = "/mnt/netbird";
 
-    sopsFile = ../sops/secrets.netbird-server.yaml;
+    sopsFile = ./secrets.yaml;
 
     # Matches modules/nixos/edge/default.nix's @relay backend port
     # (`reverse_proxy ${node2}:8080`) and the

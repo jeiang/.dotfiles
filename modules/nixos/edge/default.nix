@@ -325,7 +325,7 @@
       # Hetzner DNS API token for the DNS-01 issuer above, from the caddy
       # secrets shard.
       sops.secrets = let
-        sopsFile = ../sops/secrets.caddy.yaml;
+        sopsFile = ./secrets.yaml;
       in
         {
           "caddy/hetzner-dns-token" = {inherit sopsFile;};

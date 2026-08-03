@@ -32,7 +32,7 @@ _: {
     node2 = "172.17.0.2"; # NetBird server metrics, Blocky metrics
     node4 = "172.17.0.4"; # H@H (hath-rust) metrics
 
-    sopsFile = ../sops/secrets.monitoring.yaml;
+    sopsFile = ./secrets.yaml;
     legionPrivateIPs = [
       "172.17.0.1"
       "172.17.0.2"

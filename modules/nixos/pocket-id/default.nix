@@ -15,7 +15,7 @@ _: {
     # "data/pocket-id.db", UPLOAD_PATH "data/uploads") resolve to
     # ${dataDir}/data/*.
     dataDir = "/mnt/pocket-id";
-    sopsFile = ./sops/secrets.pocket-id.yaml;
+    sopsFile = ./secrets.yaml;
   in {
     services.pocket-id = {
       enable = true;

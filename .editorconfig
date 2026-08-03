@@ -27,7 +27,7 @@ charset = unset
 indent_style = unset
 indent_size = unset
 
-[secrets/**]
+[**/secrets*.{yaml,env,ini,json}]
 end_of_line = unset
 insert_final_newline = unset
 trim_trailing_whitespace = unset

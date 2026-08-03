@@ -138,7 +138,7 @@ in {
       # `netbird.jeiang.dev` always resolves via public DNS before the
       # tunnel is up -- never via Blocky-over-NetBird. This must be
       # preserved if Blocky's placement ever changes.
-      sops.secrets."netbird/setup-key".sopsFile = ../../nixos/sops/secrets.netbird-client.yaml;
+      sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
       services = {
         netbird.clients.default.login = {
           enable = true;

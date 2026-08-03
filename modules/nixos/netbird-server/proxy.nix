@@ -23,8 +23,8 @@
     # Two shards feed this module (docs/DESIGN.md "Secret Shard";
     # docs/adr/0006): its own netbird-proxy secrets, and the CrowdSec
     # bouncer keys shared with modules/nixos/crowdsec/default.nix.
-    netbirdProxySopsFile = ../sops/secrets.netbird-proxy.yaml;
-    crowdsecSopsFile = ../sops/secrets.crowdsec.yaml;
+    netbirdProxySopsFile = ./secrets.proxy.yaml;
+    crowdsecSopsFile = ../crowdsec/secrets.yaml;
 
     # legion-node1's private address (modules/hosts/legion/default.nix
     # legionNodes.legion-node1.privateIPv4) and CrowdSec's LAPI port

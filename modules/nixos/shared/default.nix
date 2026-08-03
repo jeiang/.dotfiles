@@ -4,7 +4,7 @@
     config,
     ...
   }: let
-    sopsFile = ./sops/secrets.passwords.yaml;
+    sopsFile = ./secrets.yaml;
   in {
     imports = [
       self.nixosModules.hjem

@@ -8,18 +8,19 @@ keys:
 
 # Per-service Secret Shards (docs/DESIGN.md "Secret Shard"; docs/adr/0006).
 # Each shard is encrypted only to the Human Administrator plus the
-# host(s) whose modules consume it. path_regex is anchored to the exact
-# shard filename ($-anchored, disjoint) so there is no broad catch-all
-# rule left to shadow a shard.
+# host(s) whose modules consume it. path_regex is anchored to the full
+# colocated path ($-anchored, disjoint) rather than the bare filename --
+# every shard is named secrets.yaml (or secrets.proxy.yaml) beside its
+# consuming module, so a bare filename regex would match multiple shards.
 creation_rules:
   # No Nix consumer -- stored data only (the admin's own stashed key).
-  - path_regex: secrets\.admin\.yaml$
+  - path_regex: modules/nixos/sops/secrets\.admin\.yaml$
     key_groups:
     - age:
       - *user_aidanp
 
-  # modules/nixos/shared.nix -- every host.
-  - path_regex: secrets\.passwords\.yaml$
+  # modules/nixos/shared/default.nix -- every host.
+  - path_regex: modules/nixos/shared/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -30,7 +31,7 @@ creation_rules:
       - *server_legion_node4
 
   # modules/hosts/legion/default.nix -- every Legion node.
-  - path_regex: secrets\.netbird-client\.yaml$
+  - path_regex: modules/hosts/legion/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -39,9 +40,9 @@ creation_rules:
       - *server_legion_node3
       - *server_legion_node4
 
-  # modules/nixos/backups.nix -- every node with a Backup Set (not the
-  # edge node, which runs no backup job).
-  - path_regex: secrets\.restic\.yaml$
+  # modules/nixos/backups/default.nix -- every node with a Backup Set (not
+  # the edge node, which runs no backup job).
+  - path_regex: modules/nixos/backups/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -50,7 +51,7 @@ creation_rules:
       - *server_legion_node4
 
   # modules/nixos/edge/default.nix.
-  - path_regex: secrets\.caddy\.yaml$
+  - path_regex: modules/nixos/edge/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -58,7 +59,7 @@ creation_rules:
 
   # modules/nixos/crowdsec/default.nix (edge engine) and
   # modules/nixos/netbird-server/proxy.nix (proxy bouncer client).
-  - path_regex: secrets\.crowdsec\.yaml$
+  - path_regex: modules/nixos/crowdsec/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -66,42 +67,42 @@ creation_rules:
       - *server_legion_node2
 
   # modules/nixos/netbird-server/default.nix.
-  - path_regex: secrets\.netbird-server\.yaml$
+  - path_regex: modules/nixos/netbird-server/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
       - *server_legion_node2
 
   # modules/nixos/netbird-server/proxy.nix.
-  - path_regex: secrets\.netbird-proxy\.yaml$
+  - path_regex: modules/nixos/netbird-server/secrets\.proxy\.yaml$
     key_groups:
     - age:
       - *user_aidanp
       - *server_legion_node2
 
-  # modules/nixos/pocket-id.nix.
-  - path_regex: secrets\.pocket-id\.yaml$
+  # modules/nixos/pocket-id/default.nix.
+  - path_regex: modules/nixos/pocket-id/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
       - *server_legion_node2
 
   # modules/nixos/monitoring/default.nix.
-  - path_regex: secrets\.monitoring\.yaml$
+  - path_regex: modules/nixos/monitoring/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
       - *server_legion_node3
 
   # modules/nixos/hermes/default.nix.
-  - path_regex: secrets\.hermes\.yaml$
+  - path_regex: modules/nixos/hermes/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
       - *server_legion_node3
 
-  # modules/nixos/attic.nix.
-  - path_regex: secrets\.attic\.yaml$
+  # modules/nixos/attic/default.nix.
+  - path_regex: modules/nixos/attic/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
