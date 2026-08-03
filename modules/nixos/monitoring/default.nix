@@ -72,12 +72,25 @@ _: {
         #     `c.Status(http.StatusNoContent)`; 204 is inside 2xx).
         #   - actual     /health  -> 200 {"status":"UP"} (actual
         #     sync-server src/app.ts `res.status(200).json(...)`).
-        #   - attic      /        -> 200 HTML placeholder (attic-server
-        #     server/src/api/mod.rs root route returns `Html<..>`, a 200).
         http_2xx = {
           prober = "http";
           timeout = "5s";
           http.preferred_ip_protocol = "ip4";
+        };
+        # http_2xx_attic: attic-server validates the Host header against
+        # allowed-hosts = ["attic.jeiang.dev"] (modules/nixos/attic.nix) and
+        # answers 400 "Bad Host" to a bare-IP probe, so this module sends the
+        # canonical Host while still probing the private backend directly
+        # (keeping Caddy/DNS/TLS out of the liveness signal, docs/adr/0003).
+        # With a valid Host, attic / -> 200 HTML placeholder (attic-server
+        # server/src/api/mod.rs root route returns `Html<..>`, a 200).
+        http_2xx_attic = {
+          prober = "http";
+          timeout = "5s";
+          http = {
+            preferred_ip_protocol = "ip4";
+            headers.Host = "attic.jeiang.dev";
+          };
         };
         # tcp_connect: pure TCP-handshake reachability, used for
         # netbird-server's :80. That port multiplexes gRPC + the management
@@ -387,13 +400,22 @@ _: {
                 # unreachable budget app degrades, it doesn't lock the fleet
                 # out -- so these stay `warning`, same tier as
                 # SystemdUnitFailed.
-                targets = [
-                  "http://${node4}:5006/health"
-                  "http://${node4}:8080/"
-                ];
+                targets = ["http://${node4}:5006/health"];
                 labels = {
                   type = "probe";
                   tier = "warning";
+                };
+              }
+              {
+                # attic needs the Host-header module (see http_2xx_attic in
+                # blackboxConfig); __param_target/__address__ relabels below
+                # apply unchanged, and __param_module set here per-target
+                # overrides the job-level params.module.
+                targets = ["http://${node4}:8080/"];
+                labels = {
+                  type = "probe";
+                  tier = "warning";
+                  __param_module = "http_2xx_attic";
                 };
               }
             ];
