@@ -1,0 +1,73 @@
+{self, ...}: {
+  flake.darwinModules.apps = {pkgs, ...}: {
+    # nix-darwin ships a real programs.direnv module (unlike the NixOS side,
+    # which gets direnv through modules/nixos/nix.nix's `programs.direnv`
+    # block) -- same settings, so nix-direnv behaves identically here.
+    programs.direnv = {
+      enable = true;
+      silent = false;
+      loadInNixShell = true;
+    };
+
+    environment.systemPackages = let
+      wrapped = self.packages.${pkgs.stdenv.hostPlatform.system};
+    in
+      (with pkgs; [
+        # GUI, nixpkgs-first (docs/adr/0009)
+        discord
+        iina
+        mos
+        qbittorrent
+        raycast
+        telegram-desktop
+        zed-editor
+        wrapped.ghostty
+
+        # CLI
+        bat
+        btop
+        difftastic
+        erdtree
+        # withWhisper defaults on for ffmpeg-full >=8.0 (whisper speech
+        # recognition support); whisper-cpp's CoreML backend fails to link
+        # on this pinned nixpkgs' aarch64-darwin toolchain (ld crashes with
+        # "Trace/BPT trap: 5" building libwhisper.coreml.dylib). Disabling
+        # it here only drops that one feature, not ffmpeg-full itself.
+        # doCheck also disabled: ffmpeg's FATE suite (hundreds of
+        # encode/decode roundtrip cases) is impractical for a hosted-runner
+        # CI build of a CLI tool, not a correctness requirement here.
+        ((ffmpeg-full.override {withWhisper = false;}).overrideAttrs (_: {doCheck = false;}))
+        gallery-dl
+        ggshield
+        gh
+        gnupg
+        pinentry_mac
+        go
+        hcloud
+        kubernetes-helm
+        helm-ls
+        imagemagick
+        kubectl
+        kyverno
+        mcfly
+        megatools
+        miniserve
+        nmap
+        nodejs
+        ouch
+        pkgconf
+        pnpm
+        ripgrep
+        tokei
+        unbound
+        upx
+        uv
+        zig
+      ])
+      ++ [
+        wrapped.git
+        wrapped.difft
+        wrapped.helix
+      ];
+  };
+}
