@@ -14,12 +14,12 @@
     cfg = config.edge;
     system = pkgs.stdenv.hostPlatform.system;
 
-    # Legion private-network addresses (modules/hosts/legion/default.nix
-    # `legionNodes`).
-    node1 = "172.17.0.1"; # This node's own private address (metrics bind)
-    node2 = "172.17.0.2"; # NetBird server/relay, Pocket ID
-    node3 = "172.17.0.3"; # Monitoring/Grafana
-    node4 = "172.17.0.4"; # Attic, Actual Budget
+    # Legion private-network addresses (flake.lib.legionNodes,
+    # modules/hosts/legion/default.nix).
+    node1 = self.lib.legionNodes.legion-node1.privateIPv4; # This node's own private address (metrics bind)
+    node2 = self.lib.legionNodes.legion-node2.privateIPv4; # NetBird server/relay, Pocket ID
+    node3 = self.lib.legionNodes.legion-node3.privateIPv4; # Monitoring/Grafana
+    node4 = self.lib.legionNodes.legion-node4.privateIPv4; # Attic, Actual Budget
 
     website = inputs.website.packages.${system}.default;
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";

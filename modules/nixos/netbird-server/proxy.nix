@@ -26,15 +26,15 @@
     netbirdProxySopsFile = ./secrets.proxy.yaml;
     crowdsecSopsFile = ../crowdsec/secrets.yaml;
 
-    # legion-node1's private address (modules/hosts/legion/default.nix
-    # legionNodes.legion-node1.privateIPv4) and CrowdSec's LAPI port
+    # legion-node1's private address (flake.lib.legionNodes.legion-node1,
+    # modules/hosts/legion/default.nix) and CrowdSec's LAPI port
     # (modules/nixos/crowdsec/default.nix lapiPort) -- this node is public
     # and terminates its own traffic directly, so remediation runs here
     # against the single LAPI over the private network: this module's own
     # app-level bouncer (per-service IP reputation, below) and the
     # OS-level services.crowdsec-firewall-bouncer (whole-node bans,
     # legion-node2 only, below).
-    node1PrivateIp = "172.17.0.1";
+    node1PrivateIp = self.lib.legionNodes.legion-node1.privateIPv4;
     lapiPort = 8080;
 
     # TLS strategy: the nixpkgs-pinned netbird-proxy binary (v0.74.3,
@@ -111,11 +111,13 @@
       };
 
       templates = {
-        "netbird-proxy.env".owner = "netbird-proxy";
-        "netbird-proxy.env".content = ''
-          NB_PROXY_TOKEN=${config.sops.placeholder."netbird/proxy-token"}
-          NB_PROXY_CROWDSEC_API_KEY=${config.sops.placeholder."crowdsec/bouncer-netbird-proxy-key"}
-        '';
+        "netbird-proxy.env" = {
+          owner = "netbird-proxy";
+          content = ''
+            NB_PROXY_TOKEN=${config.sops.placeholder."netbird/proxy-token"}
+            NB_PROXY_CROWDSEC_API_KEY=${config.sops.placeholder."crowdsec/bouncer-netbird-proxy-key"}
+          '';
+        };
 
         "netbird-proxy-hetzner-dns.env".content = ''
           HETZNER_API_TOKEN=${config.sops.placeholder."netbird-proxy/hetzner-dns-token"}

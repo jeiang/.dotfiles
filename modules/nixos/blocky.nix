@@ -63,23 +63,27 @@ _: {
     # that leaves port 553 open only on the NetBird interface, i.e. reachable
     # from NetBird peers only.
     #
+    # All `systemd.*` contributions from this module in one attrset (statix
+    # "repeated keys" -- merging plain attrpath assignments across separate
+    # top-level entries works fine in Nix, but is flagged as a style issue).
+    #
     # Startup ordering: wait for the NetBird tunnel so Blocky's port-553
     # listener doesn't win a race against the interface it's meant to serve
     # (harmless either way since the bind is 0.0.0.0, but blocklist
     # downloads need working egress, which the client's own network-online
     # ordering already provides -- this just keeps Blocky from starting
     # before the tunnel it's semantically bound to conceptually exists).
+    #
+    # Single point of failure: peer DNS runs as a single instance on
+    # legion-node2, no replica/HPA equivalent. Accepted by the operator.
+    #
+    # The old 1.22 GiB "peak" reading was an artifact of a prior no-limits
+    # config; blocklist load caps real usage at <=350 MiB.
     systemd.services.blocky = {
       after = [(config.services.netbird.clients.default.service.name + ".service")];
       wants = [(config.services.netbird.clients.default.service.name + ".service")];
+      serviceConfig.MemoryMax = "512M";
     };
-
-    # Single point of failure: peer DNS runs as a single instance on
-    # legion-node2, no replica/HPA equivalent. Accepted by the operator.
-
-    # The old 1.22 GiB "peak" reading was an artifact of a prior no-limits
-    # config; blocklist load caps real usage at <=350 MiB.
-    systemd.services.blocky.serviceConfig.MemoryMax = "512M";
 
     # Stateless (Workload Inventory: Blocky "none"): blocklists are
     # re-downloaded on start, so no Volume/backupSet -- matches the

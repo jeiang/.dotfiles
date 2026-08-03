@@ -126,31 +126,30 @@
       tmpfiles.rules = ["d ${dataDir} 0750 netbird netbird - -"];
 
       services = {
-        netbird-server = {
-          description = "NetBird unified management/signal server";
-          after = ["network-online.target"];
-          wants = ["network-online.target"];
-          wantedBy = ["multi-user.target"];
-          # Mount guard (Codex review C2): refuse to start unless
-          # ${dataDir} is actually mounted, so a missing/late Volume never
-          # silently initializes a fresh sqlite store.engine on the root
-          # disk instead of the retained data.
-          unitConfig = {
-            RequiresMountsFor = [dataDir];
-            ConditionPathIsMountPoint = dataDir;
-          };
-          serviceConfig = {
-            ExecStart = "${lib.getExe serverPkg} --config ${config.sops.templates."netbird-server-config.yaml".path}";
-            Restart = "on-failure";
-            RestartSec = 5;
-            User = "netbird";
-            Group = "netbird";
-            # listenAddress above binds :80; the server otherwise runs
-            # unprivileged.
-            AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
-            MemoryMax = "320M";
-          };
-        };
+        # Mount guard (flake.lib.mountGuard, modules/hosts/legion/default.nix)
+        # merged in via `//`: refuse to start unless ${dataDir} is
+        # actually mounted, so a missing/late Volume never silently
+        # initializes a fresh sqlite store.engine on the root disk
+        # instead of the retained data.
+        netbird-server =
+          {
+            description = "NetBird unified management/signal server";
+            after = ["network-online.target"];
+            wants = ["network-online.target"];
+            wantedBy = ["multi-user.target"];
+            serviceConfig = {
+              ExecStart = "${lib.getExe serverPkg} --config ${config.sops.templates."netbird-server-config.yaml".path}";
+              Restart = "on-failure";
+              RestartSec = 5;
+              User = "netbird";
+              Group = "netbird";
+              # listenAddress above binds :80; the server otherwise runs
+              # unprivileged.
+              AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
+              MemoryMax = "320M";
+            };
+          }
+          // self.lib.mountGuard dataDir;
 
         netbird-relay = {
           description = "NetBird relay + STUN server";

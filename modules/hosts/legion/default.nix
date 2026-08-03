@@ -7,31 +7,10 @@
   publicV4Gateway = "172.31.1.1";
   publicV6Gateway = "fe80::1";
 
-  legionNodes = {
-    legion-node1 = {
-      privateIPv4 = "172.17.0.1";
-      publicIPv4 = "178.156.226.145";
-      publicIPv6 = "2a01:4ff:f0:6b8e::1";
-    };
-
-    legion-node2 = {
-      privateIPv4 = "172.17.0.2";
-      publicIPv4 = "178.156.201.35";
-      publicIPv6 = "2a01:4ff:f0:a1ff::1";
-    };
-
-    legion-node3 = {
-      privateIPv4 = "172.17.0.3";
-      publicIPv4 = "178.156.186.147";
-      publicIPv6 = "2a01:4ff:f0:c52a::1";
-    };
-
-    legion-node4 = {
-      privateIPv4 = "172.17.0.4";
-      publicIPv4 = "178.156.191.180";
-      publicIPv6 = "2a01:4ff:f0:ca96::1";
-    };
-  };
+  # Exposed as a flake output (flake.lib.legionNodes below) so other
+  # modules (edge, monitoring, netbird-server/proxy) can read these IPs
+  # instead of hardcoding their own copies.
+  legionNodes = self.lib.legionNodes;
 
   nodeAddresses = lib.concatMap (node: [node.privateIPv4 node.publicIPv4 node.publicIPv6]) (builtins.attrValues legionNodes);
 
@@ -96,6 +75,44 @@
   };
 in {
   flake = {
+    lib.legionNodes = {
+      legion-node1 = {
+        privateIPv4 = "172.17.0.1";
+        publicIPv4 = "178.156.226.145";
+        publicIPv6 = "2a01:4ff:f0:6b8e::1";
+      };
+
+      legion-node2 = {
+        privateIPv4 = "172.17.0.2";
+        publicIPv4 = "178.156.201.35";
+        publicIPv6 = "2a01:4ff:f0:a1ff::1";
+      };
+
+      legion-node3 = {
+        privateIPv4 = "172.17.0.3";
+        publicIPv4 = "178.156.186.147";
+        publicIPv6 = "2a01:4ff:f0:c52a::1";
+      };
+
+      legion-node4 = {
+        privateIPv4 = "172.17.0.4";
+        publicIPv4 = "178.156.191.180";
+        publicIPv6 = "2a01:4ff:f0:ca96::1";
+      };
+    };
+
+    # Mount guard for a stateful service's systemd unit: refuse to start
+    # unless `dataDir` is actually mounted, so a missing/late Volume never
+    # silently initializes fresh state on the root disk instead of the
+    # retained data. Used by every service module with a Hetzner Volume
+    # (pocket-id, actual-budget, hath, netbird-server).
+    lib.mountGuard = dataDir: {
+      unitConfig = {
+        RequiresMountsFor = [dataDir];
+        ConditionPathIsMountPoint = dataDir;
+      };
+    };
+
     nixosModules.legionConfiguration = {
       pkgs,
       config,

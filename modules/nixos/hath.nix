@@ -30,46 +30,44 @@
     # once it exists, same pattern as modules/nixos/netbird-server/default.nix.
     systemd.tmpfiles.rules = ["d ${dataDir} 0750 hath hath - -"];
 
-    systemd.services.hath = {
-      description = "Hentai@Home client (hath-rust)";
-      after = ["network-online.target"];
-      wants = ["network-online.target"];
-      wantedBy = ["multi-user.target"];
-      # Mount guard (Codex review C2): refuse to start unless ${dataDir}
-      # is actually mounted, so a missing/late Volume never silently
-      # initializes fresh login/cache data on the root disk instead of
-      # the retained data.
-      unitConfig = {
-        RequiresMountsFor = [dataDir];
-        ConditionPathIsMountPoint = dataDir;
-      };
-      serviceConfig = {
-        ExecStart = lib.escapeShellArgs [
-          (lib.getExe hathPkg)
-          "--port"
-          "8888"
-          "--cache-dir"
-          "${dataDir}/cache" # download cache (in the Backup Set, operator-retained)
-          "--data-dir"
-          "${dataDir}/data" # login data (modules/hosts/legion/_service-inventory.nix backupSet)
-          "--download-dir"
-          "${dataDir}/download"
-          "--log-dir"
-          "${dataDir}/log"
-          "--temp-dir"
-          "/tmp"
-          "--disable-ip-origin-check"
-          "--enable-metrics"
-        ];
-        Restart = "on-failure";
-        RestartSec = 5;
-        User = "hath";
-        Group = "hath";
-        # Ephemeral temp dir: PrivateTmp gives a private, ephemeral /tmp
-        # namespace, not the persistent Volume.
-        PrivateTmp = true;
-        MemoryMax = "256M";
-      };
-    };
+    # Mount guard (flake.lib.mountGuard, modules/hosts/legion/default.nix)
+    # merged in via `//`: refuse to start unless ${dataDir} is actually
+    # mounted, so a missing/late Volume never silently initializes fresh
+    # login/cache data on the root disk instead of the retained data.
+    systemd.services.hath =
+      {
+        description = "Hentai@Home client (hath-rust)";
+        after = ["network-online.target"];
+        wants = ["network-online.target"];
+        wantedBy = ["multi-user.target"];
+        serviceConfig = {
+          ExecStart = lib.escapeShellArgs [
+            (lib.getExe hathPkg)
+            "--port"
+            "8888"
+            "--cache-dir"
+            "${dataDir}/cache" # download cache (in the Backup Set, operator-retained)
+            "--data-dir"
+            "${dataDir}/data" # login data (modules/hosts/legion/_service-inventory.nix backupSet)
+            "--download-dir"
+            "${dataDir}/download"
+            "--log-dir"
+            "${dataDir}/log"
+            "--temp-dir"
+            "/tmp"
+            "--disable-ip-origin-check"
+            "--enable-metrics"
+          ];
+          Restart = "on-failure";
+          RestartSec = 5;
+          User = "hath";
+          Group = "hath";
+          # Ephemeral temp dir: PrivateTmp gives a private, ephemeral /tmp
+          # namespace, not the persistent Volume.
+          PrivateTmp = true;
+          MemoryMax = "256M";
+        };
+      }
+      // self.lib.mountGuard dataDir;
   };
 }
