@@ -144,6 +144,51 @@ jobs:
           ./.ci/attic-login-push.sh
           ./.ci/attic-push-retry.sh "ci:$ATTIC_CACHE" $PATHS
 
+  # Builds the zakkart darwin toplevel (checks.aarch64-darwin.zakkart-system,
+  # modules/checks.nix) on a hosted macOS runner (arm64). Not part of the
+  # `discover`/`build` matrix -- `discover` only enumerates
+  # checks.x86_64-linux, and this is a single fixed attribute rather than a
+  # per-check fan-out, so it's simpler as its own job than folded into that
+  # matrix. Same pure `nix build` and best-effort Attic push pattern as
+  # `build` above.
+  build-macos:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+        with:
+          extra_nix_config: |
+            extra-substituters = ${{ env.ATTIC_SUBSTITUTER }}
+            extra-trusted-public-keys = ${{ env.ATTIC_PUBLIC_KEY }}
+
+      - name: Build check
+        id: build
+        run: |
+          paths=$(nix build --keep-going --show-trace --no-link --print-out-paths ".#checks.aarch64-darwin.zakkart-system")
+          delimiter="$(openssl rand -hex 8)"
+          {
+            echo "paths<<$delimiter"
+            echo "$paths"
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Push to Attic
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        env:
+          PATHS: ${{ steps.build.outputs.paths }}
+        run: |
+          attic_rev=$(jq -r '.nodes.attic.locked.rev' flake.lock)
+          nix profile install "github:jeiang/attic/${attic_rev}#attic-client"
+          ./.ci/attic-login-push.sh
+          ./.ci/attic-push-retry.sh "ci:$ATTIC_CACHE" $PATHS
+
   # Aggregate gate: a single, stable status context that reflects the whole
   # matrix, for branch protection to require. The `build` job above fans out
   # into one context per discovered check (`build (toplevel-legion-node1)`,
@@ -163,15 +208,16 @@ jobs:
   # leg failed — and the best-effort `Push to Attic` step above is
   # `continue-on-error`, so a cache-push hiccup never fails a leg or this gate.
   all-checks:
-    needs: [discover, build]
+    needs: [discover, build, build-macos]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Verify discovery and all matrix checks passed
         run: |
-          echo "discover: ${{ needs.discover.result }}"
-          echo "build:    ${{ needs.build.result }}"
-          if [[ "${{ needs.discover.result }}" != "success" || "${{ needs.build.result }}" != "success" ]]; then
+          echo "discover:    ${{ needs.discover.result }}"
+          echo "build:       ${{ needs.build.result }}"
+          echo "build-macos: ${{ needs.build-macos.result }}"
+          if [[ "${{ needs.discover.result }}" != "success" || "${{ needs.build.result }}" != "success" || "${{ needs.build-macos.result }}" != "success" ]]; then
             echo "::error::One or more required checks did not succeed."
             exit 1
           fi
