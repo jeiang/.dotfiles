@@ -11,6 +11,12 @@
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
 
+    # Flake output schemas: Determinate Nix's `nix flake show` reads the
+    # `schemas` output to label outputs it doesn't natively know
+    # (darwinConfigurations, deploy, ...); stock Nix/Lix ignores it. Lib-only
+    # flake with no nixpkgs input, so there is nothing to follow.
+    flake-schemas.url = "github:DeterminateSystems/flake-schemas";
+
     # system management inputs
     impermanence.url = "github:nix-community/impermanence";
     disko.url = "github:nix-community/disko";
