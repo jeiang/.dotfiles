@@ -45,13 +45,19 @@ _: {
       };
     };
 
-    systemd.services.llama-swap.serviceConfig = {
-      # GPU render-node access for the DynamicUser the upstream unit runs as.
-      SupplementaryGroups = ["render" "video"];
-      # Writable RADV shader cache; disposable state, fine for nukeRoot to
-      # wipe on reboot.
-      CacheDirectory = "llama-swap";
+    systemd.services.llama-swap = {
+      # rocm-smi on PATH gives llama-swap's UI VRAM/temperature stats -- it
+      # probes LACT, nvidia-smi, then rocm-smi (v224 has no sysfs fallback).
+      # The standalone sysfs reader, not the full ROCm stack.
+      path = [pkgs.rocmPackages.rocm-smi];
+      serviceConfig = {
+        # GPU render-node access for the DynamicUser the upstream unit runs as.
+        SupplementaryGroups = ["render" "video"];
+        # Writable RADV shader cache; disposable state, fine for nukeRoot to
+        # wipe on reboot.
+        CacheDirectory = "llama-swap";
+      };
+      environment.XDG_CACHE_HOME = "/var/cache/llama-swap";
     };
-    systemd.services.llama-swap.environment.XDG_CACHE_HOME = "/var/cache/llama-swap";
   };
 }
