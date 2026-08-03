@@ -1,11 +1,15 @@
 {inputs, ...}: {
   perSystem = {
     pkgs,
+    lib,
     inputs',
     self',
     ...
   }: {
-    packages = {
+    # Linux-only (Wayland shell + tools; the dms/dsearch flakes publish no
+    # darwin outputs): absent on darwin rather than an eval error, so
+    # output-enumerating commands work there.
+    packages = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
       dms = inputs.wrapper-modules.lib.wrapPackage (_: {
         inherit pkgs;
         package = inputs.dms.packages.${pkgs.stdenv.hostPlatform.system}.default;
