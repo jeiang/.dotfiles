@@ -14,12 +14,12 @@
     cfg = config.edge;
     system = pkgs.stdenv.hostPlatform.system;
 
-    # Legion private-network addresses (modules/hosts/legion/default.nix
-    # `legionNodes`).
-    node1 = "172.17.0.1"; # This node's own private address (metrics bind)
-    node2 = "172.17.0.2"; # NetBird server/relay, Pocket ID
-    node3 = "172.17.0.3"; # Monitoring/Grafana
-    node4 = "172.17.0.4"; # Attic, Actual Budget; Stirling PDF deferred, see stirling-pdf.nix
+    # Legion private-network addresses (flake.lib.legionNodes,
+    # modules/hosts/legion/default.nix).
+    node1 = self.lib.legionNodes.legion-node1.privateIPv4; # This node's own private address (metrics bind)
+    node2 = self.lib.legionNodes.legion-node2.privateIPv4; # NetBird server/relay, Pocket ID
+    node3 = self.lib.legionNodes.legion-node3.privateIPv4; # Monitoring/Grafana
+    node4 = self.lib.legionNodes.legion-node4.privateIPv4; # Attic, Actual Budget
 
     website = inputs.website.packages.${system}.default;
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
@@ -41,9 +41,9 @@
         itself. On by default; the sops secrets it and the Caddy wiring need
         (caddy/crowdsec-lapi-url, caddy/crowdsec-lapi-key,
         crowdsec/bouncer-netbird-proxy-key,
-        crowdsec/bouncer-legion-node2-firewall) must be present in
-        modules/nixos/sops/secrets.yaml or activation fails. Toggle off to
-        deploy the edge without CrowdSec
+        crowdsec/bouncer-legion-node2-firewall) must be present in the
+        caddy secrets shard or activation fails. Toggle off to deploy the
+        edge without CrowdSec
       ''
       // {default = true;};
 
@@ -310,29 +310,22 @@
             ${crowdsecLine}${appsecLine}redir https://github.com/jeiang{uri} 301
           }
 
-          # --- jellyfin.plyrex.dev / seerr.plyrex.dev / pdf.plyrex.dev: ---
-          # placeholders. jellyfin/seerr have a deferred Tailscale backend;
-          # pdf.plyrex.dev joins them here since Stirling PDF currently has
-          # no host placement (see stirling-pdf.nix) -- same "degrade
-          # gracefully, stay internally consistent" treatment rather than
-          # leaving the route dangling.
-          # 503 rather than 200: accurately signals "temporarily
-          # unavailable" instead of looking like real content that a
-          # client or proxy might cache. Not in Hetzner DNS, so (like
-          # noelejoshua.com) these fall back to standard automatic HTTPS.
-          jellyfin.plyrex.dev, seerr.plyrex.dev, pdf.plyrex.dev {
+          # --- jellyfin.plyrex.dev / seerr.plyrex.dev: placeholders -------
+          # jellyfin/seerr have a deferred Tailscale backend. 503 rather
+          # than 200: accurately signals "temporarily unavailable" instead
+          # of looking like real content that a client or proxy might
+          # cache. Not in Hetzner DNS, so (like noelejoshua.com) these fall
+          # back to standard automatic HTTPS.
+          jellyfin.plyrex.dev, seerr.plyrex.dev {
             ${crowdsecLine}${appsecLine}respond "Service migrating. This service is temporarily unavailable while it moves to new infrastructure." 503
           }
         '';
       };
 
-      # Hetzner DNS API token for the DNS-01 issuer above. The key doesn't
-      # exist in modules/nixos/sops/secrets.yaml yet: run `just sops-edit`
-      # and add a `caddy: hetzner-dns-token: <token>` entry before first
-      # deploying the edge node (sops-nix only checks this at activation
-      # time, not eval time, so it's safe to land the module first).
+      # Hetzner DNS API token for the DNS-01 issuer above, from the caddy
+      # secrets shard.
       sops.secrets = let
-        sopsFile = ../sops/secrets.caddy.yaml;
+        sopsFile = ./secrets.yaml;
       in
         {
           "caddy/hetzner-dns-token" = {inherit sopsFile;};

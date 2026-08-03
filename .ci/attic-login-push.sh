@@ -5,7 +5,7 @@
 set -euo pipefail
 : "${ATTIC_SERVER:=https://attic.jeiang.dev/}"
 : "${ATTIC_CACHE:=default}"
-export PATH=$HOME/.nix-profile/bin:$PATH # FIXME
+export PATH=$HOME/.nix-profile/bin:$PATH # ci.yml installs attic-client via `nix profile install`
 
 providers=$(curl -fsSL "${ATTIC_SERVER%/}/_api/v1/auth/oidc/providers")
 provider=$(jq -r 'first(.providers[] | select(.mode == "github-actions")) | .name' <<<"$providers")

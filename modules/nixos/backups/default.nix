@@ -1,13 +1,10 @@
 _: {
   # Restic backups to a dedicated Mega S4 bucket, driven entirely by the
   # Legion inventory's per-service `backupSet`/`backupPauseUnits` fields
-  # (modules/hosts/legion/_service-inventory.nix). `netbird-server` is the
-  # first service to declare `backupSet`; `backups.jobs` stays empty on
-  # every other node until its own stateful service lands, producing zero
-  # services.restic.backups entries there. Imported unconditionally by
-  # legionConfiguration (modules/hosts/legion/default.nix); never imported
-  # on artemis (Artemis gets its own backup allowlist as separate future
-  # work).
+  # (modules/hosts/legion/_service-inventory.nix). Imported unconditionally
+  # by legionConfiguration (modules/hosts/legion/default.nix); never
+  # imported on artemis (Artemis gets its own backup allowlist as separate
+  # future work).
   flake.nixosModules.backups = {
     config,
     lib,
@@ -65,7 +62,7 @@ _: {
       # (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY for the Mega S4 access
       # key scoped to the bucket above).
       sops.secrets = let
-        sopsFile = ./sops/secrets.restic.yaml;
+        sopsFile = ./secrets.yaml;
       in {
         "restic/password" = {inherit sopsFile;};
         "restic/s4-env" = {inherit sopsFile;};

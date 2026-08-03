@@ -1,4 +1,4 @@
-_: {
+{self, ...}: {
   # Actual Budget for legion-node4, behind the edge at budget.jeiang.dev
   # (modules/nixos/edge/default.nix `budget.jeiang.dev { reverse_proxy
   # ${node4}:5006 }`). First-party `services.actual` (DESIGN.md Service
@@ -25,15 +25,13 @@ _: {
       # sops.
     };
 
-    systemd.services.actual.serviceConfig.MemoryMax = "320M";
-
-    # Mount guard (Codex review C2): refuse to start unless ${dataDir} is
-    # actually mounted, so a missing/late Volume never silently
-    # initializes a fresh server-files/account.sqlite on the root disk
-    # instead of the retained data.
-    systemd.services.actual.unitConfig = {
-      RequiresMountsFor = [dataDir];
-      ConditionPathIsMountPoint = dataDir;
-    };
+    # All `systemd.*` contributions from this module in one attrset (statix
+    # "repeated keys" -- merging plain attrpath assignments across separate
+    # top-level entries works fine in Nix, but is flagged as a style issue).
+    systemd.services.actual =
+      {
+        serviceConfig.MemoryMax = "320M";
+      }
+      // self.lib.mountGuard dataDir;
   };
 }

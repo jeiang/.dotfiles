@@ -1,4 +1,4 @@
-_: {
+{self, ...}: {
   # Pocket ID (idp) for legion-node2, behind the edge at auth.jeiang.dev
   # (modules/nixos/edge/default.nix `auth.jeiang.dev { reverse_proxy
   # ${node2}:1411 }`). First-party `services.pocket-id` (DESIGN.md Service
@@ -15,7 +15,7 @@ _: {
     # "data/pocket-id.db", UPLOAD_PATH "data/uploads") resolve to
     # ${dataDir}/data/*.
     dataDir = "/mnt/pocket-id";
-    sopsFile = ./sops/secrets.pocket-id.yaml;
+    sopsFile = ./secrets.yaml;
   in {
     services.pocket-id = {
       enable = true;
@@ -55,19 +55,17 @@ _: {
       environmentFile = config.sops.templates."pocket-id.env".path;
     };
 
-    # Overrides the nixpkgs services.pocket-id unit (fixed "pocket-id"
-    # user, not DynamicUser), same as every other MemoryMax override in
-    # this repo.
-    systemd.services.pocket-id.serviceConfig.MemoryMax = "256M";
-
-    # Mount guard (Codex review C2): refuse to start unless ${dataDir} is
-    # actually mounted, so a missing/late Volume never silently
-    # initializes a fresh sqlite DB on the root disk instead of the
-    # retained data.
-    systemd.services.pocket-id.unitConfig = {
-      RequiresMountsFor = [dataDir];
-      ConditionPathIsMountPoint = dataDir;
-    };
+    # All `systemd.*` contributions from this module in one attrset (statix
+    # "repeated keys" -- merging plain attrpath assignments across separate
+    # top-level entries works fine in Nix, but is flagged as a style issue).
+    systemd.services.pocket-id =
+      {
+        # Overrides the nixpkgs services.pocket-id unit (fixed "pocket-id"
+        # user, not DynamicUser), same as every other MemoryMax override in
+        # this repo.
+        serviceConfig.MemoryMax = "256M";
+      }
+      // self.lib.mountGuard dataDir;
 
     sops = {
       secrets = {

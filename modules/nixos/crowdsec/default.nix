@@ -13,7 +13,7 @@ _: {
     ...
   }: let
     cfg = config.edge.crowdsec;
-    sopsFile = ../sops/secrets.crowdsec.yaml;
+    sopsFile = ./secrets.yaml;
 
     # LAPI/AppSec service ports; modules/nixos/edge/default.nix already
     # hardcodes appsec_url http://127.0.0.1:7422, so 7422 isn't a free

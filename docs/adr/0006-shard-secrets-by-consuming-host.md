@@ -47,3 +47,16 @@ it was a recipient on the old monolith only by inertia.
   host, host key rotation) now potentially touches multiple shard files
   instead of one; the `fd` glob it and `sops-edit` use already enumerates all
   of them.
+
+## Amendment (2026-08-03)
+
+The shards described above as `modules/nixos/sops/secrets.<shard>.yaml` have
+moved to be colocated beside their consuming module, as `secrets.yaml` (the
+netbird-server reverse proxy keeps its own `secrets.proxy.yaml`, since its
+module directory already holds `secrets.yaml` for `netbird-server`'s own
+shard). `.sops.yaml` creation rules now anchor on the full path rather than
+the bare filename, since every shard shares the `secrets.yaml` name. The
+admin's stash, `secrets.admin.yaml`, has no consuming module and stays at
+`modules/nixos/sops/`. The sharding-by-consumer decision itself, and every
+recipient list above, is unchanged -- this is a file-layout move, done as
+plain `git mv` renames with no re-encryption.

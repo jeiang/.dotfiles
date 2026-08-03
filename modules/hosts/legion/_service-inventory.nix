@@ -51,7 +51,6 @@
             "attic.jeiang.dev"
             "budget.jeiang.dev"
             "grafana.jeiang.dev"
-            "pdf.plyrex.dev"
             "netbird.jeiang.dev"
             "proxy.jeiang.dev"
             "*.proxy.jeiang.dev"
@@ -113,12 +112,6 @@
               scope = "private";
             }
           ];
-          stateful = false;
-        }
-        {
-          name = "tailscale";
-          publicHostnames = [];
-          firewall = [];
           stateful = false;
         }
       ];
@@ -345,11 +338,6 @@
 
     legion-node4 = {
       edge = false;
-      # No `stirling-pdf` entry: its 1.35 GiB peak+typical JVM footprint
-      # doesn't fit this node's ~1.88 GiB budget alongside
-      # attic/actual-budget/hath. Deferred, not
-      # dropped -- modules/nixos/stirling-pdf.nix stays in the tree unimported
-      # pending a lighter replacement (see that module's header comment).
       services = [
         {
           # DNS points at the edge (legion-node1); Caddy proxies here

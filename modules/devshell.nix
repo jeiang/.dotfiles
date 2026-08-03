@@ -60,21 +60,12 @@
               })
             )
           ];
-        # used for NH
         env.NH_FLAKE = ../.;
         languages = {
           nix.enable = true;
         };
         git-hooks.hooks = {
           editorconfig-checker.enable = true;
-          # markdownlint = {
-          #   enable = true;
-          #   settings.configuration = {
-          #     "MD013" = {
-          #       "line_length" = 120;
-          #     };
-          #   };
-          # };
           statix.enable = true;
           treefmt = {
             enable = true;

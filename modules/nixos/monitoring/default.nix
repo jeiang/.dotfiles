@@ -1,4 +1,4 @@
-_: {
+{self, ...}: {
   # Monitoring composition module for legion-node3 (VictoriaMetrics,
   # VictoriaLogs, Grafana, vmalert, Alertmanager). Local composition
   # module (DESIGN.md Service Ownership): several first-party modules
@@ -22,23 +22,15 @@ _: {
     pkgs,
     ...
   }: let
-    # Legion private-network addresses (modules/hosts/legion/default.nix
-    # `legionNodes`) for the scrape targets this module reaches on other
-    # nodes. Not importable directly (that file's `legionNodes` is a local
-    # `let` binding, not a flake output) -- same duplication
-    # modules/nixos/edge/default.nix already accepts for its own node2/
-    # node3/node4 consts.
-    node1 = "172.17.0.1"; # Edge: Caddy admin/metrics, CrowdSec metrics
-    node2 = "172.17.0.2"; # NetBird server metrics, Blocky metrics
-    node4 = "172.17.0.4"; # H@H (hath-rust) metrics
+    # Legion private-network addresses (flake.lib.legionNodes,
+    # modules/hosts/legion/default.nix) for the scrape targets this module
+    # reaches on other nodes.
+    node1 = self.lib.legionNodes.legion-node1.privateIPv4; # Edge: Caddy metrics, CrowdSec metrics
+    node2 = self.lib.legionNodes.legion-node2.privateIPv4; # NetBird server metrics, Blocky metrics
+    node4 = self.lib.legionNodes.legion-node4.privateIPv4; # H@H (hath-rust) metrics
 
-    sopsFile = ../sops/secrets.monitoring.yaml;
-    legionPrivateIPs = [
-      "172.17.0.1"
-      "172.17.0.2"
-      "172.17.0.3"
-      "172.17.0.4"
-    ];
+    sopsFile = ./secrets.yaml;
+    legionPrivateIPs = map (node: node.privateIPv4) (builtins.attrValues self.lib.legionNodes);
 
     vmPort = 8428; # services.victoriametrics default listenAddress
     vlPort = 9428; # services.victorialogs default listenAddress

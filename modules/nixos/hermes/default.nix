@@ -30,7 +30,7 @@
     ...
   }: let
     cfg = config.services.hermes-agent;
-    sopsFile = ../sops/secrets.hermes.yaml;
+    sopsFile = ./secrets.yaml;
 
     # Native mode's systemd unit sets `environment.HOME = cfg.stateDir`
     # (nix/nixosModules.nix, the "MODE A: Native systemd service" block) --

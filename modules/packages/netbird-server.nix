@@ -4,7 +4,7 @@
       # Reverse proxy and relay components match the deployed topology
       # one-to-one; nixpkgs already builds them as separate by-name
       # packages from the same netbird source tree.
-      inherit (pkgs) netbird-relay netbird-proxy netbird-dashboard;
+      inherit (pkgs) netbird-relay netbird-proxy;
 
       # The deployed management plane is the unified config.yaml-driven
       # server shipped as netbirdio/netbird-server:0.73.2. nixpkgs has no
