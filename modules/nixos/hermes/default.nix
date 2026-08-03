@@ -83,7 +83,17 @@
           # can't persist past a deploy.
           openai_runtime = "auto";
         };
-        agent.reasoning_effort = "medium";
+        agent = {
+          reasoning_effort = "high";
+          # OpenAI Priority Processing ("fast mode"). The gateway maps
+          # "fast" -> service_tier=priority (gateway/run.py
+          # `_load_service_tier` at the pinned rev), and gpt-5.6-luna is
+          # fast-eligible (hermes_cli/models.py `_is_openai_fast_model`:
+          # gpt-* prefix, non-codex). Declared here so every activation
+          # re-asserts it over any `/fast --global` runtime toggle, same
+          # reasoning as `openai_runtime` above.
+          service_tier = "fast";
+        };
       };
 
       # SERVERS.md is colocated with this module (documents values may be
