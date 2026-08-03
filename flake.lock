@@ -1176,6 +1176,22 @@
         "type": "github"
       }
     },
+    "netbird-tap": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1785744403,
+        "narHash": "sha256-MbsAC71tdxomB+RHRL7ihSawfNXThQ5eIEfjOt2qE3g=",
+        "owner": "netbirdio",
+        "repo": "homebrew-tap",
+        "rev": "de3915160d6b8af6fee122dd4790747c4462f8ac",
+        "type": "github"
+      },
+      "original": {
+        "owner": "netbirdio",
+        "repo": "homebrew-tap",
+        "type": "github"
+      }
+    },
     "nix": {
       "inputs": {
         "flake-parts": "flake-parts_2",
@@ -1717,6 +1733,7 @@
         "impermanence": "impermanence",
         "import-tree": "import-tree",
         "k06a-tap": "k06a-tap",
+        "netbird-tap": "netbird-tap",
         "nix-cachyos-kernel": "nix-cachyos-kernel",
         "nix-darwin": "nix-darwin",
         "nix-homebrew": "nix-homebrew",

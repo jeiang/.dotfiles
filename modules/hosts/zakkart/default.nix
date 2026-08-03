@@ -18,7 +18,6 @@
         self.darwinModules.sops
         self.darwinModules.homebrew
         self.darwinModules.apps
-        self.darwinModules.netbird
         self.darwinModules.system
       ];
 

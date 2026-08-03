@@ -54,6 +54,14 @@
       url = "github:k06a/homebrew-tap";
       flake = false;
     };
+    # NetBird's own cask (the desktop app, which bundles and manages its own
+    # system daemon) lives in NetBird's third-party tap, not the main
+    # homebrew-cask tap -- verified via the GitHub API and its Casks/
+    # listing (Casks/netbird-ui.rb).
+    netbird-tap = {
+      url = "github:netbirdio/homebrew-tap";
+      flake = false;
+    };
     wrapper-modules.url = "github:BirdeeHub/nix-wrapper-modules";
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
     hyprland.url = "github:hyprwm/Hyprland";

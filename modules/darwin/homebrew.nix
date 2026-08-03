@@ -25,6 +25,7 @@
         "homebrew/homebrew-cask" = inputs.homebrew-cask;
         "can1357/homebrew-tap" = inputs.can1357-tap;
         "k06a/homebrew-tap" = inputs.k06a-tap;
+        "netbirdio/homebrew-tap" = inputs.netbird-tap;
       };
     };
 
@@ -61,6 +62,17 @@
         # homebrew-cask tap (Casks/h/handbrake-app.rb).
         "qview"
         "handbrake-app"
+        # The desktop client, from NetBird's own tap (not the main
+        # homebrew-cask tap -- verified via the GitHub API,
+        # netbirdio/homebrew-tap's only cask). The .app bundles and
+        # manages its own system daemon/tunnel; that's the reason for the
+        # cask here rather than a nix-managed launchd daemon around the
+        # netbird CLI (modules/packages/netbird.nix, still used as-is by
+        # the Linux hosts) -- two daemons would fight over the same
+        # tunnel. The cask auto-updates, so it tracks netbird releases
+        # (>=0.76.1) without needing the same version pin the Linux side
+        # carries.
+        "netbirdio/tap/netbird-ui"
       ];
 
       brews = [

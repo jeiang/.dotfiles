@@ -68,8 +68,9 @@ Every subsequent `just darwin-switch` no longer needs these flags -- the
 config from the previous activation is already in `/etc/nix/nix.custom.conf`.
 
 This installs Homebrew (via nix-homebrew) and Nix-homebrew's taps/casks/
-brews/App Store apps, sets the login shell, brings up the NetBird launchd
-daemon, and every other piece in `modules/darwin/`. Subsequent switches use:
+brews/App Store apps -- including the NetBird desktop client cask, which
+installs its own system daemon on first run (ADR 0009) -- sets the login
+shell, and every other piece in `modules/darwin/`. Subsequent switches use:
 
 ```sh
 just darwin-switch
@@ -106,9 +107,13 @@ ahead of the first one.
 ```sh
 dscl . -read /Users/aidanp UserShell   # should end in .../bin/fish (the wrapped environment package)
 echo $SSH_AUTH_SOCK                     # .../Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock
-sudo launchctl list | grep netbird      # netbird daemon running
-netbird status                          # peer connected
 brew list --cask                        # matches modules/darwin/homebrew.nix's `casks`
 brew list --formula                     # matches `brews`
 mas list                                # matches `masApps`
 ```
+
+NetBird is the cask (`netbirdio/tap/netbird-ui`), not a nix-managed
+daemon -- it installs and manages its own system service on first launch.
+Open the NetBird app, sign in, and check the menu bar icon shows
+"Connected"; there's no `launchctl`/`netbird status` check to run from the
+shell unless you separately install the CLI.
