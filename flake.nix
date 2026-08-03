@@ -34,7 +34,7 @@
     # Packages
     website.url = "github:jeiang/website";
     website.inputs.nixpkgs.follows = "nixpkgs";
-    # jkmn-website: plain stdenvNoCC static build with no external deps
+    # portfolio: plain stdenvNoCC static build with no external deps
     # beyond nixpkgs, so following our pin is safe.
     portfolio.url = "github:joshua-noel/portfolio";
     portfolio.inputs.nixpkgs.follows = "nixpkgs";

@@ -37,7 +37,7 @@
         umu-launcher
         wl-clipboard
         (discord.override {
-          withOpenASAR = true; # can do this here too
+          withOpenASAR = true;
           withVencord = true;
         })
       ];

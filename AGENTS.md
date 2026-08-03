@@ -60,9 +60,8 @@ This repo manages live systems, disks, cluster membership, and secrets. Treat op
 
 - Do not run deploy, `clean-deploy`, install, disko, or sops mutation commands unless the user explicitly asks for that action and names the target.
 - Do not print, decrypt, rewrite, move, or re-key secrets casually. Use the existing sops workflow only when explicitly requested.
-- Do not change disk layouts, host networking, K3s bootstrap settings, or deploy targets as incidental cleanup.
+- Do not change disk layouts, host networking, or deploy targets as incidental cleanup.
 - Do not run commands that destroy or format disks unless the user explicitly asks for the exact host/system target.
-- When touching K3s configuration, preserve bootstrap/control-plane intent and avoid changes that could force cluster reinitialization unless explicitly requested.
 - Impermanence (`modules/nixos/impermanence.nix`) never migrates existing data, and on artemis `persistence.nukeRoot.enable` rolls the entire root btrfs subvolume back to empty every boot — not just `/root`. When adding or changing a `persistence.*` entry (system paths, or a host's `persistence.data`/`persistence.cache`), explicitly document or perform the matching copy of existing state into its `/persist` target before a reboot or activation that would otherwise lose it. `just migrate-persist` (`modules/hosts/artemis/migrate-persist.sh`) runs that copy on artemis itself from the live `persistence.*` config; it must be run on the target host, not from a dev checkout, and re-run after any further persistence changes before rebooting. Never assume the module migrates state for you.
 
 ## CI Secrets
@@ -110,7 +109,7 @@ Use a scope when it clarifies the affected area, for example `feat(legion): add 
 Mark breaking changes with `!` after the type or scope, or with a `BREAKING CHANGE:` footer:
 
 ```text
-feat(k3s)!: change cluster bootstrap defaults
+feat(netbird-server)!: change relay auth secret encoding
 
-BREAKING CHANGE: existing nodes must be rejoined after applying this configuration.
+BREAKING CHANGE: existing deployments must regenerate netbird/relay-auth-secret before redeploying.
 ```

@@ -41,9 +41,9 @@
         itself. On by default; the sops secrets it and the Caddy wiring need
         (caddy/crowdsec-lapi-url, caddy/crowdsec-lapi-key,
         crowdsec/bouncer-netbird-proxy-key,
-        crowdsec/bouncer-legion-node2-firewall) must be present in
-        modules/nixos/sops/secrets.yaml or activation fails. Toggle off to
-        deploy the edge without CrowdSec
+        crowdsec/bouncer-legion-node2-firewall) must be present in the
+        caddy secrets shard or activation fails. Toggle off to deploy the
+        edge without CrowdSec
       ''
       // {default = true;};
 
@@ -322,11 +322,8 @@
         '';
       };
 
-      # Hetzner DNS API token for the DNS-01 issuer above. The key doesn't
-      # exist in modules/nixos/sops/secrets.yaml yet: run `just sops-edit`
-      # and add a `caddy: hetzner-dns-token: <token>` entry before first
-      # deploying the edge node (sops-nix only checks this at activation
-      # time, not eval time, so it's safe to land the module first).
+      # Hetzner DNS API token for the DNS-01 issuer above, from the caddy
+      # secrets shard.
       sops.secrets = let
         sopsFile = ../sops/secrets.caddy.yaml;
       in

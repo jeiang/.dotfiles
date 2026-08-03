@@ -82,6 +82,10 @@ on:
         description: "AvengeMedia/danksearch"
         type: boolean
         default: false
+      hermes-agent:
+        description: "NousResearch/hermes-agent (pinned release tag, not nixpkgs-following -- see flake.nix)"
+        type: boolean
+        default: false
       website:
         description: "jeiang/website (auto-updated weekly)"
         type: boolean
@@ -136,7 +140,7 @@ jobs:
       # the manual-dispatch form), so the auto-update set is hardcoded here
       # rather than inferred from checkbox defaults. On workflow_dispatch,
       # only the checked boxes make it into the list, via jq over the raw
-      # inputs JSON rather than one env var per input (there are 20 of
+      # inputs JSON rather than one env var per input (there are 21 of
       # them).
       - name: Select inputs to update
         id: select

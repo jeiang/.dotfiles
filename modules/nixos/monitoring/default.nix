@@ -28,7 +28,7 @@ _: {
     # `let` binding, not a flake output) -- same duplication
     # modules/nixos/edge/default.nix already accepts for its own node2/
     # node3/node4 consts.
-    node1 = "172.17.0.1"; # Edge: Caddy admin/metrics, CrowdSec metrics
+    node1 = "172.17.0.1"; # Edge: Caddy metrics, CrowdSec metrics
     node2 = "172.17.0.2"; # NetBird server metrics, Blocky metrics
     node4 = "172.17.0.4"; # H@H (hath-rust) metrics
 

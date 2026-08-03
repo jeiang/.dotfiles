@@ -122,7 +122,7 @@ intentional instead of moving it into a generalized abstraction.
   derived in `modules/hosts/legion/default.nix` from the Legion service
   inventory (`_service-inventory.nix`).
 - Artemis uses a host-specific CachyOS kernel built for its Zen 4 CPU with the
-  BORE scheduler, full LTO, and an AutoFDO profile.
+  BORE scheduler and full LTO.
 - Artemis stripes root across three NVMe drives with btrfs RAID0. Local
   redundancy is deliberately traded for throughput; irreplaceable data must be
   protected by the explicit off-node Backup Set.

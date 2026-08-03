@@ -60,7 +60,6 @@
               })
             )
           ];
-        # used for NH
         env.NH_FLAKE = ../.;
         languages = {
           nix.enable = true;

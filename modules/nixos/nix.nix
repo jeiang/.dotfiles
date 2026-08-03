@@ -39,7 +39,7 @@
         enable = true;
         clean.enable = true;
         clean.extraArgs = "--keep-since 7d --keep 14 --optimise";
-        flake = "${self}"; # sets NH_OS_FLAKE variable for you
+        flake = "${self}";
       };
     };
 

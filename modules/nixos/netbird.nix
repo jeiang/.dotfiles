@@ -23,7 +23,6 @@
           RawFragment = "";
         };
       in {
-        # Set Management URL for netbird configuration file
         ManagementURL = urlConfig;
         AdminUrl = urlConfig;
       };

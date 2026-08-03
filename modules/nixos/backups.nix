@@ -1,13 +1,10 @@
 _: {
   # Restic backups to a dedicated Mega S4 bucket, driven entirely by the
   # Legion inventory's per-service `backupSet`/`backupPauseUnits` fields
-  # (modules/hosts/legion/_service-inventory.nix). `netbird-server` is the
-  # first service to declare `backupSet`; `backups.jobs` stays empty on
-  # every other node until its own stateful service lands, producing zero
-  # services.restic.backups entries there. Imported unconditionally by
-  # legionConfiguration (modules/hosts/legion/default.nix); never imported
-  # on artemis (Artemis gets its own backup allowlist as separate future
-  # work).
+  # (modules/hosts/legion/_service-inventory.nix). Imported unconditionally
+  # by legionConfiguration (modules/hosts/legion/default.nix); never
+  # imported on artemis (Artemis gets its own backup allowlist as separate
+  # future work).
   flake.nixosModules.backups = {
     config,
     lib,
