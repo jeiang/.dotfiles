@@ -50,6 +50,13 @@
     # installs the client from this input's locked rev (see
     # .github/workflows/ci.yml), so this lock is the single pin to bump.
     attic.url = "github:jeiang/attic";
+    # Hermes agent (upstream NixOS module consumed directly by
+    # modules/nixos/hermes/). Deliberately not following our nixpkgs: the
+    # upstream flake carries a uv2nix-built Python environment tested
+    # against its own pin; following ours would force a full rebuild of
+    # that environment on every nixpkgs bump (same reasoning as attic
+    # above).
+    hermes-agent.url = "github:NousResearch/hermes-agent/v2026.7.30";
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);
