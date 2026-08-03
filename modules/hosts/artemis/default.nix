@@ -31,6 +31,7 @@
         self.nixosModules.vr
         self.nixosModules.gaming
         self.nixosModules.impermanence
+        self.nixosModules.llama-swap
 
         # disks
         self.diskoConfigurations.artemis
