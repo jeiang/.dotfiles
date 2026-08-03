@@ -86,13 +86,19 @@
         agent.reasoning_effort = "medium";
       };
 
-      # SOUL.md/SERVERS.md are colocated with this module (documents values
-      # may be paths -- nix/nixosModules.nix `documentDerivation`) and get
+      # SERVERS.md is colocated with this module (documents values may be
+      # paths -- nix/nixosModules.nix `documentDerivation`) and gets
       # installed fresh into workingDirectory on EVERY activation, so
-      # in-place self-edits by the agent never persist; see the note at the
-      # top of SOUL.md.
+      # in-place self-edits by the agent never persist.
+      #
+      # SOUL.md is NOT wired through `documents`: that option only drops
+      # files into workingDirectory, but the runtime loads its persona from
+      # `$HERMES_HOME/SOUL.md` = `${cfg.stateDir}/.hermes/SOUL.md`
+      # (agent/prompt_builder.py `load_soul_md()` at the pinned rev) and
+      # seeds DEFAULT_SOUL_MD there on first run -- a SOUL.md in the
+      # workspace is inert. Ours is installed to the real path by the
+      # preStart script below.
       documents = {
-        "SOUL.md" = ./SOUL.md;
         "SERVERS.md" = ./SERVERS.md;
       };
 
@@ -192,6 +198,12 @@
             if [ ! -f "${codexAuthPath}" ]; then
               install -m 0600 "${config.sops.secrets."hermes/codex-auth.json".path}" "${codexAuthPath}"
             fi
+
+            # Persona: overwrite unconditionally (Nix-managed, see the note
+            # at the top of SOUL.md) at the path the runtime actually reads
+            # -- see the `documents` comment above for why this can't go
+            # through that option.
+            install -m 0640 ${./SOUL.md} "${cfg.stateDir}/.hermes/SOUL.md"
           '';
 
           # legion-node3 also runs the memory-constrained monitoring stack
@@ -226,7 +238,7 @@
           serviceConfig = {
             Type = "oneshot";
             User = cfg.user;
-            inherit (cfg) group;
+            Group = cfg.group;
             # GITHUB_TOKEN, read by `gh` below as a non-interactive
             # credential source (gh auto-detects GITHUB_TOKEN/GH_TOKEN
             # from its environment -- no `gh auth login` needed on this
@@ -276,8 +288,15 @@
       timers.hermes-kb-sync = {
         wantedBy = ["timers.target"];
         timerConfig = {
+          # OnUnitActiveSec alone never fires on a service that has never
+          # been active (there is no "last activation" to be relative to),
+          # so the sync -- including the initial clone -- would never run.
+          # OnActiveSec schedules the first run relative to the timer's own
+          # activation (every boot, and any deploy that restarts the timer);
+          # OnUnitActiveSec keeps the 15m cadence after that. Persistent=
+          # was dropped: it only applies to OnCalendar= timers.
+          OnActiveSec = "1m";
           OnUnitActiveSec = "15m";
-          Persistent = true;
         };
       };
     };
