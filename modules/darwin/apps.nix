@@ -26,7 +26,6 @@
         # CLI
         bat
         btop
-        difftastic
         erdtree
         # withWhisper defaults on for ffmpeg-full >=8.0 (whisper speech
         # recognition support); whisper-cpp's CoreML backend fails to link

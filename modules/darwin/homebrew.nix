@@ -52,11 +52,25 @@
         "microsoft-word"
         "microsoft-excel"
         "roblox"
+        # No working nixpkgs darwin package (ADR 0009's Homebrew-fallback
+        # case), same as the rest of this list. qview's own nixpkgs
+        # derivation transitively depends on kimageformats, a Linux-only
+        # KDE Frameworks package. HandBrake's nixpkgs derivation is marked
+        # broken; its cask token was renamed from "handbrake" to
+        # "handbrake-app" upstream -- verified against the pinned
+        # homebrew-cask tap (Casks/h/handbrake-app.rb).
+        "qview"
+        "handbrake-app"
       ];
 
       brews = [
         "can1357/tap/omp"
         "k06a/tap/macpow"
+        # No working nixpkgs darwin package (nixpkgs' mole is marked
+        # broken); a plain "mole" formula exists in the pinned
+        # homebrew-core (Formula/m/mole.rb, tw93/Mole -- same Mac cleanup
+        # tool), so it doesn't need a tap.
+        "mole"
       ];
 
       # App Store IDs verified against the apps.apple.com Mac listings.

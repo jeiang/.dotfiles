@@ -43,10 +43,13 @@
           "default:Xaqeg5b1ctNwH4sEWG+nt1kSpGPpFG0zivJUbZyCfdM="
           "helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="
         ];
-        trusted-users = [
-          "root"
-          "@wheel"
-        ];
+        # extra- here too, same reasoning as the substituters above --
+        # trusted-users is one of customSettings' explicit options, so a
+        # bare assignment would still replace Determinate's own default
+        # rather than merge with it. `@wheel` is also wrong on macOS: it's
+        # the NixOS admin-user convention, but macOS's wheel group has no
+        # members besides root -- the macOS equivalent is `@admin`.
+        extra-trusted-users = ["@admin"];
       };
     };
 
