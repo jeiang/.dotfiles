@@ -42,6 +42,9 @@ migrate-persist flake="." sudo="sudo":
 install system sudo="sudo":
   {{sudo}} nixos-install --flake .#{{system}}
 
+darwin-switch:
+  sudo darwin-rebuild switch --flake .#zakkart
+
 nh *args:
   NH_FLAKE={{justfile_directory()}} nh {{args}}
 

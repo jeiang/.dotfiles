@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- Zakkart: a nix-darwin host for the macOS workstation (`modules/hosts/zakkart/`, `modules/darwin/`), managed with Determinate Nix (ADR 0008) and nixpkgs-first application sourcing with Homebrew/App Store exceptions (ADR 0009). Includes a `just darwin-switch` recipe, a `checks.aarch64-darwin.zakkart-system` CI check built on a hosted macOS runner, and `docs/runbooks/zakkart-bootstrap.md`.
+
 ### Fixed
 
 - Move the host toolbox out of the wrapped Fish shell and use Cachix's pinned binary package to avoid IFD evaluation.
