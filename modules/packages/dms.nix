@@ -8,30 +8,7 @@
     packages = {
       dms = inputs.wrapper-modules.lib.wrapPackage (_: {
         inherit pkgs;
-        package = inputs.dms.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
-          # https://github.com/AvengeMedia/DankMaterialShell/issues/2290
-          # not yet compatible with new hyprland syntax, see above
-          postInstall =
-            (old.postInstall or "")
-            + ''
-              files=(
-                "$out/share/quickshell/dms/Modules/DankBar/Widgets/WorkspaceSwitcher.qml"
-                "$out/share/quickshell/dms/Modules/DankBar/DankBarContent.qml"
-              )
-
-              for file in "''${files[@]}"; do
-                substituteInPlace "$file" \
-                  --replace 'Hyprland.dispatch(`workspace ''${data.id}`)' \
-                    'Hyprland.dispatch(`hl.dsp.focus({ workspace = ''${data.id} })`)' \
-                  --replace 'Hyprland.dispatch(`workspace ''${modelData.id}`)' \
-                    'Hyprland.dispatch(`hl.dsp.focus({ workspace = ''${modelData.id} })`)' \
-                  --replace 'Hyprland.dispatch(`workspace ''${realWorkspaces[nextIndex].id}`)' \
-                    'Hyprland.dispatch(`hl.dsp.focus({ workspace = ''${realWorkspaces[nextIndex].id} })`)'
-
-                echo "Patched: $file"
-              done
-            '';
-        });
+        package = inputs.dms.packages.${pkgs.stdenv.hostPlatform.system}.default;
         runtimePkgs = with pkgs; [
           khal
           wtype

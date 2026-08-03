@@ -71,6 +71,7 @@
     };
 
     hjem.users.${user}.files = {
+      ".face".source = ../../../assets/face.png;
       ".config/hypr/hyprland.lua".source = ./hyprland.lua;
       ".config/hypr/rules.lua".source = ./rules.lua;
       ".config/hypr/animations.lua".source = ./animations.lua;

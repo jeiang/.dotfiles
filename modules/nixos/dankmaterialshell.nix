@@ -18,11 +18,7 @@
     programs.dank-material-shell = {
       enable = true;
       enableSystemMonitoring = true;
-      package = self.packages.${pkgs.stdenv.hostPlatform.system}.dms;
-      systemd = {
-        enable = false; # Systemd service for auto-start
-        restartIfChanged = true; # Auto-restart dms.service when dank-material-shell changes
-      };
+      package = selfpkgs.dms;
     };
     systemd.user.services = {
       dms = {

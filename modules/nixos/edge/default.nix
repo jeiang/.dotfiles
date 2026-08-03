@@ -19,7 +19,7 @@
     node1 = "172.17.0.1"; # This node's own private address (metrics bind)
     node2 = "172.17.0.2"; # NetBird server/relay, Pocket ID
     node3 = "172.17.0.3"; # Monitoring/Grafana
-    node4 = "172.17.0.4"; # Attic, Actual Budget; Stirling PDF deferred, see stirling-pdf.nix
+    node4 = "172.17.0.4"; # Attic, Actual Budget
 
     website = inputs.website.packages.${system}.default;
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
@@ -310,17 +310,13 @@
             ${crowdsecLine}${appsecLine}redir https://github.com/jeiang{uri} 301
           }
 
-          # --- jellyfin.plyrex.dev / seerr.plyrex.dev / pdf.plyrex.dev: ---
-          # placeholders. jellyfin/seerr have a deferred Tailscale backend;
-          # pdf.plyrex.dev joins them here since Stirling PDF currently has
-          # no host placement (see stirling-pdf.nix) -- same "degrade
-          # gracefully, stay internally consistent" treatment rather than
-          # leaving the route dangling.
-          # 503 rather than 200: accurately signals "temporarily
-          # unavailable" instead of looking like real content that a
-          # client or proxy might cache. Not in Hetzner DNS, so (like
-          # noelejoshua.com) these fall back to standard automatic HTTPS.
-          jellyfin.plyrex.dev, seerr.plyrex.dev, pdf.plyrex.dev {
+          # --- jellyfin.plyrex.dev / seerr.plyrex.dev: placeholders -------
+          # jellyfin/seerr have a deferred Tailscale backend. 503 rather
+          # than 200: accurately signals "temporarily unavailable" instead
+          # of looking like real content that a client or proxy might
+          # cache. Not in Hetzner DNS, so (like noelejoshua.com) these fall
+          # back to standard automatic HTTPS.
+          jellyfin.plyrex.dev, seerr.plyrex.dev {
             ${crowdsecLine}${appsecLine}respond "Service migrating. This service is temporarily unavailable while it moves to new infrastructure." 503
           }
         '';

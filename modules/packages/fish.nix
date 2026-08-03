@@ -25,9 +25,7 @@
               enable_transience
           end
 
-          # if type -q direnv
           direnv hook fish | source
-          # end
 
           alias eza 'eza --icons auto --git'
           alias l 'eza -alhF --smart-group'
