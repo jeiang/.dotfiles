@@ -19,6 +19,7 @@
         self.darwinModules.homebrew
         self.darwinModules.apps
         self.darwinModules.system
+        self.darwinModules.preferences
       ];
 
       nixpkgs.hostPlatform = "aarch64-darwin";

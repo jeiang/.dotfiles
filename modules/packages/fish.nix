@@ -31,6 +31,14 @@
           # resolve. NixOS needs none of this: login PATH already carries the
           # system profile there.
           fish_add_path --global --move --path $HOME/.nix-profile/bin /etc/profiles/per-user/$USER/bin /run/current-system/sw/bin /nix/var/nix/profiles/default/bin
+
+          # nix-darwin's programs.direnv exports DIRENV_CONFIG=/etc/direnv via
+          # environment.variables, but that only reaches shells that source
+          # nix-darwin's set-environment, which this wrapped fish (deliberately
+          # not programs.fish) never does. Without it direnv never loads
+          # /etc/direnv/direnvrc -- the nix-direnv loader -- and silently falls
+          # back to its builtin uncached use_flake. NixOS hosts are unaffected.
+          set -gx DIRENV_CONFIG /etc/direnv
         ''}
         status is-interactive; and begin
           source ${donefish}
