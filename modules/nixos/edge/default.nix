@@ -52,8 +52,9 @@
     # never reach disk or the journal in the first place (filtering at
     # the encoder beats filtering downstream -- VictoriaLogs and the
     # rolled files would otherwise retain them). Request Authorization/
-    # Proxy-Authorization carry credentials; the response Location
-    # header is dropped because redirect targets routinely embed OAuth
+    # Proxy-Authorization/Cookie and response Set-Cookie carry
+    # credentials and session tokens; the response Location header is
+    # dropped because redirect targets routinely embed OAuth
     # authorization codes and signed tokens (e.g. the Pocket ID flows
     # behind auth.jeiang.dev).
     logEncoder = ''
@@ -62,6 +63,8 @@
         fields {
           request>headers>Authorization delete
           request>headers>Proxy-Authorization delete
+          request>headers>Cookie delete
+          resp_headers>Set-Cookie delete
           resp_headers>Location delete
         }
       }
