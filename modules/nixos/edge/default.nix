@@ -45,6 +45,27 @@
     # globally (`journald` -- and implicitly `default`, since Caddy always
     # runs the default logger unless a site opts out of it).
     logLine = "log\n            ";
+
+    # Shared encoder for BOTH global loggers (default file logger via
+    # `logFormat`, named `journald` logger in globalConfig): plain JSON
+    # wrapped in Caddy's `filter` encoder so sensitive header values
+    # never reach disk or the journal in the first place (filtering at
+    # the encoder beats filtering downstream -- VictoriaLogs and the
+    # rolled files would otherwise retain them). Request Authorization/
+    # Proxy-Authorization carry credentials; the response Location
+    # header is dropped because redirect targets routinely embed OAuth
+    # authorization codes and signed tokens (e.g. the Pocket ID flows
+    # behind auth.jeiang.dev).
+    logEncoder = ''
+      format filter {
+        wrap json
+        fields {
+          request>headers>Authorization delete
+          request>headers>Proxy-Authorization delete
+          resp_headers>Location delete
+        }
+      }
+    '';
   in {
     options.edge.crowdsec.enable =
       lib.mkEnableOption ''
@@ -85,7 +106,7 @@
             roll_keep 2
             roll_keep_for 48h
           }
-          format json
+          ${logEncoder}
         '';
 
         globalConfig = ''
@@ -100,7 +121,7 @@
           # the narrower CrowdSec-only source.
           log journald {
             output stderr
-            format json
+            ${logEncoder}
             level INFO
           }
 
