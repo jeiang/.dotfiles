@@ -11,6 +11,12 @@
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
 
+    # Flake output schemas: Determinate Nix's `nix flake show` reads the
+    # `schemas` output to label outputs it doesn't natively know
+    # (darwinConfigurations, deploy, ...); stock Nix/Lix ignores it. Lib-only
+    # flake with no nixpkgs input, so there is nothing to follow.
+    flake-schemas.url = "github:DeterminateSystems/flake-schemas";
+
     # system management inputs
     impermanence.url = "github:nix-community/impermanence";
     disko.url = "github:nix-community/disko";
@@ -22,6 +28,46 @@
     hjem.inputs.nixpkgs.follows = "nixpkgs";
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
+    nix-darwin.url = "github:nix-darwin/nix-darwin";
+    nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
+    # Determinate manages the Nix installation itself on Zakkart (see
+    # docs/adr/0008); its own installer owns the daemon/upgrades, so this
+    # flake only needs its nix-darwin module, not a separate Nix. Following
+    # our nixpkgs here would be pointless anyway: `determinate-nixd` is a
+    # prebuilt binary the module fetches, not something this flake builds.
+    determinate.url = "github:DeterminateSystems/determinate";
+    nix-homebrew.url = "github:zhaofengli/nix-homebrew";
+    # Homebrew itself and its taps: pinned as flake inputs so
+    # `mutableTaps = false` (docs/adr/0009) has something to pin to instead
+    # of `brew tap` mutating state at activation. None of these are flakes.
+    homebrew-brew = {
+      url = "github:Homebrew/brew";
+      flake = false;
+    };
+    homebrew-core = {
+      url = "github:Homebrew/homebrew-core";
+      flake = false;
+    };
+    homebrew-cask = {
+      url = "github:Homebrew/homebrew-cask";
+      flake = false;
+    };
+    can1357-tap = {
+      url = "github:can1357/homebrew-tap";
+      flake = false;
+    };
+    k06a-tap = {
+      url = "github:k06a/homebrew-tap";
+      flake = false;
+    };
+    # NetBird's own cask (the desktop app, which bundles and manages its own
+    # system daemon) lives in NetBird's third-party tap, not the main
+    # homebrew-cask tap -- verified via the GitHub API and its Casks/
+    # listing (Casks/netbird-ui.rb).
+    netbird-tap = {
+      url = "github:netbirdio/homebrew-tap";
+      flake = false;
+    };
     wrapper-modules.url = "github:BirdeeHub/nix-wrapper-modules";
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
     hyprland.url = "github:hyprwm/Hyprland";

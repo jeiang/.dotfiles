@@ -10,6 +10,11 @@ Terms for the systems, services, state, and identities managed by this flake.
 The recoverable, performance-oriented workstation.
 _Avoid_: Desktop host, Legion node
 
+**Zakkart**:
+The macOS workstation, managed declaratively by this flake with its
+applications sourced nixpkgs-first.
+_Avoid_: MacBook, laptop, darwin host
+
 **Legion Fleet**:
 The resource-constrained remote NixOS systems managed together as service
 hosts.
