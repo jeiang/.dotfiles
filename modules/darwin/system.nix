@@ -8,6 +8,12 @@ _: {
       hostName = "zakkart";
       computerName = "zakkart";
       # localHostName defaults to hostName already.
+
+      applicationFirewall = {
+        enable = true;
+        allowSigned = true;
+        allowSignedApp = true;
+      };
     };
 
     time.timeZone = "America/Port_of_Spain";

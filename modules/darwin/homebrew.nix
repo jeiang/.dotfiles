@@ -93,6 +93,11 @@
         # homebrew-core (Formula/m/mole.rb, tw93/Mole -- same Mac cleanup
         # tool), so it doesn't need a tap.
         "mole"
+        # Not packaged in nixpkgs for darwin (ADR 0009 exception); a plain
+        # "displayplacer" formula exists in the pinned homebrew-core
+        # (Formula/d/displayplacer.rb v1.4.0, arm64_tahoe bottle), so it
+        # doesn't need a tap either.
+        "displayplacer"
       ];
 
       # App Store IDs verified against the apps.apple.com Mac listings.
