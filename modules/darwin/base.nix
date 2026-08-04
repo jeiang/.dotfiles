@@ -17,12 +17,18 @@
     };
 
     config = {
-      # Not added to `users.knownUsers`: this is the operator's existing
-      # macOS account. Adding it there would make nix-darwin require a
-      # `uid` and take over create/delete activation for the primary
-      # account -- more risk than this needs for just pointing the shell
-      # at the repo's wrapped fish/environment package.
+      # The account must be in `users.knownUsers` for the shell to apply:
+      # nix-darwin's activation only writes UserShell (via dscl) for known
+      # users -- unlike NixOS, a bare `users.users.<name>.shell` is
+      # silently ignored. Managing the primary account this way is safe:
+      # a uid mismatch makes activation skip the user (never mutate it),
+      # and user deletion is gated on uid > 501, so the primary account
+      # can't be deleted. Re-pointing UserShell on every activation is
+      # also load-bearing -- the wrapped environment package's store path
+      # changes across rebuilds, so a one-time `chsh` would go stale.
+      users.knownUsers = [config.preferences.user.name];
       users.users.${config.preferences.user.name} = {
+        uid = 501;
         home = "/Users/${config.preferences.user.name}";
         shell = self.packages.${pkgs.stdenv.hostPlatform.system}.environment;
         # nix-darwin asserts that a user shell matching a known pname
