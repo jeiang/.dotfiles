@@ -32,8 +32,18 @@
     homebrew = {
       enable = true;
       # Keep nix-homebrew's declarative tap set and nix-darwin's Brewfile
-      # tap list in sync, per nix-homebrew's own README.
-      taps = builtins.attrNames config.nix-homebrew.taps;
+      # tap list in sync, per nix-homebrew's own README. Homebrew >= 6.0
+      # refuses to load formulae/casks from unofficial taps unless the
+      # Brewfile marks them `trusted: true`; every tap here is a pinned
+      # flake input, so trusting it declaratively trusts exactly the
+      # revision in flake.lock. Redundant-but-harmless on the official
+      # homebrew/* taps. Manual `brew trust` doesn't survive activation:
+      # the `cleanup = "zap"` pass resets Homebrew's trust file to what
+      # the Brewfile declares.
+      taps = map (name: {
+        inherit name;
+        trusted = true;
+      }) (builtins.attrNames config.nix-homebrew.taps);
 
       onActivation = {
         autoUpdate = false;

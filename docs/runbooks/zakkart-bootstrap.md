@@ -76,6 +76,13 @@ shell, and every other piece in `modules/darwin/`. Subsequent switches use:
 just darwin-switch
 ```
 
+Homebrew >= 6.0 requires unofficial taps to be trusted before their
+formulae/casks load. The generated Brewfile declares `trusted: true` for
+every tap (`modules/darwin/homebrew.nix`) -- they're all pinned flake
+inputs, so this trusts exactly the revisions in `flake.lock`. Don't reach
+for `brew trust` by hand: the `cleanup = "zap"` pass resets Homebrew's
+trust file to what the Brewfile declares on every activation.
+
 ## 6. Bitwarden SSH agent
 
 Sign into the Bitwarden app (installed via `homebrew.masApps`, the Mac App
