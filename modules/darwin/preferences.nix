@@ -24,6 +24,7 @@ _: {
           wvous-bl-corner = 3;
           wvous-br-corner = 2;
           wvous-tr-corner = 12;
+          show-recents = false;
         };
 
         menuExtraClock = {
@@ -37,6 +38,9 @@ _: {
         CustomUserPreferences.NSGlobalDomain = {
           AppleAccentColor = 6;
           AppleHighlightColor = "1.000000 0.749020 0.823529 Pink";
+          # "Fill" is the macOS 26 window-tiling action; the pinned
+          # nix-darwin has no option for this key.
+          AppleActionOnDoubleClick = "Fill";
         };
       };
 
