@@ -33,6 +33,42 @@
     # the site block's first real directive.
     crowdsecLine = lib.optionalString cfg.crowdsec.enable "crowdsec\n            ";
     appsecLine = lib.optionalString cfg.crowdsec.enable "appsec\n            ";
+
+    # Bare `log` directive, same concatenation pattern as crowdsecLine/appsecLine
+    # above. Caddy 2's HTTP access logging is opt-in per site block -- with
+    # no `log` directive a site produces zero access records, even though
+    # the named `journald` logger declared in globalConfig below exists and
+    # is reachable. Added unconditionally (not gated on cfg.crowdsec.enable)
+    # to every public site block except the private-network-only metrics
+    # listener (logging Prometheus's 15s scrape interval would just be
+    # noise); each block routes into whichever loggers are configured
+    # globally (`journald` -- and implicitly `default`, since Caddy always
+    # runs the default logger unless a site opts out of it).
+    logLine = "log\n            ";
+
+    # Shared encoder for BOTH global loggers (default file logger via
+    # `logFormat`, named `journald` logger in globalConfig): plain JSON
+    # wrapped in Caddy's `filter` encoder so sensitive header values
+    # never reach disk or the journal in the first place (filtering at
+    # the encoder beats filtering downstream -- VictoriaLogs and the
+    # rolled files would otherwise retain them). Request Authorization/
+    # Proxy-Authorization/Cookie and response Set-Cookie carry
+    # credentials and session tokens; the response Location header is
+    # dropped because redirect targets routinely embed OAuth
+    # authorization codes and signed tokens (e.g. the Pocket ID flows
+    # behind auth.jeiang.dev).
+    logEncoder = ''
+      format filter {
+        wrap json
+        fields {
+          request>headers>Authorization delete
+          request>headers>Proxy-Authorization delete
+          request>headers>Cookie delete
+          resp_headers>Set-Cookie delete
+          resp_headers>Location delete
+        }
+      }
+    '';
   in {
     options.edge.crowdsec.enable =
       lib.mkEnableOption ''
@@ -52,20 +88,46 @@
         enable = true;
         package = self.packages.${system}.caddy;
 
-        # Default logger doubles as the access log for every site block
-        # below (Caddy uses a custom logger named "default" for both
-        # purposes). JSON file, not journald: CrowdSec's log acquisition
-        # reads a stable file path instead of mapping journal fields.
+        # Default (unnamed) logger: this is CrowdSec's acquisition source
+        # of truth, not a general access log -- modules/nixos/crowdsec/default.nix
+        # tails this exact file path (`services.caddy.logDir`/access.log)
+        # via a `source = "file"` acquisition, which needs a stable
+        # filesystem path rather than journal fields. It does NOT double
+        # as "the" access log for every site block: Caddy access logging
+        # is opt-in per site block (see the bare `log` line added to each
+        # public site block below), and the named `journald` logger in
+        # globalConfig below is what actually feeds those records (plus
+        # runtime logs) to VictoriaLogs via the fleet's systemd-journal-upload.
+        # Retention here is intentionally short: VictoriaLogs is now the
+        # searchable month-long archive, so this file only needs to cover
+        # CrowdSec's live tail plus a little local debugging headroom, not
+        # long-term storage.
         logFormat = ''
           level INFO
           output file ${config.services.caddy.logDir}/access.log {
             roll_size 100mb
-            roll_keep 10
+            roll_keep 2
+            roll_keep_for 48h
           }
-          format json
+          ${logEncoder}
         '';
 
         globalConfig = ''
+          # Second named logger: everything (runtime + every site's access
+          # log once `log` is added to that site block below) to stderr,
+          # which systemd captures into the journal, which the fleet's
+          # existing systemd-journal-upload ships to legion-node3's
+          # VictoriaLogs (modules/hosts/legion/default.nix
+          # `services.journald.upload`). No `include`/`exclude` filter on
+          # this logger -- deliberate, so both runtime and access records
+          # land in VictoriaLogs unfiltered; the file logger above stays
+          # the narrower CrowdSec-only source.
+          log journald {
+            output stderr
+            ${logEncoder}
+            level INFO
+          }
+
           # The top-level `metrics` global option turns on Prometheus
           # metrics collection for every HTTP
           # server config below (the older `servers { metrics }` nested
@@ -145,7 +207,7 @@
           # requesting a second certificate per hostname (see
           # https://caddyserver.com/docs/automatic-https#wildcard-certificates).
           jeiang.dev, *.jeiang.dev {
-            ${crowdsecLine}${appsecLine}tls {
+            ${logLine}${crowdsecLine}${appsecLine}tls {
               dns hetzner {env.HETZNER_DNS_TOKEN}
             }
 
@@ -166,7 +228,7 @@
           # (Hetzner-hosted zones, not part of the jeiang.dev wildcard
           # SAN).
           aidanpinard.co {
-            ${crowdsecLine}${appsecLine}tls {
+            ${logLine}${crowdsecLine}${appsecLine}tls {
               dns hetzner {env.HETZNER_DNS_TOKEN}
             }
             root * ${website}
@@ -174,7 +236,7 @@
           }
 
           pinard.co.tt {
-            ${crowdsecLine}${appsecLine}tls {
+            ${logLine}${crowdsecLine}${appsecLine}tls {
               dns hetzner {env.HETZNER_DNS_TOKEN}
             }
             root * ${website}
@@ -186,14 +248,14 @@
           # directive, so this falls back to Caddy's standard automatic
           # HTTPS (HTTP-01/TLS-ALPN-01), per the TLS strategy section.
           noelejoshua.com {
-            ${crowdsecLine}${appsecLine}root * ${portfolio}
+            ${logLine}${crowdsecLine}${appsecLine}root * ${portfolio}
             file_server
           }
 
           # --- auth.jeiang.dev: Pocket ID ---------------------------------
           # Port 1411 is Pocket ID's default listen port.
           auth.jeiang.dev {
-            ${crowdsecLine}${appsecLine}reverse_proxy ${node2}:1411
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node2}:1411
           }
 
           # --- attic.jeiang.dev: Attic ------------------------------------
@@ -210,7 +272,7 @@
           # single-node edge, avoiding both the false-positive risk and
           # the cost of body inspection on large NAR blobs.
           attic.jeiang.dev {
-            ${crowdsecLine}reverse_proxy ${node4}:8080 {
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:8080 {
               transport http {
                 read_timeout 15m
                 write_timeout 15m
@@ -223,13 +285,13 @@
           # Port 5006 matches Actual Budget's configured listen port
           # (modules/nixos/actual-budget.nix).
           budget.jeiang.dev {
-            ${crowdsecLine}${appsecLine}reverse_proxy ${node4}:5006
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node4}:5006
           }
 
           # --- grafana.jeiang.dev: monitoring stack -----------------------
           # Port 3000 is Grafana's default listen port.
           grafana.jeiang.dev {
-            ${crowdsecLine}${appsecLine}reverse_proxy ${node3}:3000
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node3}:3000
           }
 
           # --- netbird.jeiang.dev: NetBird server/relay -------------------
@@ -249,7 +311,7 @@
             # allow-rule for these same paths as a second layer -- skipping
             # the handler here avoids paying for AppSec inspection on
             # streaming traffic it would just allow anyway.
-            ${crowdsecLine}@grpc path /signalexchange.SignalExchange/* /management.ManagementService/* /management.ProxyService/*
+            ${logLine}${crowdsecLine}@grpc path /signalexchange.SignalExchange/* /management.ManagementService/* /management.ProxyService/*
             handle @grpc {
               reverse_proxy h2c://${node2}:80
             }
@@ -301,13 +363,13 @@
           # $out/dist (verified via `nix flake show`/`nix build`), so it's
           # served the same way as the other static sites above.
           bill-split.jeiang.dev {
-            ${crowdsecLine}${appsecLine}root * ${billSplitter}
+            ${logLine}${crowdsecLine}${appsecLine}root * ${billSplitter}
             file_server
           }
 
           # --- github.jeiang.dev: redirect --------------------------------
           github.jeiang.dev {
-            ${crowdsecLine}${appsecLine}redir https://github.com/jeiang{uri} 301
+            ${logLine}${crowdsecLine}${appsecLine}redir https://github.com/jeiang{uri} 301
           }
 
           # --- jellyfin.plyrex.dev / seerr.plyrex.dev: placeholders -------
@@ -317,7 +379,7 @@
           # cache. Not in Hetzner DNS, so (like noelejoshua.com) these fall
           # back to standard automatic HTTPS.
           jellyfin.plyrex.dev, seerr.plyrex.dev {
-            ${crowdsecLine}${appsecLine}respond "Service migrating. This service is temporarily unavailable while it moves to new infrastructure." 503
+            ${logLine}${crowdsecLine}${appsecLine}respond "Service migrating. This service is temporarily unavailable while it moves to new infrastructure." 503
           }
         '';
       };
