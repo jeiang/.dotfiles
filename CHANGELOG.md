@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- Prepend the nix-darwin profile paths (`~/.nix-profile/bin`, `/etc/profiles/per-user/$USER/bin`, `/run/current-system/sw/bin`, `/nix/var/nix/profiles/default/bin`) in the wrapped fish's darwin config -- macOS login shells start from `path_helper`'s PATH, so `environment.systemPackages` tools (first symptom: `direnv hook fish` at startup) were unreachable. Linux config text is unchanged.
 - Add the operator account to `users.knownUsers` (uid 501) on zakkart so the wrapped-fish login shell actually applies -- nix-darwin only writes `UserShell` for known users, so the previous bare `users.users.<name>.shell` was silently ignored and the account stayed on `/bin/zsh`.
 - Declare `trusted: true` on every Brewfile tap entry so Homebrew >= 6.0's tap-trust enforcement doesn't refuse to load formulae/casks from the pinned third-party taps (`netbirdio/tap`, `can1357/tap`, `k06a/tap`) during activation.
 - Move the host toolbox out of the wrapped Fish shell and use Cachix's pinned binary package to avoid IFD evaluation.

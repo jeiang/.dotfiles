@@ -22,6 +22,15 @@
           # SSH agent socket lives under the container path instead of
           # ~/.bitwarden-ssh-agent.sock.
           set -gx SSH_AUTH_SOCK $HOME/Library/Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock
+
+          # macOS login shells start from path_helper's PATH, which knows
+          # nothing about nix, and this fish deliberately isn't nix-darwin's
+          # programs.fish (which is what normally injects these). Prepend the
+          # nix-darwin profile paths (environment.systemPath order) so
+          # environment.systemPackages tools -- direnv below, bat, gh, ... --
+          # resolve. NixOS needs none of this: login PATH already carries the
+          # system profile there.
+          fish_add_path --global --move --path $HOME/.nix-profile/bin /etc/profiles/per-user/$USER/bin /run/current-system/sw/bin /nix/var/nix/profiles/default/bin
         ''}
         status is-interactive; and begin
           source ${donefish}
