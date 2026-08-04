@@ -221,6 +221,19 @@ in {
           enable = true;
           settings.Upload.URL = "http://${legionNodes.legion-node3.privateIPv4}:9428/insert/journald";
         };
+
+        # Cap the local journal's on-disk footprint. No explicit limit
+        # existed before (systemd's own default is min(10% of the
+        # filesystem, 4G) per journald.conf(5) SystemMaxUse), and the edge
+        # node's Caddy now writes its per-site access logs to stderr (its
+        # named `journald` logger, modules/nixos/edge/default.nix) in
+        # addition to runtime logs, adding real volume to the journal on
+        # legion-node1. Safe to cap tightly fleet-wide (all four Legion
+        # nodes get this, not just the edge) because the local journal is
+        # only a short debugging buffer now -- systemd-journal-upload above
+        # already ships everything to legion-node3's VictoriaLogs, which
+        # retains a month of history.
+        journald.extraConfig = "SystemMaxUse=1G";
       };
 
       # Restic backup jobs derived from this node's own inventory entry;

@@ -774,6 +774,212 @@
           ]
         }
       ]
+    },
+    {
+      "id": 200,
+      "type": "row",
+      "title": "Access Logs",
+      "collapsed": true,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "panels": [
+        {
+          "id": 201,
+          "type": "timeseries",
+          "title": "Requests over time by status class",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "description": "Access-log request counts bucketed by HTTP status class (2xx/3xx/4xx/5xx), sourced from Caddy's per-site `log` output rather than caddy.json's Prometheus metrics (modules/nixos/edge/default.nix enables per-site access logging; Requests by status code above already covers the metrics view). Prefiltered on the literal `\"handled request\"` access-log message before unpack_json so the JSON decode only runs on access records, not runtime log lines; unpack_json then flattens the record so `status` is a plain numeric field, and `math floor(status / 100) as class` buckets it into 2/3/4/5. `floor()` confirmed supported by the pinned victorialogs package (nixpkgs services.victorialogs.package, 1.52.0 here; the function shipped in victorialogs v0.17.0). Uses the plugin's 'Range' query type (/select/logsql/stats_query_range), the same queryType logs.json's Log volume panel uses.",
+          "gridPos": {
+            "x": 0,
+            "y": 37,
+            "w": 12,
+            "h": 8
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0,
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "bars",
+                "lineWidth": 1,
+                "fillOpacity": 60,
+                "gradientMode": "none",
+                "spanNulls": false,
+                "showPoints": "never",
+                "pointSize": 5,
+                "stacking": {
+                  "mode": "normal",
+                  "group": "A"
+                },
+                "axisPlacement": "auto",
+                "axisLabel": "",
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "hideFrom": {
+                  "tooltip": false,
+                  "viz": false,
+                  "legend": false
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            },
+            "legend": {
+              "showLegend": true,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "victoriametrics-logs-datasource",
+                "uid": "victorialogs"
+              },
+              "expr": "_SYSTEMD_UNIT:=\"caddy.service\" \"handled request\" | unpack_json | math floor(status / 100) as class | stats by (class) count() requests",
+              "queryType": "statsRange",
+              "legendFormat": "{{class}}xx"
+            }
+          ]
+        },
+        {
+          "id": 202,
+          "type": "table",
+          "title": "Top hosts",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "description": "Busiest Host headers over the dashboard's time range, from Caddy's access log. Same `\"handled request\"` prefilter + unpack_json as the panel above; `request.host` is the dot-flattened name unpack_json gives the nested access-log `request.host` field (verified against Caddy's JSON access-log schema, caddyhttp/accesslog.go -- the `request` object it logs carries a `host` field). Uses the plugin's 'Raw Logs' query type (/select/logsql/query, queryType instant), same as logs.json's Log stream panel -- a `stats`-aggregated result is just a handful of rows, no range-series endpoint needed.",
+          "gridPos": {
+            "x": 12,
+            "y": 37,
+            "w": 12,
+            "h": 8
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false,
+              "reducer": ["sum"],
+              "countRows": false,
+              "fields": ""
+            },
+            "sortBy": [
+              {
+                "displayName": "requests",
+                "desc": true
+              }
+            ]
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "victoriametrics-logs-datasource",
+                "uid": "victorialogs"
+              },
+              "expr": "_SYSTEMD_UNIT:=\"caddy.service\" \"handled request\" | unpack_json | stats by (request.host) count() requests | sort by (requests) desc | limit 10",
+              "queryType": "instant"
+            }
+          ]
+        },
+        {
+          "id": 203,
+          "type": "logs",
+          "title": "Access log stream",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "victorialogs"
+          },
+          "description": "Raw Caddy access-log records (msg \"handled request\"), newest first, JSON-unpacked so per-request fields (request.host, request.uri, request.remote_ip, status, duration, ...) are inspectable per line. Same underlying log source as the 'Caddy logs' runtime panel above (_SYSTEMD_UNIT:=\"caddy.service\"), filtered down to only access records via the same prefilter used by the other two panels in this row. 'Raw Logs' query type (/select/logsql/query), mirroring logs.json's Log stream panel.",
+          "gridPos": {
+            "x": 0,
+            "y": 45,
+            "w": 24,
+            "h": 12
+          },
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "options": {
+            "showTime": true,
+            "showLabels": false,
+            "showCommonLabels": false,
+            "wrapLogMessage": true,
+            "prettifyLogMessage": false,
+            "enableLogDetails": true,
+            "dedupStrategy": "none",
+            "sortOrder": "Descending"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "victoriametrics-logs-datasource",
+                "uid": "victorialogs"
+              },
+              "expr": "_SYSTEMD_UNIT:=\"caddy.service\" \"handled request\" | unpack_json",
+              "queryType": "instant",
+              "direction": "desc",
+              "maxLines": 500
+            }
+          ]
+        }
+      ]
     }
   ],
   "refresh": "30s",
