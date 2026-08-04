@@ -17,6 +17,7 @@
         discord
         iina
         mos
+        obsidian
         qbittorrent
         raycast
         telegram-desktop
