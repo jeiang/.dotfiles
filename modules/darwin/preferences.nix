@@ -79,13 +79,13 @@ _: {
         # closed) or it's already at the target resolution; never fails
         # activation, since persistent screen ids can shift with topology.
         if [ -x /opt/homebrew/bin/displayplacer ]; then
-          displayList=$(${asUser "/opt/homebrew/bin/displayplacer list"})
+          displayList=$(${asUser "/opt/homebrew/bin/displayplacer list"} 2>/dev/null) || displayList=""
           builtinId=$(echo "$displayList" | awk '
             /Persistent screen id:/ { id = $NF }
             /built in screen/ { print id; exit }
           ')
           if [ -z "$builtinId" ]; then
-            echo "zakkart preferences: no built-in screen reported (lid closed?), skipping display scaling"
+            echo "zakkart preferences: no built-in screen reported or displayplacer list failed (lid closed? no WindowServer session?), skipping display scaling"
           else
             currentRes=$(echo "$displayList" | awk -v want="$builtinId" '
               /Persistent screen id:/ { id = $NF }
