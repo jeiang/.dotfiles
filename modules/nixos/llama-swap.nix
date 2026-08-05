@@ -33,11 +33,11 @@ _: {
           # ${PORT} above is llama-swap's own macro (escaped with the extra
           # $ so Nix leaves it literal in the generated YAML), not a Nix
           # interpolation like ${llama-server}/${model} below.
-          # -ngl 99: full GPU offload. -c 32768: ~12 GB of the 16 GB VRAM
+          # -ngl 99: full GPU offload. -c 40960: still inside the 16 GB VRAM
           # budget at this quant. --jinja: use the model's embedded chat
           # template (Ornith is Qwen 3.5-based). --temp/--top-p/--top-k:
           # sampling defaults per the Ornith-1.0-9B model card.
-          cmd = "${llama-server} --port \${PORT} -m ${model} -ngl 99 -c 32768 --jinja --temp 0.6 --top-p 0.95 --top-k 20";
+          cmd = "${llama-server} --port \${PORT} -m ${model} -ngl 99 -c 40960 --jinja --temp 0.6 --top-p 0.95 --top-k 20";
           aliases = ["ornith"];
           # Free all VRAM after 30 min idle.
           ttl = 1800;
