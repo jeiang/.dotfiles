@@ -17,6 +17,84 @@
   legionServices = import ./_service-inventory.nix {inherit lib;};
   unknownServicePlacements = builtins.filter (name: !(legionNodes ? ${name})) (builtins.attrNames legionServices);
 
+  # hermes-ops' per-node Fleet Operations Tiers (docs/adr/0011, CONTEXT.md
+  # "Fleet Operations Tiers"/"hermes-ops"): NOT a
+  # ./_service-inventory.nix entry -- hermes-ops is cross-cutting fleet
+  # policy applied to every node regardless of which services it places
+  # (modules/nixos/hermes-ops/default.nix is imported unconditionally
+  # below, the same way self.nixosModules.netbird/backups are), not a
+  # placed service with its own firewall/backup semantics. Kept as a
+  # small table here rather than inside that module so the module itself
+  # stays generic (options only) and every other piece of Legion
+  # placement data continues to live in this directory. Unit names
+  # verified against each owning module (modules/nixos/monitoring,
+  # actual-budget.nix, hath.nix, attic/, edge/, netbird-server/,
+  # pocket-id/, blocky.nix, backups/default.nix's
+  # `restic-backups-<service-name>` convention), not guessed.
+  hermesOpsTiers = {
+    legion-node1 = {
+      # exporters/log-shipping-adjacent low-blast-radius units, plus
+      # CrowdSec (ban/unban is reversible and scoped, ADR 0011 tier 1).
+      # No restic unit here: neither of node1's placed services declares
+      # a backupSet (_service-inventory.nix, both stateful = false).
+      tier1 = ["crowdsec.service" "prometheus-node-exporter.service"];
+      # Caddy is the edge's public entrypoint -- load-bearing for every
+      # public hostname this fleet serves (ADR 0011 tier 2).
+      tier2 = ["caddy.service"];
+    };
+    legion-node2 = {
+      tier1 = [
+        "prometheus-node-exporter.service"
+        # Backup trigger units belong in tier 1 (ADR 0011: "triggering
+        # backup units" is a free/tier-1 read-adjacent action).
+        "restic-backups-netbird-server.service"
+        "restic-backups-pocket-id.service"
+      ];
+      # Every one of these is load-bearing fleet infrastructure (mesh
+      # control plane, SSO, DNS) -- ADR 0011 tier 2 names all five
+      # explicitly.
+      tier2 = [
+        "netbird-server.service"
+        "netbird-relay.service"
+        "netbird-proxy.service"
+        "pocket-id.service"
+        "blocky.service"
+      ];
+    };
+    legion-node3 = {
+      # hermes-kb-sync: the agent's own durable-memory sync, explicitly
+      # named tier 1 in ADR 0011. Both exporters here are node3-specific
+      # or fleet-wide low-blast-radius reads.
+      tier1 = [
+        "hermes-kb-sync.service"
+        "prometheus-node-exporter.service"
+        "prometheus-blackbox-exporter.service"
+      ];
+      # The monitoring stack ADR 0011 tier 2 names explicitly.
+      tier2 = [
+        "victoriametrics.service"
+        "victorialogs.service"
+        "grafana.service"
+        "vmalert-default.service"
+        "alertmanager.service"
+      ];
+    };
+    legion-node4 = {
+      tier1 = [
+        "actual.service"
+        "hath.service"
+        "atticd.service"
+        "restic-backups-actual-budget.service"
+        "restic-backups-hath.service"
+        "prometheus-node-exporter.service"
+      ];
+      # No node4 unit is load-bearing for anything outside itself --
+      # every placed service here is already tier 1. Stop rules still
+      # apply (hermes-ops/default.nix generates them for tier1Units too).
+      tier2 = [];
+    };
+  };
+
   validatedLegionNodes = assert lib.assertMsg (builtins.length nodeAddresses == builtins.length (lib.unique nodeAddresses))
   "Legion inventory must not reuse an IP address";
   assert lib.assertMsg (unknownServicePlacements == [])
@@ -134,6 +212,12 @@ in {
         # harmless, and node2 enrolling as a peer of the server it also
         # hosts is exactly how NetBird is reached today.
         self.nixosModules.netbird
+        # hermes-ops (docs/adr/0011, CONTEXT.md "hermes-ops"), same
+        # unconditional fleet-wide pattern as netbird/backups above --
+        # every Legion node gets the account and its doas allowlist;
+        # per-node tier lists come from hermesOpsTiers below, one node
+        # (legion-node3) additionally sets `hermesOps.extraGrantees`.
+        self.nixosModules.hermes-ops
         self.diskoConfigurations.legion
       ];
 
@@ -357,18 +441,39 @@ in {
     };
 
     nixosConfigurations = let
-      mkLegionSystem = name: node:
+      mkLegionSystem = name: node: let
+        # Reused below for both the optional hermes module import and
+        # hermesOps.extraGrantees (docs/adr/0011 node-local locality).
+        hermesPlaced = lib.any (service: service.name == "hermes") node.services;
+      in
         inputs.nixpkgs.lib.nixosSystem {
           modules =
             [
               self.nixosModules.legionConfiguration
-              {
+              ({
+                config,
+                lib,
+                ...
+              }: {
                 networking.hostName = name;
 
                 systemd.network.networks."10-wan" = mkWan {
                   inherit (node) publicIPv4 publicIPv6;
                 };
-              }
+
+                # Per-node Fleet Operations Tiers data (hermesOpsTiers
+                # above) plus, on the node hermes is actually placed on,
+                # the extra doas/systemd-journal grantee -- read lazily
+                # from `config` so this evaluates cleanly even on nodes
+                # where the hermes module (and its `user` option) was
+                # never imported (lib.optional never forces the unused
+                # branch).
+                hermesOps = {
+                  tier1Units = hermesOpsTiers.${name}.tier1;
+                  tier2Units = hermesOpsTiers.${name}.tier2;
+                  extraGrantees = lib.optional hermesPlaced config.services.hermes-agent.user;
+                };
+              })
             ]
             # Caddy Edge Node module, only for the inventory's edge node.
             ++ lib.optional (node.edge or false) self.nixosModules.edge
@@ -427,9 +532,7 @@ in {
             self.nixosModules.monitoring
             # Hermes, same optional-import pattern, gated on the inventory
             # node placing `hermes` (legion-node3 today).
-            ++ lib.optional
-            (lib.any (service: service.name == "hermes") node.services)
-            self.nixosModules.hermes;
+            ++ lib.optional hermesPlaced self.nixosModules.hermes;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;

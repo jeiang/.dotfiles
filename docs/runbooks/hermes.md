@@ -90,19 +90,45 @@ node as a `hermes-ops` recipient).
 
 ## Verifying the operations tiers
 
-> Skeleton: these are the acceptance checks for the tiered fleet-operator
-> model (ADR 0011). Fill in exact commands once the `hermes-ops` doas
-> rules and SSH transport land.
+The `hermes-ops` doas allowlist (`modules/nixos/hermes-ops/default.nix`,
+wired onto all four Legion nodes by
+`modules/hosts/legion/default.nix`) is live from this part onward; the
+`hermes-ops` SSH private key lands in `modules/nixos/hermes/secrets.yaml`
+at the credential-inventory checkpoint above, so until then run these as
+`hermes-ops` locally (`ssh <admin>@nodeN.jeiang.dev -- doas -u hermes-ops
+sh -c '...'` -- doas, not su/sudo, per `modules/nixos/security.nix`).
+Once the key is wired in, run them as `ssh hermes-ops@172.17.0.N -- ...`
+from **legion-node3 only** -- every other source IP is rejected by the
+`authorized_keys` `from=` restriction.
 
-- **Tier 1**: a `systemctl restart` on an allowlisted low-blast-radius
-  unit (e.g. `hermes-kb-sync`) succeeds as `hermes-ops` with no
-  confirmation prompt.
-- **Tier 3**: `doas systemctl stop sshd` run as `hermes-ops` is denied --
-  no doas rule permits it, so this must fail the same way whether or not
-  Hermes itself asks for it.
+- **Tier 1**: `doas systemctl restart hermes-kb-sync.service` on
+  legion-node3 succeeds as `hermes-ops` with no confirmation prompt (a
+  tier-1, low-blast-radius unit).
+- **Tier 2 mechanics**: `doas systemctl restart caddy.service` on
+  legion-node1 also succeeds mechanically -- the doas rule is identical
+  to a tier-1 restart. What makes it tier 2 is SOUL.md requiring Aidan's
+  Telegram "yes" before Hermes runs it; doas itself does not gate this.
+- **Tier 3**: `doas systemctl stop sshd` (any node) is denied -- no doas
+  rule permits it, so this fails the same way whether or not Hermes
+  itself asks for it. Same for `doas systemctl restart hermes-agent`
+  and `doas netbird up`/`doas netbird down` on legion-node3: none of
+  these commands has a matching rule.
+- **netbird read/tier-2**: `doas netbird status` succeeds on any node
+  (tier 1, needs doas because `services.netbird` runs
+  `hardened = true` -- the client's control socket isn't otherwise
+  reachable by hermes-ops). `doas hermes-ops-netbird-expose 8080`
+  succeeds too (tier 2 mechanically, gated on Aidan's confirmation at
+  the prompt level); bare `doas netbird expose 8080` is denied -- only
+  the single-purpose wrapper is permitted, not the raw netbird binary
+  with arbitrary arguments.
 - **Journalctl fallback**: with VictoriaLogs unreachable from a node,
-  `hermes-ops` can still read that node's own journal directly via
-  `systemd-journal` group membership.
+  `hermes-ops` can still read that node's own journal directly (no doas
+  needed) via `systemd-journal` group membership, e.g. `journalctl -u
+  caddy.service -e`.
+- **node3 locality**: the same three checks above also pass when run as
+  the `hermes` user directly on legion-node3 (`doas` invoked locally,
+  no SSH-to-self) -- `hermesOps.extraGrantees` grants it identically to
+  `hermes-ops`.
 
 ## Verify
 
