@@ -78,29 +78,86 @@ node as a `hermes-ops` recipient).
   that window, pre-seed `/var/lib/hermes/.ssh/known_hosts` yourself with
   each node's real host key before the first fleet command runs; otherwise
   it's populated automatically on first connect and pinned from then on.
-- **Actual Budget session token** -- minted by authenticating against the
+- **Actual Budget session token** -- `ACTUAL_SESSION_TOKEN`, an
+  additional line inside the existing `hermes/env` sops secret (`just
+  sops-edit`, then edit the `env:` block -- no new sops entry, see
+  `modules/nixos/hermes/default.nix`'s `hermes/env` comment for the full
+  list of what belongs in that block). Mint by authenticating against the
   Actual server at `172.17.0.4:5006` (never the server's own login
-  password, see the ADR). If Aidan runs Actual's "log out all sessions"
-  action, this token is invalidated immediately and must be re-minted the
-  same way before Hermes can reach the budget again.
-- **iCloud app-specific password (CalDAV/CardDAV)** -- generated from
-  Aidan's Apple ID account page (App-Specific Passwords), stored in the
-  shard, consumed by khal/vdirsyncer. Revoke from the same Apple ID page;
+  password, see the ADR) -- Actual's own API/UI issues a session token on
+  login, not the account password itself. Consumed by the `actual` CLI
+  (`modules/packages/actual-cli.nix`) via `extraPackages`, together with
+  `ACTUAL_SYNC_ID` (also `hermes/env` -- Actual's Settings -> Advanced ->
+  Sync ID, not itself a credential but operator-specific) and
+  `ACTUAL_SERVER_URL` (`http://172.17.0.4:5006`, non-secret, set directly
+  in the module, not sops-managed). If Aidan runs Actual's "log out all
+  sessions" action, `ACTUAL_SESSION_TOKEN` is invalidated immediately and
+  must be re-minted the same way before Hermes can reach the budget
+  again.
+- **iCloud app-specific password (CalDAV/CardDAV)** -- `ICLOUD_APP_PASSWORD`,
+  another `hermes/env` line, generated from Aidan's Apple ID account page
+  (appleid.apple.com -> Sign-In and Security -> App-Specific Passwords).
+  `ICLOUD_USERNAME` (Aidan's iCloud email, not itself a credential but
+  operator-specific) sits alongside it in the same secret. Both consumed
+  by vdirsyncer's `username.fetch`/`password.fetch` (`["command",
+  "printenv", "..."]`, `modules/nixos/hermes/default.nix`'s
+  `vdirsyncerConfig`) from the `hermes-vdirsyncer-sync` unit's
+  environment -- khal itself never touches iCloud directly, it only reads
+  the local vdir vdirsyncer maintains. Revoke from the same Apple ID page;
   revocation is independent of every other credential in this inventory,
-  so it never needs a coordinated rotation.
-- **`hermes-repos` GitHub PAT** -- a second fine-grained PAT (distinct
-  from the Knowledge Base PAT ADR 0007 already covers), scoped to
-  contents and pull-requests read/write on the enumerated repo list
-  (`.dotfiles`, agent skills, `attic`, website). Mint from
+  so it never needs a coordinated rotation. Rotate by generating a new
+  app-specific password and overwriting the `ICLOUD_APP_PASSWORD` line.
+- **`hermes-repos` GitHub PAT** -- `HERMES_REPOS_TOKEN`, another
+  `hermes/env` line. A second fine-grained PAT (distinct from the
+  Knowledge Base PAT ADR 0007 already covers, which stays as
+  `GITHUB_TOKEN`), scoped to contents and pull-requests read/write on the
+  enumerated repo list (`jeiang/.dotfiles`, `jeiang/attic`,
+  `jeiang/website`, and Aidan's Claude Code agent-skills repo -- confirm
+  that repo's exact slug with Aidan at mint time, it wasn't pinned down
+  more precisely than that here). Mint from
   <https://github.com/settings/personal-access-tokens> the same way as
   the Knowledge Base PAT, with that repo list as "Only select
-  repositories". Rotate by generating a replacement with the same scope
-  and repo list, then overwriting the sops secret.
-- **Grafana service-account token** -- created from Grafana's own
-  Service Accounts admin page, scoped to annotation writes only. Rotate
-  by revoking the old token there and minting a replacement.
+  repositories". Consumed by the agent's own interactive `gh`/`git`
+  (SOUL.md "GitHub access", SERVERS.md "Other Git repos") -- explicitly
+  per-command (`GH_TOKEN=$HERMES_REPOS_TOKEN gh ...`), never as the
+  default `GITHUB_TOKEN`, so `hermes-kb-sync` and the agent's own KB
+  writes are unaffected by this addition. Rotate by generating a
+  replacement with the same scope and repo list, then overwriting the
+  `HERMES_REPOS_TOKEN` line.
+- **Grafana service-account token** -- `GRAFANA_ANNOTATION_TOKEN`,
+  another `hermes/env` line. Mint from Grafana's own UI: Administration
+  -> Service accounts -> New service account, role scoped to annotation
+  writes only (no query or admin permission), then add a token to that
+  service account. `GRAFANA_URL` (`http://127.0.0.1:3000`, non-secret,
+  Grafana runs on this same node) is set directly in the module.
+  Consumed by the agent's own `curl` calls to `POST
+  $GRAFANA_URL/api/annotations` (SERVERS.md "Grafana annotations").
+  Rotate by revoking the old token from the same Service Accounts page
+  and overwriting the `GRAFANA_ANNOTATION_TOKEN` line with a replacement.
 - **`artemis` LLM provider** -- no credential to manage; unauthenticated
-  over the NetBird mesh.
+  over the NetBird mesh (`settings.providers.artemis`,
+  `modules/nixos/hermes/default.nix`). If artemis's NetBird peer IP
+  (`100.89.148.91`, hardcoded as this provider's `base_url` host) is ever
+  reassigned, that literal needs updating and redeploying -- not a
+  credential rotation, but the closest thing this entry has to
+  maintenance.
+
+**Operator checklist for this part** -- every line above that must be
+added to `modules/nixos/hermes/secrets.yaml`'s `env:` block via `just
+sops-edit` before deploying Part D's integrations:
+
+```
+ACTUAL_SESSION_TOKEN=...
+ACTUAL_SYNC_ID=...
+ICLOUD_USERNAME=...
+ICLOUD_APP_PASSWORD=...
+HERMES_REPOS_TOKEN=...
+GRAFANA_ANNOTATION_TOKEN=...
+```
+
+No new sops secret files or `sops.secrets` entries are needed for this
+part -- all six fold into the existing `hermes/env` secret Part A already
+declared.
 
 ## Verifying the operations tiers
 

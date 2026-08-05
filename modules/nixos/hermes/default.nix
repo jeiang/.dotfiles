@@ -96,6 +96,88 @@
           UserKnownHostsFile ${sshDir}/known_hosts'')
       ["legion-node1" "legion-node2" "legion-node4"]
     );
+
+    # iCloud Calendar (feature 8, ADR 0011 credential inventory "iCloud
+    # app-specific password for CalDAV"): vdirsyncer mirrors iCloud CalDAV
+    # into a local vdir under stateDir, khal reads that vdir. Both
+    # packages are added to extraPackages below.
+    calendarDir = "${cfg.stateDir}/.vdirsyncer/calendars";
+    vdirsyncerStatusDir = "${cfg.stateDir}/.vdirsyncer/status";
+    khalConfigDir = "${cfg.stateDir}/.config/khal";
+
+    # vdirsyncer 0.20.0 (the pinned nixpkgs version -- confirmed via `nix
+    # eval .#nixosConfigurations.legion-node3.pkgs.vdirsyncer.version`)
+    # config format, verified against vdirsyncer's own docs
+    # (vdirsyncer.pimutils.org/en/stable/{config,tutorials/icloud}.html): a
+    # `[general]`/`[pair]`/`[storage ...]` file, a format unchanged across
+    # versions for years. `collections = ["from b"]` (side b only, not
+    # `["from a", "from b"]`) deliberately: two-sided discovery is what
+    # triggers vdirsyncer's interactive "create this collection on the
+    # other side?" prompt, raised when the two independently-discovered
+    # lists don't already match -- with only "from b" declared, the local
+    # side is never independently discovered, it just mirrors whatever
+    # collection names side b (iCloud) reports, so there is nothing to
+    # reconcile and nothing to prompt about. This is the same single-sided
+    # pattern vdirsyncer's own tutorial uses for a server-authoritative
+    # setup. `item_types = ["VEVENT"]` scopes this to calendar events only
+    # (khal is a calendar tool; iCloud CalDAV can also carry VTODO, out of
+    # scope here).
+    #
+    # Credentials: `username.fetch`/`password.fetch` with the `"command"`
+    # strategy run an argv list (not shell-interpreted) and use its stdout
+    # directly -- verified against vdirsyncer's "Storing passwords" docs
+    # (vdirsyncer.readthedocs.io/en/stable/keyring.html). `printenv` reads
+    # ICLOUD_USERNAME/ICLOUD_APP_PASSWORD from the `hermes-vdirsyncer-sync`
+    # unit's EnvironmentFile below (both folded into the existing
+    # `hermes/env` sops secret, see that secret's comment) -- no literal
+    # credential value is ever written into this Nix-store file, so unlike
+    # the SSH key/SOUL.md it needs no preStart copy into stateDir; a plain
+    # Nix store path is fine for `VDIRSYNCER_CONFIG` below.
+    vdirsyncerConfig = pkgs.writeText "hermes-vdirsyncer-config" ''
+      [general]
+      status_path = "${vdirsyncerStatusDir}"
+
+      [pair icloud_calendar]
+      a = "icloud_calendar_local"
+      b = "icloud_calendar_remote"
+      collections = ["from b"]
+
+      [storage icloud_calendar_local]
+      type = "filesystem"
+      path = "${calendarDir}"
+      fileext = ".ics"
+
+      [storage icloud_calendar_remote]
+      type = "caldav"
+      # vdirsyncer's caldav storage does its own CalDAV principal /
+      # calendar-home-set discovery (RFC 6764) from this base URL --
+      # verified against vdirsyncer's iCloud tutorial, which uses this
+      # exact URL with no further well-known configuration needed.
+      url = "https://caldav.icloud.com/"
+      username.fetch = ["command", "printenv", "ICLOUD_USERNAME"]
+      password.fetch = ["command", "printenv", "ICLOUD_APP_PASSWORD"]
+      item_types = ["VEVENT"]
+    '';
+
+    # khal 0.14.0 (pinned nixpkgs version, same verification method as
+    # vdirsyncer above) config, verified against
+    # khal.readthedocs.io/en/latest/configure.html. `type = discover` + a
+    # glob `path` expands to one khal calendar per vdirsyncer-synced
+    # collection directory under calendarDir, so this file doesn't need
+    # updating when iCloud calendar names change. `local_timezone` is left
+    # unset deliberately: khal falls back to the system timezone when
+    # unset (same doc), the right default for a fleet node -- avoids
+    # hardcoding a guess at Aidan's timezone here. Unlike vdirsyncer's
+    # config, this DOES need a preStart-installed copy (see the preStart
+    # comment below): khal has no config-path env var, only its default
+    # `$HOME/.config/khal/config` or a `-c` flag, and the agent's own
+    # interactive `khal` calls (SOUL.md) use neither.
+    khalConfig = pkgs.writeText "hermes-khal-config" ''
+      [calendars]
+      [[icloud]]
+      path = ${calendarDir}/*
+      type = discover
+    '';
   in {
     imports = [inputs.hermes-agent.nixosModules.default];
 
@@ -105,6 +187,28 @@
       # sops-fed secrets/env (below) merge into $HERMES_HOME/.env via the
       # upstream activation script -- see the `sops.secrets` block.
       environmentFiles = [config.sops.secrets."hermes/env".path];
+
+      # Non-secret values two Part D integrations need: Actual's
+      # private-network URL (feature 3) and Grafana's own loopback URL
+      # (feature: Grafana annotations) -- upstream's `environment` option
+      # ("Non-secret environment variables... merged into $HERMES_HOME/.env",
+      # nix/nixosModules.nix) is the documented home for exactly this, kept
+      # separate from the sops-managed `hermes/env` secret because neither
+      # value grants access on its own. Actual's port (5006) matches
+      # modules/nixos/actual-budget.nix's `services.actual.settings.port`;
+      # Grafana's (3000) matches modules/nixos/monitoring/default.nix's
+      # `services.grafana.settings.server` (default port, `http_addr
+      # "0.0.0.0"`) -- reached over loopback since Grafana runs on this
+      # same node (legion-node3).
+      environment = {
+        ACTUAL_SERVER_URL = "http://172.17.0.4:5006";
+        GRAFANA_URL = "http://127.0.0.1:3000";
+        # vdirsyncer config path for the agent's own ad-hoc use (SERVERS.md
+        # "Calendar"); the dedicated `hermes-vdirsyncer-sync` unit below
+        # sets this independently on its own EnvironmentFile-carrying
+        # ExecStart.
+        VDIRSYNCER_CONFIG = "${vdirsyncerConfig}";
+      };
 
       # gpt-5.6-luna is in Hermes' supported Codex model list
       # (hermes_cli/codex_models.py `CODEX_SUPPORTED_MODELS` at the pinned
@@ -172,6 +276,60 @@
         # created `knowledge-base/skills/` yet is not a problem this
         # module's preStart needs to `install -d` around.
         skills.external_dirs = ["${cfg.workingDirectory}/knowledge-base/skills"];
+
+        # artemis LLM provider (feature 7, ADR 0011 "No new credential for
+        # the artemis LLM provider"): a named custom provider pointing at
+        # llama-swap on artemis (modules/nixos/llama-swap.nix,
+        # listenAddress 0.0.0.0:8080, model group "ornith-1.0-9b") over the
+        # NetBird mesh. Config schema verified against
+        # `cli-config.yaml.example`'s "Named provider overrides" section at
+        # the pinned hermes-agent rev (same `gh api
+        # repos/NousResearch/hermes-agent/contents/cli-config.yaml.example`
+        # discipline as `openai_runtime` above) and against
+        # `hermes_cli/config.py` `_normalize_custom_provider_entry` /
+        # `providers_dict_to_custom_providers`: a `settings.providers.<name>`
+        # entry with a `base_url` becomes a new selectable
+        # OpenAI-compatible provider (`--provider artemis` / `/model`),
+        # keyed by its own dict key ("artemis") as the provider name;
+        # `api_key`/`key_env` are read only if present -- omitting both
+        # (as here) means an unauthenticated endpoint, matching mesh
+        # membership being the only real gate.
+        #
+        # Host: the raw NetBird peer IP (100.89.148.91), not the
+        # `artemis.jeiang.vpn` mesh DNS name. This provider exists
+        # specifically for when things are already degraded (Hermes' own
+        # quota exhausted, or bulk/high-volume processing) and embedded
+        # NetBird DNS has a history of flakiness on this fleet (see the
+        # netbird-dns-config operational note) -- a provider meant to keep
+        # working when the mesh is stressed shouldn't add a DNS hop to its
+        # own critical path. Tradeoff, accepted: the peer IP isn't
+        # guaranteed stable forever (NetBird could reassign it on
+        # re-registration) -- if artemis's mesh IP ever changes, update
+        # this literal (`netbird status` from any node, or the NetBird
+        # dashboard, shows the current one).
+        #
+        # MANUAL SWITCH ONLY, never automatic: verified against
+        # `hermes_cli/fallback_config.py` `get_fallback_chain`, which reads
+        # only `config["fallback_providers"]`/`config["fallback_model"]` --
+        # entirely separate top-level keys from `providers`, neither of
+        # which this module touches, so an entry here can never enter the
+        # automatic fallback chain by construction. Selected explicitly at
+        # runtime only (SERVERS.md "Alternative model (artemis)").
+        #
+        # request_timeout_seconds: llama-swap unloads Ornith-1.0-9B after
+        # 30 minutes idle (`ttl = 1800`, modules/nixos/llama-swap.nix); the
+        # first request after that reload is a cold start and takes far
+        # longer than a warm one (the same module's own
+        # `healthCheckTimeout = 300` comment already accounts for this on
+        # llama-swap's side). Verified this key is read per-provider
+        # regardless of built-in vs. custom by
+        # `hermes_cli/timeouts.py get_provider_request_timeout`, which
+        # indexes `config["providers"][provider_id]["request_timeout_seconds"]`
+        # directly off the raw config dict.
+        providers.artemis = {
+          base_url = "http://100.89.148.91:8080/v1";
+          request_timeout_seconds = 600;
+        };
       };
 
       # SERVERS.md is colocated with this module (documents values may be
@@ -194,12 +352,29 @@
       # and for the Knowledge Base repo (also used by hermes-kb-sync below,
       # which needs its own explicit `path` since it's a separate systemd
       # unit and doesn't inherit this list). curl: querying
-      # VictoriaMetrics/VictoriaLogs per SERVERS.md. openssh: the `ssh`
-      # binary fleet commands run through (ADR 0011 "Transport"), using the
-      # identity/config the preStart script below installs. Wired onto both
+      # VictoriaMetrics/VictoriaLogs per SERVERS.md, and Grafana annotations
+      # (feature: Grafana annotations, SERVERS.md "Grafana annotations").
+      # openssh: the `ssh` binary fleet commands run through (ADR 0011
+      # "Transport"), using the identity/config the preStart script below
+      # installs. khal/vdirsyncer: iCloud Calendar (feature 8) -- vdirsyncer
+      # mirrors the CalDAV collection locally (also run by the dedicated
+      # `hermes-vdirsyncer-sync` timer below, which declares its own `path`
+      # since it's a separate unit), khal is what the agent actually reads
+      # and edits events through (SOUL.md, SERVERS.md "Calendar").
+      # actual-cli: the `actual` CLI (feature 3, Actual Budget) --
+      # `modules/packages/actual-cli.nix`, see that file for why no
+      # nixpkgs package exists and how this one is built. Wired onto both
       # the `hermes` user's per-user profile PATH and this service's own
       # systemd PATH (nix/nixosModules.nix `extraPackages` option).
-      extraPackages = [pkgs.git pkgs.gh pkgs.curl pkgs.openssh];
+      extraPackages = [
+        pkgs.git
+        pkgs.gh
+        pkgs.curl
+        pkgs.openssh
+        pkgs.khal
+        pkgs.vdirsyncer
+        self.packages.${pkgs.stdenv.hostPlatform.system}.actual-cli
+      ];
     };
 
     # Do NOT use the upstream `authFile` option here: it seeds
@@ -250,7 +425,33 @@
     # only remaining job is the malformed-store self-heal case, and only
     # while its sops copy holds unexpired tokens.
     sops.secrets = {
-      # TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS, GITHUB_TOKEN --
+      # TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS, GITHUB_TOKEN, plus Part
+      # D's additions (all folded into this one secret rather than minting
+      # separate sops entries -- every one below is a plain string value,
+      # not a file, and needs no ownership distinct from this secret's own
+      # owner/group; docs/runbooks/hermes.md's credential-inventory section
+      # has the exact mint/rotate steps for each):
+      #   ACTUAL_SESSION_TOKEN  -- Actual Budget session token (feature 3;
+      #     NOT the server login password, see ADR 0011). Invalidated by
+      #     Actual's "log out all sessions" action, must be re-minted then.
+      #   ACTUAL_SYNC_ID        -- Actual's budget sync ID (Settings ->
+      #     Advanced -> Sync ID in the Actual UI). Not itself a credential
+      #     (identifies which budget, doesn't authenticate), but
+      #     operator-specific and unknown at eval time, so it lives here
+      #     next to the token rather than as a Nix-committed literal.
+      #   ICLOUD_USERNAME       -- Aidan's iCloud email (feature 8). Same
+      #     reasoning as ACTUAL_SYNC_ID: not a secret by itself, but
+      #     operator-specific and not something to guess/commit.
+      #   ICLOUD_APP_PASSWORD   -- iCloud CalDAV app-specific password
+      #     (feature 8, ADR 0011's "unlocks all of Aidan's iCloud
+      #     CalDAV/CardDAV" caveat), from appleid.apple.com.
+      #   HERMES_REPOS_TOKEN    -- the `hermes-repos` fine-grained GitHub
+      #     PAT (feature 9, ADR 0011), distinct from GITHUB_TOKEN's
+      #     Knowledge-Base-only scope -- see SOUL.md's "GitHub access"
+      #     section and SERVERS.md's "Other Git repos" section for how the
+      #     agent picks the right token per repo.
+      #   GRAFANA_ANNOTATION_TOKEN -- Grafana service-account token scoped
+      #     to annotation writes only (Grafana annotations feature).
       # environmentFiles above merges this into $HERMES_HOME/.env at
       # activation. owner/group = the hermes-agent service user (a real
       # static user here, `createUser = true` by default -- not
@@ -326,6 +527,18 @@
             # behaves (SOUL.md above, the SSH config below).
             install -m 0600 "${config.sops.secrets."hermes/ssh-key".path}" "${sshDir}/id_ed25519"
             install -m 0600 ${sshConfig} "${sshDir}/config"
+
+            # khal config (iCloud Calendar, feature 8): unlike
+            # vdirsyncer's config (referenced directly from the Nix store
+            # via VDIRSYNCER_CONFIG above, no copy needed), khal has no
+            # config-path env var -- only its default
+            # `$HOME/.config/khal/config` or a `-c` flag -- and the
+            # agent's own interactive `khal` calls use neither, so this
+            # needs to land at that default path. Overwrite unconditionally,
+            # same reasoning as SOUL.md above: nothing on this box ever
+            # mutates this file, it is Nix-managed end-to-end.
+            install -d -m 0700 "${khalConfigDir}"
+            install -m 0640 ${khalConfig} "${khalConfigDir}/config"
           '';
 
           # legion-node3 also runs the memory-constrained monitoring stack
@@ -405,20 +618,75 @@
             gitAuth push
           '';
         };
+
+        # iCloud Calendar sync (feature 8): mirrors the same
+        # timer-plus-on-demand shape as hermes-kb-sync above, for the same
+        # reason -- the local vdir under stateDir is Disposable State
+        # (CONTEXT.md), re-populated from iCloud on every run, so unlike
+        # the Knowledge Base there is nothing here to back up; this timer
+        # exists purely to keep the local copy current, not to make it
+        # durable.
+        hermes-vdirsyncer-sync = {
+          description = "Sync Hermes' iCloud calendar via vdirsyncer";
+          after = ["network-online.target"];
+          wants = ["network-online.target"];
+          # Separate unit from hermes-agent, so it does not inherit that
+          # service's own `path` -- vdirsyncer is declared again here.
+          path = [pkgs.vdirsyncer];
+          serviceConfig = {
+            Type = "oneshot";
+            User = cfg.user;
+            Group = cfg.group;
+            # ICLOUD_USERNAME, ICLOUD_APP_PASSWORD -- read by vdirsyncer's
+            # `username.fetch`/`password.fetch` `printenv` commands (see
+            # the `vdirsyncerConfig` comment above).
+            EnvironmentFile = config.sops.secrets."hermes/env".path;
+            Environment = "VDIRSYNCER_CONFIG=${vdirsyncerConfig}";
+          };
+          script = ''
+            set -euo pipefail
+
+            # vdirsyncer's filesystem storage needs its `path` to already
+            # exist; status_path is where sync-state metadata lives.
+            # Both under stateDir -- see the module-level Disposable State
+            # comment below.
+            install -d -m 0700 "${calendarDir}" "${vdirsyncerStatusDir}"
+
+            # `discover` is safe to re-run every time (see the
+            # `vdirsyncerConfig` comment above for why the single-sided
+            # "from b" collections list keeps this non-interactive) --
+            # cheap, and picks up any calendar iCloud-side renames/adds
+            # without a separate one-time setup step.
+            vdirsyncer discover icloud_calendar
+            vdirsyncer sync icloud_calendar
+          '';
+        };
       };
 
-      timers.hermes-kb-sync = {
-        wantedBy = ["timers.target"];
-        timerConfig = {
-          # OnUnitActiveSec alone never fires on a service that has never
-          # been active (there is no "last activation" to be relative to),
-          # so the sync -- including the initial clone -- would never run.
-          # OnActiveSec schedules the first run relative to the timer's own
-          # activation (every boot, and any deploy that restarts the timer);
-          # OnUnitActiveSec keeps the 15m cadence after that. Persistent=
-          # was dropped: it only applies to OnCalendar= timers.
-          OnActiveSec = "1m";
-          OnUnitActiveSec = "15m";
+      timers = {
+        hermes-kb-sync = {
+          wantedBy = ["timers.target"];
+          timerConfig = {
+            # OnUnitActiveSec alone never fires on a service that has never
+            # been active (there is no "last activation" to be relative to),
+            # so the sync -- including the initial clone -- would never run.
+            # OnActiveSec schedules the first run relative to the timer's own
+            # activation (every boot, and any deploy that restarts the timer);
+            # OnUnitActiveSec keeps the 15m cadence after that. Persistent=
+            # was dropped: it only applies to OnCalendar= timers.
+            OnActiveSec = "1m";
+            OnUnitActiveSec = "15m";
+          };
+        };
+
+        # Same OnActiveSec/OnUnitActiveSec reasoning as hermes-kb-sync
+        # above; ~15m cadence per the plan for this integration.
+        hermes-vdirsyncer-sync = {
+          wantedBy = ["timers.target"];
+          timerConfig = {
+            OnActiveSec = "1m";
+            OnUnitActiveSec = "15m";
+          };
         };
       };
     };
@@ -426,11 +694,20 @@
     # No firewall openings: Telegram is outbound long-polling, the
     # Knowledge Base sync/GitHub access above are outbound HTTPS, and the
     # hermes-ops SSH transport (ADR 0011 "Transport") is outbound-only too
-    # -- Hermes dials out to 172.17.0.{1,2,4}, nothing dials in here. No
-    # Hetzner Volume, no backupSet: the only durable state is the sops
-    # secrets (already backed by the repo's sops workflow) and the KB
-    # remote (durable by the timer above); everything under `stateDir` is
-    # Disposable State (CONTEXT.md), same reasoning
+    # -- Hermes dials out to 172.17.0.{1,2,4}, nothing dials in here. Part
+    # D's integrations are the same shape: Actual (172.17.0.4:5006) and
+    # Grafana (127.0.0.1:3000) are private-network/loopback outbound calls
+    # to services this fleet already runs; vdirsyncer's iCloud sync is
+    # outbound HTTPS to caldav.icloud.com; the artemis provider is an
+    # outbound call over the NetBird mesh, which -- like the KB
+    # sync/GitHub access -- needs no firewall opening on this node (NixOS'
+    # firewall only filters inbound by default). No Hetzner Volume, no
+    # backupSet: the only durable state is the sops secrets (already backed
+    # by the repo's sops workflow) and the KB remote (durable by the timer
+    # above); everything under `stateDir` is Disposable State
+    # (CONTEXT.md) -- including the calendar vdir Part D adds, which
+    # re-syncs from iCloud on the next `hermes-vdirsyncer-sync` run, so it
+    # needs no backup either -- same reasoning
     # modules/nixos/monitoring/default.nix already documents for its own
     # `stateful = false` inventory entry.
   };

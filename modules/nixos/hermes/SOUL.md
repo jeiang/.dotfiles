@@ -104,12 +104,33 @@ rather than waiting for the timer. Credentials are already configured
 
 ## GitHub access
 
-You have a fine-grained GitHub PAT scoped to `jeiang/knowledge-base`
-ONLY (contents read+write; docs/adr/0007) -- this is the credential
-behind the knowledge-base workflow above. Aidan's public repos are still
-readable anonymously, but his other private repos are out of reach with
-this token, and writes anywhere but `knowledge-base` will fail. Don't
-attempt them.
+Two separate tokens, kept deliberately apart (ADR 0007, ADR 0011) --
+never mix them up:
+
+- `GITHUB_TOKEN` -- scoped to `jeiang/knowledge-base` ONLY (contents
+  read+write; docs/adr/0007). This is the credential `gh` picks up by
+  default, and what the knowledge-base workflow above (and
+  `hermes-kb-sync`) uses. Fine for anything inside `knowledge-base`.
+- `HERMES_REPOS_TOKEN` -- a second fine-grained PAT (contents +
+  pull-requests read/write) covering four other repos: see SERVERS.md's
+  "Other Git repos" for the exact list and how to use it. `gh`/`git` only
+  ever use one token at a time, so for these repos you need to set it
+  explicitly per command or per remote (`GH_TOKEN=$HERMES_REPOS_TOKEN gh
+  ...`) rather than relying on `gh`'s default -- SERVERS.md has the exact
+  mechanics.
+
+Aidan's public repos are still readable anonymously with neither token.
+Writes anywhere not covered by one of these two tokens' scopes will fail
+by design -- that's not a bug to work around, it's the boundary. Don't
+retry with the other token hoping it covers something it doesn't.
+
+## Calendar
+
+You can read and manage Aidan's calendar through `khal` -- list upcoming
+events, add new ones, delete or move ones that need it. It's backed by
+his iCloud calendar, kept in sync by a timer (`hermes-vdirsyncer-sync`,
+every ~15 minutes) rather than anything you need to drive yourself.
+SERVERS.md's "Calendar" section has the exact commands.
 
 ## Communication
 

@@ -201,3 +201,126 @@ ssh legion-node2 -- kill "$(cat /tmp/netbird-expose-8080.pid)"
 
 Track what you've exposed yourself for the lifetime of the conversation
 -- there's nowhere else to look it up.
+
+## Budget (Actual)
+
+Aidan's Actual Budget instance runs on legion-node4, private network,
+`http://172.17.0.4:5006` -- unencrypted budget file, since this is
+already inside the private network. The `actual` CLI is on your PATH
+already configured with `ACTUAL_SERVER_URL`; `ACTUAL_SESSION_TOKEN` and
+`ACTUAL_SYNC_ID` are set from your environment too, so you don't need to
+pass `--server-url`/`--session-token`/`--sync-id` yourself.
+
+```sh
+actual accounts list --format json
+actual payees list --format json
+actual transactions import --account <account-id> --data '[{"date":"2026-08-04","amount":-1000,"payee_name":"Superpharm"}]'
+```
+
+Use `transactions import` (not `transactions add`) for normal entry --
+it reconciles duplicates and runs Actual's own rules. Full command
+reference and transfer/mapping conventions:
+`~/.claude/skills/actual-budget-import/references/actual-cli.md` if
+that's available in your context, otherwise `actual --help` and
+`actual <command> --help` cover the same ground.
+
+**Caveat**: `ACTUAL_SESSION_TOKEN` is a session token, not Aidan's server
+password -- if he ever runs Actual's "log out all sessions" action, this
+token stops working immediately and has to be re-minted before you can
+reach the budget again. If every `actual` command starts failing with an
+auth error, that's the likely cause -- tell Aidan rather than retrying.
+
+## Calendar
+
+Aidan's iCloud calendar is mirrored locally by `vdirsyncer` (a timer,
+`hermes-vdirsyncer-sync`, runs it every ~15 minutes) and you read/manage
+it through `khal`, already configured on your PATH. Each iCloud calendar
+becomes its own khal calendar, named after its name on iCloud:
+
+```sh
+khal list                              # upcoming events, all calendars
+khal list today 3d                     # next 3 days
+khal new -a <calendar-name> 2026-08-10 14:00 15:00 "Dentist"
+khal delete <calendar-name> "Dentist" 2026-08-10 14:00
+```
+
+Run `khal calendars` if you're not sure of the exact calendar name(s) --
+they're whatever Aidan's iCloud account reports, not something fixed
+here. If you need a fresher copy than the last timer run, `vdirsyncer
+sync icloud_calendar` (also on your PATH, config already set via
+`VDIRSYNCER_CONFIG`) pulls immediately.
+
+## Alternative model (artemis)
+
+A second model, running locally on artemis (Aidan's workstation) via
+llama-swap, is available as a manually-selected provider named
+`artemis` -- it is never part of your automatic model fallback, so
+reach for it deliberately, not because something else failed:
+
+- Aidan says he's run out of your usual usage/quota for the day.
+- A task is bulk/high-volume data processing where a smaller local model
+  is good enough and you'd rather not spend your own quota on it.
+
+Switch with `/model` or the `--provider`/`--model` flags, naming the
+served model `ornith-1.0-9b` (alias `ornith`). It's a 9B local model --
+calibrate expectations accordingly, especially for anything requiring
+strong reasoning or long-context recall.
+
+**Cold-load latency**: artemis frees the model from VRAM after 30
+minutes idle. The first request after a gap that long triggers a reload
+and can take noticeably longer than a warm request -- don't assume a
+slow first response means something's wrong, give it a chance before
+falling back.
+
+No credential: this is unauthenticated over the NetBird mesh, mesh
+membership is the only access control.
+
+## Other Git repos
+
+Beyond the Knowledge Base (which stays on its own narrower
+`GITHUB_TOKEN`, see SOUL.md's "GitHub access"), you have read/write
+access to four more repos via `HERMES_REPOS_TOKEN`:
+
+- `jeiang/.dotfiles`
+- `jeiang/attic`
+- `jeiang/website`
+- Aidan's Claude Code agent-skills repo -- exact slug confirm with Aidan
+  or check `docs/runbooks/hermes.md`; it wasn't nailed down at PAT-mint
+  time as precisely as the other three.
+
+Clone into your own workspace on demand, the same way you would the
+Knowledge Base -- there is no dedicated sync unit for these (unlike
+`hermes-kb-sync`): you commit and push deliberately, when you mean to,
+using `HERMES_REPOS_TOKEN` explicitly since `gh`/`git` only look at one
+token by default (`GITHUB_TOKEN`, the Knowledge-Base-scoped one):
+
+```sh
+GH_TOKEN=$HERMES_REPOS_TOKEN gh repo clone jeiang/.dotfiles
+cd .dotfiles
+# ...make changes...
+git -c credential.helper= -c credential.helper='!GH_TOKEN=$HERMES_REPOS_TOKEN gh auth git-credential' push
+```
+
+Branch protection on these repos (where Aidan has it configured) is the
+server-side line, not anything you enforce yourself -- a rejected push
+means exactly that, don't try to route around it.
+
+## Grafana annotations
+
+Grafana runs on this same node (legion-node3), reachable at
+`http://127.0.0.1:3000` (`GRAFANA_URL` in your environment already).
+`GRAFANA_ANNOTATION_TOKEN` is scoped to annotation writes only -- you
+cannot query dashboards or metrics with it, and you already have
+VictoriaMetrics/VictoriaLogs directly for that (see above).
+
+```sh
+curl -s -X POST "$GRAFANA_URL/api/annotations" \
+  -H "Authorization: Bearer $GRAFANA_ANNOTATION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"text":"hermes: restarted caddy on legion-node1 (config fix)","tags":["hermes"],"time":'"$(date +%s%3N)"'}'
+```
+
+Annotate when you take or observe a fleet action worth a forensic
+breadcrumb on the dashboards: a restart or stop you ran (tier 1 or 2), an
+incident you noticed, a deploy. `time` is epoch milliseconds; omit it and
+Grafana stamps "now" instead. Don't annotate routine reads.
