@@ -37,7 +37,11 @@
     # `caches` keys, not the permission attrset nested inside `caches`.
     # This assertion is the only thing standing between a typo here and a
     # silently-empty OIDC grant.
-    validAtticCachePermissionKeys = ["r" "w" "d" "cc" "cr" "cq" "cd"];
+    # ponytail: "tw" (trusted-write) deliberately absent -- jeiang/attic PR
+    # #24 is still open, so the pinned rev has no such key and whitelisting
+    # it would recreate the silent-empty-grant hazard. Add "tw" (and its
+    # grants) only after that PR merges and the input is re-bumped.
+    validAtticCachePermissionKeys = ["r" "w" "d" "cc" "cr" "cq" "cd" "b"];
 
     oidcCachePermissionKeyErrors =
       lib.concatMap (

@@ -43,11 +43,11 @@
         "nixpkgs-stable": "nixpkgs-stable"
       },
       "locked": {
-        "lastModified": 1784469122,
-        "narHash": "sha256-VB89AS4wmRYeBl4bw05NwsNMUe8r+tGJGW/KgxEnpP4=",
+        "lastModified": 1785937871,
+        "narHash": "sha256-f7pYCDvTP45rBmoK8eEY9kCDRPtDBZ7ICZ4ra9bWXXY=",
         "owner": "jeiang",
         "repo": "attic",
-        "rev": "7e0a356cf10ed1a6b4bb5b565faed8be35d5607e",
+        "rev": "3d8528c314504b2abeb0d098fc82ce65b991789b",
         "type": "github"
       },
       "original": {
