@@ -46,7 +46,7 @@
     # (github.com/netbirdio/netbird proxy/server.go `configureTLS`,
     # proxy/cmd/proxy/cmd/root.go flag wiring). So the proxy does NOT need
     # its own ACME at all: `security.acme` below provisions a DNS-01
-    # wildcard for proxy.jeiang.dev/*.proxy.jeiang.dev via the Hetzner
+    # wildcard for proxy.jeiang.dev/*.proxy.jeiang.dev via the Cloudflare
     # provider (same mechanism as the edge's *.jeiang.dev cert,
     # modules/nixos/edge/default.nix) and hands the rendered
     # fullchain.pem/key.pem straight to the proxy; the built-in ACME
@@ -59,15 +59,15 @@
   in {
     security.acme = {
       acceptTerms = true;
-      # Same operator identity that owns the other Hetzner-DNS domains this
+      # Same operator identity that owns the other Cloudflare-DNS domains this
       # flake issues certs for (aidanpinard.co, via Caddy's ACME on the
       # edge); Let's Encrypt requires a contact address for the account.
       defaults.email = "aidan@aidanpinard.co";
 
       certs.${certName} = {
         extraDomainNames = ["*.${domain}"];
-        dnsProvider = "hetzner";
-        environmentFile = config.sops.templates."netbird-proxy-hetzner-dns.env".path;
+        dnsProvider = "cloudflare";
+        environmentFile = config.sops.templates."netbird-proxy-cloudflare-dns.env".path;
         # /var/lib/acme/${certName} readable by this group (chmod
         # u=rwX,g=rX,o= in the nixos acme module); netbird-proxy's service
         # user is added to it below instead of the module default "acme".
@@ -97,11 +97,11 @@
         # value. Stored in the crowdsec shard (that module's shard), not
         # the netbird-proxy shard -- this module reads from both.
         "crowdsec/bouncer-netbird-proxy-key" = {sopsFile = crowdsecSopsFile;};
-        # Same Hetzner DNS API token value as the edge's
-        # `caddy/hetzner-dns-token` (modules/nixos/edge/default.nix),
+        # Same Cloudflare DNS API token value as the edge's
+        # `caddy/cloudflare-dns-token` (modules/nixos/edge/default.nix),
         # stored under its own name since sops secrets are declared (and
         # keyed to recipients) per host.
-        "netbird-proxy/hetzner-dns-token" = {sopsFile = netbirdProxySopsFile;};
+        "netbird-proxy/cloudflare-dns-token" = {sopsFile = netbirdProxySopsFile;};
         # OS-level firewall bouncer key (services.crowdsec-firewall-bouncer
         # below), registered at node1's LAPI by
         # modules/nixos/crowdsec/default.nix under the bouncer name
@@ -119,8 +119,8 @@
           '';
         };
 
-        "netbird-proxy-hetzner-dns.env".content = ''
-          HETZNER_API_TOKEN=${config.sops.placeholder."netbird-proxy/hetzner-dns-token"}
+        "netbird-proxy-cloudflare-dns.env".content = ''
+          CF_DNS_API_TOKEN=${config.sops.placeholder."netbird-proxy/cloudflare-dns-token"}
         '';
       };
     };

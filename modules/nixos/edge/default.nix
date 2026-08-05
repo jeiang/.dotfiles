@@ -208,7 +208,7 @@
           # https://caddyserver.com/docs/automatic-https#wildcard-certificates).
           jeiang.dev, *.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}tls {
-              dns hetzner {env.HETZNER_DNS_TOKEN}
+              dns cloudflare {env.CLOUDFLARE_API_TOKEN}
             }
 
             @apex host jeiang.dev
@@ -225,11 +225,11 @@
           }
 
           # aidanpinard.co / pinard.co.tt: separate DNS-01 certs
-          # (Hetzner-hosted zones, not part of the jeiang.dev wildcard
+          # (Cloudflare-hosted zones, not part of the jeiang.dev wildcard
           # SAN).
           aidanpinard.co {
             ${logLine}${crowdsecLine}${appsecLine}tls {
-              dns hetzner {env.HETZNER_DNS_TOKEN}
+              dns cloudflare {env.CLOUDFLARE_API_TOKEN}
             }
             root * ${website}
             file_server
@@ -237,14 +237,14 @@
 
           pinard.co.tt {
             ${logLine}${crowdsecLine}${appsecLine}tls {
-              dns hetzner {env.HETZNER_DNS_TOKEN}
+              dns cloudflare {env.CLOUDFLARE_API_TOKEN}
             }
             root * ${website}
             file_server
           }
 
           # --- noelejoshua.com: jkmn-website, new input -------------------
-          # noelejoshua.com is not in Hetzner DNS: no explicit `tls`
+          # noelejoshua.com is not in Cloudflare DNS: no explicit `tls`
           # directive, so this falls back to Caddy's standard automatic
           # HTTPS (HTTP-01/TLS-ALPN-01), per the TLS strategy section.
           noelejoshua.com {
@@ -376,7 +376,7 @@
           # jellyfin/seerr have a deferred Tailscale backend. 503 rather
           # than 200: accurately signals "temporarily unavailable" instead
           # of looking like real content that a client or proxy might
-          # cache. Not in Hetzner DNS, so (like noelejoshua.com) these fall
+          # cache. Not in Cloudflare DNS, so (like noelejoshua.com) these fall
           # back to standard automatic HTTPS.
           jellyfin.plyrex.dev, seerr.plyrex.dev {
             ${logLine}${crowdsecLine}${appsecLine}respond "Service migrating. This service is temporarily unavailable while it moves to new infrastructure." 503
@@ -384,13 +384,13 @@
         '';
       };
 
-      # Hetzner DNS API token for the DNS-01 issuer above, from the caddy
+      # Cloudflare DNS API token for the DNS-01 issuer above, from the caddy
       # secrets shard.
       sops.secrets = let
         sopsFile = ./secrets.yaml;
       in
         {
-          "caddy/hetzner-dns-token" = {inherit sopsFile;};
+          "caddy/cloudflare-dns-token" = {inherit sopsFile;};
         }
         // lib.optionalAttrs cfg.crowdsec.enable {
           "caddy/crowdsec-lapi-url" = {inherit sopsFile;};
@@ -401,7 +401,7 @@
         owner = config.services.caddy.user;
         group = config.services.caddy.group;
         content =
-          "HETZNER_DNS_TOKEN=${config.sops.placeholder."caddy/hetzner-dns-token"}\n"
+          "CLOUDFLARE_API_TOKEN=${config.sops.placeholder."caddy/cloudflare-dns-token"}\n"
           + lib.optionalString cfg.crowdsec.enable ''
             CROWDSEC_LAPI_URL=${config.sops.placeholder."caddy/crowdsec-lapi-url"}
             CROWDSEC_LAPI_KEY=${config.sops.placeholder."caddy/crowdsec-lapi-key"}
