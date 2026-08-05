@@ -1,0 +1,12 @@
+{
+  "name": "hermes-actual-cli",
+  "version": "26.8.0",
+  "private": true,
+  "bin": {
+    "actual": "node_modules/@actual-app/cli/dist/cli.js",
+    "actual-cli": "node_modules/@actual-app/cli/dist/cli.js"
+  },
+  "dependencies": {
+    "@actual-app/cli": "26.8.0"
+  }
+}
