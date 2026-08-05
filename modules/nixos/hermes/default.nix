@@ -81,11 +81,22 @@
     # pre-seed known_hosts on first deploy to skip this TOFU window
     # entirely if they'd rather not accept it.
     sshConfig = pkgs.writeText "hermes-ssh-config" (
-      # No Host block for legion-node3: it's this service's own node, so
-      # fleet actions there run `sudo systemctl ...` directly
-      # (hermesOps.extraGrantees, ADR 0012 "node-local actions use sudo
-      # directly without SSH-to-self") -- there is nothing for SSH to
-      # reach.
+      # legion-node3 gets a Host block too (ADR 0012, amended -- this used
+      # to be the one node excluded here, running `sudo systemctl ...`
+      # directly instead). That local-sudo path can never work: the
+      # upstream hermes-agent systemd unit runs NoNewPrivileges=yes
+      # (verified via `nix eval
+      # .#nixosConfigurations.legion-node3.config.systemd.services.hermes-agent.serviceConfig.NoNewPrivileges`
+      # -> true; this module never sets it -- it's upstream's own
+      # default). That flag is inherited by every child of the service
+      # process and cannot be cleared from within, so no absolute path or
+      # sudoers rule lets an in-process `sudo` gain privilege (confirmed
+      # live on a deployed node: `NoNewPrivs: 1`, `CapEff:
+      # 0000000000000000`, sudo refuses with "The 'no new privileges'
+      # flag is set..."). Every privileged fleet action, node3's own
+      # included, has to cross an sshd boundary -- a fresh process tree
+      # spawned by the TARGET node's sshd, entirely outside this
+      # service's sandbox -- to have any chance of landing.
       lib.concatMapStringsSep "\n\n" (node: ''
         Host ${node}
           HostName ${self.lib.legionNodes.${node}.privateIPv4}
@@ -94,7 +105,7 @@
           IdentitiesOnly yes
           StrictHostKeyChecking accept-new
           UserKnownHostsFile ${sshDir}/known_hosts'')
-      ["legion-node1" "legion-node2" "legion-node4"]
+      ["legion-node1" "legion-node2" "legion-node3" "legion-node4"]
     );
 
     # iCloud Calendar (feature 8, ADR 0012 credential inventory "iCloud
@@ -400,8 +411,9 @@
         #   This is a considered, ACCEPTED tradeoff, not an oversight: it is
         #   a PROMPT-LEVEL boundary, not a mechanical one. The `hermes` user
         #   running this turn is the same identity that holds ADR 0012's
-        #   node3 sudo grants and hermes-ops SSH-to-other-nodes access
-        #   (Parts B/C) -- `terminal` here is the same tool, so a
+        #   hermes-ops SSH access to every node, node3 included (Parts
+        #   B/C), and transitively through it every sudo grant on every
+        #   node -- `terminal` here is the same tool, so a
         #   sufficiently effective injection via crafted alert label/
         #   annotation content (Alertmanager alert content can originate
         #   from anything that can push a metric or write an alerting

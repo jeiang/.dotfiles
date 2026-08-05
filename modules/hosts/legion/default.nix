@@ -216,7 +216,7 @@ in {
         # unconditional fleet-wide pattern as netbird/backups above --
         # every Legion node gets the account and its sudo allowlist;
         # per-node tier lists come from hermesOpsTiers below, one node
-        # (legion-node3) additionally sets `hermesOps.extraGrantees`.
+        # (legion-node3) additionally sets `hermesOps.journalGrantees`.
         self.nixosModules.hermes-ops
         self.diskoConfigurations.legion
       ];
@@ -443,7 +443,8 @@ in {
     nixosConfigurations = let
       mkLegionSystem = name: node: let
         # Reused below for both the optional hermes module import and
-        # hermesOps.extraGrantees (docs/adr/0012 node-local locality).
+        # hermesOps.journalGrantees (docs/adr/0012: local journal reads on
+        # the hermes-placed node, not sudo -- see that option's doc).
         hermesPlaced = lib.any (service: service.name == "hermes") node.services;
       in
         inputs.nixpkgs.lib.nixosSystem {
@@ -463,15 +464,16 @@ in {
 
                 # Per-node Fleet Operations Tiers data (hermesOpsTiers
                 # above) plus, on the node hermes is actually placed on,
-                # the extra sudo/systemd-journal grantee -- read lazily
-                # from `config` so this evaluates cleanly even on nodes
-                # where the hermes module (and its `user` option) was
-                # never imported (lib.optional never forces the unused
-                # branch).
+                # the extra systemd-journal grantee (local journal reads
+                # only, no sudo -- see hermesOps.journalGrantees's option
+                # doc) -- read lazily from `config` so this evaluates
+                # cleanly even on nodes where the hermes module (and its
+                # `user` option) was never imported (lib.optional never
+                # forces the unused branch).
                 hermesOps = {
                   tier1Units = hermesOpsTiers.${name}.tier1;
                   tier2Units = hermesOpsTiers.${name}.tier2;
-                  extraGrantees = lib.optional hermesPlaced config.services.hermes-agent.user;
+                  journalGrantees = lib.optional hermesPlaced config.services.hermes-agent.user;
                 };
               })
             ]

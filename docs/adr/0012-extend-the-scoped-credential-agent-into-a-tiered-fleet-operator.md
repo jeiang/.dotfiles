@@ -95,7 +95,9 @@ The Alertmanager webhook (`modules/nixos/hermes/default.nix`
 `platforms.webhook`, added after this ADR's original fleet-execution scope)
 is a distinct, lower-trust variant of the same gap and worth naming
 separately: its turns run as the same `hermes` identity holding this ADR's
-sudo grants and hermes-ops SSH access, over the same `terminal` toolset, but
+`hermes-ops` SSH access (and, transitively through it, every sudo grant on
+every node -- see the amended Transport section above), over the same
+`terminal` toolset, but
 the inbound content is alert labels/annotations, not Aidan's own typed
 Telegram message -- a surface anything able to push a metric or write an
 alerting rule can influence, strictly lower-trust than a human's own input.
@@ -124,6 +126,44 @@ transport through NetBird SSH would make the execution path circular: the
 tool used to investigate and recover a broken mesh would stop working at
 the same time the mesh breaks. The Hetzner private network has no such
 dependency on anything Hermes is allowed to touch.
+
+**Amended (deploy-time correction): every node, node3 included, goes over
+SSH -- there is no node-local sudo path.** This ADR originally recorded
+node-local actions on legion-node3 (the agent's own node) as running `sudo
+systemctl ...` directly, without SSH-to-self, as an optimization: Hermes
+was granted the same sudo rules as `hermes-ops` on that one node
+(`hermesOps.extraGrantees`), reasoning that a process acting on its own
+host shouldn't need to hop out over the network first. That optimization
+cannot work and never did: the upstream `hermes-agent` NixOS module sets
+`NoNewPrivileges=yes` on the service unit (confirmed by `nix eval` against
+the deployed configuration; this repo's own module never sets it). That
+flag is inherited by every child process the service spawns and cannot be
+cleared from within it, so `sudo` invoked in-process can never gain
+privilege, regardless of what the sudoers allowlist permits -- confirmed
+live on the deployed node (`NoNewPrivs: 1`, `CapEff: 0000000000000000`,
+`sudo` refusing outright). Absolute paths don't help; nothing run inside
+that process tree can escalate. The fix is not to relax the sandbox
+(disabling `NoNewPrivileges` was considered and rejected -- it would let
+the agent process invoke any setuid binary on the system, a strictly wider
+blast radius than the sudoers allowlist this ADR bounds) but to give node3
+the same Host block every other node already has: `hermes-ops`'s SSH
+transport, dialing `172.17.0.3` from itself over the private interface.
+Every privileged fleet action, on every node, now crosses an sshd
+boundary -- a fresh process tree spawned by the target node's own sshd,
+entirely outside `hermes-agent`'s sandbox -- before it can reach a sudo
+rule. The upside is real: `hermes-agent`'s own service user now holds no
+sudo grant and no privilege capability at all, anywhere, which tightens
+this ADR's model rather than loosening it -- `hermes-ops` is the sole
+sudoers identity on every node, node3 included. The former
+`hermesOps.extraGrantees` sudo grant is removed accordingly; that option's
+remaining, unaffected half (`systemd-journal` group membership, so the
+agent can still read its own node's journal locally with no SSH hop and no
+privilege escalation involved) survives under a renamed option
+(`hermesOps.journalGrantees`, `modules/nixos/hermes-ops/default.nix`).
+Cross-node actions were never affected by this bug: `ssh legion-nodeN --
+sudo systemctl ...` already ran the remote command in a process tree
+spawned by the *target* node's sshd, outside the calling node's sandbox
+entirely, so node1/2/4 worked correctly throughout.
 
 ## Credential inventory
 

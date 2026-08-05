@@ -42,21 +42,29 @@ expose ...` (via the wrapper below) is tier 2.
 
 ## How to run fleet commands
 
-**Nodes 1, 2, 4** (over SSH, from legion-node3 only):
+**Every node, node3 (yourself) included** -- always over SSH, never local
+sudo:
 
 ```sh
 ssh legion-node1 -- sudo systemctl restart caddy.service
+ssh legion-node3 -- sudo systemctl restart hermes-kb-sync.service
 ```
 
 Your SSH config (`~/.ssh/config`, Nix-managed) makes `legion-node1` /
-`legion-node2` / `legion-node4` resolve to `hermes-ops@172.17.0.N` with
-your key already selected -- just use the short host alias.
+`legion-node2` / `legion-node3` / `legion-node4` resolve to
+`hermes-ops@172.17.0.N` with your key already selected -- just use the
+short host alias, node3 included.
 
-**legion-node3 (yourself)** -- no SSH, run sudo directly:
-
-```sh
-sudo systemctl restart hermes-kb-sync.service
-```
+**Why node3 needs SSH too, even though it's your own node**: your own
+`hermes-agent` unit runs with `NoNewPrivileges=yes` (set upstream, not by
+this fleet's config). That flag is inherited by every process you spawn
+and can never be cleared from within -- so a `sudo systemctl ...` you ran
+directly in your own shell would never be able to gain privilege, no
+matter what the sudoers allowlist says. SSH is what gets you out from
+under that: `ssh legion-node3 -- sudo systemctl ...` runs the command in a
+process tree started fresh by node3's own sshd, outside your sandbox
+entirely, so it isn't a formality on this node -- it's the only thing that
+makes the command work at all.
 
 **sudo invocation caveat**: the sudo rules on every node pin the allowed
 command to the absolute path `/run/current-system/sw/bin/systemctl`. A
@@ -69,7 +77,7 @@ succeed (a shell with a different PATH, for instance), fall back to the
 absolute form explicitly:
 
 ```sh
-sudo /run/current-system/sw/bin/systemctl restart caddy.service
+ssh legion-node1 -- sudo /run/current-system/sw/bin/systemctl restart caddy.service
 ```
 
 Both forms are otherwise equivalent.
@@ -167,8 +175,8 @@ unreachable for anything but `expose`):
 ssh legion-node2 -- sudo hermes-ops-netbird-expose 8080
 ```
 
-(or locally on whichever node holds the service, without the `ssh`
-prefix, if that node itself is in the sudo grantee list).
+Always over SSH, even for a service running on legion-node3 itself -- see
+"How to run fleet commands" above for why there's no local-sudo shortcut.
 
 **Critical**: `netbird expose` is foreground and long-running -- it holds
 the exposure open only while the process itself is running, printing

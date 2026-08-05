@@ -39,13 +39,21 @@ _: {
 
     systemctlPath = "/run/current-system/sw/bin/systemctl";
 
-    # Every rule below is granted to hermes-ops itself plus this node's
-    # extra grantees (legion-node3 only: the hermes-agent service user,
-    # ADR 0012 "node-local actions use sudo directly without
-    # SSH-to-self") -- all commands are granted through a single sudo
-    # rule's `users` list, so this doesn't double the rule count per
-    # extra grantee.
-    grantees = ["hermes-ops"] ++ cfg.extraGrantees;
+    # hermes-ops is the ONLY sudo user this module ever grants, on every
+    # node including legion-node3. legion-node3's hermes-agent service
+    # user used to be granted these same sudo rules too (`extraGrantees`,
+    # ADR 0012's original "node-local actions use sudo directly without
+    # SSH-to-self" decision), so it could act on its own node without
+    # SSH-to-self. That grant was dead on arrival: the upstream
+    # hermes-agent unit runs NoNewPrivileges=yes (upstream's own default,
+    # not set by this repo), which is inherited by every child of that
+    # process and blocks `sudo` from ever gaining privilege, regardless of
+    # what sudoers permits. ADR 0012 (amended) now routes node3's own
+    # privileged actions over SSH like every other node, so there is
+    # nothing left for that user to be granted here -- see
+    # `journalGrantees` below for the one thing it still needs, which
+    # doesn't require privilege escalation and so is unaffected by the
+    # sandbox.
 
     # ADR 0012 "verb-times-unit enumerations, no wildcards": a
     # security.sudo.extraRules `commands[].command` string is matched
@@ -159,17 +167,21 @@ _: {
           hand elsewhere.
         '';
       };
-      extraGrantees = lib.mkOption {
+      journalGrantees = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [];
         description = ''
-          Extra usernames (besides hermes-ops) to grant this node's sudo
-          rules and systemd-journal membership to. legion-node3 sets this
-          to the hermes-agent service user (ADR 0012: node-local actions
-          use sudo directly, without SSH-to-self) from its own host
-          config, so this module never references
+          Extra usernames (besides hermes-ops) added to systemd-journal on
+          this node, for local `journalctl` reads with no SSH hop needed.
+          legion-node3 sets this to the hermes-agent service user, from
+          its own host config, so this module never references
           config.services.hermes-agent itself and has no hard dependency
-          on modules/nixos/hermes/default.nix being imported.
+          on modules/nixos/hermes/default.nix being imported. Grants NO
+          sudo access (that was removed, ADR 0012 amended): the
+          hermes-agent unit runs NoNewPrivileges=yes (upstream-set), which
+          blocks in-process privilege escalation entirely, so a sudo grant
+          to that user could never be exercised. Reading the journal needs
+          no such escalation, just group membership, so it stays useful.
         '';
       };
     };
@@ -215,20 +227,20 @@ _: {
               ];
             };
           }
-          # Extra grantees (legion-node3's hermes-agent user) get the same
-          # journal-read fallback as hermes-ops; their sudo access comes
-          # from `grantees` above, not from group membership.
-          // lib.genAttrs cfg.extraGrantees (_: {extraGroups = ["systemd-journal"];});
+          # Extra journal grantees (legion-node3's hermes-agent user) get
+          # the same journal-read fallback as hermes-ops -- group
+          # membership only, no sudo (see `journalGrantees`'s option doc
+          # for why that grant was removed).
+          // lib.genAttrs cfg.journalGrantees (_: {extraGroups = ["systemd-journal"];});
       };
 
-      # A single rule covering every grantee, all commands enumerated in
-      # its `commands` list -- not `security.sudo.enable` (already true
+      # hermes-ops only -- not `security.sudo.enable` (already true
       # fleet-wide via the base config, untouched here) and not
       # `wheelNeedsPassword`/any other global sudo setting, only this
       # `extraRules` append.
       security.sudo.extraRules = [
         {
-          users = grantees;
+          users = ["hermes-ops"];
           commands = startRestartCommands ++ stopCommands ++ [netbirdStatusCommand netbirdExposeCommand];
         }
       ];

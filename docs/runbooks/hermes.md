@@ -207,11 +207,34 @@ ssh node3.jeiang.dev -- sudo -u hermes-ops sudo systemctl restart hermes-kb-sync
   `hermes-ops` can still read that node's own journal directly (no sudo
   needed) via `systemd-journal` group membership, e.g. `journalctl -u
   caddy.service -e`.
-- **node3 locality**: the same checks above also pass run as the `hermes`
-  user directly on legion-node3 (`sudo -u hermes sudo systemctl ...`, no
-  SSH-to-self needed once Hermes itself is the one running the inner
-  call) -- `hermesOps.extraGrantees` grants it identically to
-  `hermes-ops`.
+- **node3 is uniform now, no local-sudo shortcut**: node3 used to grant the
+  `hermes` service user the same sudo rules as `hermes-ops`
+  (`hermesOps.extraGrantees`) so it could act on its own node without an
+  SSH hop. That grant was removed (ADR 0012, amended): the `hermes-agent`
+  unit runs `NoNewPrivileges=yes` (set upstream, not by this repo), which
+  blocks any in-process `sudo` from gaining privilege no matter what
+  sudoers permits -- a same-node action has to leave the sandboxed process
+  tree via sshd, same as a cross-node one. `hermes-ops` is the only sudo
+  user on every node now, node3 included; `hermesOps.journalGrantees` is
+  what the `hermes` user keeps instead, `systemd-journal` membership only,
+  for local journal reads (no privilege escalation involved, so the
+  sandbox doesn't touch it).
+
+  Check this specific regression from the agent's own perspective -- as
+  the `hermes` user, self-SSH to node3 rather than running sudo directly:
+
+  ```sh
+  ssh node3.jeiang.dev
+  sudo -u hermes -- ssh legion-node3 -- sudo -n systemctl restart hermes-kb-sync.service
+  ```
+
+  This should succeed exactly like the admin-session check above. `sudo
+  -n` (non-interactive) is the useful form for this specific check: if the
+  regression ever comes back (the local sudo grant re-added, or the SSH
+  Host block for node3 dropped again), a tier-3-style denial prints "sudo:
+  a password is required" and returns immediately instead of hanging on a
+  password prompt `hermes-ops` can never answer -- a hang here, not just a
+  failure, is itself the signal that this exact bug is back.
 - **PATH fallback**: a non-interactive `ssh ... -- ...` runs a non-login
   shell (fish, this fleet's default), which can affect PATH lookup for the
   bare command names above. In practice both `sudo` and the systemd
