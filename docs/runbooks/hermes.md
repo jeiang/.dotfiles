@@ -203,6 +203,85 @@ source IP is rejected by the `authorized_keys` `from=` restriction.
   no SSH-to-self) -- `hermesOps.extraGrantees` grants it identically to
   `hermes-ops`.
 
+## Verifying the alert webhook
+
+Alertmanager (this same node) POSTs to Hermes' webhook adapter at
+`http://127.0.0.1:8644/webhooks/alertmanager`
+(`modules/nixos/hermes/default.nix` `platforms.webhook`) -- both ends are
+loopback, so this can only be tested from `legion-node3` itself. Fire a
+synthetic alert directly at the endpoint with a sample Alertmanager
+webhook payload (this is exactly the shape Alertmanager's own
+`webhook_configs` POSTs):
+
+```sh
+ssh node3.jeiang.dev -- curl -s -X POST http://127.0.0.1:8644/webhooks/alertmanager \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "version": "4",
+    "status": "firing",
+    "receiver": "discord-notifications",
+    "groupLabels": {"alertgroup": "fleet-health"},
+    "commonLabels": {"severity": "warning"},
+    "commonAnnotations": {"summary": "synthetic test alert"},
+    "alerts": [{
+      "status": "firing",
+      "labels": {"alertname": "SyntheticTest", "instance": "legion-node3", "severity": "warning"},
+      "annotations": {"summary": "synthetic test alert", "description": "manual runbook verification, not a real condition"},
+      "startsAt": "2026-08-04T00:00:00Z"
+    }]
+  }'
+```
+
+Expect an immediate `{"status":"accepted",...}` response (HTTP 202 -- the
+agent run happens in the background), then a Telegram message from Hermes
+within a turn or two with its investigation of the synthetic alert. If
+nothing arrives, check the gateway log for `[webhook]`-prefixed lines:
+
+```sh
+ssh node3.jeiang.dev -- journalctl -u hermes-agent -e | grep webhook
+```
+
+The same payload also works via `amtool` if you'd rather exercise
+Alertmanager's own routing instead of the webhook endpoint directly
+(confirms the receiver/route wiring in
+`modules/nixos/monitoring/default.nix`, not just Hermes' side). `amtool`
+isn't on `legion-node3`'s PATH by default (not added to
+`environment.systemPackages`), so pull it ad hoc via nix:
+
+```sh
+ssh node3.jeiang.dev -- nix shell nixpkgs#alertmanager -c amtool alert add \
+  alertname=SyntheticTest severity=warning \
+  --annotation=summary="synthetic test alert" --alertmanager.url=http://127.0.0.1:9093
+```
+
+That exercises the full path (Alertmanager groups it, fires both
+`discord_configs` and `webhook_configs` on the `discord-notifications`
+receiver) -- expect both a Discord notification and, shortly after, a
+Telegram message from Hermes.
+
+No new secret for this feature: the webhook is loopback-only and uses the
+adapter's own `INSECURE_NO_AUTH` escape hatch (scoped to loopback binds),
+so there is nothing to add to the credential inventory above.
+
+## Verifying cron routines
+
+Ask Hermes over Telegram to list what it has scheduled -- it has the
+`cronjob` tool available there (`SERVERS.md` "Cron routines"), so "what
+cron jobs do you have scheduled?" is enough; no CLI access needed for
+day-to-day management. To inspect from the node directly instead (same
+store-path extraction as the Codex auth flow above, since `hermes` isn't
+on any system PATH):
+
+```sh
+ssh node3.jeiang.dev
+sudo -u hermes HOME=/var/lib/hermes \
+  "$(systemctl cat hermes-agent | grep -o '/nix/store/[^ ]*/bin/hermes' | head -1)" \
+  cron list
+```
+
+Scheduled jobs fire from the already-running `hermes-agent` process (its
+in-process cron ticker) -- no separate timer or service to check.
+
 ## Verify
 
 ```sh

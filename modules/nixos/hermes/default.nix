@@ -330,6 +330,101 @@
           base_url = "http://100.89.148.91:8080/v1";
           request_timeout_seconds = 600;
         };
+
+        # Alertmanager -> Hermes webhook (proactive alerting: Alertmanager
+        # POSTs firing/resolved alert groups here, the agent investigates
+        # and reports to Telegram unprompted, per SOUL.md's tier policy
+        # fixing tier-1-safe issues itself). This was the single
+        # highest-uncertainty piece of this module -- every claim below is
+        # checked against the pinned hermes-agent rev via `gh api`, not
+        # assumed:
+        #
+        # - SAME PROCESS, no new unit/port/MemoryHigh: nix/nixosModules.nix
+        #   Mode A (the branch this module already runs -- see the
+        #   file-level comment above) execs a single long-running `hermes
+        #   gateway` process that serves every `platforms.*.enabled`
+        #   adapter concurrently, Telegram included. Enabling
+        #   `platforms.webhook` is one more adapter in that same process,
+        #   not a new command or systemd unit.
+        # - LISTEN ADDRESS: `gateway/platforms/webhook.py`'s `DEFAULT_HOST =
+        #   None` comment documents `platforms.webhook.extra.host` as the
+        #   pin-to-one-address escape hatch (added for a Fly.io IPv6-only
+        #   edge case that doesn't apply here) -- set to "127.0.0.1" below,
+        #   so aiohttp binds loopback only. No firewall opening needed:
+        #   Alertmanager (modules/nixos/monitoring/default.nix) runs on
+        #   this same node and reaches this port over loopback, which
+        #   NixOS' firewall never filters regardless of any inbound rule.
+        # - AUTH: the same file's request handler permits `secret:
+        #   "INSECURE_NO_AUTH"` (skip HMAC validation) ONLY when the
+        #   adapter is bound to a loopback host (`_is_loopback_host()`) --
+        #   it refuses to start otherwise. That's exactly this setup, so no
+        #   HMAC secret / new sops entry is needed here -- and Alertmanager's
+        #   standard `webhook_configs` has no built-in way to HMAC-sign its
+        #   POST body to this adapter's signature scheme anyway, so a
+        #   secret would buy nothing.
+        # - ROUTE MECHANISM: the `script` field described in
+        #   cli-config.yaml.example's `script_timeout_seconds` comment is
+        #   OPTIONAL (a payload transform hook), not the only way to reach
+        #   the agent -- a plain route with `prompt` and no `deliver_only`
+        #   is enough. `_handle_webhook`'s agent-mode branch renders
+        #   `prompt` into a `MessageEvent` and runs it through the SAME
+        #   `handle_message()` every other platform uses; the adapter's own
+        #   `send()` override then delivers the agent's final response text
+        #   to whatever `deliver` names (here "telegram") automatically --
+        #   no `send_message` tool call needed on the agent's side. No
+        #   route script needed for this route.
+        # - TOOLSET: the webhook platform's default toolset
+        #   (`hermes-webhook` in toolsets.py, `_HERMES_WEBHOOK_SAFE_TOOLS` =
+        #   web_search/web_extract/vision_analyze/clarify only) is
+        #   deliberately narrow -- that file's own comment explains why:
+        #   webhook payloads can carry untrusted third-party content (a
+        #   public GitHub PR title), so the default keeps terminal/file off
+        #   to bound prompt-injection blast radius. That threat model
+        #   doesn't fit this route: the payload originates from this
+        #   fleet's own Alertmanager, not the public internet, and ADR
+        #   0011's doas tiers -- not the webhook toolset -- are what
+        #   actually bound a fleet action regardless of which conversational
+        #   surface requested it. `platform_toolsets.webhook` below
+        #   overrides the default with just `terminal` ("webhook" is a
+        #   generic platform key, resolved by the same
+        #   `hermes_cli/tools_config.py` `_get_platform_tools()` this
+        #   module already relies on for Telegram's default) -- the one
+        #   toolset an investigation needs: `systemctl status`/`journalctl`,
+        #   `curl` to VictoriaLogs/VictoriaMetrics/Grafana, and `doas` for a
+        #   tier-1 fix, all per SERVERS.md.
+        # - DEPENDENCY: `check_webhook_requirements()` (same file) needs
+        #   `aiohttp` importable. It's in hermes-agent's pyproject.toml
+        #   `messaging` extra, not the core deps -- but `nix/hermes-agent.nix`
+        #   builds this module's package with `dependency-groups = ["all"]
+        #   ++ extraDependencyGroups`, and "all" already includes
+        #   `messaging` (Telegram already depends on it), so no
+        #   `extraDependencyGroups` change is needed here.
+        platforms.webhook = {
+          enabled = true;
+          extra = {
+            host = "127.0.0.1";
+            # Must match the literal in modules/nixos/monitoring/default.nix's
+            # Alertmanager `webhook_configs.url` -- see that file's comment.
+            port = 8644;
+            routes.alertmanager = {
+              # Loopback-only bind (see comment above) -- no HMAC secret needed.
+              secret = "INSECURE_NO_AUTH";
+              deliver = "telegram";
+              prompt = ''
+                A fleet alert fired via Alertmanager. Investigate before concluding anything -- don't just restate the payload.
+
+                1. Read the alert(s) below: unit/node, condition, since when.
+                2. Investigate: VictoriaLogs first (SERVERS.md "Logs: VictoriaLogs"), `systemctl status`/journalctl as fallback, VictoriaMetrics if it's a resource/threshold alert.
+                3. If it's a tier-1-safe fix (SOUL.md's tier policy, SERVERS.md's per-node tier table), apply it. Otherwise don't act -- tier 2 needs Aidan's yes first, tier 3 has no doas path at all.
+                4. End with a clear summary for Aidan: what fired, what you found, and what you did (or your diagnosis and recommended fix if you didn't act). This response IS the Telegram message he sees -- there's no separate step to send it.
+
+                Alertmanager payload:
+                {__raw__}
+              '';
+            };
+          };
+        };
+        platform_toolsets.webhook = ["terminal"];
       };
 
       # SERVERS.md is colocated with this module (documents values may be
@@ -701,7 +796,12 @@
     # outbound HTTPS to caldav.icloud.com; the artemis provider is an
     # outbound call over the NetBird mesh, which -- like the KB
     # sync/GitHub access -- needs no firewall opening on this node (NixOS'
-    # firewall only filters inbound by default). No Hetzner Volume, no
+    # firewall only filters inbound by default). The Alertmanager webhook
+    # (`platforms.webhook` above) is the one INBOUND listener this module
+    # adds, and it needs no opening either: it's bound to 127.0.0.1 only
+    # (`extra.host`), reached exclusively by Alertmanager on this same
+    # node, and loopback traffic bypasses the firewall's inbound filtering
+    # entirely regardless of any rule. No Hetzner Volume, no
     # backupSet: the only durable state is the sops secrets (already backed
     # by the repo's sops workflow) and the KB remote (durable by the timer
     # above); everything under `stateDir` is Disposable State

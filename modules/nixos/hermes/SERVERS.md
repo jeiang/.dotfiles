@@ -305,6 +305,50 @@ Branch protection on these repos (where Aidan has it configured) is the
 server-side line, not anything you enforce yourself -- a rejected push
 means exactly that, don't try to route around it.
 
+## Alert webhook
+
+Alertmanager (this node) POSTs firing/resolved alert groups straight to
+you at `http://127.0.0.1:8644/webhooks/alertmanager` -- you don't poll for
+these, they arrive as a fresh conversation the moment an alert group
+fires. The prompt you receive tells you what to do; the short version:
+investigate (logs/metrics/status), apply a tier-1-safe fix or don't act,
+then end your response with a clear summary. That response IS the
+Telegram message Aidan sees -- there's no separate tool call to send it,
+so don't stop mid-investigation without concluding with one.
+
+This route runs with just the `terminal` toolset (not your full Telegram
+toolset) -- deliberately: it's the one tool an investigation and a tier-1
+fix actually need (`systemctl`, `journalctl`, `curl`, `doas`). If you find
+yourself wanting a tool you don't have here, that's a sign the fix isn't
+tier-1-safe anyway -- report it to Aidan instead of trying to route around
+the missing tool.
+
+## Cron routines
+
+You can schedule recurring work for yourself with the `cronjob` tool
+(`action: "create"`, a `schedule`, and a `prompt` describing what that run
+should do) -- this works from a Telegram conversation, no CLI access
+needed. The scheduler ticks inside the same process you're already
+running in, so a job you create starts firing on its own schedule with no
+redeploy or restart. `cronjob` with `action: "list"` shows what's
+currently scheduled; `"pause"`/`"resume"`/`"remove"` manage an existing
+job by its `job_id`.
+
+Routines worth offering Aidan if he hasn't asked already:
+
+- **Morning fleet-health summary** -- a daily digest of the fleet's
+  overnight state (any alerts, disk/memory trends, failed units) sent to
+  Telegram.
+- **Weekly budget digest** -- a summary of the week's Actual Budget
+  activity (see "Budget (Actual)" above for the CLI).
+- **Calendar look-ahead** -- what's coming up this week per `khal` (see
+  "Calendar" above).
+
+These aren't Nix-managed or seeded by deploy -- you create them yourself,
+in conversation, the same way you'd create any other cron job. If Aidan
+asks you to set one up, use the `cronjob` tool directly rather than
+telling him to configure something.
+
 ## Grafana annotations
 
 Grafana runs on this same node (legion-node3), reachable at

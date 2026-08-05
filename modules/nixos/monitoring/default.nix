@@ -685,7 +685,9 @@
       };
 
       # Alertmanager: Discord webhook, with routing/grouping configured
-      # below.
+      # below. Also fires to Hermes (modules/nixos/hermes/default.nix
+      # `platforms.webhook`) for proactive investigation -- see that
+      # file's long comment for the verified webhook mechanism.
       prometheus.alertmanager = {
         enable = true;
         environmentFile = config.sops.templates."alertmanager.env".path;
@@ -709,6 +711,25 @@
                   # option) -- not Nix string interpolation; no `${}`
                   # here.
                   webhook_url = "$DISCORD_WEBHOOK_URL";
+                }
+              ];
+              # Second notifier on the SAME receiver, not a second route
+              # with `continue: true` or a routing tree: Alertmanager fires
+              # every notifier list configured on a receiver (standard
+              # `<receiver>` schema -- `discord_configs` and
+              # `webhook_configs` coexist freely), so this is the simplest
+              # way to get every alert to both Discord and Hermes without
+              # touching the route above or the discord_configs entry.
+              # Loopback: Hermes' webhook adapter binds 127.0.0.1 on this
+              # same node; the port literal must match that module's
+              # `platforms.webhook.extra.port`. No HMAC secret: verified in
+              # that file's comment -- the adapter's own INSECURE_NO_AUTH
+              # escape hatch is scoped to loopback binds only, which this
+              # is, so there's nothing here for `alertmanager.env` to add.
+              webhook_configs = [
+                {
+                  url = "http://127.0.0.1:8644/webhooks/alertmanager";
+                  send_resolved = true;
                 }
               ];
             }
