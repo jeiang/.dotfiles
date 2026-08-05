@@ -59,10 +59,28 @@ _Avoid_: Human Administrator, personal account
 
 **Hermes Agent**:
 The personal agent service this fleet hosts as a Host-Native Service,
-consuming the upstream hermes-agent NixOS module directly. It holds its own
-narrowly scoped credentials; there is no separate broker or publisher
-identity.
+consuming the upstream hermes-agent NixOS module directly. It holds several
+narrowly scoped credentials directly -- one per external system it touches --
+and acts on the fleet itself within the Fleet Operations Tiers, via
+`hermes-ops`. There is no separate broker or publisher identity.
 _Avoid_: Approval broker, Deployment Identity
+
+**Fleet Operations Tiers**:
+The three-tier model classifying every fleet-changing action the Hermes
+Agent can take: free (reads, and restarts/starts on an allowlisted set of
+low-blast-radius units), soft-confirm (mechanically allowed but gated on
+Aidan's explicit in-conversation confirmation first), and forbidden (no
+sudo rule exists, so it fails mechanically regardless of what the agent
+decides). The sudo allowlist on each node is the classifier, not a policy
+the agent reasons about.
+_Avoid_: Approval broker, blanket root
+
+**hermes-ops**:
+The Hermes Agent's unprivileged identity for fleet execution, present on
+every Legion node and reached over the private network. Its sudo rules --
+verb-times-unit enumerations, no wildcards -- are what the Fleet Operations
+Tiers actually enforce.
+_Avoid_: Deployment Identity, admin user reuse
 
 **Knowledge Base**:
 The private Git repository that is the Hermes Agent's only durable memory.
