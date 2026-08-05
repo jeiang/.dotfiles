@@ -115,6 +115,7 @@
           ".config/Bitwarden"
           ".config/discord"
           ".config/heroic"
+          ".config/obsidian"
           ".config/PrismLauncher"
           ".config/qBittorrent"
           ".config/easyeffects"

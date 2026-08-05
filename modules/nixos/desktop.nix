@@ -30,6 +30,7 @@
         # needed for dolphin's file associations
         kdePackages.kservice
         mpv
+        obsidian
         pwvucontrol
         qbittorrent
         qview
