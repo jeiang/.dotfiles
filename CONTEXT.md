@@ -70,14 +70,14 @@ The three-tier model classifying every fleet-changing action the Hermes
 Agent can take: free (reads, and restarts/starts on an allowlisted set of
 low-blast-radius units), soft-confirm (mechanically allowed but gated on
 Aidan's explicit in-conversation confirmation first), and forbidden (no
-doas rule exists, so it fails mechanically regardless of what the agent
-decides). The doas allowlist on each node is the classifier, not a policy
+sudo rule exists, so it fails mechanically regardless of what the agent
+decides). The sudo allowlist on each node is the classifier, not a policy
 the agent reasons about.
 _Avoid_: Approval broker, blanket root
 
 **hermes-ops**:
 The Hermes Agent's unprivileged identity for fleet execution, present on
-every Legion node and reached over the private network. Its doas rules --
+every Legion node and reached over the private network. Its sudo rules --
 verb-times-unit enumerations, no wildcards -- are what the Fleet Operations
 Tiers actually enforce.
 _Avoid_: Deployment Identity, admin user reuse

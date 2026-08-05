@@ -214,7 +214,7 @@ in {
         self.nixosModules.netbird
         # hermes-ops (docs/adr/0012, CONTEXT.md "hermes-ops"), same
         # unconditional fleet-wide pattern as netbird/backups above --
-        # every Legion node gets the account and its doas allowlist;
+        # every Legion node gets the account and its sudo allowlist;
         # per-node tier lists come from hermesOpsTiers below, one node
         # (legion-node3) additionally sets `hermesOps.extraGrantees`.
         self.nixosModules.hermes-ops
@@ -463,7 +463,7 @@ in {
 
                 # Per-node Fleet Operations Tiers data (hermesOpsTiers
                 # above) plus, on the node hermes is actually placed on,
-                # the extra doas/systemd-journal grantee -- read lazily
+                # the extra sudo/systemd-journal grantee -- read lazily
                 # from `config` so this evaluates cleanly even on nodes
                 # where the hermes module (and its `user` option) was
                 # never imported (lib.optional never forces the unused

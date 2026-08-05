@@ -161,47 +161,69 @@ declared.
 
 ## Verifying the operations tiers
 
-The `hermes-ops` doas allowlist (`modules/nixos/hermes-ops/default.nix`,
-wired onto all four Legion nodes by
-`modules/hosts/legion/default.nix`) is live from this part onward. The
-`hermes/ssh-key` sops secret is *declared* in
-`modules/nixos/hermes/default.nix` from this part onward too, but its
-value is only real once you add it via `just sops-edit` (see the
-credential-inventory entry above) -- until you do, run these as
-`hermes-ops` locally (`ssh <admin>@nodeN.jeiang.dev -- doas -u hermes-ops
-sh -c '...'` -- doas, not su/sudo, per `modules/nixos/security.nix`).
-Once the key's value is set and deployed, run them as `ssh
-hermes-ops@172.17.0.N -- ...` from **legion-node3 only** -- every other
-source IP is rejected by the `authorized_keys` `from=` restriction.
+The `hermes-ops` sudo allowlist (`modules/nixos/hermes-ops/default.nix`,
+wired onto all four Legion nodes by `modules/hosts/legion/default.nix`) is
+live from this part onward -- sudo, not doas: Legion enables
+`security.sudo` fleet-wide, and `modules/nixos/security.nix`'s doas module
+is imported only by `modules/hosts/artemis/default.nix`, never by Legion.
+The checks below don't depend on the `hermes/ssh-key` sops secret having a
+real value yet (see the credential-inventory entry above) -- they run over
+your own admin SSH session and your `wheel` account's passwordless sudo
+(the outer `sudo -u hermes-ops` becomes hermes-ops; the inner `sudo
+systemctl ...` is what actually exercises hermes-ops's own allowlist):
 
-- **Tier 1**: `doas systemctl restart hermes-kb-sync.service` on
-  legion-node3 succeeds as `hermes-ops` with no confirmation prompt (a
-  tier-1, low-blast-radius unit).
-- **Tier 2 mechanics**: `doas systemctl restart caddy.service` on
-  legion-node1 also succeeds mechanically -- the doas rule is identical
-  to a tier-1 restart. What makes it tier 2 is SOUL.md requiring Aidan's
-  Telegram "yes" before Hermes runs it; doas itself does not gate this.
-- **Tier 3**: `doas systemctl stop sshd` (any node) is denied -- no doas
-  rule permits it, so this fails the same way whether or not Hermes
-  itself asks for it. Same for `doas systemctl restart hermes-agent`
-  and `doas netbird up`/`doas netbird down` on legion-node3: none of
-  these commands has a matching rule.
-- **netbird read/tier-2**: `doas netbird status` succeeds on any node
-  (tier 1, needs doas because `services.netbird` runs
-  `hardened = true` -- the client's control socket isn't otherwise
-  reachable by hermes-ops). `doas hermes-ops-netbird-expose 8080`
-  succeeds too (tier 2 mechanically, gated on Aidan's confirmation at
-  the prompt level); bare `doas netbird expose 8080` is denied -- only
-  the single-purpose wrapper is permitted, not the raw netbird binary
-  with arbitrary arguments.
+```sh
+ssh node3.jeiang.dev -- sudo -u hermes-ops sudo systemctl restart hermes-kb-sync.service
+```
+
+- **Tier 1 pass**: the command above succeeds AND prints no password
+  prompt. "No password prompt" is part of the pass condition, not
+  incidental -- the inner `sudo systemctl ...` runs as hermes-ops, which
+  has no password of its own, so the only way it succeeds silently is a
+  matching `NOPASSWD` rule; if the allowlist were ever wrong, this is the
+  step that would hang waiting for a password hermes-ops can't supply.
+- **Tier 2 mechanics**: `ssh node1.jeiang.dev -- sudo -u hermes-ops sudo
+  systemctl restart caddy.service` also succeeds mechanically, identically
+  to the tier-1 case above -- the sudo rule doesn't distinguish tiers.
+  What makes it tier 2 is SOUL.md requiring Aidan's Telegram "yes" before
+  Hermes runs it; sudo itself does not gate this.
+- **Tier 3, must be DENIED**:
+  ```sh
+  ssh node3.jeiang.dev -- sudo -u hermes-ops sudo systemctl stop sshd
+  ```
+  is refused outright by sudo (no matching rule, and hermes-ops has no
+  password to fall back to, so it fails rather than prompts) -- the same
+  denial whether or not Hermes itself asks for it first. Same for `sudo
+  systemctl restart hermes-agent` and `sudo netbird up`/`sudo netbird
+  down`: none of these commands has a matching rule on any node.
+- **netbird read/tier-2**: `sudo netbird status` succeeds on any node
+  (tier 1, needs sudo because `services.netbird` runs `hardened = true` --
+  the client's control socket isn't otherwise reachable by hermes-ops).
+  `sudo hermes-ops-netbird-expose 8080` succeeds too (tier 2 mechanically,
+  gated on Aidan's confirmation at the prompt level); bare `sudo netbird
+  expose 8080` is denied -- only the single-purpose wrapper is permitted,
+  not the raw netbird binary with arbitrary arguments.
 - **Journalctl fallback**: with VictoriaLogs unreachable from a node,
-  `hermes-ops` can still read that node's own journal directly (no doas
+  `hermes-ops` can still read that node's own journal directly (no sudo
   needed) via `systemd-journal` group membership, e.g. `journalctl -u
   caddy.service -e`.
-- **node3 locality**: the same three checks above also pass when run as
-  the `hermes` user directly on legion-node3 (`doas` invoked locally,
-  no SSH-to-self) -- `hermesOps.extraGrantees` grants it identically to
+- **node3 locality**: the same checks above also pass run as the `hermes`
+  user directly on legion-node3 (`sudo -u hermes sudo systemctl ...`, no
+  SSH-to-self needed once Hermes itself is the one running the inner
+  call) -- `hermesOps.extraGrantees` grants it identically to
   `hermes-ops`.
+- **PATH fallback**: a non-interactive `ssh ... -- ...` runs a non-login
+  shell (fish, this fleet's default), which can affect PATH lookup for the
+  bare command names above. In practice both `sudo` and the systemd
+  units it invokes should resolve fine -- nixpkgs' `sudo` package has no
+  `secure_path` override, so it defers to the invoking user's own PATH,
+  and NixOS sets that PATH (including `/run/current-system/sw/bin`) via
+  PAM early in every session, SSH included. If a bare call is ever denied
+  where you'd expect it to succeed, fall back to absolute paths for both
+  halves: `/run/wrappers/bin/sudo` (`security.wrapperDir`, where NixOS'
+  sudo module installs the setuid wrapper -- verified against the pinned
+  nixpkgs `nixos/modules/security/wrappers/default.nix`) and
+  `/run/current-system/sw/bin/systemctl`.
 
 ## Verifying the alert webhook
 

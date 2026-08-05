@@ -23,7 +23,7 @@ required -- these are the operations 0007's risk-containment reasoning
 already covers: reversible, scoped, and not load-bearing for anything else
 on the fleet.
 
-**Tier 2 (soft-confirm)**: mechanically permitted by the same doas rules as
+**Tier 2 (soft-confirm)**: mechanically permitted by the same sudo rules as
 tier 1, but SOUL.md requires Aidan's explicit Telegram "yes" in-conversation
 before Hermes runs one. Covers `systemctl stop` on anything allowlisted,
 restarts of load-bearing units (`caddy`, `netbird-server`/`relay`/`proxy`,
@@ -36,24 +36,24 @@ after a config bug, exposing a new service -- but where an unprompted
 restart of something load-bearing is disruptive enough that a human should
 see it coming.
 
-**Tier 3 (forbidden)**: no doas rule exists for these, full stop, regardless
+**Tier 3 (forbidden)**: no sudo rule exists for these, full stop, regardless
 of what the agent's context believes it should do: `sshd`, the NetBird
 client daemon, `hermes-agent` itself, `nix rebuild`/`rollback`, and every
 other root operation. There is no soft path here -- these fail mechanically.
 
-## Why the doas allowlist is the classifier
+## Why the sudo allowlist is the classifier
 
 The allowlist itself -- not a policy the agent consults, not a broker it
 asks -- is what separates "mechanically allowed" from "must ask Aidan first"
 from "cannot happen." Two alternatives were rejected:
 
-**Prompt-level trust only** (no doas boundary; SOUL.md's "ask first"
+**Prompt-level trust only** (no sudo boundary; SOUL.md's "ask first"
 instruction is the entire enforcement mechanism) was rejected because it
 puts the whole tier system inside the same context a prompt injection can
 corrupt. If the only thing standing between "restart caddy" and "stop sshd"
 is what the agent currently believes its instructions say, an attacker who
-controls agent input controls the ceiling, not just the floor. The doas
-rules move that ceiling out of the agent's reasoning entirely: `doas
+controls agent input controls the ceiling, not just the floor. The sudo
+rules move that ceiling out of the agent's reasoning entirely: `sudo
 systemctl stop sshd` fails at the OS layer no matter what SOUL.md says or
 what the agent has been convinced to believe.
 
@@ -63,29 +63,31 @@ token-scope containment, and fleet execution doesn't change that trade. A
 broker back in the loop means a new process to run, monitor, and lose, plus
 a new publisher identity -- the overhead 0007 called out as not worth
 paying for a single-repo credential is even less worth paying now that the
-alternative (doas rules, already how this fleet enforces privilege --
-`modules/nixos/security.nix`, sudo disabled fleet-wide) is sitting right
-there. `hermes-ops`'s doas rules are verb-times-unit enumerations with no
-wildcards, so the allowlist is legible by inspection: reading the rule file
-tells you the complete set of tier-1/tier-2 operations, with no broker
-policy language to keep in sync separately.
+alternative (an OS-level allowlist) is sitting right there. This fleet's
+Legion nodes run `sudo`, not `doas` -- `modules/nixos/security.nix`'s doas
+module is imported only by `modules/hosts/artemis/default.nix`, so the
+allowlist below lives in `security.sudo.extraRules`, rendered into
+`/etc/sudoers`. `hermes-ops`'s sudo rules are verb-times-unit enumerations
+with no wildcards, so the allowlist is legible by inspection: reading the
+rule file tells you the complete set of tier-1/tier-2 operations, with no
+broker policy language to keep in sync separately.
 
 ## Tier 2's soft enforcement is a residual risk, accepted
 
 Tier 2's Telegram confirmation is prompt-level only -- there is no
 mechanical gate distinguishing "Aidan said yes" from "the agent decided to
 proceed anyway." A sufficiently effective prompt injection could get Hermes
-to skip the ask and run a tier-2 command directly, since doas permits it
-either way. This is accepted rather than closed off because the doas
+to skip the ask and run a tier-2 command directly, since sudo permits it
+either way. This is accepted rather than closed off because the sudo
 allowlist already bounds the blast radius before the soft-confirm layer
 ever engages: every command reachable at tier 2 is still one from the same
 enumerated, load-bearing-but-recoverable set as tier 1 -- a stop or restart
 of a named unit, or a `netbird expose` call. The worst case of skipping the
 ask is a service outage or an unexpected public exposure, both visible,
-both reversible by another allowlisted command or a manual doas call --
+both reversible by another allowlisted command or a manual sudo call --
 never data loss, privilege escalation, or arbitrary root, because tier 3
 has no mechanical path regardless of what tier 2's soft gate does. Closing
-this gap mechanically (e.g. a real approval step that blocks the doas call
+this gap mechanically (e.g. a real approval step that blocks the sudo call
 until Aidan responds) is exactly the broker shape rejected above; it is not
 picked up here because the bounded worst case doesn't justify it yet.
 
@@ -93,7 +95,7 @@ The Alertmanager webhook (`modules/nixos/hermes/default.nix`
 `platforms.webhook`, added after this ADR's original fleet-execution scope)
 is a distinct, lower-trust variant of the same gap and worth naming
 separately: its turns run as the same `hermes` identity holding this ADR's
-doas grants and hermes-ops SSH access, over the same `terminal` toolset, but
+sudo grants and hermes-ops SSH access, over the same `terminal` toolset, but
 the inbound content is alert labels/annotations, not Aidan's own typed
 Telegram message -- a surface anything able to push a metric or write an
 alerting rule can influence, strictly lower-trust than a human's own input.
@@ -101,10 +103,10 @@ The route is scoped to investigate-and-report only (read-only
 VictoriaLogs/VictoriaMetrics/`systemctl status` queries, no acting), with
 remediation deferred to Aidan's explicit approval in the normal Telegram
 conversation -- but that scoping is prompt-level, identical in kind to tier
-2's soft confirm above, not a separate doas-less identity: a sufficiently
+2's soft confirm above, not a separate sudo-less identity: a sufficiently
 effective injection through alert content could still get the agent to run
-a doas command despite the "don't act" instruction. This is accepted for
-the same reason tier 2's gap is: the doas allowlist is the mechanical
+a sudo command despite the "don't act" instruction. This is accepted for
+the same reason tier 2's gap is: the sudo allowlist is the mechanical
 backstop regardless of which conversational surface (Telegram or the
 webhook) prompted the command, so the worst case stays bounded to the
 tier-1/tier-2 enumerated set with no path to tier 3.
@@ -180,9 +182,9 @@ approval-broker shape ADR 0007 removed, for the reasons given above.
   0007 scoped to one GitHub repo now also covers systemd units on four
   nodes, an Actual Budget account, Aidan's iCloud calendar and contacts,
   four more GitHub repos, and Grafana annotations.
-- The doas rule file on each Legion node is the authoritative, inspectable
-  record of what "mechanically allowed" means; changing a tier means
-  editing that allowlist, not a policy the agent reasons about.
+- The rendered sudoers rule on each Legion node is the authoritative,
+  inspectable record of what "mechanically allowed" means; changing a tier
+  means editing that allowlist, not a policy the agent reasons about.
 - Tier 2's confirmation gate is a prompt-level convention, not a mechanical
   one -- auditing "did Hermes actually ask before this restart" means
   reading the Telegram conversation, not a system log of denied attempts.
@@ -193,5 +195,5 @@ approval-broker shape ADR 0007 removed, for the reasons given above.
   netbird-client bug the agent is investigating, since it never depends on
   the mesh.
 - Any future fleet-action need that doesn't fit an existing tier's
-  enumerated unit list means adding a new doas rule line and deciding which
+  enumerated unit list means adding a new sudo rule line and deciding which
   tier it belongs to, not widening an existing rule to a wildcard.

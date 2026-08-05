@@ -24,11 +24,11 @@ browser, not for you to query.
 
 ## The operations tiers -- exact mechanics
 
-Every unit below is start/restart-able mechanically identically (a doas
+Every unit below is start/restart-able mechanically identically (a sudo
 rule per verb-unit pair, no wildcards) -- the tier-1/tier-2 split is
-`SOUL.md`'s confirm-first policy, not something doas enforces. `stop` is
+`SOUL.md`'s confirm-first policy, not something sudo enforces. `stop` is
 tier 2 for every unit on every node, tier 1 or 2. Anything not listed here
-is tier 3: no doas rule permits it, so it will fail no matter what.
+is tier 3: no sudo rule permits it, so it will fail no matter what.
 
 | Node | Tier 1 (start/restart free) | Tier 2 (confirm first) |
 |---|---|---|
@@ -45,28 +45,31 @@ expose ...` (via the wrapper below) is tier 2.
 **Nodes 1, 2, 4** (over SSH, from legion-node3 only):
 
 ```sh
-ssh legion-node1 -- doas systemctl restart caddy.service
+ssh legion-node1 -- sudo systemctl restart caddy.service
 ```
 
 Your SSH config (`~/.ssh/config`, Nix-managed) makes `legion-node1` /
 `legion-node2` / `legion-node4` resolve to `hermes-ops@172.17.0.N` with
 your key already selected -- just use the short host alias.
 
-**legion-node3 (yourself)** -- no SSH, run doas directly:
+**legion-node3 (yourself)** -- no SSH, run sudo directly:
 
 ```sh
-doas systemctl restart hermes-kb-sync.service
+sudo systemctl restart hermes-kb-sync.service
 ```
 
-**doas invocation caveat**: the doas rules on every node pin the allowed
+**sudo invocation caveat**: the sudo rules on every node pin the allowed
 command to the absolute path `/run/current-system/sw/bin/systemctl`. A
-bare `doas systemctl ...` normally resolves to that same path via PATH,
-so it's the form to reach for first. If a bare call is ever denied where
-you'd expect it to succeed (a shell with a different PATH, for instance),
-fall back to the absolute form explicitly:
+bare `sudo systemctl ...` normally resolves to that same path via your
+PATH (nixpkgs' `sudo` package has no `secure_path` override, so it
+defers to the invoking user's own PATH, which includes
+`/run/current-system/sw/bin` on every NixOS node), so it's the form to
+reach for first. If a bare call is ever denied where you'd expect it to
+succeed (a shell with a different PATH, for instance), fall back to the
+absolute form explicitly:
 
 ```sh
-doas /run/current-system/sw/bin/systemctl restart caddy.service
+sudo /run/current-system/sw/bin/systemctl restart caddy.service
 ```
 
 Both forms are otherwise equivalent.
@@ -129,7 +132,7 @@ curl -s 'http://127.0.0.1:9428/select/logsql/query' \
 
 **Fallback -- VictoriaLogs itself is down or unreachable**: read the
 node's own journal directly. You're in the `systemd-journal` group on
-every node, so this needs no doas.
+every node, so this needs no sudo.
 
 ```sh
 ssh legion-node1 -- journalctl -u caddy.service -e
@@ -156,16 +159,16 @@ netbird-proxy on legion-node2 (ADR 0002). It's tier 2: always confirm the
 hostname/port with Aidan before running it, and un-expose it when you're
 done.
 
-The mechanism is a single-purpose wrapper doas grants unconstrained
+The mechanism is a single-purpose wrapper sudo grants unconstrained
 arguments to (so the underlying `netbird` binary itself stays
 unreachable for anything but `expose`):
 
 ```sh
-ssh legion-node2 -- doas hermes-ops-netbird-expose 8080
+ssh legion-node2 -- sudo hermes-ops-netbird-expose 8080
 ```
 
 (or locally on whichever node holds the service, without the `ssh`
-prefix, if that node itself is in the doas grantee list).
+prefix, if that node itself is in the sudo grantee list).
 
 **Critical**: `netbird expose` is foreground and long-running -- it holds
 the exposure open only while the process itself is running, printing
@@ -176,7 +179,7 @@ later, in the same command:
 
 ```sh
 ssh legion-node2 -- \
-  'setsid doas hermes-ops-netbird-expose 8080 > /tmp/netbird-expose-8080.log 2>&1 < /dev/null & echo $! > /tmp/netbird-expose-8080.pid'
+  'setsid sudo hermes-ops-netbird-expose 8080 > /tmp/netbird-expose-8080.log 2>&1 < /dev/null & echo $! > /tmp/netbird-expose-8080.pid'
 ```
 
 `setsid` detaches it from the SSH session's controlling terminal so it
@@ -190,10 +193,12 @@ exactly as long as the `netbird expose` process is alive; sending it
 SIGTERM (or Ctrl+C interactively) is what tears it down -- the command's
 own signal handler cancels the daemon-side stream cleanly, same as a
 normal Ctrl+C would. The PID captured above is the right one to kill even
-though the visible process image changes twice after that -- `doas`
-(OpenDoas) `execvpe`s straight into the wrapper script, which itself
-`exec`s straight into the real `netbird` binary; neither step forks, so
-the PID never changes across that chain:
+though `sudo` (unlike `doas`) forks rather than exec-replacing itself:
+sudo's own documented signal handling forwards SIGTERM (among others) to
+the command it's running, so killing the `sudo` PID `$!` captured tears
+down the whole chain -- the wrapper script's own `exec` into the real
+`netbird` binary means there's exactly one privileged process for that
+forwarded signal to reach:
 
 ```sh
 ssh legion-node2 -- kill "$(cat /tmp/netbird-expose-8080.pid)"
@@ -320,7 +325,7 @@ without concluding with one.
 This route runs with the `terminal` toolset (not your full Telegram
 toolset) for READS only -- `systemctl status`, `journalctl`, `curl` to
 VictoriaLogs/VictoriaMetrics/Grafana, all covered above, none of which
-need `doas` or SSH to another node. Investigate all you want; don't run
+need `sudo` or SSH to another node. Investigate all you want; don't run
 anything that changes fleet state from this route, not even a tier-1
 restart you'd normally be free to do unprompted. If Aidan replies telling
 you to go ahead, that follow-up is a normal Telegram conversation and the

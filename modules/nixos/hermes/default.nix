@@ -75,15 +75,15 @@
     # section accepts its own gap: the transport rides the Hetzner private
     # network (172.17.0.0/24), not the public internet, so an attacker
     # capable of a first-connection MITM here already has private-network
-    # access -- at which point ADR 0012's tier-3 doas boundary, not
+    # access -- at which point ADR 0012's tier-3 sudo boundary, not
     # host-key pinning, is what actually bounds the damage a compromised
     # session could do. docs/runbooks/hermes.md notes the operator can
     # pre-seed known_hosts on first deploy to skip this TOFU window
     # entirely if they'd rather not accept it.
     sshConfig = pkgs.writeText "hermes-ssh-config" (
       # No Host block for legion-node3: it's this service's own node, so
-      # fleet actions there run `doas systemctl ...` directly
-      # (hermesOps.extraGrantees, ADR 0012 "node-local actions use doas
+      # fleet actions there run `sudo systemctl ...` directly
+      # (hermesOps.extraGrantees, ADR 0012 "node-local actions use sudo
       # directly without SSH-to-self") -- there is nothing for SSH to
       # reach.
       lib.concatMapStringsSep "\n\n" (node: ''
@@ -387,30 +387,30 @@
         #   module already relies on for Telegram's default) -- needed for
         #   READ-ONLY investigation: `systemctl status`/`journalctl`, `curl`
         #   to VictoriaLogs/VictoriaMetrics/Grafana, all per SERVERS.md.
-        #   None of those reads need doas or SSH-to-another-node -- node3's
+        #   None of those reads need sudo or SSH-to-another-node -- node3's
         #   observability stack already centralizes every node's logs and
-        #   metrics -- so investigation alone never touches the doas/SSH
+        #   metrics -- so investigation alone never touches the sudo/SSH
         #   surface at all.
         #
         #   The route's `prompt` (below) explicitly forbids the agent from
         #   taking any action from this turn -- no restart/stop/expose, no
-        #   doas call, even a tier-1-safe one; the agent reports a
+        #   sudo call, even a tier-1-safe one; the agent reports a
         #   diagnosis and a recommended action, and any actual fix happens
         #   only after Aidan approves it in a normal Telegram conversation.
         #   This is a considered, ACCEPTED tradeoff, not an oversight: it is
         #   a PROMPT-LEVEL boundary, not a mechanical one. The `hermes` user
         #   running this turn is the same identity that holds ADR 0012's
-        #   node3 doas grants and hermes-ops SSH-to-other-nodes access
+        #   node3 sudo grants and hermes-ops SSH-to-other-nodes access
         #   (Parts B/C) -- `terminal` here is the same tool, so a
         #   sufficiently effective injection via crafted alert label/
         #   annotation content (Alertmanager alert content can originate
         #   from anything that can push a metric or write an alerting
         #   rule -- a lower-trust surface than a human's own Telegram
-        #   message) could still get the agent to run a doas command this
+        #   message) could still get the agent to run a sudo command this
         #   turn, this prompt's "don't act" instruction notwithstanding. A
-        #   separate, doas-less identity for this route was considered and
+        #   separate, sudo-less identity for this route was considered and
         #   deliberately not built (Aidan chose this framing over hard
-        #   isolation): ADR 0012's doas allowlist is what actually bounds
+        #   isolation): ADR 0012's sudo allowlist is what actually bounds
         #   the worst case regardless -- every reachable command is still
         #   one from the enumerated tier-1/tier-2 recoverable set, tier 3
         #   has no mechanical path at all -- the same backstop the ADR's
@@ -440,7 +440,7 @@
 
                 1. Read the alert(s) below: unit/node, condition, since when.
                 2. Investigate: VictoriaLogs first (SERVERS.md "Logs: VictoriaLogs"), `systemctl status`/journalctl as fallback, VictoriaMetrics if it's a resource/threshold alert.
-                3. Do NOT take any action from this turn -- no `systemctl restart`/`stop`, no `netbird expose`, no `doas` command of any kind, not even a tier-1-safe one. This route is investigate-and-report only; it never self-remediates, regardless of how confident you are in a fix.
+                3. Do NOT take any action from this turn -- no `systemctl restart`/`stop`, no `netbird expose`, no `sudo` command of any kind, not even a tier-1-safe one. This route is investigate-and-report only; it never self-remediates, regardless of how confident you are in a fix.
                 4. End with a clear diagnosis for Aidan: what fired, what you found, and the specific action you'd recommend. This response IS the Telegram message he sees -- there's no separate step to send it. If he says go, the fix happens in the normal Telegram conversation, under the usual tier policy.
 
                 Alertmanager payload:
