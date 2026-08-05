@@ -59,11 +59,25 @@ node as a `hermes-ops` recipient).
 > the mint/rotate steps below as each integration ships.
 
 - **`hermes-ops` SSH private key** -- an ed25519 keypair, private half in
-  the sops shard, public half deployed to every Legion node's
-  `hermes-ops` `authorized_keys`. Rotate by generating a new pair,
-  redeploying the public half to all four nodes, then updating the sops
-  secret -- both keys work during that window, so there is no
-  connectivity gap.
+  the sops shard as secret `hermes/ssh-key`, installed by `hermes-agent`'s
+  preStart to `/var/lib/hermes/.ssh/id_ed25519` (overwritten on every
+  service start, so a rotated key takes effect on the next deploy). Public
+  half deployed to every Legion node's `hermes-ops` `authorized_keys`
+  (`modules/nixos/hermes-ops/default.nix`). Rotate by generating a new
+  pair, redeploying the public half to all four nodes, then overwriting
+  the `hermes/ssh-key` sops secret -- both keys work during that window,
+  so there is no connectivity gap.
+
+  Host key verification uses `StrictHostKeyChecking accept-new` against a
+  persistent `known_hosts` under `/var/lib/hermes/.ssh/` (no Legion node's
+  SSH host public key is committed anywhere in this repo to pin against
+  instead -- see `modules/nixos/hermes/default.nix`'s `sshConfig` comment
+  for the full tradeoff). This means the first connection to each node
+  after a fresh state directory (first deploy, or any rebuild that wipes
+  Disposable State) is trust-on-first-connect. If you'd rather not accept
+  that window, pre-seed `/var/lib/hermes/.ssh/known_hosts` yourself with
+  each node's real host key before the first fleet command runs; otherwise
+  it's populated automatically on first connect and pinned from then on.
 - **Actual Budget session token** -- minted by authenticating against the
   Actual server at `172.17.0.4:5006` (never the server's own login
   password, see the ADR). If Aidan runs Actual's "log out all sessions"
@@ -92,14 +106,16 @@ node as a `hermes-ops` recipient).
 
 The `hermes-ops` doas allowlist (`modules/nixos/hermes-ops/default.nix`,
 wired onto all four Legion nodes by
-`modules/hosts/legion/default.nix`) is live from this part onward; the
-`hermes-ops` SSH private key lands in `modules/nixos/hermes/secrets.yaml`
-at the credential-inventory checkpoint above, so until then run these as
+`modules/hosts/legion/default.nix`) is live from this part onward. The
+`hermes/ssh-key` sops secret is *declared* in
+`modules/nixos/hermes/default.nix` from this part onward too, but its
+value is only real once you add it via `just sops-edit` (see the
+credential-inventory entry above) -- until you do, run these as
 `hermes-ops` locally (`ssh <admin>@nodeN.jeiang.dev -- doas -u hermes-ops
 sh -c '...'` -- doas, not su/sudo, per `modules/nixos/security.nix`).
-Once the key is wired in, run them as `ssh hermes-ops@172.17.0.N -- ...`
-from **legion-node3 only** -- every other source IP is rejected by the
-`authorized_keys` `from=` restriction.
+Once the key's value is set and deployed, run them as `ssh
+hermes-ops@172.17.0.N -- ...` from **legion-node3 only** -- every other
+source IP is rejected by the `authorized_keys` `from=` restriction.
 
 - **Tier 1**: `doas systemctl restart hermes-kb-sync.service` on
   legion-node3 succeeds as `hermes-ops` with no confirmation prompt (a

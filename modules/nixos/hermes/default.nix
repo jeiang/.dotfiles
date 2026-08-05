@@ -1,4 +1,8 @@
-{inputs, ...}: {
+{
+  inputs,
+  self,
+  ...
+}: {
   # Hermes Agent (CONTEXT.md "Hermes Agent" -- the personal agent Host-Native
   # Service the fleet runs, consuming the upstream hermes-agent NixOS module
   # directly). Imported only for the inventory node placing `hermes` (piece
@@ -43,6 +47,55 @@
     # var actually reaching the shell unchanged.
     codexAuthDir = "${cfg.stateDir}/.codex";
     codexAuthPath = "${codexAuthDir}/auth.json";
+
+    # hermes-ops SSH client identity (ADR 0011 "Transport" -- the
+    # fleet-execution identity, one sops-managed ed25519 key reaching every
+    # Legion node's `hermes-ops` account over the Hetzner private network).
+    sshDir = "${cfg.stateDir}/.ssh";
+
+    # Host key verification: a repo-wide search (ssh-ed25519/known_hosts/
+    # HostKey/ssh_host literals across modules/ and docs/) turns up no
+    # committed SSH *host* public keys for any Legion node -- only user/
+    # deploy keys (modules/nixos/shared/default.nix's admin key,
+    # modules/hosts/legion/default.nix's `legion-deploy` key) and
+    # hermes-ops's own *client* key (modules/nixos/hermes-ops/default.nix
+    # `authorizedKeys`), none of which is a host key. So ADR 0011
+    # Transport's alternative (a) -- a Nix-managed known_hosts pinned to
+    # real host keys -- isn't available offline here.
+    #
+    # This uses alternative (b) instead: `StrictHostKeyChecking accept-new`
+    # (trust-on-first-connect; a *changed* key after that is still
+    # rejected) against a persistent `${sshDir}/known_hosts` under
+    # stateDir. Deliberately NOT `StrictHostKeyChecking no`, which accepts
+    # every connection unconditionally forever and would open a standing
+    # MITM window with no verification at all, first connection or
+    # hundredth. accept-new's residual risk -- a MITM on the very first
+    # connection to a given node -- is accepted for the same reason ADR
+    # 0011's "Tier 2 soft enforcement is a residual risk, accepted"
+    # section accepts its own gap: the transport rides the Hetzner private
+    # network (172.17.0.0/24), not the public internet, so an attacker
+    # capable of a first-connection MITM here already has private-network
+    # access -- at which point ADR 0011's tier-3 doas boundary, not
+    # host-key pinning, is what actually bounds the damage a compromised
+    # session could do. docs/runbooks/hermes.md notes the operator can
+    # pre-seed known_hosts on first deploy to skip this TOFU window
+    # entirely if they'd rather not accept it.
+    sshConfig = pkgs.writeText "hermes-ssh-config" (
+      # No Host block for legion-node3: it's this service's own node, so
+      # fleet actions there run `doas systemctl ...` directly
+      # (hermesOps.extraGrantees, ADR 0011 "node-local actions use doas
+      # directly without SSH-to-self") -- there is nothing for SSH to
+      # reach.
+      lib.concatMapStringsSep "\n\n" (node: ''
+        Host ${node}
+          HostName ${self.lib.legionNodes.${node}.privateIPv4}
+          User hermes-ops
+          IdentityFile ${sshDir}/id_ed25519
+          IdentitiesOnly yes
+          StrictHostKeyChecking accept-new
+          UserKnownHostsFile ${sshDir}/known_hosts'')
+      ["legion-node1" "legion-node2" "legion-node4"]
+    );
   in {
     imports = [inputs.hermes-agent.nixosModules.default];
 
@@ -94,6 +147,31 @@
           # reasoning as `openai_runtime` above.
           service_tier = "fast";
         };
+
+        # cli-config.yaml.example at the pinned rev (fetched via `gh api
+        # repos/NousResearch/hermes-agent/contents/cli-config.yaml.example`,
+        # ref v2026.7.30 -- same discipline as `openai_runtime` above)
+        # confirms `memory.nudge_interval` (default already 10 upstream,
+        # but declared here so an operator's runtime `/memory` toggle can't
+        # silently outlive a redeploy, same reasoning as `openai_runtime`)
+        # and that `memory_enabled`/`user_profile_enabled` both default to
+        # `true` -- left undeclared since there is nothing to pin them
+        # against yet.
+        memory.nudge_interval = 10;
+
+        # `skills.external_dirs` (same example file, same rev): a list of
+        # paths, each `~`/`${VAR}`-expanded and resolved absolute,
+        # read-only skill sources layered under the agent's own writable
+        # `~/.hermes/skills/`. Points at the Knowledge Base clone's
+        # `skills/` (see SOUL.md's knowledge-discipline section) so
+        # self-created skills Hermes persists there are loadable back in as
+        # skills, not just backed-up files. `agent/skill_utils.py
+        # get_external_skills_dirs()` at the pinned rev silently drops any
+        # entry that doesn't exist on disk yet (no error, no crash) --
+        # confirmed there, so a fresh `hermes-kb-sync` clone that hasn't
+        # created `knowledge-base/skills/` yet is not a problem this
+        # module's preStart needs to `install -d` around.
+        skills.external_dirs = ["${cfg.workingDirectory}/knowledge-base/skills"];
       };
 
       # SERVERS.md is colocated with this module (documents values may be
@@ -116,10 +194,12 @@
       # and for the Knowledge Base repo (also used by hermes-kb-sync below,
       # which needs its own explicit `path` since it's a separate systemd
       # unit and doesn't inherit this list). curl: querying
-      # VictoriaMetrics/VictoriaLogs per SERVERS.md. Wired onto both the
-      # `hermes` user's per-user profile PATH and this service's own
+      # VictoriaMetrics/VictoriaLogs per SERVERS.md. openssh: the `ssh`
+      # binary fleet commands run through (ADR 0011 "Transport"), using the
+      # identity/config the preStart script below installs. Wired onto both
+      # the `hermes` user's per-user profile PATH and this service's own
       # systemd PATH (nix/nixosModules.nix `extraPackages` option).
-      extraPackages = [pkgs.git pkgs.gh pkgs.curl];
+      extraPackages = [pkgs.git pkgs.gh pkgs.curl pkgs.openssh];
     };
 
     # Do NOT use the upstream `authFile` option here: it seeds
@@ -193,6 +273,18 @@
         inherit (cfg) group;
         mode = "0400";
       };
+      # hermes-ops SSH private key (ADR 0011 "Transport"). Installed to
+      # `${sshDir}/id_ed25519` by the preStart script below. NOT committed
+      # here: the operator adds the key value via `just sops-edit`
+      # (docs/runbooks/hermes.md); the matching public half is already
+      # committed at modules/nixos/hermes-ops/default.nix's
+      # `authorizedKeys`.
+      "hermes/ssh-key" = {
+        inherit sopsFile;
+        owner = cfg.user;
+        inherit (cfg) group;
+        mode = "0400";
+      };
     };
 
     # All `systemd.*` contributions from this module in one attrset (statix
@@ -214,6 +306,26 @@
             # -- see the `documents` comment above for why this can't go
             # through that option.
             install -m 0640 ${./SOUL.md} "${cfg.stateDir}/.hermes/SOUL.md"
+
+            # hermes-ops SSH identity + config (ADR 0011 "Transport"; see
+            # the `sshDir`/`sshConfig` comments above for what these are
+            # and the host-key-verification tradeoff).
+            install -d -m 0700 "${sshDir}"
+
+            # Always overwrite -- unlike codex-auth.json's copy-if-absent
+            # above. That file self-heals in place (Hermes' own OAuth
+            # refresh writes back to it), so clobbering it on every restart
+            # would lose a live token. This key does not: nothing on this
+            # box ever mutates it, it is Nix/sops-managed end-to-end, so
+            # "copy if absent" would instead mean a rotated sops key never
+            # propagates to a running deploy -- the old (possibly revoked)
+            # key would keep authenticating until someone noticed and
+            # manually intervened. Overwriting every start makes key
+            # rotation take effect on the very next deploy, matching how
+            # every other Nix-managed file in this preStart already
+            # behaves (SOUL.md above, the SSH config below).
+            install -m 0600 "${config.sops.secrets."hermes/ssh-key".path}" "${sshDir}/id_ed25519"
+            install -m 0600 ${sshConfig} "${sshDir}/config"
           '';
 
           # legion-node3 also runs the memory-constrained monitoring stack
@@ -311,8 +423,10 @@
       };
     };
 
-    # No firewall openings: Telegram is outbound long-polling, and the
-    # Knowledge Base sync/GitHub access above are outbound HTTPS too. No
+    # No firewall openings: Telegram is outbound long-polling, the
+    # Knowledge Base sync/GitHub access above are outbound HTTPS, and the
+    # hermes-ops SSH transport (ADR 0011 "Transport") is outbound-only too
+    # -- Hermes dials out to 172.17.0.{1,2,4}, nothing dials in here. No
     # Hetzner Volume, no backupSet: the only durable state is the sops
     # secrets (already backed by the repo's sops workflow) and the KB
     # remote (durable by the timer above); everything under `stateDir` is
