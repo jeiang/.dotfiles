@@ -234,8 +234,11 @@ ssh node3.jeiang.dev -- curl -s -X POST http://127.0.0.1:8644/webhooks/alertmana
 
 Expect an immediate `{"status":"accepted",...}` response (HTTP 202 -- the
 agent run happens in the background), then a Telegram message from Hermes
-within a turn or two with its investigation of the synthetic alert. If
-nothing arrives, check the gateway log for `[webhook]`-prefixed lines:
+within a turn or two with its investigation of the synthetic alert: a
+diagnosis and a recommended action, not an autonomous fix -- this route
+is investigate-and-report only (see ADR 0011's amended "Tier 2's soft
+enforcement" section for why). If nothing arrives, check the gateway log
+for `[webhook]`-prefixed lines:
 
 ```sh
 ssh node3.jeiang.dev -- journalctl -u hermes-agent -e | grep webhook

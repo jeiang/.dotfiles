@@ -89,6 +89,26 @@ this gap mechanically (e.g. a real approval step that blocks the doas call
 until Aidan responds) is exactly the broker shape rejected above; it is not
 picked up here because the bounded worst case doesn't justify it yet.
 
+The Alertmanager webhook (`modules/nixos/hermes/default.nix`
+`platforms.webhook`, added after this ADR's original fleet-execution scope)
+is a distinct, lower-trust variant of the same gap and worth naming
+separately: its turns run as the same `hermes` identity holding this ADR's
+doas grants and hermes-ops SSH access, over the same `terminal` toolset, but
+the inbound content is alert labels/annotations, not Aidan's own typed
+Telegram message -- a surface anything able to push a metric or write an
+alerting rule can influence, strictly lower-trust than a human's own input.
+The route is scoped to investigate-and-report only (read-only
+VictoriaLogs/VictoriaMetrics/`systemctl status` queries, no acting), with
+remediation deferred to Aidan's explicit approval in the normal Telegram
+conversation -- but that scoping is prompt-level, identical in kind to tier
+2's soft confirm above, not a separate doas-less identity: a sufficiently
+effective injection through alert content could still get the agent to run
+a doas command despite the "don't act" instruction. This is accepted for
+the same reason tier 2's gap is: the doas allowlist is the mechanical
+backstop regardless of which conversational surface (Telegram or the
+webhook) prompted the command, so the worst case stays bounded to the
+tier-1/tier-2 enumerated set with no path to tier 3.
+
 ## Transport: `hermes-ops` over the private network, not NetBird SSH
 
 A new unprivileged `hermes-ops` user is created on all four Legion nodes.

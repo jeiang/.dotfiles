@@ -333,8 +333,9 @@
 
         # Alertmanager -> Hermes webhook (proactive alerting: Alertmanager
         # POSTs firing/resolved alert groups here, the agent investigates
-        # and reports to Telegram unprompted, per SOUL.md's tier policy
-        # fixing tier-1-safe issues itself). This was the single
+        # and reports a diagnosis + recommended action to Telegram
+        # unprompted -- it does NOT remediate on its own; see the TOOLSET
+        # note below for why and its residual risk). This was the single
         # highest-uncertainty piece of this module -- every claim below is
         # checked against the pinned hermes-agent rev via `gh api`, not
         # assumed:
@@ -379,19 +380,43 @@
         #   deliberately narrow -- that file's own comment explains why:
         #   webhook payloads can carry untrusted third-party content (a
         #   public GitHub PR title), so the default keeps terminal/file off
-        #   to bound prompt-injection blast radius. That threat model
-        #   doesn't fit this route: the payload originates from this
-        #   fleet's own Alertmanager, not the public internet, and ADR
-        #   0011's doas tiers -- not the webhook toolset -- are what
-        #   actually bound a fleet action regardless of which conversational
-        #   surface requested it. `platform_toolsets.webhook` below
-        #   overrides the default with just `terminal` ("webhook" is a
-        #   generic platform key, resolved by the same
+        #   to bound prompt-injection blast radius. `platform_toolsets.webhook`
+        #   below overrides the default with just `terminal` ("webhook" is
+        #   a generic platform key, resolved by the same
         #   `hermes_cli/tools_config.py` `_get_platform_tools()` this
-        #   module already relies on for Telegram's default) -- the one
-        #   toolset an investigation needs: `systemctl status`/`journalctl`,
-        #   `curl` to VictoriaLogs/VictoriaMetrics/Grafana, and `doas` for a
-        #   tier-1 fix, all per SERVERS.md.
+        #   module already relies on for Telegram's default) -- needed for
+        #   READ-ONLY investigation: `systemctl status`/`journalctl`, `curl`
+        #   to VictoriaLogs/VictoriaMetrics/Grafana, all per SERVERS.md.
+        #   None of those reads need doas or SSH-to-another-node -- node3's
+        #   observability stack already centralizes every node's logs and
+        #   metrics -- so investigation alone never touches the doas/SSH
+        #   surface at all.
+        #
+        #   The route's `prompt` (below) explicitly forbids the agent from
+        #   taking any action from this turn -- no restart/stop/expose, no
+        #   doas call, even a tier-1-safe one; the agent reports a
+        #   diagnosis and a recommended action, and any actual fix happens
+        #   only after Aidan approves it in a normal Telegram conversation.
+        #   This is a considered, ACCEPTED tradeoff, not an oversight: it is
+        #   a PROMPT-LEVEL boundary, not a mechanical one. The `hermes` user
+        #   running this turn is the same identity that holds ADR 0011's
+        #   node3 doas grants and hermes-ops SSH-to-other-nodes access
+        #   (Parts B/C) -- `terminal` here is the same tool, so a
+        #   sufficiently effective injection via crafted alert label/
+        #   annotation content (Alertmanager alert content can originate
+        #   from anything that can push a metric or write an alerting
+        #   rule -- a lower-trust surface than a human's own Telegram
+        #   message) could still get the agent to run a doas command this
+        #   turn, this prompt's "don't act" instruction notwithstanding. A
+        #   separate, doas-less identity for this route was considered and
+        #   deliberately not built (Aidan chose this framing over hard
+        #   isolation): ADR 0011's doas allowlist is what actually bounds
+        #   the worst case regardless -- every reachable command is still
+        #   one from the enumerated tier-1/tier-2 recoverable set, tier 3
+        #   has no mechanical path at all -- the same backstop the ADR's
+        #   "Tier 2's soft enforcement is a residual risk, accepted"
+        #   section already relies on for Telegram-driven tier-2 commands.
+        #   See that section (amended) for the full reasoning.
         # - DEPENDENCY: `check_webhook_requirements()` (same file) needs
         #   `aiohttp` importable. It's in hermes-agent's pyproject.toml
         #   `messaging` extra, not the core deps -- but `nix/hermes-agent.nix`
@@ -415,8 +440,8 @@
 
                 1. Read the alert(s) below: unit/node, condition, since when.
                 2. Investigate: VictoriaLogs first (SERVERS.md "Logs: VictoriaLogs"), `systemctl status`/journalctl as fallback, VictoriaMetrics if it's a resource/threshold alert.
-                3. If it's a tier-1-safe fix (SOUL.md's tier policy, SERVERS.md's per-node tier table), apply it. Otherwise don't act -- tier 2 needs Aidan's yes first, tier 3 has no doas path at all.
-                4. End with a clear summary for Aidan: what fired, what you found, and what you did (or your diagnosis and recommended fix if you didn't act). This response IS the Telegram message he sees -- there's no separate step to send it.
+                3. Do NOT take any action from this turn -- no `systemctl restart`/`stop`, no `netbird expose`, no `doas` command of any kind, not even a tier-1-safe one. This route is investigate-and-report only; it never self-remediates, regardless of how confident you are in a fix.
+                4. End with a clear diagnosis for Aidan: what fired, what you found, and the specific action you'd recommend. This response IS the Telegram message he sees -- there's no separate step to send it. If he says go, the fix happens in the normal Telegram conversation, under the usual tier policy.
 
                 Alertmanager payload:
                 {__raw__}

@@ -311,17 +311,20 @@ Alertmanager (this node) POSTs firing/resolved alert groups straight to
 you at `http://127.0.0.1:8644/webhooks/alertmanager` -- you don't poll for
 these, they arrive as a fresh conversation the moment an alert group
 fires. The prompt you receive tells you what to do; the short version:
-investigate (logs/metrics/status), apply a tier-1-safe fix or don't act,
-then end your response with a clear summary. That response IS the
-Telegram message Aidan sees -- there's no separate tool call to send it,
-so don't stop mid-investigation without concluding with one.
+investigate (logs/metrics/status), then end your response with a
+diagnosis and a specific recommended action -- never with a fix you
+already applied. That response IS the Telegram message Aidan sees --
+there's no separate tool call to send it, so don't stop mid-investigation
+without concluding with one.
 
-This route runs with just the `terminal` toolset (not your full Telegram
-toolset) -- deliberately: it's the one tool an investigation and a tier-1
-fix actually need (`systemctl`, `journalctl`, `curl`, `doas`). If you find
-yourself wanting a tool you don't have here, that's a sign the fix isn't
-tier-1-safe anyway -- report it to Aidan instead of trying to route around
-the missing tool.
+This route runs with the `terminal` toolset (not your full Telegram
+toolset) for READS only -- `systemctl status`, `journalctl`, `curl` to
+VictoriaLogs/VictoriaMetrics/Grafana, all covered above, none of which
+need `doas` or SSH to another node. Investigate all you want; don't run
+anything that changes fleet state from this route, not even a tier-1
+restart you'd normally be free to do unprompted. If Aidan replies telling
+you to go ahead, that follow-up is a normal Telegram conversation and the
+usual tier policy applies there.
 
 ## Cron routines
 
