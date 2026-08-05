@@ -37,7 +37,7 @@
     # `caches` keys, not the permission attrset nested inside `caches`.
     # This assertion is the only thing standing between a typo here and a
     # silently-empty OIDC grant.
-    validAtticCachePermissionKeys = ["r" "w" "d" "cc" "cr" "cq" "cd"];
+    validAtticCachePermissionKeys = ["r" "w" "d" "cc" "cr" "cq" "cd" "b" "tw"];
 
     oidcCachePermissionKeyErrors =
       lib.concatMap (
@@ -178,9 +178,15 @@
                   repository_owner_id = "31970261";
                   ref_protected = "true";
                 };
+                # tw (trusted-write) supplements w, it doesn't replace it:
+                # it skips server-side verification on push (client-attested
+                # chunks, spot-verified within ~1 GC cycle), so it's
+                # root-equivalent for data integrity in this cache. Only
+                # protected-ref CI and the pocketid admin/writer roles hold it.
                 caches.default = {
                   r = 1;
                   w = 1;
+                  tw = 1;
                   d = 0;
                   cc = 0;
                   cr = 0;
@@ -219,6 +225,7 @@
                 caches."*" = {
                   r = 1;
                   w = 1;
+                  tw = 1;
                   d = 1;
                   cc = 1;
                   cr = 1;
@@ -231,6 +238,7 @@
                 caches."*" = {
                   r = 1;
                   w = 1;
+                  tw = 1;
                   d = 0;
                   cc = 0;
                   cr = 0;
