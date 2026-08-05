@@ -20,6 +20,10 @@
   }: {
     imports = [
       inputs.nix-index-database.nixosModules.nix-index
+      # Determinate keeps the stock NixOS nix.* module active (see
+      # docs/adr/0011); it just retargets rendered settings to
+      # /etc/nix/nix.custom.conf, so the settings below carry over unchanged.
+      inputs.determinate.nixosModules.default
     ];
 
     nixpkgs.pkgs = withSystem config.nixpkgs.hostPlatform.system ({pkgs, ...}: pkgs);

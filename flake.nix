@@ -30,11 +30,12 @@
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
     nix-darwin.url = "github:nix-darwin/nix-darwin";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
-    # Determinate manages the Nix installation itself on Zakkart (see
-    # docs/adr/0008); its own installer owns the daemon/upgrades, so this
-    # flake only needs its nix-darwin module, not a separate Nix. Following
-    # our nixpkgs here would be pointless anyway: `determinate-nixd` is a
-    # prebuilt binary the module fetches, not something this flake builds.
+    # Determinate manages the Nix installation on Zakkart via its
+    # nix-darwin module (docs/adr/0008), whose installer owns the
+    # daemon/upgrades, and on the NixOS fleet via its NixOS module
+    # (docs/adr/0011). Following our nixpkgs here would be pointless anyway:
+    # `determinate-nixd` is a prebuilt binary the module fetches, not
+    # something this flake builds.
     determinate.url = "github:DeterminateSystems/determinate";
     nix-homebrew.url = "github:zhaofengli/nix-homebrew";
     # Homebrew itself and its taps: pinned as flake inputs so

@@ -7,6 +7,7 @@
 - Zakkart: a nix-darwin host for the macOS workstation (`modules/hosts/zakkart/`, `modules/darwin/`), managed with Determinate Nix (ADR 0008) and nixpkgs-first application sourcing with Homebrew/App Store exceptions (ADR 0009). Includes a `just darwin-switch` recipe, a `checks.aarch64-darwin.zakkart-system` CI check built on a hosted macOS runner, and `docs/runbooks/zakkart-bootstrap.md`.
 - Zakkart macOS preferences (`modules/darwin/preferences.nix`): dock moved right with autohide and hot corners, menu bar mirroring the observed macOS 26 values, pink accent/highlight colors, the application firewall, the repo's `assets/wallpaper.jpg`, Helium as the default browser via `defaultbrowser`, the built-in display scaled to "More Space" via `displayplacer`, and the Spotlight (Cmd+Space) hotkey disabled — per `docs/adr/0010-script-user-scoped-macos-preferences-nix-darwin-cannot-express.md`.
 - Zakkart: hide recent/suggested apps in the dock (`dock.show-recents = false`) and set the window title bar double-click action to Fill (`AppleActionOnDoubleClick`, no nix-darwin option on the pinned rev).
+- Adopt Determinate Nix on the NixOS fleet (legion-node1..4, artemis) by importing Determinate's NixOS module in `modules/nixos/nix.nix` -- per ADR 0011, this keeps the existing `nix.settings` working unchanged (rendered to `/etc/nix/nix.custom.conf`).
 
 ### Fixed
 
