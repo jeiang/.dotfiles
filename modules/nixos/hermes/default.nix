@@ -252,7 +252,27 @@
           openai_runtime = "auto";
         };
         agent = {
-          reasoning_effort = "high";
+          # "max", not "high": the top of the effort scale that actually
+          # reaches the wire for this deployment's model. Verified against
+          # the pinned rev rather than the config example, which is stale
+          # here -- cli-config.yaml.example's `agent.reasoning_effort`
+          # comment still lists `"xhigh" (max)` as the ceiling, but
+          # hermes_constants.py's `VALID_REASONING_EFFORTS` is
+          # ("minimal", "low", "medium", "high", "xhigh", "max", "ultra")
+          # and `parse_reasoning_effort` accepts every one of them
+          # (anything unrecognized returns None and silently falls back to
+          # the default, which is why this needed checking rather than
+          # assuming).
+          #
+          # Not clamped on our path: agent/transports/codex.py builds
+          # `_effort_clamp` as {"minimal": "low"}, adds {"ultra": "max"}
+          # for gpt-5.6 models (Ultra is the Codex product-tier name; the
+          # Responses API wire value is "max"), and only collapses
+          # xhigh/max/ultra down to "high" when `is_xai_responses` is set.
+          # This deployment is gpt-5.6-luna over openai-codex, not xAI, so
+          # "max" passes through unchanged -- and is the same wire value
+          # "ultra" would resolve to.
+          reasoning_effort = "max";
           # OpenAI Priority Processing ("fast mode"). The gateway maps
           # "fast" -> service_tier=priority (gateway/run.py
           # `_load_service_tier` at the pinned rev), and gpt-5.6-luna is
