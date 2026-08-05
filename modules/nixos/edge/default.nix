@@ -271,7 +271,14 @@
           # route entirely is the fail-open-friendly choice for a
           # single-node edge, avoiding both the false-positive risk and
           # the cost of body inspection on large NAR blobs.
-          attic.jeiang.dev {
+          # attic-push.jeiang.dev is the same origin, but must stay
+          # grey-clouded (DNS-only) in Cloudflare: attic pushes are a single
+          # streaming PUT of the whole NAR to /_api/v1/upload-path, and
+          # Cloudflare's proxy rejects request bodies > 100 MB (free plan)
+          # with 413. CI pushes there (ci.yml ATTIC_SERVER); pulls stay on
+          # the proxied attic.jeiang.dev. Both names are on the wildcard
+          # cert above.
+          attic.jeiang.dev, attic-push.jeiang.dev {
             ${logLine}${crowdsecLine}reverse_proxy ${node4}:8080 {
               transport http {
                 read_timeout 15m

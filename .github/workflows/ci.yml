@@ -22,7 +22,10 @@ env:
   # no secrets — just the substituter and its signing key in nix.conf below.
   # Push credentials are minted per-job via GitHub OIDC immediately before
   # pushing, and only main pushes are granted write access server-side.
-  ATTIC_SERVER: https://attic.jeiang.dev/
+  # ATTIC_SERVER is the grey-clouded (DNS-only) push hostname: pushes are a
+  # single streaming PUT of the whole NAR, which Cloudflare's proxy 413s
+  # above 100 MB. Pulls (ATTIC_SUBSTITUTER) stay on the proxied hostname.
+  ATTIC_SERVER: https://attic-push.jeiang.dev/
   ATTIC_CACHE: default
   ATTIC_SUBSTITUTER: https://attic.jeiang.dev/default
   ATTIC_PUBLIC_KEY: "default:Xaqeg5b1ctNwH4sEWG+nt1kSpGPpFG0zivJUbZyCfdM="

@@ -102,7 +102,9 @@
       # storage, ...) must be spelled out explicitly below.
       settings = lib.mkForce {
         listen = "0.0.0.0:${toString serverPort}";
-        allowed-hosts = ["attic.jeiang.dev"];
+        # attic-push.jeiang.dev: grey-clouded push hostname (Cloudflare's
+        # proxy 413s NAR uploads > 100 MB); see modules/nixos/edge.
+        allowed-hosts = ["attic.jeiang.dev" "attic-push.jeiang.dev"];
         api-endpoint = "https://attic.jeiang.dev/";
         require-proof-of-possession = true;
 
