@@ -6,7 +6,7 @@ placed on `legion-node3` per
 [`AGENTS.md`](../../AGENTS.md) before running any command here. See
 [`docs/adr/0007-hold-scoped-credentials-in-the-agent.md`](../adr/0007-hold-scoped-credentials-in-the-agent.md)
 for why the agent holds its own credentials instead of a broker, and
-[`docs/adr/0011-extend-the-scoped-credential-agent-into-a-tiered-fleet-operator.md`](../adr/0011-extend-the-scoped-credential-agent-into-a-tiered-fleet-operator.md)
+[`docs/adr/0012-extend-the-scoped-credential-agent-into-a-tiered-fleet-operator.md`](../adr/0012-extend-the-scoped-credential-agent-into-a-tiered-fleet-operator.md)
 for the tiered fleet-operator model and the credential inventory below.
 
 ## Deploy
@@ -46,7 +46,7 @@ unit sets `HOME=/var/lib/hermes` for the service, but `sudo` does not.
 ## Credential inventory and rotation
 
 See
-[`docs/adr/0011-extend-the-scoped-credential-agent-into-a-tiered-fleet-operator.md`](../adr/0011-extend-the-scoped-credential-agent-into-a-tiered-fleet-operator.md)
+[`docs/adr/0012-extend-the-scoped-credential-agent-into-a-tiered-fleet-operator.md`](../adr/0012-extend-the-scoped-credential-agent-into-a-tiered-fleet-operator.md)
 for why each of these exists and what it is scoped to. Every credential
 here lives in `modules/nixos/hermes/secrets.yaml`, edited with `just
 sops-edit` (it keys new secrets automatically -- `just sops-updatekeys` is
@@ -236,7 +236,7 @@ Expect an immediate `{"status":"accepted",...}` response (HTTP 202 -- the
 agent run happens in the background), then a Telegram message from Hermes
 within a turn or two with its investigation of the synthetic alert: a
 diagnosis and a recommended action, not an autonomous fix -- this route
-is investigate-and-report only (see ADR 0011's amended "Tier 2's soft
+is investigate-and-report only (see ADR 0012's amended "Tier 2's soft
 enforcement" section for why). If nothing arrives, check the gateway log
 for `[webhook]`-prefixed lines:
 

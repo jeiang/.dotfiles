@@ -9,13 +9,13 @@ _: {
   # modules/hosts/legion/_service-inventory.nix entry.
   #
   # The doas allowlist below IS the Fleet Operations Tiers classifier
-  # (docs/adr/0011-extend-the-scoped-credential-agent-into-a-tiered-fleet-operator.md
+  # (docs/adr/0012-extend-the-scoped-credential-agent-into-a-tiered-fleet-operator.md
   # "Why the doas allowlist is the classifier"): tier 1 (free) and tier 2
   # (soft-confirm) units get MECHANICALLY IDENTICAL doas rules --
   # `systemctl start`/`restart` on the unit -- because the tier split is a
   # SOUL.md/prompt-level convention Hermes itself enforces before running a
   # tier-2 command, not something doas can see or gate. `systemctl stop` is
-  # generated for every unit in both lists (ADR 0011 tier 2: stop is always
+  # generated for every unit in both lists (ADR 0012 tier 2: stop is always
   # tier-2 behavior, mechanically no different from a restart). Tier 3 is
   # the ABSENCE of a rule: nothing here ever names sshd, netbird
   # up/down/login, nixos-rebuild, or hermes-agent itself -- there is no
@@ -32,13 +32,13 @@ _: {
 
     # Every rule below is granted to hermes-ops itself plus this node's
     # extra grantees (legion-node3 only: the hermes-agent service user,
-    # ADR 0011 "node-local actions use doas directly without
+    # ADR 0012 "node-local actions use doas directly without
     # SSH-to-self") -- one rule per (verb, unit) pair covers every
     # grantee via doas' own multi-user `users` list, so this doesn't
     # double the rule count per extra grantee.
     grantees = ["hermes-ops"] ++ cfg.extraGrantees;
 
-    # ADR 0011 "verb-times-unit enumerations, no wildcards": doas.conf(5)
+    # ADR 0012 "verb-times-unit enumerations, no wildcards": doas.conf(5)
     # `args` matching is exact-literal only (no glob/prefix form), so one
     # rule per (verb, unit) is the only way to permit exactly this unit at
     # this verb without also permitting an unlisted one.
@@ -46,7 +46,7 @@ _: {
       users = grantees;
       cmd = systemctlPath;
       args = [verb unit];
-      noPass = true; # hermes-ops has no password; tier 2's confirm gate is prompt-level (ADR 0011).
+      noPass = true; # hermes-ops has no password; tier 2's confirm gate is prompt-level (ADR 0012).
     };
 
     startRestartRules =
@@ -100,7 +100,7 @@ _: {
       noPass = true;
     };
 
-    # Tier 2: `netbird expose <port> [flags]` (ADR 0011 "the netbird
+    # Tier 2: `netbird expose <port> [flags]` (ADR 0012 "the netbird
     # expose subcommand family" -- verified present as a single top-level
     # cobra command, no sub-subcommands, in the pinned netbird v0.76.1
     # source, modules/packages/netbird.nix). The port/flags are
@@ -133,7 +133,7 @@ _: {
         description = ''
           This node's tier-1 (free) systemd unit names. `systemctl
           start`/`restart` on these needs no Telegram confirmation (ADR
-          0011). Set per-node by modules/hosts/legion/default.nix, not by
+          0012). Set per-node by modules/hosts/legion/default.nix, not by
           hand elsewhere.
         '';
       };
@@ -144,7 +144,7 @@ _: {
           This node's tier-2 (soft-confirm) systemd unit names. Doas
           rules identical to tier 1 -- the confirmation gate is a
           SOUL.md/prompt-level convention, not a mechanical one (ADR
-          0011). Set per-node by modules/hosts/legion/default.nix, not by
+          0012). Set per-node by modules/hosts/legion/default.nix, not by
           hand elsewhere.
         '';
       };
@@ -154,7 +154,7 @@ _: {
         description = ''
           Extra usernames (besides hermes-ops) to grant this node's doas
           rules and systemd-journal membership to. legion-node3 sets this
-          to the hermes-agent service user (ADR 0011: node-local actions
+          to the hermes-agent service user (ADR 0012: node-local actions
           use doas directly, without SSH-to-self) from its own host
           config, so this module never references
           config.services.hermes-agent itself and has no hard dependency
@@ -179,7 +179,7 @@ _: {
               createHome = false;
               hashedPassword = "!";
               shell = pkgs.bashInteractive;
-              # systemd-journal: the journalctl-fallback read path (ADR 0011
+              # systemd-journal: the journalctl-fallback read path (ADR 0012
               # tier 1: direct journalctl on the node when VictoriaLogs is
               # unreachable). No other group -- every other hermes-ops
               # capability is mechanical, through the doas rules below,
@@ -188,12 +188,12 @@ _: {
               extraGroups = ["systemd-journal"];
               openssh.authorizedKeys.keys = [
                 # from=: SSH to hermes-ops only ever originates from
-                # legion-node3, where Hermes lives (ADR 0011 "Transport") --
+                # legion-node3, where Hermes lives (ADR 0012 "Transport") --
                 # every other source IP is rejected at the key level,
                 # before doas or any command runs.
                 # no-agent-forwarding/no-X11-forwarding: this account has
                 # no business relaying either. Deliberately NO forced
-                # `command=`: ADR 0011's transport section is explicit that
+                # `command=`: ADR 0012's transport section is explicit that
                 # this is general command execution as hermes-ops, not one
                 # fixed command -- a forced command would defeat that.
                 #

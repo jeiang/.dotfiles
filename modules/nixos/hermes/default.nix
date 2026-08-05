@@ -48,7 +48,7 @@
     codexAuthDir = "${cfg.stateDir}/.codex";
     codexAuthPath = "${codexAuthDir}/auth.json";
 
-    # hermes-ops SSH client identity (ADR 0011 "Transport" -- the
+    # hermes-ops SSH client identity (ADR 0012 "Transport" -- the
     # fleet-execution identity, one sops-managed ed25519 key reaching every
     # Legion node's `hermes-ops` account over the Hetzner private network).
     sshDir = "${cfg.stateDir}/.ssh";
@@ -59,7 +59,7 @@
     # deploy keys (modules/nixos/shared/default.nix's admin key,
     # modules/hosts/legion/default.nix's `legion-deploy` key) and
     # hermes-ops's own *client* key (modules/nixos/hermes-ops/default.nix
-    # `authorizedKeys`), none of which is a host key. So ADR 0011
+    # `authorizedKeys`), none of which is a host key. So ADR 0012
     # Transport's alternative (a) -- a Nix-managed known_hosts pinned to
     # real host keys -- isn't available offline here.
     #
@@ -71,11 +71,11 @@
     # MITM window with no verification at all, first connection or
     # hundredth. accept-new's residual risk -- a MITM on the very first
     # connection to a given node -- is accepted for the same reason ADR
-    # 0011's "Tier 2 soft enforcement is a residual risk, accepted"
+    # 0012's "Tier 2 soft enforcement is a residual risk, accepted"
     # section accepts its own gap: the transport rides the Hetzner private
     # network (172.17.0.0/24), not the public internet, so an attacker
     # capable of a first-connection MITM here already has private-network
-    # access -- at which point ADR 0011's tier-3 doas boundary, not
+    # access -- at which point ADR 0012's tier-3 doas boundary, not
     # host-key pinning, is what actually bounds the damage a compromised
     # session could do. docs/runbooks/hermes.md notes the operator can
     # pre-seed known_hosts on first deploy to skip this TOFU window
@@ -83,7 +83,7 @@
     sshConfig = pkgs.writeText "hermes-ssh-config" (
       # No Host block for legion-node3: it's this service's own node, so
       # fleet actions there run `doas systemctl ...` directly
-      # (hermesOps.extraGrantees, ADR 0011 "node-local actions use doas
+      # (hermesOps.extraGrantees, ADR 0012 "node-local actions use doas
       # directly without SSH-to-self") -- there is nothing for SSH to
       # reach.
       lib.concatMapStringsSep "\n\n" (node: ''
@@ -97,7 +97,7 @@
       ["legion-node1" "legion-node2" "legion-node4"]
     );
 
-    # iCloud Calendar (feature 8, ADR 0011 credential inventory "iCloud
+    # iCloud Calendar (feature 8, ADR 0012 credential inventory "iCloud
     # app-specific password for CalDAV"): vdirsyncer mirrors iCloud CalDAV
     # into a local vdir under stateDir, khal reads that vdir. Both
     # packages are added to extraPackages below.
@@ -277,7 +277,7 @@
         # module's preStart needs to `install -d` around.
         skills.external_dirs = ["${cfg.workingDirectory}/knowledge-base/skills"];
 
-        # artemis LLM provider (feature 7, ADR 0011 "No new credential for
+        # artemis LLM provider (feature 7, ADR 0012 "No new credential for
         # the artemis LLM provider"): a named custom provider pointing at
         # llama-swap on artemis (modules/nixos/llama-swap.nix,
         # listenAddress 0.0.0.0:8080, model group "ornith-1.0-9b") over the
@@ -399,7 +399,7 @@
         #   only after Aidan approves it in a normal Telegram conversation.
         #   This is a considered, ACCEPTED tradeoff, not an oversight: it is
         #   a PROMPT-LEVEL boundary, not a mechanical one. The `hermes` user
-        #   running this turn is the same identity that holds ADR 0011's
+        #   running this turn is the same identity that holds ADR 0012's
         #   node3 doas grants and hermes-ops SSH-to-other-nodes access
         #   (Parts B/C) -- `terminal` here is the same tool, so a
         #   sufficiently effective injection via crafted alert label/
@@ -410,7 +410,7 @@
         #   turn, this prompt's "don't act" instruction notwithstanding. A
         #   separate, doas-less identity for this route was considered and
         #   deliberately not built (Aidan chose this framing over hard
-        #   isolation): ADR 0011's doas allowlist is what actually bounds
+        #   isolation): ADR 0012's doas allowlist is what actually bounds
         #   the worst case regardless -- every reachable command is still
         #   one from the enumerated tier-1/tier-2 recoverable set, tier 3
         #   has no mechanical path at all -- the same backstop the ADR's
@@ -474,7 +474,7 @@
       # unit and doesn't inherit this list). curl: querying
       # VictoriaMetrics/VictoriaLogs per SERVERS.md, and Grafana annotations
       # (feature: Grafana annotations, SERVERS.md "Grafana annotations").
-      # openssh: the `ssh` binary fleet commands run through (ADR 0011
+      # openssh: the `ssh` binary fleet commands run through (ADR 0012
       # "Transport"), using the identity/config the preStart script below
       # installs. khal/vdirsyncer: iCloud Calendar (feature 8) -- vdirsyncer
       # mirrors the CalDAV collection locally (also run by the dedicated
@@ -552,7 +552,7 @@
       # owner/group; docs/runbooks/hermes.md's credential-inventory section
       # has the exact mint/rotate steps for each):
       #   ACTUAL_SESSION_TOKEN  -- Actual Budget session token (feature 3;
-      #     NOT the server login password, see ADR 0011). Invalidated by
+      #     NOT the server login password, see ADR 0012). Invalidated by
       #     Actual's "log out all sessions" action, must be re-minted then.
       #   ACTUAL_SYNC_ID        -- Actual's budget sync ID (Settings ->
       #     Advanced -> Sync ID in the Actual UI). Not itself a credential
@@ -563,10 +563,10 @@
       #     reasoning as ACTUAL_SYNC_ID: not a secret by itself, but
       #     operator-specific and not something to guess/commit.
       #   ICLOUD_APP_PASSWORD   -- iCloud CalDAV app-specific password
-      #     (feature 8, ADR 0011's "unlocks all of Aidan's iCloud
+      #     (feature 8, ADR 0012's "unlocks all of Aidan's iCloud
       #     CalDAV/CardDAV" caveat), from appleid.apple.com.
       #   HERMES_REPOS_TOKEN    -- the `hermes-repos` fine-grained GitHub
-      #     PAT (feature 9, ADR 0011), distinct from GITHUB_TOKEN's
+      #     PAT (feature 9, ADR 0012), distinct from GITHUB_TOKEN's
       #     Knowledge-Base-only scope -- see SOUL.md's "GitHub access"
       #     section and SERVERS.md's "Other Git repos" section for how the
       #     agent picks the right token per repo.
@@ -594,7 +594,7 @@
         inherit (cfg) group;
         mode = "0400";
       };
-      # hermes-ops SSH private key (ADR 0011 "Transport"). Installed to
+      # hermes-ops SSH private key (ADR 0012 "Transport"). Installed to
       # `${sshDir}/id_ed25519` by the preStart script below. NOT committed
       # here: the operator adds the key value via `just sops-edit`
       # (docs/runbooks/hermes.md); the matching public half is already
@@ -628,7 +628,7 @@
             # through that option.
             install -m 0640 ${./SOUL.md} "${cfg.stateDir}/.hermes/SOUL.md"
 
-            # hermes-ops SSH identity + config (ADR 0011 "Transport"; see
+            # hermes-ops SSH identity + config (ADR 0012 "Transport"; see
             # the `sshDir`/`sshConfig` comments above for what these are
             # and the host-key-verification tradeoff).
             install -d -m 0700 "${sshDir}"
@@ -813,7 +813,7 @@
 
     # No firewall openings: Telegram is outbound long-polling, the
     # Knowledge Base sync/GitHub access above are outbound HTTPS, and the
-    # hermes-ops SSH transport (ADR 0011 "Transport") is outbound-only too
+    # hermes-ops SSH transport (ADR 0012 "Transport") is outbound-only too
     # -- Hermes dials out to 172.17.0.{1,2,4}, nothing dials in here. Part
     # D's integrations are the same shape: Actual (172.17.0.4:5006) and
     # Grafana (127.0.0.1:3000) are private-network/loopback outbound calls

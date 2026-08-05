@@ -17,7 +17,7 @@
   legionServices = import ./_service-inventory.nix {inherit lib;};
   unknownServicePlacements = builtins.filter (name: !(legionNodes ? ${name})) (builtins.attrNames legionServices);
 
-  # hermes-ops' per-node Fleet Operations Tiers (docs/adr/0011, CONTEXT.md
+  # hermes-ops' per-node Fleet Operations Tiers (docs/adr/0012, CONTEXT.md
   # "Fleet Operations Tiers"/"hermes-ops"): NOT a
   # ./_service-inventory.nix entry -- hermes-ops is cross-cutting fleet
   # policy applied to every node regardless of which services it places
@@ -34,24 +34,24 @@
   hermesOpsTiers = {
     legion-node1 = {
       # exporters/log-shipping-adjacent low-blast-radius units, plus
-      # CrowdSec (ban/unban is reversible and scoped, ADR 0011 tier 1).
+      # CrowdSec (ban/unban is reversible and scoped, ADR 0012 tier 1).
       # No restic unit here: neither of node1's placed services declares
       # a backupSet (_service-inventory.nix, both stateful = false).
       tier1 = ["crowdsec.service" "prometheus-node-exporter.service"];
       # Caddy is the edge's public entrypoint -- load-bearing for every
-      # public hostname this fleet serves (ADR 0011 tier 2).
+      # public hostname this fleet serves (ADR 0012 tier 2).
       tier2 = ["caddy.service"];
     };
     legion-node2 = {
       tier1 = [
         "prometheus-node-exporter.service"
-        # Backup trigger units belong in tier 1 (ADR 0011: "triggering
+        # Backup trigger units belong in tier 1 (ADR 0012: "triggering
         # backup units" is a free/tier-1 read-adjacent action).
         "restic-backups-netbird-server.service"
         "restic-backups-pocket-id.service"
       ];
       # Every one of these is load-bearing fleet infrastructure (mesh
-      # control plane, SSO, DNS) -- ADR 0011 tier 2 names all five
+      # control plane, SSO, DNS) -- ADR 0012 tier 2 names all five
       # explicitly.
       tier2 = [
         "netbird-server.service"
@@ -63,14 +63,14 @@
     };
     legion-node3 = {
       # hermes-kb-sync: the agent's own durable-memory sync, explicitly
-      # named tier 1 in ADR 0011. Both exporters here are node3-specific
+      # named tier 1 in ADR 0012. Both exporters here are node3-specific
       # or fleet-wide low-blast-radius reads.
       tier1 = [
         "hermes-kb-sync.service"
         "prometheus-node-exporter.service"
         "prometheus-blackbox-exporter.service"
       ];
-      # The monitoring stack ADR 0011 tier 2 names explicitly.
+      # The monitoring stack ADR 0012 tier 2 names explicitly.
       tier2 = [
         "victoriametrics.service"
         "victorialogs.service"
@@ -212,7 +212,7 @@ in {
         # harmless, and node2 enrolling as a peer of the server it also
         # hosts is exactly how NetBird is reached today.
         self.nixosModules.netbird
-        # hermes-ops (docs/adr/0011, CONTEXT.md "hermes-ops"), same
+        # hermes-ops (docs/adr/0012, CONTEXT.md "hermes-ops"), same
         # unconditional fleet-wide pattern as netbird/backups above --
         # every Legion node gets the account and its doas allowlist;
         # per-node tier lists come from hermesOpsTiers below, one node
@@ -443,7 +443,7 @@ in {
     nixosConfigurations = let
       mkLegionSystem = name: node: let
         # Reused below for both the optional hermes module import and
-        # hermesOps.extraGrantees (docs/adr/0011 node-local locality).
+        # hermesOps.extraGrantees (docs/adr/0012 node-local locality).
         hermesPlaced = lib.any (service: service.name == "hermes") node.services;
       in
         inputs.nixpkgs.lib.nixosSystem {

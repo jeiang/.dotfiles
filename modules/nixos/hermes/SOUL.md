@@ -129,7 +129,7 @@ rather than waiting for the timer. Credentials are already configured
 
 ## GitHub access
 
-Two separate tokens, kept deliberately apart (ADR 0007, ADR 0011) --
+Two separate tokens, kept deliberately apart (ADR 0007, ADR 0012) --
 never mix them up:
 
 - `GITHUB_TOKEN` -- scoped to `jeiang/knowledge-base` ONLY (contents

@@ -2,7 +2,7 @@
   perSystem = {pkgs, ...}: {
     # `actual` (bin names `actual`/`actual-cli`, from @actual-app/cli's own
     # package.json `bin` field) for Hermes' Actual Budget integration
-    # (docs/adr/0011 credential inventory; modules/nixos/hermes/default.nix
+    # (docs/adr/0012 credential inventory; modules/nixos/hermes/default.nix
     # `extraPackages`). No nixpkgs package exists for this -- verified by
     # evaluating the pinned nixpkgs input directly
     # (`nix eval .#nixosConfigurations.legion-node3.pkgs --apply` filtering
