@@ -104,6 +104,14 @@
             directory = ".local/share/keyrings";
             mode = "0700";
           }
+          {
+            # Claude Code's whole per-user state tree: settings.json,
+            # memory/, skills/, plugins/, per-project session history and
+            # todos — and .credentials.json, the OAuth tokens it writes
+            # here on Linux (no system keychain), hence 0700 like .ssh.
+            directory = ".claude";
+            mode = "0700";
+          }
           ".local/share/fish"
           ".local/share/direnv"
           ".local/share/devenv"
@@ -124,7 +132,16 @@
           ".local/share/qBittorrent"
           ".local/share/rivalsmodmanager"
         ];
+        # ~/.claude.json is Claude Code's global config file (onboarding
+        # state, per-project trust/history, MCP server entries) and sits
+        # next to ~/.claude rather than inside it. impermanence creates an
+        # empty file at this path if /persist has none yet; Claude Code
+        # treats an unparseable config as a fresh one (it moves it aside to
+        # ~/.claude.json.corrupted) rather than failing to start.
+        data.files = [".claude.json"];
         cache.directories = [
+          # Per-project MCP server logs; regenerated, safe to lose.
+          ".cache/claude-cli-nodejs"
           ".cache/devenv"
           ".cache/direnv"
           ".cache/nix-direnv"
@@ -167,6 +184,13 @@
           helpers.kernelModuleLLVMOverride (pkgs.linuxKernel.packagesFor kernel);
         blacklistedKernelModules = ["algif_aead"];
       };
+      # Claude Code, here rather than in the shared toolbox
+      # (modules/nixos/toolbox.nix) — it's a workstation tool, not
+      # something the legion nodes need. The nixpkgs derivation already
+      # pins the CLI's own updater off (DISABLE_AUTOUPDATER), so it stays
+      # on whatever version this flake's nixpkgs input carries. Its state
+      # lives in ~/.claude and ~/.claude.json, both persisted above.
+      environment.systemPackages = [pkgs.claude-code];
       environment.variables = {
         AMD_VULKAN_ICD = "RADV";
         MESA_SHADER_CACHE_MAX_SIZE = "12G";

@@ -27,6 +27,10 @@
         # CLI
         bat
         btop
+        # The CLI, separate from the "claude" desktop cask in
+        # modules/darwin/homebrew.nix. nixpkgs disables its self-updater,
+        # so it tracks this flake's nixpkgs input.
+        claude-code
         defaultbrowser
         erdtree
         # withWhisper defaults on for ffmpeg-full >=8.0 (whisper speech
