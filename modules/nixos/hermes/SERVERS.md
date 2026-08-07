@@ -17,7 +17,8 @@ Hetzner Cloud VPSes running NixOS, deployed from the `cornn-flaek` repo.
 - **legion-node2** -- NetBird server/proxy, Pocket ID, Blocky DNS
 - **legion-node3** -- monitoring (VictoriaMetrics, VictoriaLogs, Grafana,
   vmalert, Alertmanager) + you (Hermes)
-- **legion-node4** -- Attic (Nix binary cache), Actual Budget, H@H
+- **legion-node4** -- garret and Attic (Nix binary cache; Attic is
+  read-only and being retired, see `docs/adr/0013`), Actual Budget, H@H
 
 Grafana dashboards live at `grafana.jeiang.dev` -- that's for Aidan's
 browser, not for you to query.
@@ -35,7 +36,7 @@ is tier 3: no sudo rule permits it, so it will fail no matter what.
 | legion-node1 | `crowdsec.service`, `prometheus-node-exporter.service` | `caddy.service` |
 | legion-node2 | `prometheus-node-exporter.service`, `restic-backups-netbird-server.service`, `restic-backups-pocket-id.service` | `netbird-server.service`, `netbird-relay.service`, `netbird-proxy.service`, `pocket-id.service`, `blocky.service` |
 | legion-node3 (you) | `hermes-kb-sync.service`, `prometheus-node-exporter.service`, `prometheus-blackbox-exporter.service` | `victoriametrics.service`, `victorialogs.service`, `grafana.service`, `vmalert-default.service`, `alertmanager.service` |
-| legion-node4 | `actual.service`, `hath.service`, `atticd.service`, `restic-backups-actual-budget.service`, `restic-backups-hath.service`, `prometheus-node-exporter.service` | *(none)* |
+| legion-node4 | `actual.service`, `hath.service`, `atticd.service`, `garret-pusher.service`, `garret-puller.service`, `restic-backups-actual-budget.service`, `restic-backups-garret.service`, `restic-backups-hath.service`, `prometheus-node-exporter.service` | *(none)* |
 
 Plus, every node: `netbird status` is tier 1 (read-only); `netbird
 expose ...` (via the wrapper below) is tier 2.

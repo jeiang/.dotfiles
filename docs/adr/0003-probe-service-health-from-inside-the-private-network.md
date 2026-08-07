@@ -2,7 +2,7 @@
 
 Synthetic uptime probing (`blackbox_exporter`, run on the monitoring node)
 targets each first-party service's **private backend** address over the Legion
-private network — pocket-id, Actual Budget, Attic, and the NetBird management
+private network — pocket-id, Actual Budget, Attic, garret, and the NetBird management
 server on their internal ports — rather than their public `https://` hostnames.
 The obvious alternative is to probe the public URLs, which would additionally
 exercise DNS, the Edge Node's Caddy, TLS termination, and CrowdSec — the full

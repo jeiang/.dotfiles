@@ -348,6 +348,35 @@
               }
             ];
           }
+          {
+            # garret's own Prometheus metrics on legion-node4
+            # (docs/adr/0013). Both binaries serve /metrics and /healthz on
+            # a dedicated listener separate from their service port
+            # (garret-server/src/metrics.rs), bound to node4's private
+            # address rather than the upstream loopback default so this
+            # scrape can reach them -- ports 9091 (Pusher) and 9092
+            # (Puller), both declared private-scope in
+            # modules/hosts/legion/_service-inventory.nix. Attic had no
+            # equivalent: it exposed no metrics endpoint at all, only the
+            # blackbox probe below.
+            job_name = "garret";
+            static_configs = [
+              {
+                targets = ["${node4}:9091"];
+                labels = {
+                  type = "cache";
+                  component = "pusher";
+                };
+              }
+              {
+                targets = ["${node4}:9092"];
+                labels = {
+                  type = "cache";
+                  component = "puller";
+                };
+              }
+            ];
+          }
           # --- Synthetic backend health probes via blackbox_exporter ---
           # (docs/adr/0003-probe-service-health-from-inside-the-private-network.md).
           # Standard blackbox relabel: the probe target starts life in
@@ -408,6 +437,28 @@
                   type = "probe";
                   tier = "warning";
                   __param_module = "http_2xx_attic";
+                };
+              }
+              {
+                # garret (docs/adr/0013), same `warning` tier as the other
+                # node4 backends -- a degraded cache slows builds, it
+                # doesn't lock anyone out. Unlike attic, garret validates
+                # no Host header, so the plain http_2xx module works.
+                #
+                # Probe paths are chosen to exercise the thing that
+                # actually matters per unit: the Puller's /nix-cache-info
+                # (its service port, the first request any substituting
+                # client makes), and the Pusher's /healthz on its metrics
+                # listener -- every route on the Pusher's own service port
+                # requires a bearer token, so there is nothing there a
+                # blackbox probe can get a 2xx from.
+                targets = [
+                  "http://${node4}:8081/nix-cache-info"
+                  "http://${node4}:9091/healthz"
+                ];
+                labels = {
+                  type = "probe";
+                  tier = "warning";
                 };
               }
             ];

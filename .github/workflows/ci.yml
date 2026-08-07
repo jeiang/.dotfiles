@@ -17,13 +17,19 @@ permissions:
   contents: read
 
 env:
-  # The Attic "default" cache is public: pulls are anonymous on every event
+  # Both caches are public for reads: pulls are anonymous on every event
   # (PRs and forks included), so substitution needs no client, no login, and
-  # no secrets — just the substituter and its signing key in nix.conf below.
-  # Push credentials are minted per-job via GitHub OIDC immediately before
-  # pushing, and only main pushes are granted write access server-side.
-  ATTIC_SERVER: https://attic.jeiang.dev/
-  ATTIC_CACHE: default
+  # no secrets — just the substituters and their signing keys in nix.conf
+  # below. Push credentials are minted per-job by the garret client itself
+  # from GitHub OIDC, and only main is granted push server-side
+  # (modules/nixos/garret/default.nix `ref_patterns`).
+  #
+  # attic is read-only through the side-by-side window (docs/adr/0013): it
+  # is still listed as a substituter so paths pushed before the cutover keep
+  # resolving, but nothing pushes to it any more. Both entries go away with
+  # the retirement.
+  GARRET_SUBSTITUTER: https://cache.jeiang.dev
+  GARRET_PUBLIC_KEY: "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
   ATTIC_SUBSTITUTER: https://attic.jeiang.dev/default
   ATTIC_PUBLIC_KEY: "default:Xaqeg5b1ctNwH4sEWG+nt1kSpGPpFG0zivJUbZyCfdM="
 
@@ -48,14 +54,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      # The Attic substituter goes straight into nix.conf so evaluation-time
+      # The substituters go straight into nix.conf so evaluation-time
       # IFD sources substitute from the cache too.
       - name: Install Nix
         uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
         with:
           extra_nix_config: |
-            extra-substituters = ${{ env.ATTIC_SUBSTITUTER }}
-            extra-trusted-public-keys = ${{ env.ATTIC_PUBLIC_KEY }}
+            extra-substituters = ${{ env.GARRET_SUBSTITUTER }} ${{ env.ATTIC_SUBSTITUTER }}
+            extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }} ${{ env.ATTIC_PUBLIC_KEY }}
 
       - name: Discover checks
         id: discover
@@ -67,15 +73,15 @@ jobs:
     needs: discover
     permissions:
       contents: read
-      # Exchanged for a short-lived Attic push token right before pushing;
-      # the server only grants write access to pushes on the protected main
-      # branch, so PR runs never use it.
+      # The garret client exchanges this for a short-lived push token right
+      # before pushing; the server only grants push to `refs/heads/main`
+      # (modules/nixos/garret/default.nix), so PR runs never use it.
       id-token: write
     strategy:
       fail-fast: false
       # 2 was set when every job compiled heavyweight closures from scratch;
       # with the cache warm, jobs are mostly network-bound substitution, so a
-      # higher cap mainly trades Attic server load for wall-clock time. Raise
+      # higher cap mainly trades cache server load for wall-clock time. Raise
       # further if the cache keeps up.
       max-parallel: 6
       matrix:
@@ -92,13 +98,13 @@ jobs:
 
       # Pulls are anonymous against the public cache: baking the substituter
       # into nix.conf here means every nix invocation below substitutes from
-      # Attic with zero setup steps — no attic client, no login, no secrets.
+      # the caches with zero setup steps — no client, no login, no secrets.
       - name: Install Nix
         uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
         with:
           extra_nix_config: |
-            extra-substituters = ${{ env.ATTIC_SUBSTITUTER }}
-            extra-trusted-public-keys = ${{ env.ATTIC_PUBLIC_KEY }}
+            extra-substituters = ${{ env.GARRET_SUBSTITUTER }} ${{ env.ATTIC_SUBSTITUTER }}
+            extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }} ${{ env.ATTIC_PUBLIC_KEY }}
 
       # print-out-paths emits one line per derivation output (e.g. mangohud's
       # "out" and "man"), so this can be multi-line — write it to
@@ -116,15 +122,19 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       # Main pushes only: PRs pull anonymously and never need a client or a
-      # token. The attic client rev comes from flake.lock (the same pin the
-      # flake itself uses), and that build is pre-seeded in the cache by
-      # jeiang/attic's own CI, so the install substitutes in seconds instead
-      # of compiling a Rust toolchain. Login happens here, immediately before
-      # the push, so tokens stay short-lived and scoped to jobs that can
-      # actually push.
+      # token. There is no login step — the garret client mints its own
+      # short-lived token from this job's OIDC provider (garret-client
+      # src/auth.rs `bearer_token`), which is why `id-token: write` above is
+      # still required.
       #
-      # The push is best-effort by design (continue-on-error plus the retry
-      # script's soft-fail): the cache is an optimization, and an Attic
+      # The client rev comes from flake.lock (the same pin the flake itself
+      # uses). Unlike attic-client, that build is NOT yet pre-seeded in any
+      # cache, so these first runs compile a Rust workspace from source;
+      # once jeiang/garret's own CI pushes its client build to
+      # cache.jeiang.dev, the install substitutes in seconds instead.
+      #
+      # The push is best-effort by design (continue-on-error plus the push
+      # script's soft-fail): the cache is an optimization, and a cache
       # outage must never turn main red.
       #
       # PATHS goes through the environment rather than being spliced
@@ -133,23 +143,22 @@ jobs:
       # word-split it into separate push arguments, whereas templating it
       # straight into the YAML would paste literal newlines into the script
       # and turn each extra path into its own (invalid) command.
-      - name: Push to Attic
+      - name: Push to garret
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
           PATHS: ${{ steps.build.outputs.paths }}
         run: |
-          attic_rev=$(jq -r '.nodes.attic.locked.rev' flake.lock)
-          nix profile install "github:jeiang/attic/${attic_rev}#attic-client"
-          ./.ci/attic-login-push.sh
-          ./.ci/attic-push-retry.sh "ci:$ATTIC_CACHE" $PATHS
+          garret_rev=$(jq -r '.nodes.garret.locked.rev' flake.lock)
+          nix profile install "github:jeiang/garret/${garret_rev}#garret"
+          ./.ci/garret-push.sh $PATHS
 
   # Builds the zakkart darwin toplevel (checks.aarch64-darwin.zakkart-system,
   # modules/checks.nix) on a hosted macOS runner (arm64). Not part of the
   # `discover`/`build` matrix -- `discover` only enumerates
   # checks.x86_64-linux, and this is a single fixed attribute rather than a
   # per-check fan-out, so it's simpler as its own job than folded into that
-  # matrix. Same pure `nix build` and best-effort Attic push pattern as
+  # matrix. Same pure `nix build` and best-effort cache push pattern as
   # `build` above.
   build-macos:
     permissions:
@@ -164,8 +173,8 @@ jobs:
         uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
         with:
           extra_nix_config: |
-            extra-substituters = ${{ env.ATTIC_SUBSTITUTER }}
-            extra-trusted-public-keys = ${{ env.ATTIC_PUBLIC_KEY }}
+            extra-substituters = ${{ env.GARRET_SUBSTITUTER }} ${{ env.ATTIC_SUBSTITUTER }}
+            extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }} ${{ env.ATTIC_PUBLIC_KEY }}
 
       - name: Build check
         id: build
@@ -178,16 +187,15 @@ jobs:
             echo "$delimiter"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Push to Attic
+      - name: Push to garret
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
           PATHS: ${{ steps.build.outputs.paths }}
         run: |
-          attic_rev=$(jq -r '.nodes.attic.locked.rev' flake.lock)
-          nix profile install "github:jeiang/attic/${attic_rev}#attic-client"
-          ./.ci/attic-login-push.sh
-          ./.ci/attic-push-retry.sh "ci:$ATTIC_CACHE" $PATHS
+          garret_rev=$(jq -r '.nodes.garret.locked.rev' flake.lock)
+          nix profile install "github:jeiang/garret/${garret_rev}#garret"
+          ./.ci/garret-push.sh $PATHS
 
   # Aggregate gate: a single, stable status context that reflects the whole
   # matrix, for branch protection to require. The `build` job above fans out
@@ -205,7 +213,7 @@ jobs:
   # (with no red signal explaining why). Running always lets it turn the result
   # into an explicit pass/fail. Note `needs.build.result` collapses the whole
   # matrix — it is `success` only when every leg succeeded, and `failure` if any
-  # leg failed — and the best-effort `Push to Attic` step above is
+  # leg failed — and the best-effort `Push to garret` step above is
   # `continue-on-error`, so a cache-push hiccup never fails a leg or this gate.
   all-checks:
     needs: [discover, build, build-macos]

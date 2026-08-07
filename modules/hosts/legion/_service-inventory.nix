@@ -49,6 +49,8 @@
             "pinard.co.tt"
             "auth.jeiang.dev"
             "attic.jeiang.dev"
+            "cache.jeiang.dev"
+            "cache-push.jeiang.dev"
             "budget.jeiang.dev"
             "grafana.jeiang.dev"
             "netbird.jeiang.dev"
@@ -361,6 +363,63 @@
           # unlike every other node4 entry below -- no `volume` and no
           # `backupSet`.
           stateful = false;
+        }
+        {
+          # garret, attic's replacement (docs/adr/0013). Colocated with
+          # attic through the side-by-side window, which is why the Pusher
+          # is on 8082 rather than its upstream default of 8080 -- atticd
+          # holds 8080 on this node until it retires.
+          #
+          # DNS points at the edge; Caddy proxies here
+          # (modules/nixos/edge/default.nix cache.jeiang.dev and
+          # cache-push.jeiang.dev routes). Ports match
+          # modules/nixos/garret/default.nix.
+          name = "garret";
+          publicHostnames = [];
+          firewall = [
+            {
+              # Puller: the public substituter's backend port.
+              port = 8081;
+              proto = "tcp";
+              scope = "private";
+            }
+            {
+              # Pusher: the OIDC-authenticated push API's backend port.
+              port = 8082;
+              proto = "tcp";
+              scope = "private";
+            }
+            {
+              # Pusher /metrics + /healthz, scraped and blackbox-probed by
+              # legion-node3 (modules/nixos/monitoring/default.nix). Bound
+              # to this node's private address, not loopback.
+              port = 9091;
+              proto = "tcp";
+              scope = "private";
+            }
+            {
+              # Puller /metrics + /healthz, same as above.
+              port = 9092;
+              proto = "tcp";
+              scope = "private";
+            }
+          ];
+          # Unlike attic, garret keeps a local SQLite index -- and that
+          # index is the only record of what the S3 bucket contains, so
+          # losing it strands every stored object as an orphan GC can never
+          # reclaim. Retained, not regenerable in practice.
+          stateful = true;
+          volume = {
+            name = "legion-garret";
+            mountpoint = "/mnt/garret";
+            hcloudVolumeId = "106562809";
+            sizeGiB = 10;
+          };
+          backupSet = ["/mnt/garret"];
+          # Both units hold the same SQLite database open, so both must
+          # stop for a consistent snapshot -- same reasoning as
+          # actual-budget and pocket-id above.
+          backupPauseUnits = ["garret-pusher.service" "garret-puller.service"];
         }
         {
           # DNS points at the edge; Caddy proxies here

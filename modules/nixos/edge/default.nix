@@ -19,7 +19,7 @@
     node1 = self.lib.legionNodes.legion-node1.privateIPv4; # This node's own private address (metrics bind)
     node2 = self.lib.legionNodes.legion-node2.privateIPv4; # NetBird server/relay, Pocket ID
     node3 = self.lib.legionNodes.legion-node3.privateIPv4; # Monitoring/Grafana
-    node4 = self.lib.legionNodes.legion-node4.privateIPv4; # Attic, Actual Budget
+    node4 = self.lib.legionNodes.legion-node4.privateIPv4; # Attic, garret, Actual Budget
 
     website = inputs.website.packages.${system}.default;
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
@@ -307,6 +307,40 @@
           # the cost of body inspection on large NAR blobs.
           attic.jeiang.dev {
             ${logLine}${crowdsecLine}reverse_proxy ${node4}:8080 {
+              transport http {
+                read_timeout 15m
+                write_timeout 15m
+                response_header_timeout 15m
+              }
+            }
+          }
+
+          # --- cache.jeiang.dev: garret Puller ----------------------------
+          # The public substituter (docs/adr/0013). Port 8081 matches
+          # modules/nixos/garret/default.nix's puller `listen`.
+          #
+          # Short timeouts are fine here, unlike the attic route above: a
+          # NAR request answers 302 to a presigned S3 URL rather than
+          # streaming the body, so nothing large ever crosses this proxy --
+          # only narinfo and the redirect itself. Same crowdsec/appsec
+          # treatment as attic: IP decisions apply, deep body inspection
+          # does not (cache clients fetch in legitimate bursts).
+          cache.jeiang.dev {
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:8081
+          }
+
+          # --- cache-push.jeiang.dev: garret Pusher -----------------------
+          # OIDC-authenticated pushes. Port 8082, not garret's upstream
+          # default of 8080, because atticd holds 8080 on node4 until it
+          # retires (modules/nixos/garret/default.nix).
+          #
+          # This hostname MUST stay grey-clouded/DNS-only in Cloudflare: a
+          # push is one streaming PUT of a whole zstd-compressed NAR
+          # (garret spec 01-push-protocol) and Cloudflare 413s bodies over
+          # 100 MB on the free plan. Long timeouts for the same reason the
+          # attic route has them.
+          cache-push.jeiang.dev {
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:8082 {
               transport http {
                 read_timeout 15m
                 write_timeout 15m

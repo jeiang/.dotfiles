@@ -97,6 +97,15 @@
     # installs the client from this input's locked rev (see
     # .github/workflows/ci.yml), so this lock is the single pin to bump.
     attic.url = "github:jeiang/attic";
+    # garret: attic's replacement (docs/adr/0013). Deliberately not
+    # following our nixpkgs, for the same reason as attic above -- CI
+    # installs the `garret` client from this input's locked rev
+    # (.github/workflows/ci.yml), and following our pin would give it a
+    # different derivation than the one garret's own CI seeds into the
+    # cache, forcing a from-source rebuild on every run. Until that
+    # seeding CI exists in jeiang/garret, the first CI runs build the
+    # client from source regardless.
+    garret.url = "github:jeiang/garret";
     # Hermes agent (upstream NixOS module consumed directly by
     # modules/nixos/hermes/). Deliberately not following our nixpkgs: the
     # upstream flake carries a uv2nix-built Python environment tested

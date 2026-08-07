@@ -84,7 +84,10 @@
         "actual.service"
         "hath.service"
         "atticd.service"
+        "garret-pusher.service"
+        "garret-puller.service"
         "restic-backups-actual-budget.service"
+        "restic-backups-garret.service"
         "restic-backups-hath.service"
         "prometheus-node-exporter.service"
       ];
@@ -286,7 +289,7 @@ in {
           # confirmed against the pinned node_exporter 1.12.0 binary. The
           # trailing `\.service` restricts matches to service units.
           extraFlags = [
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|atticd|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync)\\.service"
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|atticd|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync)\\.service"
           ];
         };
 
@@ -506,6 +509,13 @@ in {
             ++ lib.optional
             (lib.any (service: service.name == "attic") node.services)
             self.nixosModules.attic
+            # garret (attic's replacement, docs/adr/0013), same
+            # optional-import pattern, gated on the inventory node placing
+            # `garret` (legion-node4 today, alongside attic through the
+            # side-by-side window).
+            ++ lib.optional
+            (lib.any (service: service.name == "garret") node.services)
+            self.nixosModules.garret
             # Actual Budget, same optional-import pattern, gated on the
             # inventory node placing `actual-budget` (legion-node4
             # today).

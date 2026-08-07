@@ -9,8 +9,8 @@ name: Update tracked flake inputs
 # plain stdenvNoCC static builds that follow this flake's own nixpkgs pin
 # with no external deps (see the comments in flake.nix), so bumping them
 # unattended is low-risk. Every other input -- nixpkgs itself, the system
-# modules (hyprland, disko, sops-nix, ...), and attic (whose lock has its
-# own CI coupling, see ci.yml) -- is opt-in only, via workflow_dispatch
+# modules (hyprland, disko, sops-nix, ...), and attic/garret (whose locks
+# have their own CI coupling, see ci.yml) -- is opt-in only, via workflow_dispatch
 # with the relevant box checked. A manual run reuses the same branch/PR as
 # the scheduled run rather than opening a separate one.
 on:
@@ -102,6 +102,10 @@ on:
         description: "jeiang/attic -- bumping this can force a from-source attic-client build in ci.yml if the new rev isn't yet seeded in the Attic cache; see ci.yml for why attic doesn't follow nixpkgs"
         type: boolean
         default: false
+      garret:
+        description: "jeiang/garret -- bumping this rebuilds the cache server AND the client ci.yml installs; a rev not yet seeded in the cache forces a from-source Rust build in every push job. See ci.yml for why garret doesn't follow nixpkgs"
+        type: boolean
+        default: false
 
 # Serializes runs instead of racing: update-flake-lock force-pushes a fixed
 # branch (see `branch:` below), so two overlapping runs (e.g. a manual
@@ -132,8 +136,8 @@ jobs:
         uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
         with:
           extra_nix_config: |
-            extra-substituters = https://attic.jeiang.dev/default
-            extra-trusted-public-keys = default:Xaqeg5b1ctNwH4sEWG+nt1kSpGPpFG0zivJUbZyCfdM=
+            extra-substituters = https://cache.jeiang.dev https://attic.jeiang.dev/default
+            extra-trusted-public-keys = cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA= default:Xaqeg5b1ctNwH4sEWG+nt1kSpGPpFG0zivJUbZyCfdM=
 
       # On a schedule trigger, github.event.inputs is empty (and the
       # per-input defaults above don't apply -- those are only defaults for
