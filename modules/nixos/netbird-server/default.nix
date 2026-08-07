@@ -101,14 +101,25 @@
         "netbird/idp-session-cookie-encryption-key" = {inherit sopsFile;};
       };
 
+      # restartUnits on both: the config file is read once at start-up
+      # (--config) and the EnvironmentFile once by systemd, while a deploy
+      # that only rotates a secret leaves both unit definitions
+      # byte-identical -- so without this the running processes keep the
+      # pre-rotation values, and the relay's NB_AUTH_SECRET would silently
+      # disagree with the server's `relays.secret`. See
+      # modules/nixos/garret/default.nix for the observed failure.
       templates = {
         "netbird-server-config.yaml" = {
           owner = "netbird";
           group = "netbird";
+          restartUnits = ["netbird-server.service"];
           content = configYaml;
         };
 
-        "netbird-relay.env".content = "NB_AUTH_SECRET=${config.sops.placeholder."netbird/relay-auth-secret"}\n";
+        "netbird-relay.env" = {
+          restartUnits = ["netbird-relay.service"];
+          content = "NB_AUTH_SECRET=${config.sops.placeholder."netbird/relay-auth-secret"}\n";
+        };
       };
     };
 
@@ -119,12 +130,6 @@
     };
 
     systemd = {
-      # The Volume mount itself is an external prerequisite (see `dataDir`
-      # above); this only fixes ownership/mode once it exists, so the
-      # runbook can copy PVC content in as root and hand it to the service
-      # user.
-      tmpfiles.rules = ["d ${dataDir} 0750 netbird netbird - -"];
-
       services = {
         # Mount guard (flake.lib.mountGuard, modules/hosts/legion/default.nix)
         # merged in via `//`: refuse to start unless ${dataDir} is
@@ -139,6 +144,19 @@
             wantedBy = ["multi-user.target"];
             serviceConfig = {
               ExecStart = "${lib.getExe serverPkg} --config ${config.sops.templates."netbird-server-config.yaml".path}";
+              # Ownership of the Volume root (external prerequisite, see
+              # `dataDir` above), so the runbook can copy PVC content in as
+              # root and hand it to the service user. An ExecStartPre, NOT
+              # `systemd.tmpfiles.rules`: systemd-tmpfiles-setup.service is
+              # not ordered after this Volume's mount unit, so on the
+              # activation that first mounts the Volume a tmpfiles rule
+              # runs against the empty pre-mount directory and the mount
+              # then hides its work. This inherits the unit's own
+              # `RequiresMountsFor` (mountGuard below), so it cannot run
+              # before the mount exists. Same reasoning and same shape as
+              # modules/nixos/garret/default.nix's `ensureDataDir`; `+`
+              # runs it as root despite User=netbird.
+              ExecStartPre = "+${pkgs.coreutils}/bin/install -d -o netbird -g netbird -m 0750 ${dataDir}";
               Restart = "on-failure";
               RestartSec = 5;
               User = "netbird";

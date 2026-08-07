@@ -26,10 +26,6 @@
       group = "hath";
     };
 
-    # External prerequisite (Volume mount): this only fixes ownership/mode
-    # once it exists, same pattern as modules/nixos/netbird-server/default.nix.
-    systemd.tmpfiles.rules = ["d ${dataDir} 0750 hath hath - -"];
-
     # Mount guard (flake.lib.mountGuard, modules/hosts/legion/default.nix)
     # merged in via `//`: refuse to start unless ${dataDir} is actually
     # mounted, so a missing/late Volume never silently initializes fresh
@@ -58,6 +54,18 @@
             "--disable-ip-origin-check"
             "--enable-metrics"
           ];
+          # Ownership of the Volume root (external prerequisite; the
+          # runbook can copy content in as root and hand it to the service
+          # user). An ExecStartPre, NOT `systemd.tmpfiles.rules`:
+          # systemd-tmpfiles-setup.service is not ordered after this
+          # Volume's mount unit, so on the activation that first mounts the
+          # Volume a tmpfiles rule runs against the empty pre-mount
+          # directory and the mount then hides its work. This inherits the
+          # unit's own `RequiresMountsFor` (mountGuard below), so it cannot
+          # run before the mount exists. Same reasoning and same shape as
+          # modules/nixos/garret/default.nix's `ensureDataDir`; `+` runs it
+          # as root despite User=hath.
+          ExecStartPre = "+${pkgs.coreutils}/bin/install -d -o hath -g hath -m 0750 ${dataDir}";
           Restart = "on-failure";
           RestartSec = 5;
           User = "hath";

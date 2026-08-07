@@ -290,12 +290,20 @@
       # EnvironmentFile is read by systemd (PID 1, root) before it drops
       # privileges to the dynamically allocated UID; it never needs to be
       # readable by a named service user.
-      templates."attic.env".content = ''
-        ATTIC_SERVER_DATABASE_URL=${config.sops.placeholder."attic/database-url"}
-        AWS_ACCESS_KEY_ID=${config.sops.placeholder."attic/s3-access-key-id"}
-        AWS_SECRET_ACCESS_KEY=${config.sops.placeholder."attic/s3-secret-access-key"}
-        ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64=${config.sops.placeholder."attic/token-rs256-secret-base64"}
-      '';
+      #
+      # restartUnits: an EnvironmentFile is read once at start-up and a
+      # secret-only deploy leaves the unit byte-identical, so without this
+      # atticd keeps using the pre-rotation credentials (see
+      # modules/nixos/garret/default.nix for the observed failure).
+      templates."attic.env" = {
+        restartUnits = ["atticd.service"];
+        content = ''
+          ATTIC_SERVER_DATABASE_URL=${config.sops.placeholder."attic/database-url"}
+          AWS_ACCESS_KEY_ID=${config.sops.placeholder."attic/s3-access-key-id"}
+          AWS_SECRET_ACCESS_KEY=${config.sops.placeholder."attic/s3-secret-access-key"}
+          ATTIC_SERVER_TOKEN_RS256_SECRET_BASE64=${config.sops.placeholder."attic/token-rs256-secret-base64"}
+        '';
+      };
     };
   };
 }
