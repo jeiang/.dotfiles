@@ -645,11 +645,11 @@
         "nixpkgs": "nixpkgs_5"
       },
       "locked": {
-        "lastModified": 1786110517,
-        "narHash": "sha256-iXbFqV7GgM8sZUXwaOVg0TurfCGVvToaUIGM5C3t9Wo=",
+        "lastModified": 1786113766,
+        "narHash": "sha256-f0l5t0ukqW/IFM0JBCvBDw1W4ehnNpOVMf+ArgoeeXI=",
         "owner": "jeiang",
         "repo": "garret",
-        "rev": "acf2a5aa2ee74f9f3b66eec1cbd9785b9d6d3fe0",
+        "rev": "724ca568707e0e92b457981b93cdfaa5c1f375c7",
         "type": "github"
       },
       "original": {
