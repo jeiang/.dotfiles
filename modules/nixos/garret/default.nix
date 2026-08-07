@@ -19,7 +19,11 @@
   # attic keeps serving pulls, garret takes every push. Ports here are
   # therefore deliberately NOT the upstream module defaults -- the Pusher
   # defaults to 8080, which atticd already occupies on this node.
-  flake.nixosModules.garret = {config, ...}: let
+  flake.nixosModules.garret = {
+    config,
+    pkgs,
+    ...
+  }: let
     # legion-node4's declared Volume mountpoint
     # (modules/hosts/legion/_service-inventory.nix garret.volume). The
     # SQLite index lives here rather than the upstream default
@@ -164,31 +168,48 @@
     # would silently initialize a fresh, empty index on the root disk --
     # which reads as "the cache is empty" while every object in S3 becomes
     # unreferenced. Same guard every other Volume-backed service uses.
-    #
-    # MemoryMax: 640M + 192M alongside atticd's (reduced) 256M on a 1922 MiB
-    # node, leaving room for actual (320M) and hath. The Puller only serves
-    # narinfo from SQLite and signs redirect URLs, so it needs very little.
-    systemd = {
-      tmpfiles.rules = [
-        # The units run as the `garret` system user created by the upstream
-        # modules; StateDirectory only covers /var/lib/garret, not this
-        # Volume mountpoint.
-        "d ${dataDir} 0750 garret garret -"
-      ];
+    systemd.services = let
+      # A freshly formatted ext4 Volume's root is root:root 0755, and both
+      # units run as the unprivileged `garret` user the upstream modules
+      # create -- so without this they cannot create the database and exit
+      # with SQLite error 14.
+      #
+      # Deliberately NOT the `systemd.tmpfiles.rules` entry that
+      # modules/nixos/hath.nix and netbird-server/default.nix use for the
+      # same job: systemd-tmpfiles-setup.service is not ordered after this
+      # Volume's mount unit, so on the activation that first mounts the
+      # Volume it runs against the empty pre-mount directory and the mount
+      # then hides its work (observed on the first legion-node4 deploy;
+      # those other services only escaped it because their Volumes were
+      # already mounted and owned from an earlier deploy). An ExecStartPre
+      # instead inherits the unit's own `RequiresMountsFor`, so it cannot
+      # run before the mount exists, and it re-asserts ownership on every
+      # start -- which also covers replacing or reformatting the Volume.
+      #
+      # The `+` prefix runs it as root despite the unit's User=garret.
+      ensureDataDir = "+${pkgs.coreutils}/bin/install -d -o garret -g garret -m 0750 ${dataDir}";
+    in {
+      # MemoryMax: 640M + 192M alongside atticd's (reduced) 256M on a
+      # 1922 MiB node, leaving room for actual (320M) and hath. The Puller
+      # only serves narinfo from SQLite and signs redirect URLs, so it
+      # needs very little.
+      garret-pusher =
+        {
+          serviceConfig = {
+            MemoryMax = "640M";
+            ExecStartPre = ensureDataDir;
+          };
+        }
+        // self.lib.mountGuard dataDir;
 
-      services = {
-        garret-pusher =
-          {
-            serviceConfig.MemoryMax = "640M";
-          }
-          // self.lib.mountGuard dataDir;
-
-        garret-puller =
-          {
-            serviceConfig.MemoryMax = "192M";
-          }
-          // self.lib.mountGuard dataDir;
-      };
+      garret-puller =
+        {
+          serviceConfig = {
+            MemoryMax = "192M";
+            ExecStartPre = ensureDataDir;
+          };
+        }
+        // self.lib.mountGuard dataDir;
     };
 
     sops = {
