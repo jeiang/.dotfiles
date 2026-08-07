@@ -178,15 +178,20 @@
                   repository_owner_id = "31970261";
                   ref_protected = "true";
                 };
-                # tw (trusted-write) supplements w, it doesn't replace it:
-                # it skips server-side verification on push (client-attested
-                # chunks, spot-verified within ~1 GC cycle), so it's
-                # root-equivalent for data integrity in this cache. Only
-                # protected-ref CI and the pocketid admin/writer roles hold it.
+                # w/tw are 0 on every rule in this file: attic is read-only
+                # for the remainder of the side-by-side window
+                # (docs/adr/0013) -- garret takes every push, attic only
+                # keeps serving what it already holds. The rules are left
+                # in place rather than deleted so this file stays a
+                # faithful record of the grant until attic retires.
+                #
+                # (tw, trusted-write, supplemented w rather than replacing
+                # it: it skipped server-side verification on push, making
+                # it root-equivalent for data integrity in this cache.)
                 caches.default = {
                   r = 1;
-                  w = 1;
-                  tw = 1;
+                  w = 0;
+                  tw = 0;
                   d = 0;
                   cc = 0;
                   cr = 0;
@@ -224,8 +229,8 @@
                 claims.attic_role = "admin";
                 caches."*" = {
                   r = 1;
-                  w = 1;
-                  tw = 1;
+                  w = 0;
+                  tw = 0;
                   d = 1;
                   cc = 1;
                   cr = 1;
@@ -237,8 +242,8 @@
                 claims.attic_role = "writer";
                 caches."*" = {
                   r = 1;
-                  w = 1;
-                  tw = 1;
+                  w = 0;
+                  tw = 0;
                   d = 0;
                   cc = 0;
                   cr = 0;
@@ -264,8 +269,12 @@
       };
     };
 
-    # 896M, based on measured steady-state RAM usage.
-    systemd.services.atticd.serviceConfig.MemoryMax = "896M";
+    # 256M, down from the 896M measured steady state: attic no longer
+    # accepts pushes (every `w`/`tw` above is 0, docs/adr/0013), so it
+    # never allocates upload/chunking buffers again -- serving narinfo and
+    # relaying NARs is all that is left. The freed budget goes to garret's
+    # two units on the same node.
+    systemd.services.atticd.serviceConfig.MemoryMax = "256M";
 
     sops = {
       secrets = {

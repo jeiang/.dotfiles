@@ -20,8 +20,8 @@
       registry = builtins.mapAttrs (_: v: {flake = v;}) inputs;
 
       customSettings = {
-        # attic.jeiang.dev is self-hosted; don't let a cache outage stall
-        # builds (matches modules/nixos/nix.nix).
+        # Both self-hosted caches; don't let an outage stall builds
+        # (matches modules/nixos/nix.nix).
         connect-timeout = 5;
         fallback = true;
 
@@ -36,10 +36,12 @@
         # nixpkgs from source instead of substituting it. No hyprland
         # cachix here (Linux-only, artemis/legion only).
         extra-substituters = [
+          "https://cache.jeiang.dev"
           "https://attic.jeiang.dev/default"
           "https://helix.cachix.org"
         ];
         extra-trusted-public-keys = [
+          "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
           "default:Xaqeg5b1ctNwH4sEWG+nt1kSpGPpFG0zivJUbZyCfdM="
           "helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="
         ];
