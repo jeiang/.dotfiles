@@ -220,19 +220,36 @@
         # S3 credentials it needs an owner: both units run as the named
         # `garret` user (the upstream modules set DynamicUser = false), not
         # as root via systemd's EnvironmentFile handling.
+        #
+        # restartUnits is load-bearing, not tidiness: the Pusher reads its
+        # signing keys once at start-up, and a deploy that only changes the
+        # secret leaves both unit definitions byte-identical -- so without
+        # this, sops rewrites /run/secrets and the running process keeps
+        # signing with the previous key. Observed exactly that: every path
+        # pushed after a key change kept the old signature, and no consumer
+        # could verify it against the trusted public key.
         "garret/signing-key" = {
           inherit sopsFile;
           owner = "garret";
+          restartUnits = ["garret-pusher.service"];
         };
       };
 
       # No `owner`: an EnvironmentFile is read by systemd (PID 1, root)
       # before it drops privileges, same precedent as
       # modules/nixos/attic/default.nix and netbird-server's netbird-relay.
-      templates."garret-s3.env".content = ''
-        AWS_ACCESS_KEY_ID=${config.sops.placeholder."garret/s3-access-key-id"}
-        AWS_SECRET_ACCESS_KEY=${config.sops.placeholder."garret/s3-secret-access-key"}
-      '';
+      #
+      # Both units get restartUnits for the same reason as the signing key
+      # above: an EnvironmentFile is read once at start-up, so rotated S3
+      # credentials would otherwise not take effect until something else
+      # happened to restart them.
+      templates."garret-s3.env" = {
+        restartUnits = ["garret-pusher.service" "garret-puller.service"];
+        content = ''
+          AWS_ACCESS_KEY_ID=${config.sops.placeholder."garret/s3-access-key-id"}
+          AWS_SECRET_ACCESS_KEY=${config.sops.placeholder."garret/s3-secret-access-key"}
+        '';
+      };
     };
   };
 }
