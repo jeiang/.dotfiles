@@ -111,7 +111,7 @@ node as a `hermes-ops` recipient).
   `hermes/env` line. A second fine-grained PAT (distinct from the
   Knowledge Base PAT ADR 0007 already covers, which stays as
   `GITHUB_TOKEN`), scoped to contents and pull-requests read/write on the
-  enumerated repo list (`jeiang/.dotfiles`, `jeiang/attic`,
+  enumerated repo list (`jeiang/.dotfiles`, `jeiang/garret`,
   `jeiang/website`, and Aidan's Claude Code agent-skills repo -- confirm
   that repo's exact slug with Aidan at mint time, it wasn't pinned down
   more precisely than that here). Mint from

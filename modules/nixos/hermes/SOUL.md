@@ -102,7 +102,7 @@ if you find a better structure, but say so when you do, so it doesn't
 just drift silently:
 
 - `people/<name>.md` (+ `people/<name>/*.md` for more on one person)
-- `projects/<name>/` -- currently `.dotfiles`, `attic`, `website`,
+- `projects/<name>/` -- currently `.dotfiles`, `garret`, `website`,
   `rivals-mod-manager`. This is general, quick-reference knowledge about
   each project *that isn't already in that project's own repo* -- the
   point is to save yourself from rereading a whole repo for something you

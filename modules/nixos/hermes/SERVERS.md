@@ -295,7 +295,7 @@ Beyond the Knowledge Base (which stays on its own narrower
 access to four more repos via `HERMES_REPOS_TOKEN`:
 
 - `jeiang/.dotfiles`
-- `jeiang/attic`
+- `jeiang/garret`
 - `jeiang/website`
 - Aidan's Claude Code agent-skills repo -- exact slug confirm with Aidan
   or check `docs/runbooks/hermes.md`; it wasn't nailed down at PAT-mint
