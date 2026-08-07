@@ -793,15 +793,23 @@
         # alertmanager/discord-webhook below -- this needs an explicit
         # owner: the default sops-nix mode (0400, root-owned) would
         # otherwise be unreadable by the `grafana` user.
+        # restartUnits throughout this block: every one of these is read
+        # once at process start-up (Grafana's `$__file{}` provider, or
+        # systemd's EnvironmentFile), and a deploy that only rotates the
+        # secret leaves the unit definition byte-identical -- so without it
+        # the running process keeps using the pre-rotation value. See
+        # modules/nixos/garret/default.nix for the observed failure.
         "grafana/secret-key" = {
           inherit sopsFile;
           owner = "grafana";
+          restartUnits = ["grafana.service"];
         };
         "alertmanager/discord-webhook" = {inherit sopsFile;};
       };
       templates = {
         "grafana.env" = {
           owner = "grafana";
+          restartUnits = ["grafana.service"];
           content = "GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${config.sops.placeholder."grafana/oauth-client-secret"}\n";
         };
         # No owner override: alertmanager runs with DynamicUser (nixpkgs
@@ -809,7 +817,10 @@
         # `netbird-relay.env` template -- EnvironmentFile is read by
         # systemd (PID 1, root) before the unit's dynamic user is
         # allocated, so the sops-nix default owner (root) is sufficient.
-        "alertmanager.env".content = "DISCORD_WEBHOOK_URL=${config.sops.placeholder."alertmanager/discord-webhook"}\n";
+        "alertmanager.env" = {
+          restartUnits = ["alertmanager.service"];
+          content = "DISCORD_WEBHOOK_URL=${config.sops.placeholder."alertmanager/discord-webhook"}\n";
+        };
       };
     };
 

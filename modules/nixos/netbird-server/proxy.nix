@@ -107,12 +107,23 @@
         # modules/nixos/crowdsec/default.nix under the bouncer name
         # "legion-node2-firewall". Same crowdsec shard as the bouncer key
         # above.
-        "crowdsec/bouncer-legion-node2-firewall" = {sopsFile = crowdsecSopsFile;};
+        # Read once at start-up by the bouncer process; a secret-only
+        # deploy leaves the unit byte-identical, so without restartUnits a
+        # rotated key means the bouncer keeps presenting the old one and
+        # the LAPI starts rejecting it. Same reasoning as
+        # modules/nixos/garret/default.nix.
+        "crowdsec/bouncer-legion-node2-firewall" = {
+          sopsFile = crowdsecSopsFile;
+          restartUnits = ["crowdsec-firewall-bouncer.service"];
+        };
       };
 
       templates = {
         "netbird-proxy.env" = {
           owner = "netbird-proxy";
+          # EnvironmentFile, read once at start-up -- see the bouncer key
+          # above for why a secret-only deploy needs this to take effect.
+          restartUnits = ["netbird-proxy.service"];
           content = ''
             NB_PROXY_TOKEN=${config.sops.placeholder."netbird/proxy-token"}
             NB_PROXY_CROWDSEC_API_KEY=${config.sops.placeholder."crowdsec/bouncer-netbird-proxy-key"}

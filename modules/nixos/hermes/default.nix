@@ -609,11 +609,21 @@
       # static user here, `createUser = true` by default, not
       # DynamicUser -- so a named owner is meaningful and needed for the preStart script above to
       # read the codex-auth.json secret as that same user).
+      #
+      # restartUnits: this is read once at agent start-up (merged into
+      # $HERMES_HOME/.env at activation), and a deploy that only rotates a
+      # token leaves the unit definition byte-identical -- so without it
+      # the running agent keeps using the pre-rotation credentials. Only
+      # hermes-agent.service: hermes-kb-sync and hermes-vdirsyncer-sync are
+      # timer-driven oneshots that read the file fresh on their next run,
+      # and listing them here would instead fire a sync on every deploy.
+      # See modules/nixos/garret/default.nix for the observed failure.
       "hermes/env" = {
         inherit sopsFile;
         owner = cfg.user;
         inherit (cfg) group;
         mode = "0400";
+        restartUnits = ["hermes-agent.service"];
       };
       # Codex-CLI-format OAuth seed, copied into
       # ${cfg.stateDir}/.codex/auth.json by the preStart script above; see
@@ -631,11 +641,18 @@
       # (docs/runbooks/hermes.md); the matching public half is already
       # committed at modules/nixos/hermes-ops/default.nix's
       # `authorizedKeys`.
+      # restartUnits: the preStart installs this unconditionally, so a
+      # restart is what actually propagates a rotated key to
+      # ${sshDir}/id_ed25519. (`hermes/codex-auth.json` above deliberately
+      # gets none: its preStart copy is guarded by `[ ! -f ]`, so a restart
+      # would not replace an existing file anyway -- rotating that one is a
+      # runbook step, docs/runbooks/hermes.md.)
       "hermes/ssh-key" = {
         inherit sopsFile;
         owner = cfg.user;
         inherit (cfg) group;
         mode = "0400";
+        restartUnits = ["hermes-agent.service"];
       };
     };
 

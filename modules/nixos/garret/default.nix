@@ -172,15 +172,15 @@
       # create -- so without this they cannot create the database and exit
       # with SQLite error 14.
       #
-      # Deliberately NOT the `systemd.tmpfiles.rules` entry that
-      # modules/nixos/hath.nix and netbird-server/default.nix use for the
-      # same job: systemd-tmpfiles-setup.service is not ordered after this
+      # Deliberately NOT a `systemd.tmpfiles.rules` entry:
+      # systemd-tmpfiles-setup.service is not ordered after this
       # Volume's mount unit, so on the activation that first mounts the
       # Volume it runs against the empty pre-mount directory and the mount
-      # then hides its work (observed on the first legion-node4 deploy;
-      # those other services only escaped it because their Volumes were
-      # already mounted and owned from an earlier deploy). An ExecStartPre
-      # instead inherits the unit's own `RequiresMountsFor`, so it cannot
+      # then hides its work (observed on the first legion-node4 deploy).
+      # modules/nixos/hath.nix and netbird-server/default.nix used to use
+      # tmpfiles here and only escaped it because their Volumes were
+      # already mounted and owned from an earlier deploy; both now use this
+      # same ExecStartPre shape. An ExecStartPre inherits the unit's own `RequiresMountsFor`, so it cannot
       # run before the mount exists, and it re-asserts ownership on every
       # start -- which also covers replacing or reformatting the Volume.
       #
