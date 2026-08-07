@@ -10,8 +10,9 @@ _: {
     llama-server = lib.getExe' llama-cpp "llama-server";
     # Models are fetched at runtime into a persisted directory rather than
     # hash-pinned into the store. As `pkgs.fetchurl` results they were store
-    # paths referenced by each `cmd` below, which put 34 GB of GGUF inside
-    # nixos-system-artemis's closure: every CI leg and every deploy had to
+    # paths referenced by each `cmd` below, which put 34 GB of GGUF (four
+    # models, at the time) inside nixos-system-artemis's closure: every CI leg
+    # and every deploy had to
     # drag all of it over the wire just to prove the configuration evaluates,
     # and it made toplevel-artemis the slowest job in the matrix by a factor
     # of four.
@@ -31,14 +32,6 @@ _: {
       "Qwen3.5-9B-Q8_0.gguf" = {
         url = "https://huggingface.co/unsloth/Qwen3.5-9B-GGUF/resolve/main/Qwen3.5-9B-Q8_0.gguf";
         hash = "sha256-gJYmV00MtD1L7PpWFpmA2iu0SPIpknD3vkQ8uJ0KauQ=";
-      };
-      "gemma-4-12b-it-Q6_K.gguf" = {
-        url = "https://huggingface.co/unsloth/gemma-4-12b-it-GGUF/resolve/main/gemma-4-12b-it-Q6_K.gguf";
-        hash = "sha256-bzlDNlALtUCb1owxqp11CXteYQT2zzDIKgmntk30H68=";
-      };
-      "nvidia_NVIDIA-Nemotron-Nano-12B-v2-Q6_K.gguf" = {
-        url = "https://huggingface.co/bartowski/nvidia_NVIDIA-Nemotron-Nano-12B-v2-GGUF/resolve/main/nvidia_NVIDIA-Nemotron-Nano-12B-v2-Q6_K.gguf";
-        hash = "sha256-ZZZhGQ2fZQrku6JS3jqI7Qu8tg67ToM8xtHbOWEEFtw=";
       };
     };
     # A plain string, deliberately: interpolating a store path here is exactly
@@ -76,16 +69,6 @@ _: {
           "qwen3.5-9b" = {
             cmd = "${llama-server} --port \${PORT} -m ${model "Qwen3.5-9B-Q8_0.gguf"} -ngl 99 -c 40960 --jinja --temp 0.6 --top-p 0.95 --top-k 20";
             aliases = ["qwen"];
-            ttl = 1800;
-          };
-          "gemma-4-12b" = {
-            cmd = "${llama-server} --port \${PORT} -m ${model "gemma-4-12b-it-Q6_K.gguf"} -ngl 99 -c 32768 --jinja --temp 1.0 --top-p 0.95 --top-k 64";
-            aliases = ["gemma"];
-            ttl = 1800;
-          };
-          "nemotron-nano-12b-v2" = {
-            cmd = "${llama-server} --port \${PORT} -m ${model "nvidia_NVIDIA-Nemotron-Nano-12B-v2-Q6_K.gguf"} -ngl 99 -c 32768 --jinja --temp 0.6 --top-p 0.95";
-            aliases = ["nemotron"];
             ttl = 1800;
           };
         };
