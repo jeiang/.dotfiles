@@ -33,6 +33,7 @@
         claude-code
         defaultbrowser
         erdtree
+        fd
         # withWhisper defaults on for ffmpeg-full >=8.0 (whisper speech
         # recognition support); whisper-cpp's CoreML backend fails to link
         # on this pinned nixpkgs' aarch64-darwin toolchain (ld crashes with
