@@ -13,8 +13,8 @@ _: {
     cfg = config.backups;
 
     # Operator-provisioned bucket (external prerequisite), dedicated to
-    # Restic state -- separate from Attic's own "attic" Mega S4 bucket.
-    # Region matches Attic's existing Mega S4 account (eu-central-1)
+    # Restic state -- separate from garret's own "garret" Mega S4
+    # bucket. Region matches the existing Mega S4 account (eu-central-1)
     # purely so there's one fewer region to administer; not a requirement
     # of the backup data itself.
     s4Endpoint = "https://s3.eu-central-1.s4.mega.io";

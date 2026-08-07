@@ -101,13 +101,6 @@ creation_rules:
       - *user_aidanp
       - *server_legion_node3
 
-  # modules/nixos/attic/default.nix.
-  - path_regex: modules/nixos/attic/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *server_legion_node4
-
   # modules/nixos/garret/default.nix.
   - path_regex: modules/nixos/garret/secrets\.yaml$
     key_groups:

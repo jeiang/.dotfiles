@@ -28,7 +28,7 @@
   # stays generic (options only) and every other piece of Legion
   # placement data continues to live in this directory. Unit names
   # verified against each owning module (modules/nixos/monitoring,
-  # actual-budget.nix, hath.nix, attic/, edge/, netbird-server/,
+  # actual-budget.nix, hath.nix, edge/, netbird-server/,
   # pocket-id/, blocky.nix, backups/default.nix's
   # `restic-backups-<service-name>` convention), not guessed.
   hermesOpsTiers = {
@@ -83,7 +83,6 @@
       tier1 = [
         "actual.service"
         "hath.service"
-        "atticd.service"
         "garret-pusher.service"
         "garret-puller.service"
         "restic-backups-actual-budget.service"
@@ -281,15 +280,14 @@ in {
           # exist only on the node that places them, which is fine: the
           # collector simply matches whatever is present per node). Unit
           # names verified by grepping each module's `systemd.services.<n>`
-          # (services.atticd -> atticd.service, services.actual ->
-          # actual.service, monitoring's vmalert instance ->
+          # (services.actual -> actual.service, monitoring's vmalert instance ->
           # vmalert-default.service, services.journald.upload ->
           # systemd-journal-upload.service, etc.). Flag name
           # `--collector.systemd.unit-include` (a full-match regexp)
           # confirmed against the pinned node_exporter 1.12.0 binary. The
           # trailing `\.service` restricts matches to service units.
           extraFlags = [
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|atticd|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync)\\.service"
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync)\\.service"
           ];
         };
 
@@ -504,15 +502,9 @@ in {
             ++ lib.optional
             (lib.any (service: service.name == "pocket-id") node.services)
             self.nixosModules.pocket-id
-            # Attic, same optional-import pattern, gated on the inventory
-            # node placing `attic` (legion-node4 today).
-            ++ lib.optional
-            (lib.any (service: service.name == "attic") node.services)
-            self.nixosModules.attic
-            # garret (attic's replacement, docs/adr/0013), same
+            # garret, the Nix binary cache (docs/adr/0013), same
             # optional-import pattern, gated on the inventory node placing
-            # `garret` (legion-node4 today, alongside attic through the
-            # side-by-side window).
+            # `garret` (legion-node4 today).
             ++ lib.optional
             (lib.any (service: service.name == "garret") node.services)
             self.nixosModules.garret

@@ -52,14 +52,14 @@ cd ~/Projects/cornn-flaek
 out of the upstream nix-darwin flake (this only bootstraps the binary; the
 actual system config still comes from `--flake .#zakkart`, i.e. this repo).
 
-The cache/attic/helix substituters (`modules/darwin/nix.nix`) only take
+The cache/helix substituters (`modules/darwin/nix.nix`) only take
 effect *after* activation writes `/etc/nix/nix.custom.conf` -- they aren't
 active yet for this first run. Pass them explicitly with `--option` so the
 very first build substitutes instead of compiling everything from source:
 
 ```sh
 sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake .#zakkart \
-  --option extra-substituters "https://cache.jeiang.dev https://attic.jeiang.dev/default https://helix.cachix.org" \
+  --option extra-substituters "https://cache.jeiang.dev https://helix.cachix.org" \
   --option extra-trusted-public-keys "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA= default:Xaqeg5b1ctNwH4sEWG+nt1kSpGPpFG0zivJUbZyCfdM= helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="
 ```
 

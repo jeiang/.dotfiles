@@ -89,28 +89,20 @@
     # external deps beyond nixpkgs, same reasoning as portfolio above.
     bill-splitter.url = "github:jeiang/bill-splitter";
     bill-splitter.inputs.nixpkgs.follows = "nixpkgs";
-    # Deliberately not following our nixpkgs: attic-client is built with
-    # attic's own nixpkgs pin and pushed to the Attic cache by jeiang/attic's
-    # own CI. Following ours here would give attic-client a different
-    # derivation (different rustc/deps) and thus a different store path than
-    # what's actually cached, forcing a from-source rebuild in CI. CI also
-    # installs the client from this input's locked rev (see
-    # .github/workflows/ci.yml), so this lock is the single pin to bump.
-    attic.url = "github:jeiang/attic";
-    # garret: attic's replacement (docs/adr/0013). Deliberately not
-    # following our nixpkgs, for the same reason as attic above -- CI
-    # installs the `garret` client from this input's locked rev
-    # (.github/workflows/ci.yml), and following our pin would give it a
-    # different derivation than the one garret's own CI seeds into the
-    # cache, forcing a from-source rebuild on every run. Until that
-    # seeding CI exists in jeiang/garret, the first CI runs build the
-    # client from source regardless.
+    # garret: the binary cache server and client (docs/adr/0013).
+    # Deliberately not following our nixpkgs -- CI installs the `garret`
+    # client from this input's locked rev (.github/workflows/ci.yml), and
+    # following our pin would give it a different derivation (different
+    # rustc/deps) than the one garret's own CI seeds into the cache,
+    # forcing a from-source rebuild on every run. Until that seeding CI
+    # exists in jeiang/garret, the first CI runs build the client from
+    # source regardless.
     garret.url = "github:jeiang/garret";
     # Hermes agent (upstream NixOS module consumed directly by
     # modules/nixos/hermes/). Deliberately not following our nixpkgs: the
     # upstream flake carries a uv2nix-built Python environment tested
     # against its own pin; following ours would force a full rebuild of
-    # that environment on every nixpkgs bump (same reasoning as attic
+    # that environment on every nixpkgs bump (same reasoning as garret
     # above).
     hermes-agent.url = "github:NousResearch/hermes-agent/v2026.7.30";
   };

@@ -143,7 +143,7 @@ _: {
             }
           ];
 
-          # Attic exception: Attic NAR/narinfo clients (CI runners in
+          # Binary cache exception: NAR/narinfo clients (CI runners in
           # particular) legitimately fetch in high-volume bursts that
           # otherwise read as http-crawl/probing. `evt.Meta.target_fqdn`
           # is the field crowdsecurity/caddy-logs sets from the request
@@ -151,16 +151,14 @@ _: {
           # https://github.com/crowdsecurity/hub parsers/s01-parse/crowdsecurity/caddy-logs.yaml).
           parsers.s02Enrich = [
             {
-              # Covers garret's two hostnames (docs/adr/0013) alongside
-              # attic's for the same reason: cache clients fetch and push
-              # in legitimate high-volume bursts. cache.jeiang.dev is the
-              # substituter, cache-push.jeiang.dev the push API.
-              name = "jeiang/attic-cache-whitelist";
+              # Covers garret's two hostnames (docs/adr/0013):
+              # cache.jeiang.dev is the substituter, cache-push.jeiang.dev
+              # the push API.
+              name = "jeiang/cache-whitelist";
               description = "Do not feed binary cache traffic into ban scenarios";
               whitelist = {
                 reason = "binary cache clients legitimately fetch and push in bursts";
                 expression = [
-                  "evt.Meta.target_fqdn == 'attic.jeiang.dev'"
                   "evt.Meta.target_fqdn == 'cache.jeiang.dev'"
                   "evt.Meta.target_fqdn == 'cache-push.jeiang.dev'"
                 ];

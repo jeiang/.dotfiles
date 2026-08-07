@@ -69,21 +69,6 @@
           timeout = "5s";
           http.preferred_ip_protocol = "ip4";
         };
-        # http_2xx_attic: attic-server validates the Host header against
-        # allowed-hosts = ["attic.jeiang.dev"] (modules/nixos/attic.nix) and
-        # answers 400 "Bad Host" to a bare-IP probe, so this module sends the
-        # canonical Host while still probing the private backend directly
-        # (keeping Caddy/DNS/TLS out of the liveness signal, docs/adr/0003).
-        # With a valid Host, attic / -> 200 HTML placeholder (attic-server
-        # server/src/api/mod.rs root route returns `Html<..>`, a 200).
-        http_2xx_attic = {
-          prober = "http";
-          timeout = "5s";
-          http = {
-            preferred_ip_protocol = "ip4";
-            headers.Host = "attic.jeiang.dev";
-          };
-        };
         # tcp_connect: pure TCP-handshake reachability, used for
         # netbird-server's :80. That port multiplexes gRPC + the management
         # HTTP API (modules/nixos/netbird-server/default.nix
@@ -356,9 +341,7 @@
             # address rather than the upstream loopback default so this
             # scrape can reach them -- ports 9091 (Pusher) and 9092
             # (Puller), both declared private-scope in
-            # modules/hosts/legion/_service-inventory.nix. Attic had no
-            # equivalent: it exposed no metrics endpoint at all, only the
-            # blackbox probe below.
+            # modules/hosts/legion/_service-inventory.nix.
             job_name = "garret";
             static_configs = [
               {
@@ -388,8 +371,8 @@
           #
           # Every target port below is already declared private-scope in
           # modules/hosts/legion/_service-inventory.nix -- pocket-id :1411
-          # and netbird-server :80 (legion-node2), actual-budget :5006 and
-          # attic :8080 (legion-node4) -- reachable cross-node over the
+          # and netbird-server :80 (legion-node2) and actual-budget :5006
+          # (legion-node4) -- reachable cross-node over the
           # trusted enp7s0 interface exactly like every metrics scrape
           # above. So NO new host firewall opening and NO Hetzner Cloud
           # Firewall rule is added for probing (docs/adr/0003 Consequences).
@@ -416,10 +399,9 @@
                 };
               }
               {
-                # actual-budget (budget) and attic (Nix binary cache) are
-                # important but not auth-critical -- a stale cache or an
-                # unreachable budget app degrades, it doesn't lock the fleet
-                # out -- so these stay `warning`, same tier as
+                # actual-budget (budget) is important but not auth-critical --
+                # an unreachable budget app degrades, it does not lock the
+                # fleet out -- so it stays `warning`, same tier as
                 # SystemdUnitFailed.
                 targets = ["http://${node4}:5006/health"];
                 labels = {
@@ -428,22 +410,10 @@
                 };
               }
               {
-                # attic needs the Host-header module (see http_2xx_attic in
-                # blackboxConfig); __param_target/__address__ relabels below
-                # apply unchanged, and __param_module set here per-target
-                # overrides the job-level params.module.
-                targets = ["http://${node4}:8080/"];
-                labels = {
-                  type = "probe";
-                  tier = "warning";
-                  __param_module = "http_2xx_attic";
-                };
-              }
-              {
                 # garret (docs/adr/0013), same `warning` tier as the other
                 # node4 backends -- a degraded cache slows builds, it
-                # doesn't lock anyone out. Unlike attic, garret validates
-                # no Host header, so the plain http_2xx module works.
+                # does not lock anyone out. garret validates no Host
+                # header, so the plain http_2xx module works.
                 #
                 # Probe paths are chosen to exercise the thing that
                 # actually matters per unit: the Puller's /nix-cache-info
@@ -691,7 +661,7 @@
                 # port. Severity is per-target, not fleet-uniform: the
                 # `tier` label set on each probe target in the scrape jobs
                 # above ("critical" for the pocket-id SSO and netbird VPN
-                # backends, "warning" for the actual/attic backends) is
+                # backends, "warning" for the actual/garret backends) is
                 # carried onto the alert series and mapped straight to
                 # `severity` via the vmalert label template below. Distinct
                 # from the critical fleet-wide TargetDown (up == 0), which

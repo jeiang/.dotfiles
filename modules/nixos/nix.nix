@@ -64,7 +64,7 @@
         ];
         flake-registry = "/etc/nix/registry.json";
 
-        # Both self-hosted caches; don't let an outage stall deploys
+        # Self-hosted cache; do not let an outage stall deploys
         connect-timeout = 5;
         fallback = true;
 
@@ -72,21 +72,16 @@
         keep-derivations = true;
         keep-outputs = true;
 
-        # garret first: it's the cache receiving every new push
-        # (docs/adr/0013). attic stays listed through the side-by-side
-        # window purely so paths pushed before the cutover still
-        # substitute; both it and its key go away with the retirement.
-        # Unlike attic, garret serves the cache at the host root rather
-        # than under a per-cache path -- there is only ever one cache.
+        # garret is the self-hosted cache (docs/adr/0013); it serves at
+        # the host root rather than under a per-cache path -- there is
+        # only ever one cache.
         substituters = [
           "https://cache.jeiang.dev"
-          "https://attic.jeiang.dev/default"
           "https://helix.cachix.org"
           "https://hyprland.cachix.org"
         ];
         trusted-public-keys = [
           "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
-          "default:Xaqeg5b1ctNwH4sEWG+nt1kSpGPpFG0zivJUbZyCfdM="
           "helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="
           "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
         ];

@@ -3,9 +3,9 @@
   inputs,
   ...
 }: {
-  # garret (jeiang/garret) for legion-node4, attic's replacement
-  # (docs/adr/0013). Two units from two upstream modules, colocated on one
-  # host over a shared SQLite index:
+  # garret (jeiang/garret) for legion-node4, the fleet's Nix binary cache
+  # and Attic's replacement (docs/adr/0013). Two units from two upstream
+  # modules, colocated on one host over a shared SQLite index:
   #
   #   - Pusher  -- OIDC-authenticated push API, behind the edge at
   #                cache-push.jeiang.dev (must stay grey-clouded: a push is
@@ -15,10 +15,9 @@
   #                answer 302 to a presigned S3 URL, so NAR bytes never
   #                traverse the edge; only narinfo does.
   #
-  # Runs alongside atticd through the side-by-side window (docs/adr/0013):
-  # attic keeps serving pulls, garret takes every push. Ports here are
-  # therefore deliberately NOT the upstream module defaults -- the Pusher
-  # defaults to 8080, which atticd already occupies on this node.
+  # The Pusher is deliberately NOT on its upstream default of 8080: that
+  # port belonged to atticd while the two ran side by side, and moving it
+  # back now would only churn the edge routes and firewall for nothing.
   flake.nixosModules.garret = {
     config,
     pkgs,
@@ -35,7 +34,7 @@
     # Ports, all declared private-scope in
     # modules/hosts/legion/_service-inventory.nix and matched by
     # modules/nixos/edge/default.nix's two routes.
-    pusherPort = 8082; # 8080 is atticd's during the overlap
+    pusherPort = 8082; # not upstream's 8080; see the header comment
     pullerPort = 8081;
     pusherMetricsPort = 9091;
     pullerMetricsPort = 9092;
@@ -64,8 +63,7 @@
     pocketIdIssuer = {
       issuer = "https://auth.jeiang.dev";
       audience = pocketIdAudience;
-      # Skips discovery; matches modules/nixos/attic/default.nix's pocketid
-      # provider, which used the same JWKS URL.
+      # Skips discovery; the same JWKS URL Attic's pocketid provider used.
       jwks_url = "https://auth.jeiang.dev/.well-known/jwks.json";
       allowed_groups = [];
     };
@@ -74,8 +72,8 @@
       bucket = "garret";
       endpointUrl = "https://s3.ca-montreal.megas4.com";
       region = "ca-montreal";
-      # Upstream default. MEGA S4 serves attic over the same endpoint
-      # today; flip to false if it rejects path-style addressing.
+      # Upstream default; flip to false if MEGA S4 rejects path-style
+      # addressing.
       pathStyle = true;
       credentialsFile = config.sops.templates."garret-s3.env".path;
     };
@@ -114,8 +112,8 @@
           low = 0.85;
         };
 
-        # Sized for a 2 vCPU / 1.9 GiB node shared with atticd, actual and
-        # hath. `maxInFlightBytes` is the real memory bound: garret turns
+        # Sized for a 2 vCPU / 1.9 GiB node shared with actual and hath.
+        # `maxInFlightBytes` is the real memory bound: garret turns
         # it into a process-wide semaphore over part-sized buffers
         # (garret-server/src/storage.rs UploadLimits::new), so it holds
         # regardless of how many uploads arrive. `maxConcurrentUploads` is
@@ -189,14 +187,16 @@
       # The `+` prefix runs it as root despite the unit's User=garret.
       ensureDataDir = "+${pkgs.coreutils}/bin/install -d -o garret -g garret -m 0750 ${dataDir}";
     in {
-      # MemoryMax: 640M + 192M alongside atticd's (reduced) 256M on a
-      # 1922 MiB node, leaving room for actual (320M) and hath. The Puller
-      # only serves narinfo from SQLite and signs redirect URLs, so it
-      # needs very little.
+      # MemoryMax: 896M + 192M on a 1922 MiB node, leaving room for
+      # actual (320M) and hath. The Pusher absorbs the 256M that atticd
+      # held before it retired -- it is the unit that buffers uploads
+      # (`maxInFlightBytes` above is 384 MiB of that ceiling), while the
+      # Puller only serves narinfo from SQLite and signs redirect URLs, so
+      # it needs very little.
       garret-pusher =
         {
           serviceConfig = {
-            MemoryMax = "640M";
+            MemoryMax = "896M";
             ExecStartPre = ensureDataDir;
           };
         }
@@ -237,7 +237,7 @@
 
       # No `owner`: an EnvironmentFile is read by systemd (PID 1, root)
       # before it drops privileges, same precedent as
-      # modules/nixos/attic/default.nix and netbird-server's netbird-relay.
+      # netbird-server's netbird-relay.
       #
       # Both units get restartUnits for the same reason as the signing key
       # above: an EnvironmentFile is read once at start-up, so rotated S3
