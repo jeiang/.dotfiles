@@ -474,6 +474,11 @@
       sops.templates."caddy.env" = {
         owner = config.services.caddy.user;
         group = config.services.caddy.group;
+        # An EnvironmentFile is read once at start-up, and a deploy that
+        # only rotates a secret leaves the unit definition byte-identical
+        # -- so without this Caddy keeps using the pre-rotation token/key.
+        # Same reasoning as modules/nixos/garret/default.nix's templates.
+        restartUnits = ["caddy.service"];
         content =
           "CLOUDFLARE_API_TOKEN=${config.sops.placeholder."caddy/cloudflare-dns-token"}\n"
           + lib.optionalString cfg.crowdsec.enable ''

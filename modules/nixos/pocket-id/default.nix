@@ -7,7 +7,11 @@
   # only for the inventory node that places `pocket-id`
   # (modules/hosts/legion/default.nix, same optional-import pattern as
   # netbird-server/netbird-proxy).
-  flake.nixosModules.pocket-id = {config, ...}: let
+  flake.nixosModules.pocket-id = {
+    config,
+    pkgs,
+    ...
+  }: let
     # legion-node2's declared Volume mountpoint
     # (modules/hosts/legion/_service-inventory.nix pocket-id.volume).
     # WorkingDirectory=dataDir (nixpkgs' services.pocket-id systemd unit),
@@ -63,7 +67,23 @@
         # Overrides the nixpkgs services.pocket-id unit (fixed "pocket-id"
         # user, not DynamicUser), same as every other MemoryMax override in
         # this repo.
-        serviceConfig.MemoryMax = "256M";
+        # The nixpkgs module owns ${dataDir} with its own
+        # `systemd.tmpfiles.rules` entry ("d ${dataDir} 0755 pocket-id
+        # pocket-id"), which is unsafe for a Volume mountpoint:
+        # systemd-tmpfiles-setup.service is not ordered after the mount
+        # unit, so on the activation that first mounts the Volume it runs
+        # against the empty pre-mount directory and the mount then hides
+        # its work (observed on the first legion-node4 deploy for garret).
+        # That rule can't be removed from here, so re-assert the same
+        # ownership and mode from an ExecStartPre, which inherits this
+        # unit's own `RequiresMountsFor` (mountGuard below) and therefore
+        # cannot run before the mount exists. Same shape as
+        # modules/nixos/garret/default.nix's `ensureDataDir`; `+` runs it
+        # as root despite the unit's User=pocket-id.
+        serviceConfig = {
+          MemoryMax = "256M";
+          ExecStartPre = "+${pkgs.coreutils}/bin/install -d -o pocket-id -g pocket-id -m 0755 ${dataDir}";
+        };
       }
       // self.lib.mountGuard dataDir;
 
@@ -74,6 +94,11 @@
       };
       templates."pocket-id.env" = {
         owner = config.services.pocket-id.user;
+        # An EnvironmentFile is read once at start-up and a secret-only
+        # deploy leaves the unit byte-identical, so without this a rotated
+        # ENCRYPTION_KEY/STATIC_API_KEY never reaches the running process.
+        # See modules/nixos/garret/default.nix for the observed failure.
+        restartUnits = ["pocket-id.service"];
         content = ''
           ENCRYPTION_KEY=${config.sops.placeholder."pocket-id/encryption-key"}
           STATIC_API_KEY=${config.sops.placeholder."pocket-id/static-api-key"}
