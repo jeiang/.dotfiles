@@ -188,6 +188,23 @@
         path = ./hath.json;
       }
       {
+        # Hand-authored board for garret, the Nix binary cache (job "garret",
+        # docs/adr/0013). One job, two targets separated by the `component`
+        # label the scrape config below attaches -- pusher (node4:9091) and
+        # puller (node4:9092) -- so every panel selects on `component` rather
+        # than on a second job. Metric names verified against the pinned
+        # garret rev (garret-server/src/{metrics,storage}.rs,
+        # garret-pusher/src/{main,gc}.rs, garret-puller/src/main.rs): a
+        # metrics-exporter-prometheus registry, so counters already carry
+        # `_total` in the source names and only `_bytes`/`_duration_seconds`
+        # suffixes get bucket rules. garret_negotiation_batch_size and
+        # garret_negotiation_missing_ratio match neither rule and so render as
+        # summaries -- their panel averages _sum/_count instead of asking for
+        # a quantile that would not exist.
+        name = "garret.json";
+        path = ./garret.json;
+      }
+      {
         # Vendored "Prometheus Blackbox Exporter" board (grafana.com #7587
         # revision 3). Covers our blackbox-http / blackbox-tcp jobs (the
         # `$target` variable enumerates label_values(probe_success, instance),
