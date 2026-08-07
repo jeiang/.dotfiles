@@ -69,6 +69,11 @@
           "/var/lib/NetworkManager"
           "/var/lib/bluetooth"
           "/var/lib/netbird"
+          # GGUF weights fetched by llama-swap-models
+          # (modules/nixos/llama-swap.nix). Not derivable state: without this
+          # entry nukeRoot drops tens of GB of models on every boot and the
+          # unit re-downloads all of them before llama-swap can start.
+          "/var/lib/llama-swap-models"
         ];
 
         # User-level state.
