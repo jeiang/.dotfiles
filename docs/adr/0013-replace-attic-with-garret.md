@@ -45,10 +45,19 @@ after the function rather than the implementation, because these strings are
 baked into every machine's `nix.conf` and into CI. Replacing the
 implementation again should not mean another fleet-wide rename.
 
-`cache-push.jeiang.dev` **must stay grey-clouded / DNS-only** in Cloudflare.
-A push is one streaming PUT of an entire zstd-compressed NAR, and Cloudflare
-rejects bodies over 100 MB on the free plan. `cache.jeiang.dev` has no such
-constraint: only narinfo and redirects traverse it.
+Both hostnames are grey-clouded / DNS-only in Cloudflare.
+
+For `cache-push.jeiang.dev` this is a hard requirement: a push is one
+streaming PUT of an entire zstd-compressed NAR, and Cloudflare rejects
+bodies over 100 MB on the free plan.
+
+For `cache.jeiang.dev` it is a choice. Proxying it would gain almost
+nothing — garret answers NAR requests with a 302 to a presigned S3 URL, so
+only narinfo would ever be cacheable — while inheriting the shared-PoP
+failure mode that kept the cache unreachable from CI: a CrowdSec decision
+landing on a Cloudflare address 403s every client routed through that PoP.
+That underlying bug is fixed separately, but a cache has no reason to sit
+behind a proxy it does not benefit from.
 
 ## Consequences
 

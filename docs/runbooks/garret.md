@@ -53,12 +53,20 @@ Two records pointing at the edge (legion-node1):
 
 | Name | Cloudflare mode |
 | --- | --- |
-| `cache.jeiang.dev` | Proxied (orange) is fine — only narinfo and 302 redirects cross it |
-| `cache-push.jeiang.dev` | **Grey-clouded / DNS-only, required** |
+| `cache.jeiang.dev` | Grey-clouded / DNS-only |
+| `cache-push.jeiang.dev` | Grey-clouded / DNS-only, **required** |
 
-A push is one streaming PUT of a whole compressed NAR; Cloudflare rejects
-bodies over 100 MB on the free plan, so a proxied push hostname 413s on any
-sizeable closure.
+The push hostname is a hard requirement: a push is one streaming PUT of a
+whole compressed NAR, and Cloudflare rejects bodies over 100 MB on the free
+plan, so a proxied push hostname 413s on any sizeable closure.
+
+The puller could in principle be proxied, but there is nothing to gain and
+something to lose. Gain: garret answers NAR requests with a 302 to a
+presigned S3 URL, so the only thing Cloudflare could cache is narinfo.
+Lose: proxying puts the cache behind the shared-PoP failure mode that made
+it unreachable from CI — a CrowdSec ban landing on a Cloudflare address
+403s everyone routed through it (fixed by the `trusted_proxies` change in
+`modules/nixos/edge/default.nix`, but the exposure is unnecessary here).
 
 ### 5. Pocket ID client
 

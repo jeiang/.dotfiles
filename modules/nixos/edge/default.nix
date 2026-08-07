@@ -325,6 +325,12 @@
           # only narinfo and the redirect itself. Same crowdsec/appsec
           # treatment as attic: IP decisions apply, deep body inspection
           # does not (cache clients fetch in legitimate bursts).
+          #
+          # Grey-clouded in Cloudflare, like the push hostname below but by
+          # choice rather than necessity: with NARs served as S3 redirects
+          # there is nothing worth proxying except narinfo, and staying off
+          # the proxy keeps the cache clear of the shared-PoP ban behaviour
+          # that made it unreachable from CI (docs/adr/0013).
           cache.jeiang.dev {
             ${logLine}${crowdsecLine}reverse_proxy ${node4}:8081
           }
