@@ -26,6 +26,16 @@ env:
   GARRET_SUBSTITUTER: https://cache.jeiang.dev
   GARRET_PUBLIC_KEY: "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
 
+  # With the cache warm, a CI leg compiles almost nothing: it realises a few
+  # thousand already-built paths, so wall clock is substituter round-trips,
+  # not CPU. Nix's defaults (16 substitution jobs over 25 HTTP connections)
+  # leave the link mostly idle — the heavy legs were fetching ~2400 paths at
+  # roughly 6/s. These are the single biggest wall-clock knob left; they are
+  # also the knob that loads garret hardest, so they move together with its
+  # server-side limits.
+  MAX_SUBSTITUTION_JOBS: "32"
+  HTTP_CONNECTIONS: "64"
+
 jobs:
   # Source of the check matrix below. Building every check in a single job
   # previously ran for hours and got killed with no useful logs (likely OOM
@@ -55,11 +65,23 @@ jobs:
           extra_nix_config: |
             extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
             extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }}
+            max-substitution-jobs = ${{ env.MAX_SUBSTITUTION_JOBS }}
+            http-connections = ${{ env.HTTP_CONNECTIONS }}
 
+      # A matrix entry is a space-separated list of check names, not a single
+      # name, so related checks can share one runner. The only collapse today:
+      # deploy-schema and deploy-activate both realise every deploy node's
+      # activation profile — the same ~2200 paths, which already subsume all
+      # four legion toplevels — so as separate legs they paid ~400s each to
+      # download identical closures. Together, the second is free.
       - name: Discover checks
         id: discover
         run: |
-          checks=$(nix eval --json '.#checks.x86_64-linux' --apply builtins.attrNames)
+          collapse='
+            ([.[] | select(startswith("deploy-"))] | if length > 0 then [join(" ")] else [] end) as $deploy
+            | [.[] | select(startswith("deploy-") | not)] + $deploy
+          '
+          checks=$(nix eval --json '.#checks.x86_64-linux' --apply builtins.attrNames | jq -c "$collapse")
           echo "checks=$checks" >> "$GITHUB_OUTPUT"
 
   build:
@@ -73,10 +95,10 @@ jobs:
     strategy:
       fail-fast: false
       # 2 was set when every job compiled heavyweight closures from scratch;
-      # with the cache warm, jobs are mostly network-bound substitution, so a
-      # higher cap mainly trades cache server load for wall-clock time. Raise
-      # further if the cache keeps up.
-      max-parallel: 6
+      # with the cache warm, jobs are mostly network-bound substitution, so
+      # this cap just trades cache server load for wall-clock time. Raised to
+      # 10 once garret's server-side limits were lifted to match.
+      max-parallel: 10
       matrix:
         check: ${{ fromJson(needs.discover.outputs.checks) }}
     runs-on: ubuntu-latest
@@ -84,10 +106,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          df -h
+      # ponytail: no "free disk space" step. It was added (0b64642) when every
+      # check built in ONE job and needed headroom for all six closures at
+      # once; the matrix split made it vestigial. Each leg now realises a
+      # single check, entirely by substitution (~2400 paths, ~10-20 GB), on a
+      # 145 GB runner with ~70 GB free before any cleanup. It cost 25-190s per
+      # leg — 1709s across the matrix, 38% of all job-seconds, routinely
+      # longer than the build it was making room for. If a leg ever hits
+      # ENOSPC, add the rm -rf back to that leg only.
 
       # Pulls are anonymous against the public cache: baking the substituter
       # into nix.conf here means every nix invocation below substitutes from
@@ -98,15 +124,28 @@ jobs:
           extra_nix_config: |
             extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
             extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }}
+            max-substitution-jobs = ${{ env.MAX_SUBSTITUTION_JOBS }}
+            http-connections = ${{ env.HTTP_CONNECTIONS }}
 
       # print-out-paths emits one line per derivation output (e.g. mangohud's
       # "out" and "man"), so this can be multi-line — write it to
       # $GITHUB_OUTPUT with the delimiter form rather than a plain
       # key=value line, which breaks on embedded newlines.
+      #
+      # CHECKS is a space-separated list (see `discover`), and goes through
+      # the environment rather than being spliced into the script for the
+      # same reason PATHS does below. Building the whole group in one `nix
+      # build` rather than a loop is the point: nix then substitutes their
+      # shared dependencies once, concurrently, instead of once per attr.
       - name: Build check
         id: build
+        env:
+          CHECKS: ${{ matrix.check }}
+          SYSTEM: x86_64-linux
         run: |
-          paths=$(nix build --keep-going --show-trace --no-link --print-out-paths ".#checks.x86_64-linux.${{ matrix.check }}")
+          installables=()
+          for attr in $CHECKS; do installables+=(".#checks.${SYSTEM}.${attr}"); done
+          paths=$(nix build --keep-going --show-trace --no-link --print-out-paths "${installables[@]}")
           delimiter="$(openssl rand -hex 8)"
           {
             echo "paths<<$delimiter"
@@ -152,6 +191,11 @@ jobs:
   # per-check fan-out, so it's simpler as its own job than folded into that
   # matrix. Same pure `nix build` and best-effort cache push pattern as
   # `build` above.
+  #
+  # One attribute is all darwin needs, and a package fan-out here would be
+  # actively wasteful -- see the note in modules/checks.nix: the push below
+  # sends this toplevel's whole closure, which is already every darwin path
+  # zakkart installs.
   build-macos:
     permissions:
       contents: read
@@ -167,6 +211,8 @@ jobs:
           extra_nix_config: |
             extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
             extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }}
+            max-substitution-jobs = ${{ env.MAX_SUBSTITUTION_JOBS }}
+            http-connections = ${{ env.HTTP_CONNECTIONS }}
 
       - name: Build check
         id: build
