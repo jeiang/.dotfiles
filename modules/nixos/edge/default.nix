@@ -145,6 +145,40 @@
           # only the metrics output, nothing administrative.
           metrics
 
+          # Cloudflare sits in front of every orange-clouded hostname here, so
+          # without this Caddy treats Cloudflare's edge as the client: every
+          # access record carries a Cloudflare IP as `client_ip`, and every
+          # CrowdSec decision derived from one bans a Cloudflare PoP rather
+          # than the actual client.
+          #
+          # That is not merely useless, it is an outage: a single probe from
+          # one attacker (observed: an Amazonbot `/media../.env` request to
+          # auth.jeiang.dev tripping crowdsecurity/appsec-vpatch) bans a shared
+          # Cloudflare address, which then 403s every unrelated visitor routed
+          # through that PoP, across every proxied hostname. It is what made
+          # the binary cache unreachable from GitHub Actions -- `nix` logged
+          # `unable to download '.../nix-cache-info': HTTP error 403` and fell
+          # back to building from source on every CI run.
+          #
+          # Both decision paths honour this once set: the bouncer resolves the
+          # client through Caddy's own ClientIPVarKey
+          # (caddy-crowdsec-bouncer internal/httputils, "the client IP
+          # reported here is the actual client IP"), and the hub's
+          # crowdsecurity/caddy-logs parser reads
+          # `evt.Unmarshaled.caddy.request.client_ip`.
+          #
+          # The range list comes from the `cloudflare` ip_source module
+          # (github.com/WeidiDeng/caddy-cloudflare-ip, modules/packages/caddy.nix)
+          # rather than a static list in Nix, so a Cloudflare range change does
+          # not silently reintroduce this by going stale.
+          servers {
+            trusted_proxies cloudflare {
+              interval 12h
+              timeout 15s
+            }
+            client_ip_headers Cf-Connecting-Ip
+          }
+
           ${lib.optionalString cfg.crowdsec.enable ''
             # Handler ordering: neither the `crowdsec` nor `appsec` HTTP
             # handler directive registers a position in Caddy's default
