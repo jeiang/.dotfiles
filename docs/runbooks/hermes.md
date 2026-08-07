@@ -111,7 +111,7 @@ node as a `hermes-ops` recipient).
   `hermes/env` line. A second fine-grained PAT (distinct from the
   Knowledge Base PAT ADR 0007 already covers, which stays as
   `GITHUB_TOKEN`), scoped to contents and pull-requests read/write on the
-  enumerated repo list (`jeiang/.dotfiles`, `jeiang/attic`,
+  enumerated repo list (`jeiang/.dotfiles`, `jeiang/garret`,
   `jeiang/website`, and Aidan's Claude Code agent-skills repo -- confirm
   that repo's exact slug with Aidan at mint time, it wasn't pinned down
   more precisely than that here). Mint from
@@ -356,7 +356,7 @@ To disable Hermes entirely: remove the `hermes` entry from
 `modules/hosts/legion/_service-inventory.nix` and redeploy `legion-node3`
 (the module only imports when the inventory places it -- the same
 optional-import pattern `modules/hosts/legion/default.nix` uses for
-`attic/default.nix`/`actual-budget.nix`).
+`garret/default.nix`/`actual-budget.nix`).
 
 The state directory on `legion-node3`'s root disk (agent sessions, the
 Knowledge Base clone) is Disposable State and can be deleted freely -- no

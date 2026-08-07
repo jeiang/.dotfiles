@@ -17,21 +17,14 @@ permissions:
   contents: read
 
 env:
-  # Both caches are public for reads: pulls are anonymous on every event
+  # The cache is public for reads: pulls are anonymous on every event
   # (PRs and forks included), so substitution needs no client, no login, and
   # no secrets — just the substituters and their signing keys in nix.conf
   # below. Push credentials are minted per-job by the garret client itself
   # from GitHub OIDC, and only main is granted push server-side
   # (modules/nixos/garret/default.nix `ref_patterns`).
-  #
-  # attic is read-only through the side-by-side window (docs/adr/0013): it
-  # is still listed as a substituter so paths pushed before the cutover keep
-  # resolving, but nothing pushes to it any more. Both entries go away with
-  # the retirement.
   GARRET_SUBSTITUTER: https://cache.jeiang.dev
   GARRET_PUBLIC_KEY: "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
-  ATTIC_SUBSTITUTER: https://attic.jeiang.dev/default
-  ATTIC_PUBLIC_KEY: "default:Xaqeg5b1ctNwH4sEWG+nt1kSpGPpFG0zivJUbZyCfdM="
 
 jobs:
   # Source of the check matrix below. Building every check in a single job
@@ -60,8 +53,8 @@ jobs:
         uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
         with:
           extra_nix_config: |
-            extra-substituters = ${{ env.GARRET_SUBSTITUTER }} ${{ env.ATTIC_SUBSTITUTER }}
-            extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }} ${{ env.ATTIC_PUBLIC_KEY }}
+            extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
+            extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }}
 
       - name: Discover checks
         id: discover
@@ -98,13 +91,13 @@ jobs:
 
       # Pulls are anonymous against the public cache: baking the substituter
       # into nix.conf here means every nix invocation below substitutes from
-      # the caches with zero setup steps — no client, no login, no secrets.
+      # the cache with zero setup steps — no client, no login, no secrets.
       - name: Install Nix
         uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
         with:
           extra_nix_config: |
-            extra-substituters = ${{ env.GARRET_SUBSTITUTER }} ${{ env.ATTIC_SUBSTITUTER }}
-            extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }} ${{ env.ATTIC_PUBLIC_KEY }}
+            extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
+            extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }}
 
       # print-out-paths emits one line per derivation output (e.g. mangohud's
       # "out" and "man"), so this can be multi-line — write it to
@@ -128,8 +121,7 @@ jobs:
       # still required.
       #
       # The client rev comes from flake.lock (the same pin the flake itself
-      # uses). Unlike attic-client, that build is NOT yet pre-seeded in any
-      # cache, so these first runs compile a Rust workspace from source;
+      # uses). That build is NOT yet pre-seeded in any cache, so these first runs compile a Rust workspace from source;
       # once jeiang/garret's own CI pushes its client build to
       # cache.jeiang.dev, the install substitutes in seconds instead.
       #
@@ -173,8 +165,8 @@ jobs:
         uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
         with:
           extra_nix_config: |
-            extra-substituters = ${{ env.GARRET_SUBSTITUTER }} ${{ env.ATTIC_SUBSTITUTER }}
-            extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }} ${{ env.ATTIC_PUBLIC_KEY }}
+            extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
+            extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }}
 
       - name: Build check
         id: build

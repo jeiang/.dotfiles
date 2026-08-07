@@ -12,7 +12,7 @@ repository. It does not cover provisioning the bucket itself.
 ### External: the Mega S4 bucket
 
 `modules/nixos/backups.nix` targets a dedicated bucket, separate from the
-binary caches' own buckets (`attic` and `garret`):
+binary cache's own `garret` bucket:
 
 | Setting | Value |
 | --- | --- |

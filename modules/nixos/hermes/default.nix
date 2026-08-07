@@ -7,7 +7,7 @@
   # Service the fleet runs, consuming the upstream hermes-agent NixOS module
   # directly). Imported only for the inventory node placing `hermes` (piece
   # 4, legion-node3 today, same optional-import pattern as
-  # modules/nixos/attic.nix / actual-budget.nix in
+  # modules/nixos/garret/ / actual-budget.nix in
   # modules/hosts/legion/default.nix) -- this module never enables itself on
   # a host by importing.
   #
@@ -606,9 +606,8 @@
       #     to annotation writes only (Grafana annotations feature).
       # environmentFiles above merges this into $HERMES_HOME/.env at
       # activation. owner/group = the hermes-agent service user (a real
-      # static user here, `createUser = true` by default -- not
-      # DynamicUser, unlike modules/nixos/attic.nix's atticd -- so a named
-      # owner is meaningful and needed for the preStart script above to
+      # static user here, `createUser = true` by default, not
+      # DynamicUser -- so a named owner is meaningful and needed for the preStart script above to
       # read the codex-auth.json secret as that same user).
       #
       # restartUnits: this is read once at agent start-up (merged into

@@ -48,7 +48,6 @@
             "aidanpinard.co"
             "pinard.co.tt"
             "auth.jeiang.dev"
-            "attic.jeiang.dev"
             "cache.jeiang.dev"
             "cache-push.jeiang.dev"
             "budget.jeiang.dev"
@@ -342,35 +341,11 @@
       edge = false;
       services = [
         {
-          # DNS points at the edge (legion-node1); Caddy proxies here
-          # (modules/nixos/edge/default.nix attic.jeiang.dev route). Port
-          # 8080 matches modules/nixos/attic.nix's
-          # `services.atticd.settings.listen`.
-          name = "attic";
-          publicHostnames = [];
-          firewall = [
-            {
-              # Same documentation-only "private" scope as the other
-              # backend entries in this file: enforcement is
-              # trustedInterfaces (enp7s0) plus the port not being in the
-              # "public" allowlist.
-              port = 8080;
-              proto = "tcp";
-              scope = "private";
-            }
-          ];
-          # External managed PostgreSQL + Mega S4; no local state, so --
-          # unlike every other node4 entry below -- no `volume` and no
-          # `backupSet`.
-          stateful = false;
-        }
-        {
-          # garret, attic's replacement (docs/adr/0013). Colocated with
-          # attic through the side-by-side window, which is why the Pusher
-          # is on 8082 rather than its upstream default of 8080 -- atticd
-          # holds 8080 on this node until it retires.
+          # garret, the Nix binary cache (docs/adr/0013). The Pusher sits
+          # on 8082 rather than its upstream default of 8080, a holdover
+          # from the retired atticd that held 8080 on this node.
           #
-          # DNS points at the edge; Caddy proxies here
+          # DNS points at the edge (legion-node1); Caddy proxies here
           # (modules/nixos/edge/default.nix cache.jeiang.dev and
           # cache-push.jeiang.dev routes). Ports match
           # modules/nixos/garret/default.nix.
@@ -404,7 +379,7 @@
               scope = "private";
             }
           ];
-          # Unlike attic, garret keeps a local SQLite index -- and that
+          # garret keeps a local SQLite index -- and that
           # index is the only record of what the S3 bucket contains, so
           # losing it strands every stored object as an orphan GC can never
           # reclaim. Retained, not regenerable in practice.
