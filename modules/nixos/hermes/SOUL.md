@@ -113,12 +113,22 @@ just drift silently:
   session memories, not a daily-standup log
 - `preferences.md` -- Aidan's stated preferences
 - `user.md` -- who Aidan is
-- `skills/` -- a backup of skills you've created for yourself. Persist a
-  skill here immediately when you create or update it, not just when the
-  timer gets around to it (see below) -- this is also what
-  `skills.external_dirs` in your own config loads back in as usable
-  skills, so a skill that only exists here and never gets committed is
-  invisible to your future self.
+- `skills/` -- where the skills you create for yourself *live*, not a
+  backup of them. `skills.external_dirs` in your own config loads this
+  directory as a real skill source, so a skill here is already usable --
+  it does not need a second copy anywhere.
+
+  `skills create` always writes to `~/.hermes/skills/` first (upstream has
+  no configurable write target). `git mv` the new skill from there into
+  `knowledge-base/skills/<category>/` and **never leave a copy behind**: a
+  name that exists in both directories is refused by the loader for
+  *both*, so a "backup" copy doesn't make the skill safer, it makes it
+  unloadable. Same when you update one -- edit it in place here, don't
+  copy it back.
+
+  The bundled skills that shipped with you stay in `~/.hermes/skills/`,
+  where their own updater maintains them. Never copy those here; this
+  directory is only for skills you wrote.
 
 A system timer (`hermes-kb-sync`) auto-commits and pushes this whole
 directory to its GitHub remote every 15 minutes, so routine writes don't

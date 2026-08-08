@@ -116,6 +116,18 @@
     vdirsyncerStatusDir = "${cfg.stateDir}/.vdirsyncer/status";
     khalConfigDir = "${cfg.stateDir}/.config/khal";
 
+    # Scheduled routines (the `cronjob` tool, SERVERS.md "Cron routines").
+    # Upstream stores them as `get_hermes_home()/cron/jobs.json`
+    # (`cron/jobs.py` at the pinned rev). `get_hermes_home()` resolves to
+    # `${cfg.stateDir}/.hermes` here -- not `cfg.stateDir` itself: the same
+    # helper backs `skills_sync.py`'s `SKILLS_DIR = HERMES_HOME /
+    # "skills"`, and that directory is observably
+    # `/var/lib/hermes/.hermes/skills` on the node, which pins the `.hermes`
+    # level. See the preStart symlink below for why this is redirected into
+    # the Knowledge Base clone.
+    cronStoreDir = "${cfg.stateDir}/.hermes/cron";
+    cronStoreTarget = "${cfg.workingDirectory}/knowledge-base/.hermes-cron";
+
     # vdirsyncer 0.20.0 (the pinned nixpkgs version -- confirmed via `nix
     # eval .#nixosConfigurations.legion-node3.pkgs.vdirsyncer.version`)
     # config format, verified against vdirsyncer's own docs
@@ -707,6 +719,34 @@
             # mutates this file, it is Nix-managed end-to-end.
             install -d -m 0700 "${khalConfigDir}"
             install -m 0640 ${khalConfig} "${khalConfigDir}/config"
+
+            # Cron store into the Knowledge Base clone. Upstream keeps
+            # scheduled routines in `cronStoreDir` (see that binding for
+            # how the path is derived), which is
+            # Disposable State under `stateDir` -- so a node rebuild
+            # silently drops every routine the agent was asked to keep.
+            # Symlinking that store into the KB clone makes the existing
+            # hermes-kb-sync timer (below) push it, and a rebuild restores
+            # it with the clone: durability without a Hetzner Volume, which
+            # is why `stateful = false` stays correct in
+            # modules/hosts/legion/_service-inventory.nix.
+            #
+            # Dot-prefixed so Obsidian hides it from the vault view -- `git
+            # add -A` still picks it up. `cron/output/` (job output, pure
+            # churn) is gitignored in the KB repo itself, not excluded
+            # here: this is a whole-directory symlink, there is nothing to
+            # filter at this end.
+            install -d "${cronStoreTarget}"
+            # One-time migration off the real directory a pre-symlink
+            # deploy left behind. Guarded on `! -L` so this is a no-op on
+            # every subsequent start; without it `ln -sfn` onto an existing
+            # directory would create the link *inside* it, silently
+            # orphaning the routines already there.
+            if [ -d "${cronStoreDir}" ] && [ ! -L "${cronStoreDir}" ]; then
+              cp -a "${cronStoreDir}/." "${cronStoreTarget}/"
+              rm -rf "${cronStoreDir}"
+            fi
+            ln -sfn "${cronStoreTarget}" "${cronStoreDir}"
           '';
 
           # legion-node3 also runs the memory-constrained monitoring stack
@@ -767,8 +807,25 @@
               git -c credential.helper= -c credential.helper='!gh auth git-credential' "$@"
             }
 
+            # Deliberately NOT `git clone`: hermes-agent's preStart creates
+            # `$KB_DIR/.hermes-cron` (the cron store, see that comment) and
+            # `git clone` refuses a destination that already exists and is
+            # non-empty -- on a fresh node the agent's preStart wins that
+            # race whenever it starts before this timer's first run
+            # (OnActiveSec=1m below). init+fetch+checkout is the same end
+            # state and tolerates a pre-populated directory; `checkout -f`
+            # is what lets a tracked path land on top of one the preStart
+            # already created. Idempotent, so a half-finished previous run
+            # (network drop between init and checkout) heals on the next
+            # tick rather than wedging on a `.git` that exists but has no
+            # commits.
             if [ ! -d "$KB_DIR/.git" ]; then
-              gitAuth clone https://github.com/jeiang/knowledge-base.git "$KB_DIR"
+              install -d "$KB_DIR"
+              git init -q -b main "$KB_DIR"
+              git -C "$KB_DIR" remote add origin \
+                https://github.com/jeiang/knowledge-base.git 2>/dev/null || true
+              gitAuth -C "$KB_DIR" fetch origin main
+              git -C "$KB_DIR" checkout -q -f -B main origin/main
               exit 0
             fi
 
@@ -878,7 +935,11 @@
     # backupSet: the only durable state is the sops secrets (already backed
     # by the repo's sops workflow) and the KB remote (durable by the timer
     # above); everything under `stateDir` is Disposable State
-    # (CONTEXT.md) -- including the calendar vdir Part D adds, which
+    # (CONTEXT.md) -- including the cron store, which is only nominally
+    # under `stateDir`: the preStart symlinks it into the KB clone
+    # (`cronStoreTarget`), so its durable copy is the KB remote like
+    # everything else here, not a Volume -- and including the calendar
+    # vdir Part D adds, which
     # re-syncs from iCloud on the next `hermes-vdirsyncer-sync` run, so it
     # needs no backup either -- same reasoning
     # modules/nixos/monitoring/default.nix already documents for its own
