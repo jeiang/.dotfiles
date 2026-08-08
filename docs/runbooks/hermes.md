@@ -97,10 +97,24 @@ node as a `hermes-ops` recipient).
 - **iCloud app-specific password (CalDAV/CardDAV)** -- `ICLOUD_APP_PASSWORD`,
   another `hermes/env` line, generated from Aidan's Apple ID account page
   (appleid.apple.com -> Sign-In and Security -> App-Specific Passwords).
-  `ICLOUD_USERNAME` (Aidan's iCloud email, not itself a credential but
-  operator-specific) sits alongside it in the same secret. Both consumed
-  by vdirsyncer's `username.fetch`/`password.fetch` (`["command",
-  "printenv", "..."]`, `modules/nixos/hermes/default.nix`'s
+  `ICLOUD_USERNAME` (not itself a credential but operator-specific) sits
+  alongside it in the same secret. It must be a **full email address** --
+  either the Apple ID sign-in address or the `@icloud.com` one, both of
+  which work. It must NOT be the bare Apple ID short name: that
+  authenticates successfully against the account and then fails CalDAV
+  principal lookup, so iCloud answers `403 Forbidden` rather than `401`,
+  and the unit's log looks like a permissions problem instead of a
+  malformed username. Check a candidate before committing it -- `207` is
+  the pass, `403` means the address has no CalDAV principal, `401` means
+  the credential pair itself is wrong:
+
+  ```sh
+  curl -s -o /dev/null -w '%{http_code}\n' -X PROPFIND -H 'Depth: 0' \
+    -u 'ADDRESS:APP_SPECIFIC_PASSWORD' https://caldav.icloud.com/
+  ```
+
+  Both are consumed by vdirsyncer's `username.fetch`/`password.fetch`
+  (`["command", "printenv", "..."]`, `modules/nixos/hermes/default.nix`'s
   `vdirsyncerConfig`) from the `hermes-vdirsyncer-sync` unit's
   environment -- khal itself never touches iCloud directly, it only reads
   the local vdir vdirsyncer maintains. Revoke from the same Apple ID page;
