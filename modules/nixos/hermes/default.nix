@@ -877,12 +877,31 @@
             # comment below.
             install -d -m 0700 "${calendarDir}" "${vdirsyncerStatusDir}"
 
-            # `discover` is safe to re-run every time (see the
-            # `vdirsyncerConfig` comment above for why the single-sided
-            # "from b" collections list keeps this non-interactive) --
-            # cheap, and picks up any calendar iCloud-side renames/adds
-            # without a separate one-time setup step.
-            vdirsyncer discover icloud_calendar
+            # `discover` is safe to re-run every time -- cheap, and picks
+            # up any calendar iCloud-side renames/adds without a separate
+            # one-time setup step.
+            #
+            # The `y` feed is what makes it non-interactive. `collections =
+            # ["from b"]` (see `vdirsyncerConfig` above) decides which side
+            # is authoritative, NOT whether discovery prompts: for every
+            # remote collection with no local counterpart, vdirsyncer asks
+            # `Should vdirsyncer attempt to create it? [y/N]` and reads the
+            # answer from stdin, which a systemd oneshot doesn't have -- so
+            # the first run after auth started working failed on the prompt
+            # rather than on the sync. `discover` has no `--yes` (only
+            # `--list`, verified against vdirsyncer 0.20.0's `discover
+            # --help`), so stdin is the only lever. Answering `y` is the
+            # right answer here and not a rubber stamp: the local vdir is
+            # Disposable State, mirrored from iCloud, so creating it is
+            # exactly the intent -- there is no local-only calendar that a
+            # `y` could clobber.
+            #
+            # A bounded feed rather than `yes |`: under `pipefail` a `yes`
+            # killed by SIGPIPE when vdirsyncer exits first would fail the
+            # unit. 100 `y` lines is ~200 bytes, well inside the pipe
+            # buffer, so printf always completes and exits 0 regardless of
+            # how many prompts vdirsyncer actually consumes.
+            printf 'y\n%.0s' $(seq 1 100) | vdirsyncer discover icloud_calendar
             vdirsyncer sync icloud_calendar
           '';
         };
