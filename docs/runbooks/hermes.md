@@ -330,6 +330,22 @@ sudo -u hermes HOME=/var/lib/hermes \
 Scheduled jobs fire from the already-running `hermes-agent` process (its
 in-process cron ticker) -- no separate timer or service to check.
 
+The job store itself is **not** Disposable State, despite living under
+`stateDir` like everything else here: `hermes-agent`'s preStart symlinks
+`/var/lib/hermes/.hermes/cron` into the Knowledge Base clone
+(`.hermes-cron/`, hidden from the Obsidian vault view), so `hermes-kb-sync`
+pushes it and a node rebuild restores every routine along with the clone.
+Nothing to re-create by hand after a rebuild -- unlike Codex auth above.
+Confirm with:
+
+```sh
+ssh node3.jeiang.dev -- ls -ld /var/lib/hermes/.hermes/cron
+```
+
+It must print a symlink into `workspace/knowledge-base/.hermes-cron`. If it
+prints a plain directory, the preStart migration didn't run -- restart
+`hermes-agent` and check its logs.
+
 ## Verify
 
 ```sh
