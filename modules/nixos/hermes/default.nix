@@ -160,8 +160,9 @@
     # (untrusted third-party content, the same injection class the
     # webhook toolset's own comment warns about). The config is rendered
     # by preStart rather than pkgs.writeText because `backend.login`
-    # needs ICLOUD_USERNAME, which is sops-managed (operator-specific,
-    # deliberately not committed -- see the `hermes/env` secret comment).
+    # needs ICLOUD_MAIL_USERNAME, which is sops-managed
+    # (operator-specific, deliberately not committed -- see the
+    # `hermes/env` secret comment).
     himalayaConfigDir = "${cfg.stateDir}/.config/himalaya";
 
     # vdirsyncer 0.20.0 (the pinned nixpkgs version -- confirmed via `nix
@@ -749,12 +750,16 @@
       #   BRAVE_SEARCH_API_KEY  -- Brave Search free-plan key
       #     (`web.backend = "brave-free"` above);
       #     api-dashboard.search.brave.com.
-      # ICLOUD_USERNAME / ICLOUD_APP_PASSWORD are additionally consumed by
-      # the himalaya email config (preStart below) and the CardDAV
-      # contacts mirror -- Apple app-specific passwords are account-wide,
-      # so the existing CalDAV credential covers IMAP/SMTP/CardDAV too.
-      # If IMAP auth is ever rejected while CalDAV still works, mint a
-      # second app-specific password rather than assuming rotation.
+      #   ICLOUD_MAIL_USERNAME  -- the bare iCloud short name (before
+      #     @icloud.com) mail auth requires, distinct from
+      #     ICLOUD_USERNAME's full-address form CalDAV/CardDAV require
+      #     -- see the preStart comment where it's consumed.
+      # ICLOUD_APP_PASSWORD is additionally consumed by the himalaya
+      # email config (preStart below) and the CardDAV contacts mirror --
+      # Apple app-specific passwords are account-wide, so the existing
+      # CalDAV credential covers IMAP/SMTP/CardDAV too. If mail auth is
+      # ever rejected while CalDAV still works, mint a second
+      # app-specific password rather than assuming rotation.
       # environmentFiles above merges this into $HERMES_HOME/.env at
       # activation. owner/group = the hermes-agent service user (a real
       # static user here, `createUser = true` by default, not
@@ -866,16 +871,25 @@
             install -m 0640 ${khardConfig} "${khardConfigDir}/khard.conf"
 
             # himalaya config (email): rendered here, not pkgs.writeText,
-            # because backend.login must be the literal Apple ID
-            # (ICLOUD_USERNAME, sops-managed -- see the `himalayaConfigDir`
-            # comment). Only that one value is spliced out of the secret;
+            # because backend.login must be the literal account username
+            # (ICLOUD_MAIL_USERNAME, sops-managed -- see the
+            # `himalayaConfigDir` comment). Only that one value is
+            # spliced out of the secret;
             # the password never lands in the file at all
             # (`backend.auth.cmd` runs printenv at use time, same
             # mechanism as vdirsyncer's `password.fetch` above). Grep
             # rather than `source`: the env file is EnvironmentFile
             # syntax, not shell, so sourcing it would be wrong the day any
             # value grows a character shell treats specially.
-            _icloud_user=$(grep '^ICLOUD_USERNAME=' "${config.sops.secrets."hermes/env".path}" | cut -d= -f2-)
+            # ICLOUD_MAIL_USERNAME, not ICLOUD_USERNAME: iCloud mail auth
+            # takes the bare short name (the part before @icloud.com),
+            # NOT the full Apple ID sign-in address CalDAV/CardDAV
+            # require (docs/runbooks/hermes.md's ICLOUD_USERNAME entry --
+            # the exact inverse of that entry's 403 trap). Confirmed
+            # operationally by Aidan from the Pocket ID SMTP setup
+            # against this same account, so the two protocols get two
+            # separate env values rather than one guess.
+            _icloud_mail_user=$(grep '^ICLOUD_MAIL_USERNAME=' "${config.sops.secrets."hermes/env".path}" | cut -d= -f2-)
             install -d -m 0700 "${himalayaConfigDir}"
             cat > "${himalayaConfigDir}/config.toml" <<EOF
             [accounts.icloud]
@@ -886,14 +900,14 @@
             backend.host = "imap.mail.me.com"
             backend.port = 993
             backend.encryption.type = "tls"
-            backend.login = "$_icloud_user"
+            backend.login = "$_icloud_mail_user"
             backend.auth.type = "password"
             backend.auth.cmd = "printenv ICLOUD_APP_PASSWORD"
             message.send.backend.type = "smtp"
             message.send.backend.host = "smtp.mail.me.com"
             message.send.backend.port = 587
             message.send.backend.encryption.type = "start-tls"
-            message.send.backend.login = "$_icloud_user"
+            message.send.backend.login = "$_icloud_mail_user"
             message.send.backend.auth.type = "password"
             message.send.backend.auth.cmd = "printenv ICLOUD_APP_PASSWORD"
             EOF
