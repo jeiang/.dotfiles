@@ -67,6 +67,11 @@
       # or fleet-wide low-blast-radius reads.
       tier1 = [
         "hermes-kb-sync.service"
+        # obscura: Hermes' own headless-browser sidecar
+        # (modules/nixos/hermes/default.nix) -- nothing but Hermes
+        # consumes it, so a restart's blast radius is one of Hermes' own
+        # tool calls failing mid-flight.
+        "obscura.service"
         "prometheus-node-exporter.service"
         "prometheus-blackbox-exporter.service"
       ];

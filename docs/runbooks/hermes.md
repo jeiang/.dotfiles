@@ -148,6 +148,35 @@ node as a `hermes-ops` recipient).
   $GRAFANA_URL/api/annotations` (SERVERS.md "Grafana annotations").
   Rotate by revoking the old token from the same Service Accounts page
   and overwriting the `GRAFANA_ANNOTATION_TOKEN` line with a replacement.
+- **Groq API key (STT)** -- `GROQ_API_KEY`, another `hermes/env` line
+  (2026-08-09 capability review). Free-tier key from
+  <https://console.groq.com> (API Keys). Consumed by the agent's built-in
+  voice-note transcription (`stt.provider = "groq"` in
+  `modules/nixos/hermes/default.nix`); without it, Telegram voice notes
+  fail to transcribe (they do NOT fall back to a local model -- the
+  provider is pinned precisely so the memory-capped node never pulls
+  one). Rotate by revoking and re-minting from the same console page.
+- **Brave Search API key** -- `BRAVE_SEARCH_API_KEY`, another
+  `hermes/env` line (2026-08-09 capability review). Free-plan key from
+  <https://api-dashboard.search.brave.com>. Consumed by the agent's
+  `web_search`/`web_extract` tools (`web.backend = "brave-free"`).
+  Rotate from the same dashboard.
+- **iCloud mail (himalaya) and contacts (khard)** -- no new credential:
+  both reuse `ICLOUD_USERNAME`/`ICLOUD_APP_PASSWORD` above (Apple
+  app-specific passwords are account-wide, covering IMAP/SMTP and
+  CardDAV alongside CalDAV). The himalaya config is rendered by
+  `hermes-agent`'s preStart from the `hermes/env` secret; the contacts
+  CardDAV mirror is a second (read-only) vdirsyncer pair on the existing
+  sync unit. If IMAP auth fails while CalDAV works, mint a *second*
+  app-specific password for mail rather than rotating the shared one.
+- **`cornn-flaek` in the `hermes-repos` PAT** -- not a new credential
+  either: edit the existing `HERMES_REPOS_TOKEN` fine-grained PAT's
+  repository list at <https://github.com/settings/personal-access-tokens>
+  to add `jeiang/cornn-flaek` (same contents + pull-requests read/write
+  permissions). Hermes' write path to that repo is PR-only by policy
+  (SOUL.md) and `main` stays branch-protected server-side; no token
+  value changes, so nothing to re-sops unless you rotate at the same
+  time.
 - **`artemis` LLM provider** -- no credential to manage; unauthenticated
   over the NetBird mesh (`settings.providers.artemis`,
   `modules/nixos/hermes/default.nix`). If artemis's NetBird peer IP
@@ -167,11 +196,15 @@ ICLOUD_USERNAME=...
 ICLOUD_APP_PASSWORD=...
 HERMES_REPOS_TOKEN=...
 GRAFANA_ANNOTATION_TOKEN=...
+GROQ_API_KEY=...
+BRAVE_SEARCH_API_KEY=...
 ```
 
 No new sops secret files or `sops.secrets` entries are needed for this
-part -- all six fold into the existing `hermes/env` secret Part A already
-declared.
+part -- everything folds into the existing `hermes/env` secret Part A
+already declared. (The 2026-08-09 capability review also requires one
+non-sops operator step: adding `jeiang/cornn-flaek` to the
+`HERMES_REPOS_TOKEN` PAT's repository list, see that entry above.)
 
 ## Verifying the operations tiers
 
