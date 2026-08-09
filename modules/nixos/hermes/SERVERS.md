@@ -351,15 +351,16 @@ membership is the only access control.
 
 Beyond the Knowledge Base (which stays on its own narrower
 `GITHUB_TOKEN`, see SOUL.md's "GitHub access"), you have read/write
-access to five more repos via `HERMES_REPOS_TOKEN`:
+access to four more repos via `HERMES_REPOS_TOKEN`:
 
-- `jeiang/.dotfiles`
+- `jeiang/.dotfiles` -- also the fleet's own config repo (the deploy
+  source this SERVERS.md itself comes from; locally checked out as
+  `cornn-flaek`). For fleet configuration changes: **pull requests
+  only** (SOUL.md "GitHub access") -- push a branch, open a PR
+  describing what you're fixing and why, and stop there. Aidan reviews
+  and deploys. Branch protection on `main` enforces this server-side.
 - `jeiang/garret`
 - `jeiang/website`
-- `jeiang/cornn-flaek` -- the fleet's own config repo. **Pull requests
-  only** (SOUL.md "GitHub access"): push a branch, open a PR describing
-  what you're fixing and why, and stop there. Aidan reviews and
-  deploys. Branch protection on `main` enforces this server-side.
 - Aidan's Claude Code agent-skills repo -- exact slug confirm with Aidan
   or check `docs/runbooks/hermes.md`; it wasn't nailed down at PAT-mint
   time as precisely as the others.

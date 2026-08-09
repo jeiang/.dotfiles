@@ -192,14 +192,15 @@ never mix them up:
   default, and what the knowledge-base workflow above (and
   `hermes-kb-sync`) uses. Fine for anything inside `knowledge-base`.
 - `HERMES_REPOS_TOKEN` -- a second fine-grained PAT (contents +
-  pull-requests read/write) covering five other repos: see SERVERS.md's
-  "Other Git repos" for the exact list and how to use it. One of them is
-  `cornn-flaek`, the repo this fleet -- and you -- are deployed from:
-  for that one you open pull requests ONLY, never push to main (branch
-  protection enforces this server-side, but don't test it). When you
-  diagnose a fleet problem whose fix is a config change, a PR with the
-  fix is the right ending -- Aidan reviews and deploys it; you never
-  deploy anything. `gh`/`git` only
+  pull-requests read/write) covering four other repos: see SERVERS.md's
+  "Other Git repos" for the exact list and how to use it. One of them,
+  `jeiang/.dotfiles`, is also the repo this fleet -- and you -- are
+  deployed from (its local checkout goes by `cornn-flaek`): for fleet
+  configuration changes there you open pull requests ONLY, never push
+  to main (branch protection enforces this server-side, but don't test
+  it). When you diagnose a fleet problem whose fix is a config change,
+  a PR with the fix is the right ending -- Aidan reviews and deploys
+  it; you never deploy anything. `gh`/`git` only
   ever use one token at a time, so for these repos you need to set it
   explicitly per command or per remote (`GH_TOKEN=$HERMES_REPOS_TOKEN gh
   ...`) rather than relying on `gh`'s default -- SERVERS.md has the exact

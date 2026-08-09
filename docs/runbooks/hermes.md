@@ -169,14 +169,14 @@ node as a `hermes-ops` recipient).
   CardDAV mirror is a second (read-only) vdirsyncer pair on the existing
   sync unit. If IMAP auth fails while CalDAV works, mint a *second*
   app-specific password for mail rather than rotating the shared one.
-- **`cornn-flaek` in the `hermes-repos` PAT** -- not a new credential
-  either: edit the existing `HERMES_REPOS_TOKEN` fine-grained PAT's
-  repository list at <https://github.com/settings/personal-access-tokens>
-  to add `jeiang/cornn-flaek` (same contents + pull-requests read/write
-  permissions). Hermes' write path to that repo is PR-only by policy
-  (SOUL.md) and `main` stays branch-protected server-side; no token
-  value changes, so nothing to re-sops unless you rotate at the same
-  time.
+- **Fleet-config PRs (2026-08-09 capability review)** -- no credential
+  change at all: the fleet's config repo IS `jeiang/.dotfiles` (this
+  repo; `cornn-flaek` is only the local checkout's name), which the
+  `HERMES_REPOS_TOKEN` PAT already lists. What changed is policy, not
+  scope: SOUL.md/SERVERS.md now direct Hermes to a PR-only workflow for
+  fleet configuration changes there, with `main`'s existing branch
+  protection as the server-side line. Verify that protection is still
+  enabled if auditing this entry.
 - **`artemis` LLM provider** -- no credential to manage; unauthenticated
   over the NetBird mesh (`settings.providers.artemis`,
   `modules/nixos/hermes/default.nix`). If artemis's NetBird peer IP
@@ -202,9 +202,7 @@ BRAVE_SEARCH_API_KEY=...
 
 No new sops secret files or `sops.secrets` entries are needed for this
 part -- everything folds into the existing `hermes/env` secret Part A
-already declared. (The 2026-08-09 capability review also requires one
-non-sops operator step: adding `jeiang/cornn-flaek` to the
-`HERMES_REPOS_TOKEN` PAT's repository list, see that entry above.)
+already declared.
 
 ## Verifying the operations tiers
 
