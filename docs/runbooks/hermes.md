@@ -161,14 +161,19 @@ node as a `hermes-ops` recipient).
   <https://api-dashboard.search.brave.com>. Consumed by the agent's
   `web_search`/`web_extract` tools (`web.backend = "brave-free"`).
   Rotate from the same dashboard.
-- **iCloud mail (himalaya) and contacts (khard)** -- no new credential:
-  both reuse `ICLOUD_USERNAME`/`ICLOUD_APP_PASSWORD` above (Apple
-  app-specific passwords are account-wide, covering IMAP/SMTP and
-  CardDAV alongside CalDAV). The himalaya config is rendered by
-  `hermes-agent`'s preStart from the `hermes/env` secret; the contacts
-  CardDAV mirror is a second (read-only) vdirsyncer pair on the existing
-  sync unit. If IMAP auth fails while CalDAV works, mint a *second*
-  app-specific password for mail rather than rotating the shared one.
+- **iCloud mail (himalaya) and contacts (khard)** -- one new
+  `hermes/env` line, `ICLOUD_MAIL_USERNAME`: the bare iCloud short name
+  (the part before `@icloud.com`), which is what iCloud IMAP/SMTP auth
+  takes -- the exact inverse of `ICLOUD_USERNAME`'s trap above
+  (CalDAV/CardDAV demand the full address and 403 on the short name;
+  mail is the other way around, confirmed against this account during
+  the Pocket ID SMTP setup). The password is the shared
+  `ICLOUD_APP_PASSWORD` (Apple app-specific passwords are
+  account-wide). The himalaya config is rendered by `hermes-agent`'s
+  preStart from the `hermes/env` secret; the contacts CardDAV mirror is
+  a second (read-only) vdirsyncer pair on the existing sync unit. If
+  mail auth fails while CalDAV works, mint a *second* app-specific
+  password for mail rather than rotating the shared one.
 - **Fleet-config PRs (2026-08-09 capability review)** -- no credential
   change at all: the fleet's config repo IS `jeiang/.dotfiles` (this
   repo; `cornn-flaek` is only the local checkout's name), which the
@@ -193,6 +198,7 @@ sops-edit` before deploying Part D's integrations:
 ACTUAL_SESSION_TOKEN=...
 ACTUAL_SYNC_ID=...
 ICLOUD_USERNAME=...
+ICLOUD_MAIL_USERNAME=...
 ICLOUD_APP_PASSWORD=...
 HERMES_REPOS_TOKEN=...
 GRAFANA_ANNOTATION_TOKEN=...
