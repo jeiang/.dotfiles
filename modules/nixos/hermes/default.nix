@@ -128,6 +128,42 @@
     cronStoreDir = "${cfg.stateDir}/.hermes/cron";
     cronStoreTarget = "${cfg.workingDirectory}/knowledge-base/.hermes-cron";
 
+    # Live agent memory (2026-08-09 capability review): upstream's memory
+    # tool keeps its two always-in-context stores -- MEMORY.md (agent
+    # notes) and USER.md (user profile) -- under
+    # `get_hermes_home()/memories` (tools/memory_tool.py
+    # `get_memory_dir()` at the pinned rev), injected into every session's
+    # system prompt. Same Disposable State problem the cron store had, same
+    # fix: symlink into the KB clone so the existing hermes-kb-sync timer
+    # makes them durable. Deliberately NOT dot-prefixed (contrast
+    # `.hermes-cron`): Aidan wants these visible in the Obsidian vault
+    # view. Safe to symlink: upstream's `atomic_write_text` ->
+    # `atomic_replace` (utils.py, same rev) resolves symlinks before the
+    # final `os.replace` -- its docstring documents git-tracked symlinked
+    # stores as the intended use case -- and its fcntl lock lives on a
+    # sibling `.lock` file, not on anything git sees.
+    memoriesDir = "${cfg.stateDir}/.hermes/memories";
+    memoriesTarget = "${cfg.workingDirectory}/knowledge-base/memories";
+
+    # iCloud Contacts (2026-08-09 capability review): mirrored read-only
+    # by vdirsyncer (CardDAV pair below, same app-specific password as
+    # CalDAV), read through khard. READ-ONLY by mechanism, not just
+    # policy: the remote storage below sets `read_only = true`, so
+    # vdirsyncer never writes back to iCloud regardless of what happens
+    # to the local vdir.
+    contactsDir = "${cfg.stateDir}/.vdirsyncer/contacts";
+    khardConfigDir = "${cfg.stateDir}/.config/khard";
+
+    # himalaya (email, 2026-08-09 capability review): CLI-only IMAP/SMTP
+    # against iCloud Mail -- deliberately NOT upstream's email platform
+    # adapter, so inbound mail never becomes an unprompted agent turn
+    # (untrusted third-party content, the same injection class the
+    # webhook toolset's own comment warns about). The config is rendered
+    # by preStart rather than pkgs.writeText because `backend.login`
+    # needs ICLOUD_USERNAME, which is sops-managed (operator-specific,
+    # deliberately not committed -- see the `hermes/env` secret comment).
+    himalayaConfigDir = "${cfg.stateDir}/.config/himalaya";
+
     # vdirsyncer 0.20.0 (the pinned nixpkgs version -- confirmed via `nix
     # eval .#nixosConfigurations.legion-node3.pkgs.vdirsyncer.version`)
     # config format, verified against vdirsyncer's own docs
@@ -180,6 +216,28 @@
       username.fetch = ["command", "printenv", "ICLOUD_USERNAME"]
       password.fetch = ["command", "printenv", "ICLOUD_APP_PASSWORD"]
       item_types = ["VEVENT"]
+
+      [pair icloud_contacts]
+      a = "icloud_contacts_local"
+      b = "icloud_contacts_remote"
+      collections = ["from b"]
+
+      [storage icloud_contacts_local]
+      type = "filesystem"
+      path = "${contactsDir}"
+      fileext = ".vcf"
+
+      [storage icloud_contacts_remote]
+      type = "carddav"
+      # Same RFC 6764 discovery story as the caldav storage above, from
+      # iCloud's CardDAV base URL. Same credentials, same fetch mechanism.
+      url = "https://contacts.icloud.com/"
+      username.fetch = ["command", "printenv", "ICLOUD_USERNAME"]
+      password.fetch = ["command", "printenv", "ICLOUD_APP_PASSWORD"]
+      # Read-only mirror (see the `contactsDir` comment above): vdirsyncer
+      # treats this side as never-writable -- local edits are not pushed,
+      # they're re-overwritten from iCloud instead.
+      read_only = true
     '';
 
     # khal 0.14.0 (pinned nixpkgs version, same verification method as
@@ -199,6 +257,21 @@
       [calendars]
       [[icloud]]
       path = ${calendarDir}/*
+      type = discover
+    '';
+
+    # khard 0.20.1 (pinned nixpkgs version, same verification method as
+    # khal above) config, verified against khard's own
+    # khard.conf.example at that tag: `type = discover` + a glob path
+    # expands to one addressbook per vdirsyncer-synced collection under
+    # contactsDir -- the same pattern khalConfig uses, for the same
+    # reason (iCloud-side names aren't fixed here). Same preStart-install
+    # requirement too: khard reads only $XDG_CONFIG_HOME/khard/khard.conf
+    # (or a -c flag the agent's interactive calls won't pass).
+    khardConfig = pkgs.writeText "hermes-khard-config" ''
+      [addressbooks]
+      [[icloud]]
+      path = ${contactsDir}/*
       type = discover
     '';
   in {
@@ -304,7 +377,54 @@
         # and that `memory_enabled`/`user_profile_enabled` both default to
         # `true` -- left undeclared since there is nothing to pin them
         # against yet.
-        memory.nudge_interval = 10;
+        #
+        # char limits (2026-08-09 capability review): double the upstream
+        # defaults (2200/1375, hermes_cli/config_defaults.py at the pinned
+        # rev -- "~800/~500 tokens"). These cap the MEMORY.md/USER.md
+        # snapshot injected into every system prompt; the defaults force
+        # lossy consolidation exactly on the durable-preference content
+        # the memories-into-KB symlink (preStart below) exists to keep.
+        # ~2.6k tokens/turn combined is accepted overhead. Overflowing
+        # writes hard-fail upstream (no silent truncation), so raising
+        # this only relaxes, never loses.
+        memory = {
+          nudge_interval = 10;
+          memory_char_limit = 4400;
+          user_char_limit = 2750;
+        };
+
+        # Voice input (2026-08-09 capability review): transcribe Telegram
+        # voice notes via Groq's Whisper API (GROQ_API_KEY, see the
+        # `hermes/env` secret comment). Pinned explicitly because the
+        # upstream default is "local" (faster-whisper,
+        # config_defaults.py's stt block at the pinned rev) -- a
+        # lazy-installed local model this memory-capped node should never
+        # pull. `stt.enabled` already defaults true; TTS deliberately not
+        # enabled (reviewed and declined).
+        stt.provider = "groq";
+
+        # Web search backend (2026-08-09 capability review): Brave's free
+        # API (BRAVE_SEARCH_API_KEY in `hermes/env`) instead of the ddgs
+        # scrape fallback the key-less autodetect chain bottoms out at.
+        # "brave-free" is the exact backend name in tools/web_tools.py's
+        # `_LEGACY_WEB_BACKENDS`/`backend_candidates` at the pinned rev;
+        # pinned explicitly so a later key addition (e.g. a TAVILY_API_KEY
+        # for something unrelated) can't silently win the autodetect
+        # priority order over this deliberate choice.
+        web.backend = "brave-free";
+
+        # Browser automation (2026-08-09 capability review): attach the
+        # browser_* tools to the local Obscura CDP server (the `obscura`
+        # systemd unit below) instead of launching Chromium.
+        # `browser.cdp_url` is the documented persistent-CDP-endpoint key
+        # (config_defaults.py's browser block at the pinned rev); with it
+        # set, tools/browser_tool.py's `_resolve_cdp_override` routes
+        # every session through the endpoint and the tools' availability
+        # check_fn passes without probing for a local Chromium. The
+        # driver CLI those tools shell out to is still required on PATH
+        # -- that's `agent-browser` in extraPackages below
+        # (modules/packages/agent-browser.nix).
+        browser.cdp_url = "ws://127.0.0.1:9222";
 
         # `skills.external_dirs` (same example file, same rev): a list of
         # paths, each `~`/`${VAR}`-expanded and resolved absolute,
@@ -530,6 +650,10 @@
       # nixpkgs package exists and how this one is built. Wired onto both
       # the `hermes` user's per-user profile PATH and this service's own
       # systemd PATH (nix/nixosModules.nix `extraPackages` option).
+      # khard: iCloud Contacts lookups (read-only mirror, see
+      # `contactsDir`). himalaya: email CLI (see `himalayaConfigDir`).
+      # agent-browser: the driver the browser_* tools shell out to (see
+      # the `browser.cdp_url` comment above).
       extraPackages = [
         pkgs.git
         pkgs.gh
@@ -537,7 +661,10 @@
         pkgs.openssh
         pkgs.khal
         pkgs.vdirsyncer
+        pkgs.khard
+        pkgs.himalaya
         self.packages.${pkgs.stdenv.hostPlatform.system}.actual-cli
+        self.packages.${pkgs.stdenv.hostPlatform.system}.agent-browser
       ];
     };
 
@@ -616,6 +743,18 @@
       #     agent picks the right token per repo.
       #   GRAFANA_ANNOTATION_TOKEN -- Grafana service-account token scoped
       #     to annotation writes only (Grafana annotations feature).
+      # 2026-08-09 capability review additions:
+      #   GROQ_API_KEY          -- Groq free-tier key for Whisper STT
+      #     (`stt.provider = "groq"` above); console.groq.com.
+      #   BRAVE_SEARCH_API_KEY  -- Brave Search free-plan key
+      #     (`web.backend = "brave-free"` above);
+      #     api-dashboard.search.brave.com.
+      # ICLOUD_USERNAME / ICLOUD_APP_PASSWORD are additionally consumed by
+      # the himalaya email config (preStart below) and the CardDAV
+      # contacts mirror -- Apple app-specific passwords are account-wide,
+      # so the existing CalDAV credential covers IMAP/SMTP/CardDAV too.
+      # If IMAP auth is ever rejected while CalDAV still works, mint a
+      # second app-specific password rather than assuming rotation.
       # environmentFiles above merges this into $HERMES_HOME/.env at
       # activation. owner/group = the hermes-agent service user (a real
       # static user here, `createUser = true` by default, not
@@ -720,6 +859,58 @@
             install -d -m 0700 "${khalConfigDir}"
             install -m 0640 ${khalConfig} "${khalConfigDir}/config"
 
+            # khard config (iCloud Contacts): same install-to-default-path
+            # story as khal above -- khard reads only
+            # $XDG_CONFIG_HOME/khard/khard.conf.
+            install -d -m 0700 "${khardConfigDir}"
+            install -m 0640 ${khardConfig} "${khardConfigDir}/khard.conf"
+
+            # himalaya config (email): rendered here, not pkgs.writeText,
+            # because backend.login must be the literal Apple ID
+            # (ICLOUD_USERNAME, sops-managed -- see the `himalayaConfigDir`
+            # comment). Only that one value is spliced out of the secret;
+            # the password never lands in the file at all
+            # (`backend.auth.cmd` runs printenv at use time, same
+            # mechanism as vdirsyncer's `password.fetch` above). Grep
+            # rather than `source`: the env file is EnvironmentFile
+            # syntax, not shell, so sourcing it would be wrong the day any
+            # value grows a character shell treats specially.
+            _icloud_user=$(grep '^ICLOUD_USERNAME=' "${config.sops.secrets."hermes/env".path}" | cut -d= -f2-)
+            install -d -m 0700 "${himalayaConfigDir}"
+            cat > "${himalayaConfigDir}/config.toml" <<EOF
+            [accounts.icloud]
+            default = true
+            email = "aidan@aidanpinard.co"
+            display-name = "Aidan Pinard"
+            backend.type = "imap"
+            backend.host = "imap.mail.me.com"
+            backend.port = 993
+            backend.encryption.type = "tls"
+            backend.login = "$_icloud_user"
+            backend.auth.type = "password"
+            backend.auth.cmd = "printenv ICLOUD_APP_PASSWORD"
+            message.send.backend.type = "smtp"
+            message.send.backend.host = "smtp.mail.me.com"
+            message.send.backend.port = 587
+            message.send.backend.encryption.type = "start-tls"
+            message.send.backend.login = "$_icloud_user"
+            message.send.backend.auth.type = "password"
+            message.send.backend.auth.cmd = "printenv ICLOUD_APP_PASSWORD"
+            EOF
+            chmod 0600 "${himalayaConfigDir}/config.toml"
+
+            # Live-memory store into the Knowledge Base clone: same
+            # mechanism and migration guard as the cron store below, same
+            # reasoning -- see the `memoriesDir` binding's comment. The
+            # `install -d` also covers a fresh clone that has no
+            # memories/ directory yet.
+            install -d "${memoriesTarget}"
+            if [ -d "${memoriesDir}" ] && [ ! -L "${memoriesDir}" ]; then
+              cp -a "${memoriesDir}/." "${memoriesTarget}/"
+              rm -rf "${memoriesDir}"
+            fi
+            ln -sfn "${memoriesTarget}" "${memoriesDir}"
+
             # Cron store into the Knowledge Base clone. Upstream keeps
             # scheduled routines in `cronStoreDir` (see that binding for
             # how the path is derived), which is
@@ -758,6 +949,40 @@
           serviceConfig = {
             MemoryHigh = "1536M";
             MemoryMax = "2G";
+          };
+        };
+
+        # Obscura CDP server (2026-08-09 capability review): the headless
+        # browser Hermes' browser_* tools attach to via `browser.cdp_url`
+        # above -- modules/packages/obscura.nix for what it is and why
+        # not Chromium. No `--host` flag exists (v0.2.0 README's full
+        # flag table), so the bind address isn't pinnable here; even if
+        # it binds beyond loopback, port 9222 is never opened in the
+        # NixOS firewall, so nothing off-node can reach it -- Hermes
+        # talks to it over loopback only. Restart=on-failure rather than
+        # always: a clean exit (never observed; it's a foreground server)
+        # would mean someone stopped it deliberately.
+        obscura = {
+          description = "Obscura headless CDP browser for Hermes";
+          wantedBy = ["multi-user.target"];
+          serviceConfig = {
+            ExecStart = "${self.packages.${pkgs.stdenv.hostPlatform.system}.obscura}/bin/obscura serve --port 9222";
+            DynamicUser = true;
+            Restart = "on-failure";
+            # Same node-budget reasoning as hermes-agent's own caps
+            # above: obscura's whole pitch is a ~30M resident footprint,
+            # so 512M hard is generous headroom for page rendering while
+            # still bounding a leak on this memory-tight node.
+            MemoryHigh = "384M";
+            MemoryMax = "512M";
+            # Writable scratch for whatever the engine caches; DynamicUser
+            # has no home otherwise.
+            CacheDirectory = "obscura";
+            Environment = "HOME=%C/obscura";
+            NoNewPrivileges = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
+            PrivateTmp = true;
           };
         };
 
@@ -852,7 +1077,7 @@
         # exists purely to keep the local copy current, not to make it
         # durable.
         hermes-vdirsyncer-sync = {
-          description = "Sync Hermes' iCloud calendar via vdirsyncer";
+          description = "Sync Hermes' iCloud calendar and contacts via vdirsyncer";
           after = ["network-online.target"];
           wants = ["network-online.target"];
           # Separate unit from hermes-agent, so it does not inherit that
@@ -875,7 +1100,7 @@
             # exist; status_path is where sync-state metadata lives.
             # Both under stateDir -- see the module-level Disposable State
             # comment below.
-            install -d -m 0700 "${calendarDir}" "${vdirsyncerStatusDir}"
+            install -d -m 0700 "${calendarDir}" "${contactsDir}" "${vdirsyncerStatusDir}"
 
             # `discover` is safe to re-run every time -- cheap, and picks
             # up any calendar iCloud-side renames/adds without a separate
@@ -901,8 +1126,12 @@
             # unit. 100 `y` lines is ~200 bytes, well inside the pipe
             # buffer, so printf always completes and exits 0 regardless of
             # how many prompts vdirsyncer actually consumes.
-            printf 'y\n%.0s' $(seq 1 100) | vdirsyncer discover icloud_calendar
-            vdirsyncer sync icloud_calendar
+            # Pair names dropped deliberately: with no argument both
+            # subcommands cover every configured pair (calendar AND the
+            # contacts pair added 2026-08-09), so a future pair addition
+            # is one config change, not a script edit too.
+            printf 'y\n%.0s' $(seq 1 100) | vdirsyncer discover
+            vdirsyncer sync
           '';
         };
       };
