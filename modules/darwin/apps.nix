@@ -16,6 +16,10 @@
         # GUI, nixpkgs-first (docs/adr/0009)
         discord
         iina
+        # Client for artemis's Sunshine stream (modules/nixos/sunshine.nix);
+        # VideoToolbox hardware decode, prefer HEVC over AV1 (AV1 decode is
+        # software in moonlight-qt as of 2026).
+        moonlight-qt
         mos
         obsidian
         qbittorrent
