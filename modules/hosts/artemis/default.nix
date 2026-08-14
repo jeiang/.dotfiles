@@ -262,6 +262,21 @@
         setupKeyFile = config.sops.secrets."netbird/setup-key".path;
       };
 
+      # Push key for gopass autosync (github.com:jeiang/pass) -- replaces
+      # the Bitwarden SSH agent, which part 3 removes and which needed an
+      # unlocked vault (useless unattended). sops-nix links the decrypted
+      # key into the persisted ~/.ssh; register the public half as a
+      # write-access deploy key per the always-on runbook.
+      sops.secrets."gopass/github-ssh-key" = {
+        sopsFile = ./secrets.yaml;
+        owner = "aidanp";
+        path = "/home/aidanp/.ssh/id_ed25519";
+        mode = "0600";
+      };
+      # Pin GitHub's published ed25519 host key so the first unattended
+      # push never stalls on an interactive known-hosts prompt.
+      programs.ssh.knownHosts."github.com".publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
+
       nixpkgs.hostPlatform = "x86_64-linux";
       system.stateVersion = "25.05";
     };
