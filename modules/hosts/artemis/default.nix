@@ -184,7 +184,21 @@
           "quiet"
           "udev.log_level=3"
           "systemd.show_status=auto"
+          # Let amdgpu attempt an engine reset instead of leaving the GPU
+          # wedged until reboot -- this host streams unattended and a dead
+          # GPU is otherwise a truck-roll (docs/research/
+          # unattended-nixos-gaming-remote-access.md).
+          "amdgpu.gpu_recovery=1"
         ];
+        # Unattended hang recovery: a D-state amdgpu wedge doesn't stop
+        # PID 1 from petting the hardware watchdog, so panic on hung
+        # tasks explicitly and let the panic reboot the box. The watchdog
+        # (systemd.settings.Manager below) remains the backstop for the
+        # cases where even the panic path is dead.
+        kernel.sysctl = {
+          "kernel.hung_task_panic" = 1;
+          "kernel.panic" = 10;
+        };
         kernelPackages = let
           helpers = pkgs.callPackage "${inputs.nix-cachyos-kernel.outPath}/helpers.nix" {};
         in
@@ -206,7 +220,31 @@
         hostName = "artemis";
         networkmanager.enable = true;
         nftables.enable = true;
+        # So the planned ESP8266 magic-packet sender (and any LAN
+        # neighbor) can wake this box after a manual shutdown. Known
+        # nixpkgs flakiness applying the policy (nixpkgs#415213) --
+        # verify with `ethtool enp16s0 | grep Wake-on` after deploys.
+        interfaces.enp16s0.wakeOnLan.enable = true;
       };
+
+      # Hardware watchdog (sp5100_tco on this X670E board): reboot on a
+      # hard hang PID 1 can't recover from. BIOS must also be set to
+      # "Restore AC Power Loss: Power On" so outages don't strand the
+      # box -- firmware setting, not expressible here.
+      systemd.settings.Manager = {
+        RuntimeWatchdogSec = "30s";
+        RebootWatchdogSec = "10min";
+      };
+      # This host is an always-on streaming/inference server now; nobody
+      # is at the keyboard to resume it, AMD suspend/resume is unreliable,
+      # and WoL doesn't cross the NetBird mesh.
+      systemd.targets = {
+        sleep.enable = false;
+        suspend.enable = false;
+        hibernate.enable = false;
+        hybrid-sleep.enable = false;
+      };
+
       nixpkgs.hostPlatform = "x86_64-linux";
       system.stateVersion = "25.05";
     };
