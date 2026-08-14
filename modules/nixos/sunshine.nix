@@ -7,13 +7,30 @@ _: {
     # Best-effort mode switch to the connecting Moonlight client's requested
     # resolution (Sunshine exports SUNSHINE_CLIENT_*). Never blocks the
     # stream: the requested mode may not exist on the physical output/EDID
-    # dummy plug, and a failing prep-cmd would abort the app launch.
+    # dummy plug, and a failing prep-cmd would abort the app launch. This
+    # Hyprland build is Lua-configured; `hyprctl keyword` is dead ("unknown
+    # request"), live changes go through `hyprctl eval` + hl.monitor.
     stream-mode = pkgs.writeShellScriptBin "sunshine-stream-mode" ''
-      if [ "$1" = reset ]; then
-        hyprctl keyword monitor ",preferred,auto,1" || true
-      else
-        hyprctl keyword monitor ",''${SUNSHINE_CLIENT_WIDTH}x''${SUNSHINE_CLIENT_HEIGHT}@''${SUNSHINE_CLIENT_FPS},auto,1" || true
+      if [ -z "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+        HYPRLAND_INSTANCE_SIGNATURE=$(ls "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr" 2>/dev/null | head -1)
+        export HYPRLAND_INSTANCE_SIGNATURE
       fi
+      output=$(hyprctl monitors | awk '/^Monitor/{print $2; exit}')
+      if [ -z "$output" ]; then
+        echo "sunshine-stream-mode: no active output found, skipping" >&2
+        exit 0
+      fi
+      if [ "$1" = reset ]; then
+        mode=preferred
+      elif [ -n "''${SUNSHINE_CLIENT_WIDTH:-}" ] && [ -n "''${SUNSHINE_CLIENT_HEIGHT:-}" ]; then
+        mode="''${SUNSHINE_CLIENT_WIDTH}x''${SUNSHINE_CLIENT_HEIGHT}@''${SUNSHINE_CLIENT_FPS:-60}"
+      else
+        echo "sunshine-stream-mode: no client resolution in env, leaving mode unchanged" >&2
+        exit 0
+      fi
+      hyprctl eval "hl.monitor({ output = [[$output]], mode = [[$mode]], position = [[0x0]], scale = [[1]] })" \
+        || echo "sunshine-stream-mode: switch to $mode failed (mode may not exist on $output)" >&2
+      exit 0
     '';
     resolutionPrep = {
       do = lib.getExe stream-mode;

@@ -50,6 +50,14 @@ hl.permission({
 	mode = "allow",
 })
 hl.permission({
+	-- Sunshine (modules/nixos/sunshine.nix) captures the session for
+	-- Moonlight; regex so the grant survives store-path changes. Without
+	-- this the approval popup blocks every stream on an unattended host.
+	binary = ".*/bin/sunshine",
+	type = "screencopy",
+	mode = "allow",
+})
+hl.permission({
 	binary = vars.pluginManager,
 	type = "plugin",
 	mode = "allow",
