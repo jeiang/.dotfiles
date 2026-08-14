@@ -9,7 +9,11 @@
         self.nixosModules.artemisConfiguration
       ];
     };
-    nixosModules.artemisConfiguration = {pkgs, ...}: let
+    nixosModules.artemisConfiguration = {
+      config,
+      pkgs,
+      ...
+    }: let
       # Desktop-only performance tuning: CachyOS kernel built for this host's
       # zen4 CPU with the BORE scheduler and full LTO.
       originalKernel = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linux-cachyos-latest;
@@ -243,6 +247,19 @@
         suspend.enable = false;
         hibernate.enable = false;
         hybrid-sleep.enable = false;
+      };
+
+      # Setup-key enrollment, same shape as the Legion fleet
+      # (modules/hosts/legion/default.nix): inert while the current
+      # SSO-registered state in /var/lib/netbird stays valid (the login
+      # unit only acts on NeedsLogin), and re-enrolls declaratively if
+      # that state is ever lost. The key itself is an operator-filled
+      # placeholder until the runbook
+      # (docs/runbooks/artemis-always-on-setup.md) is executed.
+      sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
+      services.netbird.clients.default.login = {
+        enable = true;
+        setupKeyFile = config.sops.secrets."netbird/setup-key".path;
       };
 
       nixpkgs.hostPlatform = "x86_64-linux";
