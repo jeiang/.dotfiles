@@ -30,6 +30,7 @@
         self.nixosModules.netbird
         self.nixosModules.vr
         self.nixosModules.gaming
+        self.nixosModules.sunshine
         self.nixosModules.impermanence
         self.nixosModules.llama-swap
 
