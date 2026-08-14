@@ -9,6 +9,23 @@
         self.nixosModules.artemisConfiguration
       ];
     };
+    deploy.nodes.artemis = {
+      # NetBird mesh DNS name; deploys ride the mesh (artemis has no
+      # public DNS). When the mesh is down, `deploy .#artemis --hostname
+      # <LAN IP or 10.100.0.2 via the backup tunnel>` overrides it.
+      hostname = "artemis.jeiang.vpn";
+      # No dedicated deploy user (unlike legion): artemis is a personal
+      # box whose admin user already has passwordless doas via wheel
+      # (modules/nixos/security.nix); deploy-rs's sudo prefix and its
+      # magic-rollback canary rm both run through that.
+      sshUser = "aidanp";
+      sudo = "doas -u";
+      profiles.system = {
+        user = "root";
+        path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.artemis;
+      };
+    };
+
     nixosModules.artemisConfiguration = {
       config,
       pkgs,
@@ -276,6 +293,12 @@
       # Pin GitHub's published ed25519 host key so the first unattended
       # push never stalls on an interactive known-hosts prompt.
       programs.ssh.knownHosts."github.com".publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
+
+      # Scraped by legion-node3's VictoriaMetrics over the mesh
+      # (modules/nixos/monitoring/default.nix job "node"). Same
+      # trustedInterfaces-only reachability as the Legion nodes: the
+      # netbird interface is trusted, nothing is opened publicly.
+      services.prometheus.exporters.node.enable = true;
 
       nixpkgs.hostPlatform = "x86_64-linux";
       system.stateVersion = "25.05";

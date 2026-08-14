@@ -256,6 +256,19 @@
                 targets = map (ip: "${ip}:9100") legionPrivateIPs;
                 labels.type = "node";
               }
+              {
+                # artemis (modules/hosts/artemis/default.nix enables
+                # services.prometheus.exporters.node), reachable only over
+                # the NetBird mesh -- its static peer IP, since mesh DNS
+                # names don't resolve on Legion nodes (netbird DNS needs a
+                # resolver hook the nodes deliberately don't have; see the
+                # bootstrap-circularity comment in
+                # modules/hosts/legion/default.nix). If artemis is ever
+                # re-enrolled (setup-key path after state loss) this IP
+                # changes and must be updated here.
+                targets = ["100.89.148.91:9100"];
+                labels.type = "node";
+              }
             ];
           }
           {
