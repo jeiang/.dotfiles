@@ -115,6 +115,24 @@
           ];
           stateful = false;
         }
+        {
+          # Static WireGuard responder for artemis's backup tunnel
+          # (modules/nixos/backup-tunnel): the way back into artemis when
+          # the NetBird mesh is down. Public scope: artemis dials in from
+          # a home connection with no fixed IP. Must also be opened on
+          # the Hetzner Cloud Firewall (manual per-port gate, see the
+          # header comment above).
+          name = "backup-tunnel";
+          publicHostnames = [];
+          firewall = [
+            {
+              port = 51821;
+              proto = "udp";
+              scope = "public";
+            }
+          ];
+          stateful = false;
+        }
       ];
     };
 

@@ -31,6 +31,7 @@
         self.nixosModules.vr
         self.nixosModules.gaming
         self.nixosModules.sunshine
+        self.nixosModules.backupTunnel
         self.nixosModules.impermanence
         self.nixosModules.llama-swap
 
