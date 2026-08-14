@@ -38,6 +38,14 @@
         enable = true;
         useTextGreeter = true;
         settings = {
+          # Boot straight into the session: this host is used unattended as
+          # a Sunshine streaming target, so nobody is at the keyboard to log
+          # in. initial_session runs exactly once per greetd start; tuigreet
+          # below remains the fallback greeter after a logout.
+          initial_session = {
+            command = "uwsm start -- hyprland-uwsm.desktop";
+            inherit user;
+          };
           default_session = {
             command = "${pkgs.tuigreet}/bin/tuigreet --cmd 'uwsm start -- hyprland-uwsm.desktop'";
           };
