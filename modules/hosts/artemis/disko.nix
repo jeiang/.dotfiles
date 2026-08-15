@@ -1,4 +1,8 @@
-{inputs, ...}: {
+{
+  inputs,
+  lib,
+  ...
+}: {
   flake.diskoConfigurations.artemis = let
     btrfsMountOptions = [
       "rw"
@@ -37,6 +41,28 @@
         hashTableSizeMB = 24576;
         extraOptions = ["--thread-min" "1" "--loadavg-target" "5.0" "--scan-mode" "4"];
         verbosity = "err";
+      };
+    };
+    # bees holds btrfs extent locks that stall game I/O for seconds
+    # (confirmed by A/B test 2026-08-15), so it runs in a nightly
+    # window instead of 24/7. Missed windows are skipped rather than
+    # run late: a daytime catch-up scan would bring the stutter back.
+    systemd = {
+      services."beesd@-".wantedBy = lib.mkForce [];
+      timers.beesd-start = {
+        wantedBy = ["timers.target"];
+        timerConfig = {
+          OnCalendar = "03:00";
+          Unit = "beesd@-.service";
+        };
+      };
+      services.beesd-stop = {
+        script = "systemctl stop 'beesd@-.service'";
+        serviceConfig.Type = "oneshot";
+      };
+      timers.beesd-stop = {
+        wantedBy = ["timers.target"];
+        timerConfig.OnCalendar = "09:00";
       };
     };
     disko.devices = {
