@@ -26,6 +26,12 @@ in {
             # Keeps the NAT mapping open so node1 can reach back in when
             # the mesh is down.
             persistentKeepalive = 25;
+            # Makes the peer unit long-running with periodic endpoint
+            # re-resolution instead of a one-shot: at boot the endpoint's
+            # DNS lookup can run before the network is up, and without
+            # this the unit fails permanently and the tunnel never forms
+            # (bit the first post-deploy reboot, 2026-08-16).
+            dynamicEndpointRefreshSeconds = 60;
           }
         ];
       };
