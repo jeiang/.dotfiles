@@ -5,7 +5,6 @@
     ];
     environment.systemPackages = with pkgs; [
       qpwgraph
-      easyeffects
     ];
     security.rtkit.enable = true;
     services.pipewire = {

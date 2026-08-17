@@ -146,16 +146,10 @@
           ".krew"
           ".config/fish"
           ".config/gopass"
-          ".config/Bitwarden"
-          ".config/discord"
           ".config/heroic"
-          ".config/obsidian"
           ".config/PrismLauncher"
-          ".config/qBittorrent"
-          ".config/easyeffects"
           ".local/share/heroic"
           ".local/share/PrismLauncher"
-          ".local/share/qBittorrent"
           ".local/share/rivalsmodmanager"
         ];
         # ~/.claude.json is Claude Code's global config file (onboarding
