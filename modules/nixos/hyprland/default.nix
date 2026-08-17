@@ -80,8 +80,8 @@
       ".face".source = ../../../assets/face.png;
       ".config/hypr/hyprland.lua".source = ./hyprland.lua;
       ".config/hypr/hyprpaper.conf".text = ''
-        preload = ${self}/assets/wallpaper.jpg
-        wallpaper = , ${self}/assets/wallpaper.jpg
+        preload = ${self}/assets/wallpaper-kanabox.jpg
+        wallpaper = , ${self}/assets/wallpaper-kanabox.jpg
         splash = false
       '';
       ".config/hypr/rules.lua".source = ./rules.lua;
@@ -92,10 +92,21 @@
           mkdir -p $HOME/Pictures/Screenshots
           ${lib.getExe pkgs.grimblast} --notify copysave area "$HOME/Pictures/Screenshots/screenshot-$(date +"%Y%m%d%H%M%S").png"
         '';
+        # kanabox palette (flake.lib.palette, modules/theme.nix), stripped
+        # of the leading "#" for hyprland's rgba()/0x color syntax.
+        hex = c: builtins.substring 1 6 c;
+        p = builtins.mapAttrs (_: hex) self.lib.palette.kanaboxDarkHard;
       in
         # lua
         ''
           local vars = {}
+          vars.colors = {
+            active_border1 = "rgba(${p.crystalBlue}ee)",
+            active_border2 = "rgba(${p.oniViolet}ee)",
+            inactive_border = "rgba(${p.sumiInk4}aa)",
+            shadow = 0xee${p.sumiInk0},
+            background = 0x${p.sumiInk0},
+          }
           vars.terminal = "${terminal}"
           vars.fileManager = "${lib.getExe' pkgs.kdePackages.dolphin "dolphin"}"
           vars.launcher = "${lib.getExe pkgs.fuzzel}"
