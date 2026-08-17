@@ -65,6 +65,7 @@
     environment.systemPackages = with pkgs; [
       rose-pine-hyprcursor
       hyprpolkitagent
+      hyprpaper
     ];
 
     environment.variables = rec {
@@ -77,6 +78,11 @@
     hjem.users.${user}.files = {
       ".face".source = ../../../assets/face.png;
       ".config/hypr/hyprland.lua".source = ./hyprland.lua;
+      ".config/hypr/hyprpaper.conf".text = ''
+        preload = ${self}/assets/wallpaper.jpg
+        wallpaper = , ${self}/assets/wallpaper.jpg
+        splash = false
+      '';
       ".config/hypr/rules.lua".source = ./rules.lua;
       ".config/hypr/animations.lua".source = ./animations.lua;
       ".config/hypr/keybinds.lua".source = ./keybinds.lua;
