@@ -1,4 +1,8 @@
-{inputs, ...}: {
+{
+  self,
+  inputs,
+  ...
+}: {
   perSystem = {pkgs, ...}: {
     packages.ghostty = inputs.wrapper-modules.lib.wrapPackage (_: {
       inherit pkgs;
@@ -13,10 +17,40 @@
       flags = {
         "--config-file" = pkgs.writeTextFile {
           name = "ghostty-config";
-          text = ''
+          # Colors come from flake.lib.palette (modules/theme.nix) so the
+          # terminal matches helix's kanabox-dark-hard theme; the ANSI 16
+          # mapping follows kanagawa.nvim's "wave" terminal colors.
+          text = let
+            p = self.lib.palette.kanaboxDarkHard;
+            ansi = with p; [
+              sumiInk0
+              autumnRed
+              autumnGreen
+              boatYellow2
+              crystalBlue
+              oniViolet
+              waveAqua1
+              oldWhite
+              fujiGray
+              waveRed
+              springGreen
+              carpYellow
+              springBlue
+              springViolet1
+              waveAqua2
+              fujiWhite
+            ];
+            palette = builtins.concatStringsSep "\n" (inputs.nixpkgs.lib.imap0 (i: c: "palette = ${toString i}=${c}") ansi);
+          in ''
             font-family = Mononoki Nerd Font
             font-size = 13
-            theme = Kanagawa Dragon
+            background = ${p.sumiInk1}
+            foreground = ${p.fujiWhite}
+            cursor-color = ${p.springViolet2}
+            cursor-text = ${p.sumiInk1}
+            selection-background = ${p.waveBlue1_5}
+            selection-foreground = ${p.fujiWhite}
+            ${palette}
             quit-after-last-window-closed = false
             gtk-single-instance = true
           '';
