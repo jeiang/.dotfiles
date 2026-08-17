@@ -791,6 +791,17 @@
 
     # Values below are measured steady-state figures.
     systemd.services = {
+      # journald.upload (modules/hosts/legion/default.nix, fleet-wide)
+      # points at this node's own VictoriaLogs. Unordered, an activation
+      # that restarts both races: journal-upload starts first, can't
+      # connect, exits 1, and switch-to-configuration samples it mid
+      # crash-loop -- deploy-rs then fails the whole deploy and rolls
+      # back (bit the part-2 node3 deploy, 2026-08-17). Only meaningful
+      # on this node, where both units coexist.
+      systemd-journal-upload = {
+        after = ["victorialogs.service"];
+        wants = ["victorialogs.service"];
+      };
       victoriametrics.serviceConfig.MemoryMax = "640M";
       victorialogs.serviceConfig.MemoryMax = "448M";
       grafana = {
