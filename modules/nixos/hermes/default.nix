@@ -106,6 +106,25 @@
           StrictHostKeyChecking accept-new
           UserKnownHostsFile ${sshDir}/known_hosts'')
       ["legion-node1" "legion-node2" "legion-node3" "legion-node4"]
+      # artemis (ADR 0012, amended 2026-08-16): same identity and TOFU
+      # story as the Legion blocks above, but over the NetBird mesh --
+      # artemis is not on the Hetzner private network, so the ADR's
+      # mesh-independent-transport property doesn't hold for this one
+      # host (accepted there; the wg-backup tunnel via legion-node1 is
+      # the documented mesh-down fallback, SERVERS.md "artemis"). Raw
+      # peer IP rather than artemis.jeiang.vpn for the same
+      # DNS-off-the-critical-path reasoning as `providers.artemis`
+      # below; the two literals must move together if the peer IP ever
+      # changes.
+      + "\n\n"
+      + ''
+        Host artemis
+          HostName 100.89.148.91
+          User hermes-ops
+          IdentityFile ${sshDir}/id_ed25519
+          IdentitiesOnly yes
+          StrictHostKeyChecking accept-new
+          UserKnownHostsFile ${sshDir}/known_hosts''
     );
 
     # iCloud Calendar (feature 8, ADR 0012 credential inventory "iCloud

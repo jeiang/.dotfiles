@@ -205,6 +205,38 @@ credential" rule -- none of these widen an existing grant:
   chain -- intended for quota exhaustion and bulk data processing, not
   general use.
 
+## Amended (2026-08-16): artemis joins the operated fleet
+
+The `hermes-ops` identity is extended to artemis (the home
+gaming/inference host), with three deviations from the Legion shape,
+each forced by what artemis is:
+
+- **doas, not sudo**: artemis disables sudo
+  (`modules/nixos/security.nix`), so the allowlist renders as doas rules
+  (`modules/hosts/artemis/default.nix`) -- same
+  exact-args-per-verb-unit shape, same "the allowlist is the classifier"
+  property.
+- **Transport rides the NetBird mesh**: artemis is not on the Hetzner
+  private network, so this ADR's mesh-independent-transport property
+  cannot hold for this one host. Accepted: the wg-backup WireGuard
+  tunnel through legion-node1 (`modules/nixos/backup-tunnel/`) is the
+  documented mesh-down fallback path (SERVERS.md), and it depends only
+  on public DNS and static keys. Consequently the authorized key
+  carries no `from=` pin -- legion-node3's NetBird peer IP is declared
+  nowhere in the repo and can change on re-registration, so a pin would
+  fail silently rather than protect anything mesh membership + key auth
+  don't already cover.
+- **A power-state grant**: `systemctl reboot` (tier 2) is allowed on
+  artemis only. The host's known failure mode -- a wedged amdgpu
+  D-state hang -- is recoverable by nothing softer, and the box is a
+  headless personal machine, not a production node. Reboot stays tier 3
+  everywhere on Legion.
+
+Granted units: `llama-swap.service` (tier 1) and `greetd.service` (tier
+2 -- it owns the whole Hyprland session, and Sunshine is a systemd user
+unit inside it that no system-level rule can name directly). No netbird
+rules exist on artemis (tier 3 there).
+
 ## Rejected grants
 
 Recorded so a future need doesn't silently re-open these: a deploy identity
