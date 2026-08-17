@@ -13,11 +13,7 @@
     user = config.preferences.user.name;
     selfpkgs = self.packages.${pkgs.stdenv.hostPlatform.system};
     terminal = lib.getExe selfpkgs.ghostty;
-    shell = lib.getExe selfpkgs.dms;
   in {
-    imports = [
-      self.nixosModules.dankmaterialshell
-    ];
     security.pam.services.hyprlock = {};
 
     programs = {
@@ -95,17 +91,12 @@
           local vars = {}
           vars.terminal = "${terminal}"
           vars.fileManager = "${lib.getExe' pkgs.kdePackages.dolphin "dolphin"}"
-          vars.browser = "${lib.getExe config.programs.firefox.package}"
-          vars.netbird = "${lib.getExe pkgs.netbird-ui}"
           vars.portal = "${lib.getExe config.programs.hyprland.portalPackage}"
           vars.pluginManager = "${lib.getExe' config.programs.hyprland.package "hyprpm"}"
           vars.shutdown = "${lib.getExe pkgs.hyprshutdown}"
           vars.wpctl = "${lib.getExe' pkgs.wireplumber "wpctl"}"
           vars.playerctl = "${lib.getExe' pkgs.wireplumber "playerctl"}"
           vars.screenshot = "${lib.getExe' screenshot "screenshot"}"
-          vars.shell = "${shell}"
-          vars.launcher = "${shell} ipc launcher open"
-          vars.wallpaper = "${shell} wallpaper -f ${self}/assets/wallpaper.jpg"
           return vars
         '';
     };

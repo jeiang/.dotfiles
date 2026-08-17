@@ -73,10 +73,6 @@
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
     hyprland.url = "github:hyprwm/Hyprland";
     hyprland.inputs.nixpkgs.follows = "nixpkgs";
-    dms.url = "github:AvengeMedia/DankMaterialShell/stable";
-    dms.inputs.nixpkgs.follows = "nixpkgs";
-    dsearch.url = "github:AvengeMedia/danksearch";
-    dsearch.inputs.nixpkgs.follows = "nixpkgs";
 
     # Packages
     website.url = "github:jeiang/website";

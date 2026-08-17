@@ -146,7 +146,6 @@
           ".krew"
           ".config/fish"
           ".config/gopass"
-          ".config/DankMaterialShell"
           ".config/Bitwarden"
           ".config/discord"
           ".config/heroic"
@@ -172,11 +171,9 @@
           ".cache/devenv"
           ".cache/direnv"
           ".cache/nix-direnv"
-          ".cache/danksearch"
           ".cache/heroic"
           ".cache/PrismLauncher"
           ".cache/protontricks"
-          ".local/state/DankMaterialShell"
           ".local/state/nix"
         ];
       };
