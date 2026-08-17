@@ -1,11 +1,6 @@
 {self, ...}: {
-  flake.nixosModules.gaming = {
-    pkgs,
-    lib,
-    ...
-  }: {
+  flake.nixosModules.gaming = {pkgs, ...}: {
     environment.systemPackages = with pkgs; [
-      boxflat
       self.packages.${pkgs.stdenv.hostPlatform.system}.mangohud
       (prismlauncher.override {
         # Add binary required by some mod
@@ -27,28 +22,6 @@
           ];
       })
     ];
-    services.udev.packages = let
-      name = "99-boxflat.rules";
-      gpu-rules = pkgs.writeText name ''
-        # Add uaccess tag to every Moza (Gudsen) ttyACM device so a user can easily access it
-        # without being added to the uucp group. This in turn will make it so EVERY user
-        # can access these devices
-        SUBSYSTEM=="tty", KERNEL=="ttyACM*", ATTRS{idVendor}=="346e", ACTION=="add", MODE="0666", TAG+="uaccess"
-
-        # Add uaccess tag to uinput devices to create virtual joysticks
-        SUBSYSTEM=="misc", KERNEL=="uinput", OPTIONS+="static_node=uinput", TAG+="uaccess"
-      '';
-    in [
-      (pkgs.stdenv.mkDerivation {
-        inherit name;
-        phases = ["installPhase"];
-
-        installPhase = ''
-          mkdir -p $out/lib/udev/rules.d
-          cp ${gpu-rules} $out/lib/udev/rules.d/${name}
-        '';
-      })
-    ];
     programs = {
       gamescope.enable = true;
       gamemode = {
@@ -61,17 +34,12 @@
             gpu_device = 0;
             amd_performance_level = "high";
           };
-          custom = {
-            start = "${lib.getExe pkgs.libnotify} 'GameMode started'";
-            end = "${lib.getExe pkgs.libnotify} 'GameMode ended'";
-          };
         };
       };
       steam = {
         enable = true;
         extest.enable = true;
         protontricks.enable = true;
-        remotePlay.openFirewall = true;
         gamescopeSession.enable = true;
         extraCompatPackages = with pkgs; [
           proton-ge-bin
