@@ -38,7 +38,7 @@
     services.beesd.filesystems = {
       "-" = {
         spec = btrfsRootMount;
-        hashTableSizeMB = 24576;
+        hashTableSizeMB = 4096;
         extraOptions = ["--thread-min" "1" "--loadavg-target" "5.0" "--scan-mode" "4"];
         verbosity = "err";
       };
