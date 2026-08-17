@@ -25,6 +25,12 @@
       in {
         ManagementURL = urlConfig;
         AdminUrl = urlConfig;
+        # Never answer mesh :22 with netbird's embedded SSH server -- it
+        # has a crippled PATH/env (no nix-daemon), which breaks anything
+        # protocol-shaped over mesh ssh, e.g. deploy-rs remote builds to
+        # artemis.jeiang.vpn. With it off, mesh ssh reaches the real sshd
+        # (trustedInterfaces already admits it).
+        ServerSSHAllowed = false;
       };
     };
 

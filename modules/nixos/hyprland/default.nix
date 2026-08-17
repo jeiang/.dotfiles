@@ -13,11 +13,7 @@
     user = config.preferences.user.name;
     selfpkgs = self.packages.${pkgs.stdenv.hostPlatform.system};
     terminal = lib.getExe selfpkgs.ghostty;
-    shell = lib.getExe selfpkgs.dms;
   in {
-    imports = [
-      self.nixosModules.dankmaterialshell
-    ];
     security.pam.services.hyprlock = {};
 
     programs = {
@@ -38,6 +34,14 @@
         enable = true;
         useTextGreeter = true;
         settings = {
+          # Boot straight into the session: this host is used unattended as
+          # a Sunshine streaming target, so nobody is at the keyboard to log
+          # in. initial_session runs exactly once per greetd start; tuigreet
+          # below remains the fallback greeter after a logout.
+          initial_session = {
+            command = "uwsm start -- hyprland-uwsm.desktop";
+            inherit user;
+          };
           default_session = {
             command = "${pkgs.tuigreet}/bin/tuigreet --cmd 'uwsm start -- hyprland-uwsm.desktop'";
           };
@@ -61,6 +65,8 @@
     environment.systemPackages = with pkgs; [
       rose-pine-hyprcursor
       hyprpolkitagent
+      hyprpaper
+      fuzzel
     ];
 
     environment.variables = rec {
@@ -73,6 +79,11 @@
     hjem.users.${user}.files = {
       ".face".source = ../../../assets/face.png;
       ".config/hypr/hyprland.lua".source = ./hyprland.lua;
+      ".config/hypr/hyprpaper.conf".text = ''
+        preload = ${self}/assets/wallpaper.jpg
+        wallpaper = , ${self}/assets/wallpaper.jpg
+        splash = false
+      '';
       ".config/hypr/rules.lua".source = ./rules.lua;
       ".config/hypr/animations.lua".source = ./animations.lua;
       ".config/hypr/keybinds.lua".source = ./keybinds.lua;
@@ -87,17 +98,13 @@
           local vars = {}
           vars.terminal = "${terminal}"
           vars.fileManager = "${lib.getExe' pkgs.kdePackages.dolphin "dolphin"}"
-          vars.browser = "${lib.getExe config.programs.firefox.package}"
-          vars.netbird = "${lib.getExe pkgs.netbird-ui}"
+          vars.launcher = "${lib.getExe pkgs.fuzzel}"
           vars.portal = "${lib.getExe config.programs.hyprland.portalPackage}"
           vars.pluginManager = "${lib.getExe' config.programs.hyprland.package "hyprpm"}"
           vars.shutdown = "${lib.getExe pkgs.hyprshutdown}"
           vars.wpctl = "${lib.getExe' pkgs.wireplumber "wpctl"}"
           vars.playerctl = "${lib.getExe' pkgs.wireplumber "playerctl"}"
           vars.screenshot = "${lib.getExe' screenshot "screenshot"}"
-          vars.shell = "${shell}"
-          vars.launcher = "${shell} ipc launcher open"
-          vars.wallpaper = "${shell} wallpaper -f ${self}/assets/wallpaper.jpg"
           return vars
         '';
     };

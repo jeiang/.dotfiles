@@ -13,7 +13,6 @@ end
 bind("T", hl.dsp.exec_cmd("uwsm app -- " .. vars.terminal))
 bind("E", hl.dsp.exec_cmd("uwsm app -- " .. vars.fileManager))
 bind("Space", hl.dsp.exec_cmd(vars.launcher))
-bind("SHIFT + V", hl.dsp.exec_cmd(vars.shell .. " ipc clipboard show"))
 bind("SHIFT + S", hl.dsp.exec_cmd(vars.screenshot))
 
 -- Control

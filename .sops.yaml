@@ -30,6 +30,21 @@ creation_rules:
       - *server_legion_node3
       - *server_legion_node4
 
+  # modules/hosts/artemis/default.nix -- artemis only.
+  - path_regex: modules/hosts/artemis/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *server_artemis
+
+  # modules/nixos/backup-tunnel/default.nix -- both tunnel endpoints.
+  - path_regex: modules/nixos/backup-tunnel/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *server_artemis
+      - *server_legion_node1
+
   # modules/hosts/legion/default.nix -- every Legion node.
   - path_regex: modules/hosts/legion/secrets\.yaml$
     key_groups:

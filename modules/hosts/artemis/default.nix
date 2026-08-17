@@ -9,7 +9,28 @@
         self.nixosModules.artemisConfiguration
       ];
     };
-    nixosModules.artemisConfiguration = {pkgs, ...}: let
+    deploy.nodes.artemis = {
+      # NetBird mesh DNS name; deploys ride the mesh (artemis has no
+      # public DNS). When the mesh is down, `deploy .#artemis --hostname
+      # <LAN IP or 10.100.0.2 via the backup tunnel>` overrides it.
+      hostname = "artemis.jeiang.vpn";
+      # No dedicated deploy user (unlike legion): artemis is a personal
+      # box whose admin user already has passwordless doas via wheel
+      # (modules/nixos/security.nix); deploy-rs's sudo prefix and its
+      # magic-rollback canary rm both run through that.
+      sshUser = "aidanp";
+      sudo = "doas -u";
+      profiles.system = {
+        user = "root";
+        path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.artemis;
+      };
+    };
+
+    nixosModules.artemisConfiguration = {
+      config,
+      pkgs,
+      ...
+    }: let
       # Desktop-only performance tuning: CachyOS kernel built for this host's
       # zen4 CPU with the BORE scheduler and full LTO.
       originalKernel = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linux-cachyos-latest;
@@ -28,8 +49,9 @@
         self.nixosModules.doas
         self.nixosModules.desktop
         self.nixosModules.netbird
-        self.nixosModules.vr
         self.nixosModules.gaming
+        self.nixosModules.sunshine
+        self.nixosModules.backupTunnel
         self.nixosModules.impermanence
         self.nixosModules.llama-swap
 
@@ -124,17 +146,10 @@
           ".krew"
           ".config/fish"
           ".config/gopass"
-          ".config/DankMaterialShell"
-          ".config/Bitwarden"
-          ".config/discord"
           ".config/heroic"
-          ".config/obsidian"
           ".config/PrismLauncher"
-          ".config/qBittorrent"
-          ".config/easyeffects"
           ".local/share/heroic"
           ".local/share/PrismLauncher"
-          ".local/share/qBittorrent"
           ".local/share/rivalsmodmanager"
         ];
         # ~/.claude.json is Claude Code's global config file (onboarding
@@ -150,14 +165,10 @@
           ".cache/devenv"
           ".cache/direnv"
           ".cache/nix-direnv"
-          ".cache/danksearch"
           ".cache/heroic"
           ".cache/PrismLauncher"
           ".cache/protontricks"
-          ".local/state/DankMaterialShell"
           ".local/state/nix"
-          ".local/state/wivrn"
-          ".local/state/xrizer"
         ];
       };
 
@@ -182,7 +193,21 @@
           "quiet"
           "udev.log_level=3"
           "systemd.show_status=auto"
+          # Let amdgpu attempt an engine reset instead of leaving the GPU
+          # wedged until reboot -- this host streams unattended and a dead
+          # GPU is otherwise a truck-roll (docs/research/
+          # unattended-nixos-gaming-remote-access.md).
+          "amdgpu.gpu_recovery=1"
         ];
+        # Unattended hang recovery: a D-state amdgpu wedge doesn't stop
+        # PID 1 from petting the hardware watchdog, so panic on hung
+        # tasks explicitly and let the panic reboot the box. The watchdog
+        # (systemd.settings.Manager below) remains the backstop for the
+        # cases where even the panic path is dead.
+        kernel.sysctl = {
+          "kernel.hung_task_panic" = 1;
+          "kernel.panic" = 10;
+        };
         kernelPackages = let
           helpers = pkgs.callPackage "${inputs.nix-cachyos-kernel.outPath}/helpers.nix" {};
         in
@@ -204,7 +229,65 @@
         hostName = "artemis";
         networkmanager.enable = true;
         nftables.enable = true;
+        # So the planned ESP8266 magic-packet sender (and any LAN
+        # neighbor) can wake this box after a manual shutdown. Known
+        # nixpkgs flakiness applying the policy (nixpkgs#415213) --
+        # verify with `ethtool enp16s0 | grep Wake-on` after deploys.
+        interfaces.enp16s0.wakeOnLan.enable = true;
       };
+
+      # Hardware watchdog (sp5100_tco on this X670E board): reboot on a
+      # hard hang PID 1 can't recover from. BIOS must also be set to
+      # "Restore AC Power Loss: Power On" so outages don't strand the
+      # box -- firmware setting, not expressible here.
+      systemd.settings.Manager = {
+        RuntimeWatchdogSec = "30s";
+        RebootWatchdogSec = "10min";
+      };
+      # This host is an always-on streaming/inference server now; nobody
+      # is at the keyboard to resume it, AMD suspend/resume is unreliable,
+      # and WoL doesn't cross the NetBird mesh.
+      systemd.targets = {
+        sleep.enable = false;
+        suspend.enable = false;
+        hibernate.enable = false;
+        hybrid-sleep.enable = false;
+      };
+
+      # Setup-key enrollment, same shape as the Legion fleet
+      # (modules/hosts/legion/default.nix): inert while the current
+      # SSO-registered state in /var/lib/netbird stays valid (the login
+      # unit only acts on NeedsLogin), and re-enrolls declaratively if
+      # that state is ever lost. The key itself is an operator-filled
+      # placeholder until the runbook
+      # (docs/runbooks/artemis-always-on-setup.md) is executed.
+      sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
+      services.netbird.clients.default.login = {
+        enable = true;
+        setupKeyFile = config.sops.secrets."netbird/setup-key".path;
+      };
+
+      # Push key for gopass autosync (github.com:jeiang/pass) -- replaces
+      # the Bitwarden SSH agent, which part 3 removes and which needed an
+      # unlocked vault (useless unattended). sops-nix links the decrypted
+      # key into the persisted ~/.ssh; register the public half as a
+      # write-access deploy key per the always-on runbook.
+      sops.secrets."gopass/github-ssh-key" = {
+        sopsFile = ./secrets.yaml;
+        owner = "aidanp";
+        path = "/home/aidanp/.ssh/id_ed25519";
+        mode = "0600";
+      };
+      # Pin GitHub's published ed25519 host key so the first unattended
+      # push never stalls on an interactive known-hosts prompt.
+      programs.ssh.knownHosts."github.com".publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
+
+      # Scraped by legion-node3's VictoriaMetrics over the mesh
+      # (modules/nixos/monitoring/default.nix job "node"). Same
+      # trustedInterfaces-only reachability as the Legion nodes: the
+      # netbird interface is trusted, nothing is opened publicly.
+      services.prometheus.exporters.node.enable = true;
+
       nixpkgs.hostPlatform = "x86_64-linux";
       system.stateVersion = "25.05";
     };

@@ -25,9 +25,7 @@ hl.monitor({
 -- Autostart
 ------------------------
 hl.on("hyprland.start", function()
-	hl.exec_cmd(vars.shell)
-	hl.exec_cmd(vars.wallpaper)
-	hl.exec_cmd("uwsm app -- " .. vars.netbird)
+	hl.exec_cmd("uwsm app -- hyprpaper")
 	hl.exec_cmd("systemctl --user start hyprpolkitagent")
 end)
 
@@ -46,6 +44,14 @@ hl.permission({
 })
 hl.permission({
 	binary = vars.screenshot,
+	type = "screencopy",
+	mode = "allow",
+})
+hl.permission({
+	-- Sunshine (modules/nixos/sunshine.nix) captures the session for
+	-- Moonlight; regex so the grant survives store-path changes. Without
+	-- this the approval popup blocks every stream on an unattended host.
+	binary = ".*/bin/sunshine",
 	type = "screencopy",
 	mode = "allow",
 })

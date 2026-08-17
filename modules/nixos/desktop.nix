@@ -1,13 +1,6 @@
 {self, ...}: {
-  flake.nixosModules.desktop = {
-    config,
-    pkgs,
-    ...
-  }: let
-    user = config.preferences.user.name;
-  in {
+  flake.nixosModules.desktop = {pkgs, ...}: {
     imports = [
-      self.nixosModules.firefox
       self.nixosModules.gpg
       self.nixosModules.hyprland
       self.nixosModules.pipewire
@@ -20,32 +13,20 @@
     # https://github.com/NixOS/nixpkgs/issues/409986
     environment = {
       etc."xdg/menus/applications.menu".source = "${pkgs.kdePackages.plasma-workspace}/etc/xdg/menus/plasma-applications.menu";
+      # Streaming-host essentials only: the Mac is the daily driver now,
+      # so the browser/chat/notes/torrent suite is gone. What survives is
+      # what a session seen through Moonlight needs -- terminal, file
+      # manager, audio mixer, GPU monitor, and the gopass keyring.
       systemPackages = with pkgs; [
-        bitwarden-desktop
         btop-rocm
         self.packages.${pkgs.stdenv.hostPlatform.system}.ghostty
         gopass
-        grim
         kdePackages.dolphin
         # needed for dolphin's file associations
         kdePackages.kservice
-        mpv
-        obsidian
         pwvucontrol
-        qbittorrent
-        qview
-        slurp
         umu-launcher
-        wl-clipboard
-        (discord.override {
-          withOpenASAR = true;
-          withVencord = true;
-        })
       ];
-      variables = {
-        SSH_AUTH_SOCK = "/home/${user}/.bitwarden-ssh-agent.sock";
-        MOZ_ENABLE_WAYLAND = 1;
-      };
     };
 
     fonts.fontconfig.defaultFonts = {

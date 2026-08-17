@@ -541,7 +541,13 @@ in {
             self.nixosModules.monitoring
             # Hermes, same optional-import pattern, gated on the inventory
             # node placing `hermes` (legion-node3 today).
-            ++ lib.optional hermesPlaced self.nixosModules.hermes;
+            ++ lib.optional hermesPlaced self.nixosModules.hermes
+            # Backup-tunnel responder, same optional-import pattern, gated
+            # on the inventory node placing `backup-tunnel` (legion-node1
+            # today).
+            ++ lib.optional
+            (lib.any (service: service.name == "backup-tunnel") node.services)
+            self.nixosModules.backupTunnelResponder;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;

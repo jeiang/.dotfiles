@@ -256,6 +256,19 @@
                 targets = map (ip: "${ip}:9100") legionPrivateIPs;
                 labels.type = "node";
               }
+              {
+                # artemis (modules/hosts/artemis/default.nix enables
+                # services.prometheus.exporters.node), reachable only over
+                # the NetBird mesh -- its static peer IP, since mesh DNS
+                # names don't resolve on Legion nodes (netbird DNS needs a
+                # resolver hook the nodes deliberately don't have; see the
+                # bootstrap-circularity comment in
+                # modules/hosts/legion/default.nix). If artemis is ever
+                # re-enrolled (setup-key path after state loss) this IP
+                # changes and must be updated here.
+                targets = ["100.89.148.91:9100"];
+                labels.type = "node";
+              }
             ];
           }
           {
@@ -778,6 +791,17 @@
 
     # Values below are measured steady-state figures.
     systemd.services = {
+      # journald.upload (modules/hosts/legion/default.nix, fleet-wide)
+      # points at this node's own VictoriaLogs. Unordered, an activation
+      # that restarts both races: journal-upload starts first, can't
+      # connect, exits 1, and switch-to-configuration samples it mid
+      # crash-loop -- deploy-rs then fails the whole deploy and rolls
+      # back (bit the part-2 node3 deploy, 2026-08-17). Only meaningful
+      # on this node, where both units coexist.
+      systemd-journal-upload = {
+        after = ["victorialogs.service"];
+        wants = ["victorialogs.service"];
+      };
       victoriametrics.serviceConfig.MemoryMax = "640M";
       victorialogs.serviceConfig.MemoryMax = "448M";
       grafana = {
