@@ -66,6 +66,7 @@
       rose-pine-hyprcursor
       hyprpolkitagent
       hyprpaper
+      fuzzel
     ];
 
     environment.variables = rec {
@@ -97,6 +98,7 @@
           local vars = {}
           vars.terminal = "${terminal}"
           vars.fileManager = "${lib.getExe' pkgs.kdePackages.dolphin "dolphin"}"
+          vars.launcher = "${lib.getExe pkgs.fuzzel}"
           vars.portal = "${lib.getExe config.programs.hyprland.portalPackage}"
           vars.pluginManager = "${lib.getExe' config.programs.hyprland.package "hyprpm"}"
           vars.shutdown = "${lib.getExe pkgs.hyprshutdown}"
