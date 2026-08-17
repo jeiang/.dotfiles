@@ -12,7 +12,7 @@ _: {
   }: let
     userArg = lib.escapeShellArg config.preferences.user.name;
     asUser = cmd: ''launchctl asuser "$(id -u -- ${userArg})" sudo --user=${userArg} -- ${cmd}'';
-    wallpaper = ../../assets/wallpaper.jpg;
+    wallpaper = ../../assets/wallpaper-kanabox.jpg;
     defaultbrowser = lib.getExe pkgs.defaultbrowser;
   in {
     system = {
