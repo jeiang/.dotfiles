@@ -73,8 +73,8 @@ hl.config({
 		allow_tearing = false,
 		border_size = 2,
 		col = {
-			active_border = { colors = { "rgba(33ccffee)", "rgba(00ff99ee)" }, angle = 45 },
-			inactive_border = "rgba(595959aa)",
+			active_border = { colors = { vars.colors.active_border1, vars.colors.active_border2 }, angle = 45 },
+			inactive_border = vars.colors.inactive_border,
 		},
 		gaps_in = 5,
 		gaps_out = 10,
@@ -90,7 +90,7 @@ hl.config({
 			enabled = true,
 			range = 4,
 			render_power = 3,
-			color = 0xee1a1a1a,
+			color = vars.colors.shadow,
 		},
 		blur = {
 			enabled = true,
@@ -98,6 +98,12 @@ hl.config({
 			size = 3,
 			vibrancy = 0.1696,
 		},
+	},
+	misc = {
+		-- On-palette fallback for the instant before hyprpaper paints (or
+		-- if the wallpaper ever fails to load).
+		background_color = vars.colors.background,
+		disable_hyprland_logo = true,
 	},
 })
 

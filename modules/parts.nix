@@ -31,6 +31,14 @@
       # for module-system type-checking) so darwin modules get the exact
       # same multi-file registration support `flake.nixosModules` already
       # has.
+      # Same freeform-uniqueness problem as darwinModules below: `flake.lib`
+      # has no declared option, so a second module defining it (theme.nix
+      # alongside hosts/legion) errors. lazyAttrsOf raw lets each module
+      # register its own `flake.lib.<name>` entries.
+      lib = lib.mkOption {
+        type = lib.types.lazyAttrsOf lib.types.raw;
+        default = {};
+      };
       darwinModules = lib.mkOption {
         type = lib.types.lazyAttrsOf lib.types.deferredModule;
         default = {};
