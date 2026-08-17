@@ -85,6 +85,11 @@
     # external deps beyond nixpkgs, same reasoning as portfolio above.
     bill-splitter.url = "github:jeiang/bill-splitter";
     bill-splitter.inputs.nixpkgs.follows = "nixpkgs";
+    # character-randomizer: plain stdenvNoCC static build (Marvel Rivals
+    # team randomizer) with no external deps beyond nixpkgs, same
+    # reasoning as portfolio above.
+    character-randomizer.url = "github:jeiang/character-randomizer";
+    character-randomizer.inputs.nixpkgs.follows = "nixpkgs";
     # garret: the binary cache server and client (docs/adr/0013).
     # Deliberately not following our nixpkgs -- CI installs the `garret`
     # client from this input's locked rev (.github/workflows/ci.yml), and

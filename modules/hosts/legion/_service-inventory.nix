@@ -57,6 +57,7 @@
             "*.proxy.jeiang.dev"
             "noelejoshua.com"
             "bill-split.jeiang.dev"
+            "rivals.jeiang.dev"
             "github.jeiang.dev"
             "jellyfin.plyrex.dev"
             "seerr.plyrex.dev"

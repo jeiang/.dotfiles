@@ -148,6 +148,26 @@
         "type": "github"
       }
     },
+    "character-randomizer": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786945094,
+        "narHash": "sha256-zHhFV0lwIe1ZRjoWqy0QHyqIcgXxcO1dxm7If8tCQtM=",
+        "owner": "jeiang",
+        "repo": "character-randomizer",
+        "rev": "2366770682fa6c9dc1f8641487c1be3f6b098f6c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "character-randomizer",
+        "type": "github"
+      }
+    },
     "crate2nix": {
       "flake": false,
       "locked": {
@@ -1588,6 +1608,7 @@
       "inputs": {
         "bill-splitter": "bill-splitter",
         "can1357-tap": "can1357-tap",
+        "character-randomizer": "character-randomizer",
         "deploy-rs": "deploy-rs",
         "determinate": "determinate",
         "devenv": "devenv",

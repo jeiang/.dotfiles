@@ -24,6 +24,7 @@
     website = inputs.website.packages.${system}.default;
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
     billSplitter = "${inputs.bill-splitter.packages.${system}.default}/dist";
+    rivalsRandomizer = inputs.character-randomizer.packages.${system}.default;
     netbirdDashboard = config.services.netbird.server.dashboard.finalDrv;
 
     # Bare `crowdsec`/`appsec` HTTP handler directives (below, gated on
@@ -419,6 +420,14 @@
           # served the same way as the other static sites above.
           bill-split.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}root * ${billSplitter}
+            file_server
+          }
+
+          # --- rivals.jeiang.dev: character-randomizer --------------------
+          # jeiang/character-randomizer builds a static site to $out,
+          # served the same way as the other static sites above.
+          rivals.jeiang.dev {
+            ${logLine}${crowdsecLine}${appsecLine}root * ${rivalsRandomizer}
             file_server
           }
 
