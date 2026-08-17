@@ -19,16 +19,23 @@ Hetzner Cloud VPSes running NixOS, deployed from the `cornn-flaek` repo.
   vmalert, Alertmanager) + you (Hermes)
 - **legion-node4** -- garret (Nix binary cache), Actual Budget, H@H
 
+Plus one non-Legion host you can operate:
+
+- **artemis** -- Aidan's home gaming/inference box (Sunshine streaming,
+  llama-swap local models). Not a Hetzner node: you reach it over the
+  NetBird mesh, and privilege escalation there is `doas`, not `sudo`.
+
 Grafana dashboards live at `grafana.jeiang.dev` -- that's for Aidan's
 browser, not for you to query.
 
 ## The operations tiers -- exact mechanics
 
 Every unit below is start/restart-able mechanically identically (a sudo
-rule per verb-unit pair, no wildcards) -- the tier-1/tier-2 split is
-`SOUL.md`'s confirm-first policy, not something sudo enforces. `stop` is
-tier 2 for every unit on every node, tier 1 or 2. Anything not listed here
-is tier 3: no sudo rule permits it, so it will fail no matter what.
+rule per verb-unit pair, no wildcards; on artemis the same shape rendered
+as doas rules) -- the tier-1/tier-2 split is `SOUL.md`'s confirm-first
+policy, not something sudo enforces. `stop` is tier 2 for every unit on
+every node, tier 1 or 2. Anything not listed here is tier 3: no sudo rule
+permits it, so it will fail no matter what.
 
 | Node | Tier 1 (start/restart free) | Tier 2 (confirm first) |
 |---|---|---|
@@ -36,9 +43,11 @@ is tier 3: no sudo rule permits it, so it will fail no matter what.
 | legion-node2 | `prometheus-node-exporter.service`, `restic-backups-netbird-server.service`, `restic-backups-pocket-id.service` | `netbird-server.service`, `netbird-relay.service`, `netbird-proxy.service`, `pocket-id.service`, `blocky.service` |
 | legion-node3 (you) | `hermes-kb-sync.service`, `obscura.service`, `prometheus-node-exporter.service`, `prometheus-blackbox-exporter.service` | `victoriametrics.service`, `victorialogs.service`, `grafana.service`, `vmalert-default.service`, `alertmanager.service` |
 | legion-node4 | `actual.service`, `hath.service`, `garret-pusher.service`, `garret-puller.service`, `restic-backups-actual-budget.service`, `restic-backups-garret.service`, `restic-backups-hath.service`, `prometheus-node-exporter.service` | *(none)* |
+| artemis | `llama-swap.service` | `greetd.service` (bounces the whole desktop session, Sunshine and any live game/stream included), `systemctl reboot` (the only fix for a wedged amdgpu / D-state llama-swap hang) |
 
-Plus, every node: `netbird status` is tier 1 (read-only); `netbird
-expose ...` (via the wrapper below) is tier 2.
+Plus, every Legion node: `netbird status` is tier 1 (read-only);
+`netbird expose ...` (via the wrapper below) is tier 2. Neither exists on
+artemis -- no netbird rule is granted there (tier 3).
 
 ## How to run fleet commands
 
@@ -81,6 +90,30 @@ ssh legion-node1 -- sudo /run/current-system/sw/bin/systemctl restart caddy.serv
 ```
 
 Both forms are otherwise equivalent.
+
+### artemis: doas, over the mesh
+
+The `artemis` SSH alias works like the Legion ones (Nix-managed config,
+same key), but rides the NetBird mesh and escalates with `doas`:
+
+```sh
+ssh artemis -- doas systemctl restart llama-swap.service
+ssh artemis -- doas systemctl reboot
+```
+
+The absolute-path caveat above doesn't apply -- doas matches the command
+name as typed, so plain `doas systemctl ...` is the only form. Plain
+`journalctl -u <unit> -e` works without doas (you're in
+`systemd-journal` there too); artemis's journal does NOT ship to
+VictoriaLogs, so SSH is the only way to read its logs.
+
+**If the mesh is down** (artemis unreachable via the alias): the
+wg-backup tunnel to legion-node1 exists for exactly this (it depends only
+on public DNS and static keys). Hop through node1:
+
+```sh
+ssh -J legion-node1 -o StrictHostKeyChecking=accept-new hermes-ops@10.100.0.2 -- doas systemctl reboot
+```
 
 ## Logs: VictoriaLogs
 
