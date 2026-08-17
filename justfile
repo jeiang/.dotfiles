@@ -53,3 +53,9 @@ deploy-legion *args:
 
 legion-run *command:
   @for host in $(nix eval --raw '.#deploy.nodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrValues (builtins.mapAttrs (_: node: node.hostname) nodes))'); do ssh "$host" -- {{command}}; done
+
+# Regenerate assets/wallpaper-kanabox.jpg: recolor the pristine
+# assets/wallpaper.jpg onto the kanabox palette (flake.lib.palette,
+# modules/theme.nix). Run after changing the palette.
+wallpaper:
+  nix run nixpkgs#lutgen -- apply -o assets/wallpaper-kanabox.jpg assets/wallpaper.jpg -- $(nix eval --raw '.#lib.palette.kanaboxDarkHard' --apply 'p: builtins.concatStringsSep " " (map (c: builtins.substring 1 6 c) (builtins.attrValues p))')
