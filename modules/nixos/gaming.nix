@@ -103,25 +103,4 @@
       ];
     };
   };
-
-  flake.nixosModules.vr = {pkgs, ...}: {
-    environment.systemPackages = [
-      (pkgs.writeShellScriptBin "vrstart" ''
-        #!/usr/bin/env bash
-        export PRESSURE_VESSEL_FILESYSTEMS_RW="$XDG_RUNTIME_DIR/wivrn/comp_ipc"
-        exec "$@"
-      '')
-    ];
-
-    persistence.cache.directories = [
-      ".config/wivrn"
-    ];
-
-    services.wivrn = {
-      enable = true;
-      openFirewall = true;
-      highPriority = true;
-      autoStart = true;
-    };
-  };
 }

@@ -49,7 +49,6 @@
         self.nixosModules.doas
         self.nixosModules.desktop
         self.nixosModules.netbird
-        self.nixosModules.vr
         self.nixosModules.gaming
         self.nixosModules.sunshine
         self.nixosModules.backupTunnel
@@ -179,8 +178,6 @@
           ".cache/protontricks"
           ".local/state/DankMaterialShell"
           ".local/state/nix"
-          ".local/state/wivrn"
-          ".local/state/xrizer"
         ];
       };
 
