@@ -290,7 +290,12 @@
       # GUI. VM disks and domain definitions live in /var/lib/libvirt --
       # persisted in the directories list above, since nukeRoot would
       # otherwise wipe them every boot.
-      virtualisation.libvirtd.enable = true;
+      virtualisation.libvirtd = {
+        enable = true;
+        # virtiofs shared folders between host and guests; libvirt finds
+        # the virtiofsd binary through this option.
+        qemu.vhostUserPackages = [pkgs.virtiofsd];
+      };
       programs.virt-manager.enable = true;
       users.users.aidanp.extraGroups = ["libvirtd"];
 
