@@ -25,6 +25,7 @@
         qbittorrent
         raycast
         telegram-desktop
+        utm
         zed-editor
         wrapped.ghostty
 
