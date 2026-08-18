@@ -96,6 +96,9 @@
           # entry nukeRoot drops tens of GB of models on every boot and the
           # unit re-downloads all of them before llama-swap can start.
           "/var/lib/llama-swap-models"
+          # libvirt VM disks and domain XML (virtualisation.libvirtd
+          # below); without this every reboot deletes the VMs.
+          "/var/lib/libvirt"
         ];
 
         # User-level state.
@@ -281,6 +284,15 @@
       # Pin GitHub's published ed25519 host key so the first unattended
       # push never stalls on an interactive known-hosts prompt.
       programs.ssh.knownHosts."github.com".publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
+
+      # KVM virtualization: libvirtd with the qemu/KVM stack (kvm-amd
+      # comes from the facter hardware config) and virt-manager as the
+      # GUI. VM disks and domain definitions live in /var/lib/libvirt --
+      # persisted in the directories list above, since nukeRoot would
+      # otherwise wipe them every boot.
+      virtualisation.libvirtd.enable = true;
+      programs.virt-manager.enable = true;
+      users.users.aidanp.extraGroups = ["libvirtd"];
 
       # Scraped by legion-node3's VictoriaMetrics over the mesh
       # (modules/nixos/monitoring/default.nix job "node"). Same
