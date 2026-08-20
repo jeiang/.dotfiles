@@ -547,7 +547,14 @@ in {
             # today).
             ++ lib.optional
             (lib.any (service: service.name == "backup-tunnel") node.services)
-            self.nixosModules.backupTunnelResponder;
+            self.nixosModules.backupTunnelResponder
+            # Camera ingest (WireGuard responder + nginx DAV receiver for
+            # the camera phone), same optional-import pattern, gated on
+            # the inventory node placing `camera-ingest` (legion-node1
+            # today).
+            ++ lib.optional
+            (lib.any (service: service.name == "camera-ingest") node.services)
+            self.nixosModules.camera-ingest;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;

@@ -134,6 +134,29 @@
           ];
           stateful = false;
         }
+        {
+          # Static WireGuard responder + nginx DAV receiver for the
+          # GT-S5360L camera phone (modules/nixos/camera-ingest). Public
+          # scope: the phone dials in from arbitrary roaming Wi-Fi
+          # networks. Must also be opened on the Hetzner Cloud Firewall
+          # (manual per-port gate, see the header comment above), same as
+          # backup-tunnel's 51821. The nginx receiver port (8090) is
+          # deliberately absent: it is opened only on the wg-camera
+          # interface by the module itself, not a hcloud public/private
+          # opening.
+          name = "camera-ingest";
+          publicHostnames = [];
+          firewall = [
+            {
+              port = 51822;
+              proto = "udp";
+              scope = "public";
+            }
+          ];
+          # Node-local spool only; files pause here between phone upload
+          # and relay pickup. Accepted-loss window, no Volume.
+          stateful = false;
+        }
       ];
     };
 
