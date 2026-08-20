@@ -49,6 +49,8 @@ _: {
         -f -e -- steam -gamepadui
     '';
   in {
+    environment.systemPackages = [stream-mode];
+
     services.sunshine = {
       enable = true;
       # For DRM/KMS capture of the Hyprland session (applied via
