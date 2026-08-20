@@ -61,7 +61,13 @@ in {
     };
 
     systemd = {
-      services.nginx.serviceConfig.MemoryMax = "128M";
+      services.nginx.serviceConfig = {
+        MemoryMax = "128M";
+        # The nginx unit runs ProtectSystem=strict and only whitelists its
+        # own log/cache dirs; without this every PUT dies with EROFS
+        # (surfaced as a 500).
+        ReadWritePaths = ["/var/spool/camera-ingest"];
+      };
       # Node-local spool, no Hetzner Volume (Disposable-adjacent: files
       # live here only between phone upload and relay pickup), so plain
       # tmpfiles is safe -- no volume mount to race against.
