@@ -12,8 +12,27 @@ in {
   # "camera-ingest"), which opens UDP 51822 on the host firewall. The
   # Hetzner Cloud Firewall is a manual per-port gate -- 51822/udp must be
   # opened there too, same as backup-tunnel's 51821.
-  flake.nixosModules.camera-ingest = {config, ...}: {
-    sops.secrets."wireguard/camera-node1-private-key".sopsFile = ./secrets.yaml;
+  flake.nixosModules.camera-ingest = {
+    config,
+    pkgs,
+    ...
+  }: {
+    sops = {
+      secrets = {
+        "wireguard/camera-node1-private-key".sopsFile = ./secrets.yaml;
+        "pixeldrain/api-key".sopsFile = ./secrets.yaml;
+      };
+      # Env-var-defined rclone remote: no config file to manage, and the
+      # EnvironmentFile is read by systemd as root before privileges drop,
+      # so the template needs no owner (garret-s3.env precedent).
+      templates."camera-relay.env" = {
+        restartUnits = ["camera-relay.service"];
+        content = ''
+          RCLONE_CONFIG_PIXELDRAIN_TYPE=pixeldrain
+          RCLONE_CONFIG_PIXELDRAIN_API_KEY=${config.sops.placeholder."pixeldrain/api-key"}
+        '';
+      };
+    };
 
     networking = {
       wireguard.interfaces.wg-camera = {
@@ -61,12 +80,44 @@ in {
     };
 
     systemd = {
-      services.nginx.serviceConfig = {
-        MemoryMax = "128M";
-        # The nginx unit runs ProtectSystem=strict and only whitelists its
-        # own log/cache dirs; without this every PUT dies with EROFS
-        # (surfaced as a 500).
-        ReadWritePaths = ["/var/spool/camera-ingest"];
+      services = {
+        nginx.serviceConfig = {
+          MemoryMax = "128M";
+          # The nginx unit runs ProtectSystem=strict and only whitelists
+          # its own log/cache dirs; without this every PUT dies with EROFS
+          # (surfaced as a 500).
+          ReadWritePaths = ["/var/spool/camera-ingest"];
+        };
+        # Relay: everything in the spool moves onward to Pixeldrain, date
+        # directories preserved, emptied directories removed so the spool
+        # returns to quiescent-empty. `move` deletes the local copy only
+        # after Pixeldrain confirms -- the spool stays the durable hop.
+        # No --min-age guard: nginx DAV writes to its own temp dir and
+        # renames complete files in, so the spool never shows partials.
+        camera-relay = {
+          serviceConfig = {
+            Type = "oneshot";
+            # nginx owns the spool tree; running as the same user keeps
+            # deletion rights without loosening the 0750 dirs.
+            User = "nginx";
+            Group = "nginx";
+            EnvironmentFile = config.sops.templates."camera-relay.env".path;
+            ExecStart = "${pkgs.rclone}/bin/rclone --config /dev/null move /var/spool/camera-ingest pixeldrain:camera --delete-empty-src-dirs";
+            MemoryMax = "128M";
+          };
+        };
+      };
+      # A timer rather than a DirectoryNotEmpty path unit: a path unit
+      # re-checks its condition every time the triggered service
+      # deactivates, so any file it cannot relay (Pixeldrain outage) makes
+      # it re-fire in a busy loop. A minutely timer retries calmly and the
+      # extra latency is invisible for this use case.
+      timers.camera-relay = {
+        wantedBy = ["timers.target"];
+        timerConfig = {
+          OnBootSec = "2m";
+          OnUnitActiveSec = "1m";
+        };
       };
       # Node-local spool, no Hetzner Volume (Disposable-adjacent: files
       # live here only between phone upload and relay pickup), so plain
