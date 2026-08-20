@@ -37,12 +37,13 @@
     node1PrivateIp = self.lib.legionNodes.legion-node1.privateIPv4;
     lapiPort = 8080;
 
-    # TLS strategy: the nixpkgs-pinned netbird-proxy binary (v0.74.3,
+    # TLS strategy: the flake-pinned netbird-proxy binary
+    # (modules/packages/netbird.nix,
     # `nix build .#netbird-proxy && netbird-proxy --help`) exposes
     # `--cert-dir`/`--cert-file`/`--cert-key-file`, consumed by
     # `configureTLS` in proxy/server.go as a plain static-certificate path
     # with its own file watcher (certwatch) whenever `--acme-certs` is
-    # false (the default) -- confirmed against the v0.74.3 source
+    # false (the default) -- confirmed against the v0.77.0 source
     # (github.com/netbirdio/netbird proxy/server.go `configureTLS`,
     # proxy/cmd/proxy/cmd/root.go flag wiring). So the proxy does NOT need
     # its own ACME at all: `security.acme` below provisions a DNS-01
@@ -209,7 +210,7 @@
         # in the NetBird dashboard
         # (Reverse Proxy -> Services -> CrowdSec mode), not global, so
         # wiring the URL/key alone has no traffic impact by itself.
-        # Verified fail-open against the v0.74.3 source
+        # Verified fail-open against the v0.77.0 source
         # (proxy/internal/restrict/restrict.go `checkCrowdSec`): a service
         # left in `observe` (or unset) mode always resolves to Allow even
         # if the LAPI bouncer never connects; only a service explicitly
