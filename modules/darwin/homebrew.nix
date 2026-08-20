@@ -79,9 +79,13 @@
         # cask here rather than a nix-managed launchd daemon around the
         # netbird CLI (modules/packages/netbird.nix, still used as-is by
         # the Linux hosts) -- two daemons would fight over the same
-        # tunnel. The cask auto-updates, so it tracks netbird releases
-        # (>=0.76.1) without needing the same version pin the Linux side
-        # carries.
+        # tunnel. The cask does NOT auto-update (no auto_updates stanza,
+        # verified against the pinned tap) and onActivation.upgrade is
+        # false, so tracking a netbird release means bumping the
+        # netbird-tap flake input and running
+        # `brew upgrade --cask netbirdio/tap/netbird-ui` after the switch
+        # -- keep the tap input roughly in step with the Linux side's
+        # version pin (modules/packages/netbird.nix).
         "netbirdio/tap/netbird-ui"
       ];
 
