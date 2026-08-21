@@ -299,11 +299,21 @@
       programs.virt-manager.enable = true;
       users.users.aidanp.extraGroups = ["libvirtd"];
 
-      # Scraped by legion-node3's VictoriaMetrics over the mesh
-      # (modules/nixos/monitoring/default.nix job "node"). Same
-      # trustedInterfaces-only reachability as the Legion nodes: the
-      # netbird interface is trusted, nothing is opened publicly.
-      services.prometheus.exporters.node.enable = true;
+      # Grouped in one attrset (statix W20 fires on a third top-level
+      # `services.*` key in this file).
+      services = {
+        # Scraped by legion-node3's VictoriaMetrics over the mesh
+        # (modules/nixos/monitoring/default.nix job "node"). Same
+        # trustedInterfaces-only reachability as the Legion nodes: the
+        # netbird interface is trusted, nothing is opened publicly.
+        prometheus.exporters.node.enable = true;
+
+        # Declared rather than inherited: the HomeKit Wake-on-LAN Switch
+        # resolves artemis.local over mDNS before pinging it (see the
+        # wakeOnLan option above), and until now avahi only came up as a
+        # transitive mkDefault of the nixpkgs sunshine module.
+        avahi.enable = true;
+      };
 
       # hermes-ops: Hermes' fleet-execution identity (ADR 0012, amended
       # 2026-08-16 to cover artemis), reaching this box from legion-node3
