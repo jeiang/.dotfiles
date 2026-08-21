@@ -40,11 +40,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784528603,
-        "narHash": "sha256-WXuS4AdmKtgH4Uy6lpDWvbJU07/1zPncxoEQzUsPjGc=",
+        "lastModified": 1786914280,
+        "narHash": "sha256-yAPLuJIaVzJhBMWca+2BXDLBkxu7bFN0tpqPIwY93UE=",
         "owner": "jeiang",
         "repo": "bill-splitter",
-        "rev": "8061ad4e36bcf2fb9053535bcf1ee928f4bfdbba",
+        "rev": "46c24f3220ab732152635b7923fde91669417ca6",
         "type": "github"
       },
       "original": {
