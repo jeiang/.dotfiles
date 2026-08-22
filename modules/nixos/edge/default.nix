@@ -351,6 +351,22 @@
             ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node3}:3000
           }
 
+          # --- status.jeiang.dev: Gatus status page -----------------------
+          # Port 8086 matches modules/nixos/gatus.nix's `web.port` (not
+          # Gatus' own 8080 default, which netbird-relay already holds on
+          # legion-node2).
+          #
+          # Public and ungated, deliberately: this is the page people load
+          # when something is broken, and Pocket ID is one of the services
+          # it reports on, so putting it behind SSO would take the outage
+          # report down with the outage. `appsec` is skipped for the same
+          # fail-open reasoning as the cache routes above -- a status page
+          # that 403s under load is worse than no status page -- while
+          # `crowdsec`'s cheap IP-decision check still applies.
+          status.jeiang.dev {
+            ${logLine}${crowdsecLine}reverse_proxy ${node2}:8086
+          }
+
           # --- netbird.jeiang.dev: NetBird server/relay -------------------
           # Route split: gRPC/h2c for signal + management + proxy
           # registration, plain REST for api/oauth2 + the

@@ -59,6 +59,7 @@
             "bill-split.jeiang.dev"
             "rivals.jeiang.dev"
             "github.jeiang.dev"
+            "status.jeiang.dev"
             "jellyfin.plyrex.dev"
             "seerr.plyrex.dev"
           ];
