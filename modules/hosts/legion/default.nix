@@ -39,8 +39,18 @@
       # a backupSet (_service-inventory.nix, both stateful = false).
       tier1 = ["crowdsec.service" "prometheus-node-exporter.service"];
       # Caddy is the edge's public entrypoint -- load-bearing for every
-      # public hostname this fleet serves (ADR 0012 tier 2).
-      tier2 = ["caddy.service"];
+      # public hostname this fleet serves (ADR 0012 tier 2). Anubis
+      # joins it rather than sitting in tier 1 beside CrowdSec, despite
+      # both being edge-security services, because the two fail in
+      # opposite directions: CrowdSec is wired fail-open (Caddy keeps
+      # serving if the engine is down, see modules/nixos/crowdsec), so a
+      # restart costs some enforcement for a few seconds. Anubis is
+      # Caddy's upstream for four public hostnames, so a restart 502s
+      # them outright -- "load-bearing but recoverable", which is exactly
+      # ADR 0012's tier 2 description. It is also the unit that decides
+      # whether a visitor is served at all, and an agent should not get
+      # to toggle that unprompted.
+      tier2 = ["caddy.service" "anubis-content.service"];
     };
     legion-node2 = {
       tier1 = [
@@ -488,6 +498,16 @@ in {
             # CrowdSec engine, same edge-node condition as above. Both
             # modules share the edge.crowdsec.enable toggle.
             ++ lib.optional (node.edge or false) self.nixosModules.crowdsec
+            # Anubis proof-of-work gate. Gated on the inventory entry
+            # rather than on `node.edge` (the older crowdsec-style
+            # condition above): it is a placed service with its own
+            # inventory record, so the inventory stays the single source
+            # of truth. Importing it is also what flips
+            # `edge.anubis.enable`, which is what renders the Caddy side
+            # -- see modules/nixos/anubis.nix.
+            ++ lib.optional
+            (lib.any (service: service.name == "anubis") node.services)
+            self.nixosModules.anubis
             # NetBird server + relay, only for the inventory node that
             # places `netbird-server`
             # (modules/hosts/legion/_service-inventory.nix, legion-node2
