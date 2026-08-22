@@ -117,6 +117,39 @@
           stateful = false;
         }
         {
+          # Anubis, the proof-of-work anti-AI-scraper gate
+          # (modules/nixos/anubis.nix). Sits between the edge Caddy and
+          # the static content roots only -- jeiang.dev apex,
+          # aidanpinard.co, pinard.co.tt, noelejoshua.com. Complements
+          # rather than duplicates the crowdsec entry above: CrowdSec
+          # scores IP reputation and answers 403 to the already-bad,
+          # Anubis asks the unrecognised-but-unremarkable to prove they
+          # are a browser.
+          name = "anubis";
+          # None: DNS points at the edge Caddy, which reaches this over a
+          # unix socket. Anubis never terminates a public hostname
+          # itself.
+          publicHostnames = [];
+          # Empty on purpose, not an oversight, and the reason there is
+          # no `scope` to document here: Anubis binds a unix socket under
+          # its RuntimeDirectory and its metrics server likewise (nixpkgs
+          # module defaults). It opens no TCP port at all, on either
+          # interface -- Caddy reaches it through group membership on the
+          # socket, not through the network. The loopback origin listener
+          # it proxies to is a Caddy site block bound to 127.0.0.1
+          # (modules/nixos/edge/default.nix `edge.anubis.originPort`),
+          # also not a firewall surface.
+          firewall = [];
+          # Anubis' default policy keeps its challenge store in memory,
+          # and the module runs it with DynamicUser + RuntimeDirectory
+          # only -- no StateDirectory, no Volume. The cost of that is
+          # bounded and acceptable: a restart makes in-flight visitors
+          # re-solve one challenge. Do not "fix" this by configuring the
+          # bbolt store backend; it would buy nothing here and turn a
+          # stateless service into a placed, backed-up one.
+          stateful = false;
+        }
+        {
           # Static WireGuard responder for artemis's backup tunnel
           # (modules/nixos/backup-tunnel): the way back into artemis when
           # the NetBird mesh is down. Public scope: artemis dials in from
