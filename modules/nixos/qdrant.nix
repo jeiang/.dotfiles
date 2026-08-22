@@ -3,9 +3,23 @@ _: {
   # artemis with the embedding/inference stack (modules/nixos/llama-swap.nix)
   # so a retrieval round trip never leaves the box. Purely CPU/disk work --
   # no GPU grants here, unlike llama-swap and whisper-server.
-  flake.nixosModules.qdrant = {lib, ...}: {
+  flake.nixosModules.qdrant = {
+    lib,
+    pkgs,
+    ...
+  }: {
     services.qdrant = {
       enable = true;
+      # Stock nixpkgs.qdrant does not compile at the current pin: rustc 1.97's
+      # stdarch emits the LLVM 22 form of the AVX-512 VNNI intrinsics while
+      # nixpkgs builds rustc against LLVM 21, which declares the old operand
+      # types. The patch replaces the six affected intrinsic calls in the
+      # vendored `quantization` crate with exact AVX-512BW equivalents; its
+      # header carries the full cause, the upstream fix (NixOS/nixpkgs#544495),
+      # and the condition under which both it and this override are deleted.
+      package = pkgs.qdrant.overrideAttrs (old: {
+        patches = (old.patches or []) ++ [./qdrant-avx512-vnni-llvm21.patch];
+      });
       settings.service = {
         # Bind all interfaces. Upstream defaults this to 127.0.0.1 and calls
         # it a security measure; the reachability boundary on this host is
