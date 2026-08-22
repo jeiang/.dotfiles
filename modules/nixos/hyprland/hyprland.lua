@@ -43,7 +43,16 @@ hl.permission({
 	mode = "allow",
 })
 hl.permission({
-	binary = vars.screenshot,
+	-- grim, not `vars.screenshot`. Hyprland matches on the Wayland client's
+	-- own /proc/<pid>/exe, and the screencopy client here is grim, several
+	-- execs below the SHIFT+S bind: the `screenshot` wrapper runs grimblast,
+	-- which runs grim from its wrapper PATH. Granting the outermost script
+	-- matched nothing, so every screenshot silently hung on an approval
+	-- popup (verified: grim prompts with that rule active). A regex, not
+	-- grim's exact store path, because the grim that matters is the one
+	-- baked into grimblast's PATH rather than one this module names --
+	-- RE2 full-matches, so this cannot catch `grimblast` itself.
+	binary = ".*/bin/grim",
 	type = "screencopy",
 	mode = "allow",
 })
@@ -52,6 +61,25 @@ hl.permission({
 	-- Moonlight; regex so the grant survives store-path changes. Without
 	-- this the approval popup blocks every stream on an unattended host.
 	binary = ".*/bin/sunshine",
+	type = "screencopy",
+	mode = "allow",
+})
+hl.permission({
+	-- hypr-rdp (modules/packages/hypr-rdp.nix) captures the session for RDP
+	-- clients over the NetBird mesh, same unattended-host reasoning as
+	-- sunshine above. The regex has to be this loose: Hyprland matches on the
+	-- client's /proc/<pid>/exe, and the package wraps its binary, so the real
+	-- path is `.../bin/.hypr-rdp-wrapped`. A `.*/bin/hypr-rdp` rule matches
+	-- nothing and every frame silently queues behind an approval popup --
+	-- which renders on hypr-rdp's own headless output, invisible from the
+	-- desk. Sunshine's `.*/bin/sunshine` works only because it is unwrapped.
+	--
+	-- Editing this takes a full Hyprland restart, not `hyprctl reload`:
+	-- hl.permission registers the rule only under `mgr->isFirstLaunch()`
+	-- (Hyprland 0.56, src/config/lua/bindings/LuaBindingsConfigRules.cpp),
+	-- the same flag that gates exec-once. A reload -- and `hyprctl eval` --
+	-- returns ok and does nothing at all.
+	binary = ".*hypr-rdp.*",
 	type = "screencopy",
 	mode = "allow",
 })
