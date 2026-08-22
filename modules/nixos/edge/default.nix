@@ -26,6 +26,7 @@
     billSplitter = "${inputs.bill-splitter.packages.${system}.default}/dist";
     rivalsRandomizer = inputs.character-randomizer.packages.${system}.default;
     netbirdDashboard = config.services.netbird.server.dashboard.finalDrv;
+    netbirdIronRDP = self.packages.${system}.netbird-ironrdp-web;
 
     # Bare `crowdsec`/`appsec` HTTP handler directives (below, gated on
     # cfg.crowdsec.enable so a disabled toggle renders byte-identical
@@ -389,6 +390,21 @@
                   read_timeout 15m
                 }
               }
+            }
+
+            # The browser RDP client's IronRDP WASM bundle, which the
+            # nixpkgs-built dashboard above does not carry -- see
+            # modules/packages/netbird-ironrdp.nix for why. Must precede the
+            # fallback `handle`: without it these two paths fall through to
+            # `try_files`' final `/index.html` candidate, so the dashboard's
+            # `import("/ironrdp-pkg/ironrdp_web.js")` gets an HTML document,
+            # fails to parse as an ES module, and every RDP session dies with
+            # "IronRDP module not loaded". handle_path (not handle) because
+            # the release assets sit at the package's top level, so the
+            # `/ironrdp-pkg` prefix has to come off before the file lookup.
+            handle_path /ironrdp-pkg/* {
+              ${appsecLine}root * ${netbirdIronRDP}
+              file_server
             }
 
             # The dashboard (netbird-dashboard 2.x) is a Next.js `output:
