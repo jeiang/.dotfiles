@@ -220,7 +220,16 @@
       # pins the CLI's own updater off (DISABLE_AUTOUPDATER), so it stays
       # on whatever version this flake's nixpkgs input carries. Its state
       # lives in ~/.claude and ~/.claude.json, both persisted above.
-      environment.systemPackages = [pkgs.claude-code];
+      # hypr-rdp is here and not in the shared toolbox for the same reason:
+      # it serves this workstation's Hyprland session to RDP clients over
+      # the mesh, and no legion node runs a compositor. Run by hand rather
+      # than as a unit -- it takes credentials on the command line, so a
+      # service would need a secret first. modules/nixos/hyprland's
+      # screencopy permission grant is what lets it capture unattended.
+      environment.systemPackages = [
+        pkgs.claude-code
+        self.packages.${pkgs.stdenv.hostPlatform.system}.hypr-rdp
+      ];
       environment.variables = {
         AMD_VULKAN_ICD = "RADV";
         MESA_SHADER_CACHE_MAX_SIZE = "12G";

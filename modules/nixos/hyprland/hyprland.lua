@@ -56,6 +56,25 @@ hl.permission({
 	mode = "allow",
 })
 hl.permission({
+	-- hypr-rdp (modules/packages/hypr-rdp.nix) captures the session for RDP
+	-- clients over the NetBird mesh, same unattended-host reasoning as
+	-- sunshine above. The regex has to be this loose: Hyprland matches on the
+	-- client's /proc/<pid>/exe, and the package wraps its binary, so the real
+	-- path is `.../bin/.hypr-rdp-wrapped`. A `.*/bin/hypr-rdp` rule matches
+	-- nothing and every frame silently queues behind an approval popup --
+	-- which renders on hypr-rdp's own headless output, invisible from the
+	-- desk. Sunshine's `.*/bin/sunshine` works only because it is unwrapped.
+	--
+	-- Editing this takes a full Hyprland restart, not `hyprctl reload`:
+	-- hl.permission registers the rule only under `mgr->isFirstLaunch()`
+	-- (Hyprland 0.56, src/config/lua/bindings/LuaBindingsConfigRules.cpp),
+	-- the same flag that gates exec-once. A reload -- and `hyprctl eval` --
+	-- returns ok and does nothing at all.
+	binary = ".*hypr-rdp.*",
+	type = "screencopy",
+	mode = "allow",
+})
+hl.permission({
 	binary = vars.pluginManager,
 	type = "plugin",
 	mode = "allow",
