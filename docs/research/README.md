@@ -105,6 +105,79 @@ Explicit negatives, recorded so they are not re-surveyed:
   design — a nixpkgs closure always carries known unpatched CVEs, and a
   permanently red job is a job everyone learns to skip.
 
+## Build verification, 2026-08-22
+
+Five implementation worktrees were built on artemis (`artemis.jeiang.vpn`,
+x86_64-linux, 8 cores / 93 GiB) via `--eval-store auto --store ssh-ng://`.
+This machine is aarch64-darwin with no local Linux builder, so agent claims
+of a passing build are not self-verifiable and were re-run here.
+
+| Worktree | Host | Result |
+| -------- | ---- | ------ |
+| Anubis | legion-node1 | passes |
+| Glance + Gatus | legion-node2 | passes |
+| Miniflux + changedetection.io | legion-node1 | fails, sops manifest |
+| Qdrant + whisper.cpp | artemis | fails, qdrant does not compile |
+| Warpgate | -- | not implemented, rejected on reasoning |
+
+### qdrant does not build at this nixpkgs pin
+
+`qdrant-1.18.2` fails to compile against nixpkgs `2fcb964`, and it is not
+the fault of any configuration in this repo -- building the stock
+`nixpkgs.qdrant` derivation reproduces it exactly:
+
+```
+error: intrinsic signature mismatch for `llvm.x86.avx512.vpdpbusd.512`:
+  expected `<16 x i32> (<16 x i32>, <16 x i32>, <16 x i32>)`,
+  found    `<16 x i32> (<16 x i32>, <64 x i8>, <64 x i8>)`
+error: could not compile `quantization` (lib)
+```
+
+qdrant's vendored `quantization` crate calls an AVX-512 intrinsic whose
+LLVM signature changed under this revision's rustc. This is why qdrant was
+absent from every binary cache. `whisper-cpp-vulkan` builds cleanly, so the
+speech-to-text half of that worktree is unaffected.
+
+Anything depending on qdrant is blocked until nixpkgs moves or the crate is
+patched. Note that the usual fallback, pgvector, is not available either:
+this fleet runs no PostgreSQL (every service uses SQLite).
+
+### The Miniflux failure is a missing secret, not a defect
+
+The build stops in sops-nix manifest validation on
+`caddy/watch-basic-auth-hash`, the basic-auth secret for
+`watch.jeiang.dev`. Failing at build time rather than activation is the
+safe outcome: a missing secret cannot take the edge down at runtime.
+
+That secret exists only because changedetection.io has no OIDC and was
+gated with basic auth at the edge. Routing it through netbird-proxy
+instead removes the secret, the new auth pattern, and this failure.
+
+## Authentication: Pocket ID has no forward-auth endpoint
+
+Recorded because it shaped several decisions and will recur. Pocket ID
+exposes no endpoint that answers a Caddy `forward_auth` subrequest, so
+"gate it behind Pocket ID at the edge" is not available for services
+lacking native OIDC. Two independent implementation attempts hit this and
+resolved it inconsistently (one left the service mesh-only, the other
+added basic auth).
+
+The settled answer is **netbird-proxy**, which authenticates via Pocket ID
+and, per ADR 0002, is publicly reachable on its own `:443`. That gives
+per-user SSO from any browser without requiring the NetBird client, and it
+is the mechanism for anything without native OIDC.
+
+A caveat for Gatus specifically: it is currently placed on legion-node2,
+alongside both netbird-proxy and Pocket ID. A node2 failure would remove
+the status page, its exposure path, and its authentication at once --
+precisely when it is wanted. It belongs on a different node from the one
+serving its access path.
+
+Because netbird-proxy supplies authentication, native OIDC stops being a
+selection criterion. That removes the only reason to prefer Miniflux --
+PostgreSQL-only -- over `services.freshrss` or `services.yarr`, both
+SQLite-backed and both present in the pinned nixpkgs.
+
 ## Settled: keep as is
 
 The infrastructure audit recommended **no swaps**. Every current choice was
