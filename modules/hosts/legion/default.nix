@@ -49,6 +49,16 @@
         # backup units" is a free/tier-1 read-adjacent action).
         "restic-backups-netbird-server.service"
         "restic-backups-pocket-id.service"
+        # FreshRSS is a self-contained single-user app published through
+        # the reverse proxy: restarting any of its units affects nothing
+        # but itself, unlike the mesh/SSO units in tier 2 below. nginx is
+        # here for the same reason -- on this node it serves exactly one
+        # thing, FreshRSS's PHP frontend (modules/nixos/freshrss.nix).
+        "freshrss-config.service"
+        "freshrss-updater.service"
+        "phpfpm-freshrss.service"
+        "nginx.service"
+        "restic-backups-freshrss.service"
       ];
       # Every one of these is load-bearing fleet infrastructure (mesh
       # control plane, SSO, DNS) -- ADR 0012 tier 2 names all five
@@ -292,7 +302,7 @@ in {
           # confirmed against the pinned node_exporter 1.12.0 binary. The
           # trailing `\.service` restricts matches to service units.
           extraFlags = [
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync)\\.service"
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|freshrss-config|freshrss-updater|phpfpm-freshrss|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync)\\.service"
           ];
         };
 
@@ -554,7 +564,14 @@ in {
             # today).
             ++ lib.optional
             (lib.any (service: service.name == "camera-ingest") node.services)
-            self.nixosModules.camera-ingest;
+            self.nixosModules.camera-ingest
+            # FreshRSS, same optional-import pattern, gated on the
+            # inventory node placing `freshrss` (legion-node2 today).
+            # Published through the NetBird reverse proxy on this same
+            # node rather than through the edge (docs/adr/0002).
+            ++ lib.optional
+            (lib.any (service: service.name == "freshrss") node.services)
+            self.nixosModules.freshrss;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;

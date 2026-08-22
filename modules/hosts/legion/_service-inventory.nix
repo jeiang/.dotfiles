@@ -311,6 +311,55 @@
           firewall = [];
           stateful = false;
         }
+        {
+          # FreshRSS (modules/nixos/freshrss.nix), published through the
+          # NetBird reverse proxy at rss.proxy.jeiang.dev -- covered by
+          # the `*.proxy.jeiang.dev` wildcard the netbird-proxy entry
+          # above documents, so nothing new is declared here.
+          #
+          # Placed on this node, not the Edge Node and not legion-node4:
+          # summing declared MemoryMax per node against 1922 MiB of RAM
+          # leaves legion-node4 (the usual stateful app tier) with only
+          # ~258 MiB and legion-node3 already oversubscribed ~2.2x, while
+          # the edge is the fleet's single public entrypoint and is
+          # deliberately excluded from the restic secret shard
+          # (docs/adr/0006) precisely because it runs no backup job.
+          # This node has the headroom, already holds two Volumes and two
+          # restic jobs, and is not public-facing.
+          name = "freshrss";
+          publicHostnames = [];
+          # Empty on purpose. nginx binds 0.0.0.0:8086 for this service,
+          # but reachability is scoped by the firewall rather than by an
+          # hcloud public/private opening -- exactly the pattern the
+          # blocky entry above uses: trustedInterfaces (enp7s0 plus the
+          # NetBird client interface) with the port never entering this
+          # node's public allowlist. That is what makes it true that the
+          # only way in is the reverse proxy, which reaches its target as
+          # a NetBird peer over the tunnel.
+          firewall = [];
+          stateful = true;
+          volume = {
+            name = "legion-freshrss";
+            mountpoint = "/mnt/freshrss";
+            # config.php, the SQLite database, and the cached article
+            # text FreshRSS retains per entry. 10 GiB matches the other
+            # small stateful services in this file and is far beyond what
+            # a single-operator reader accumulates.
+            sizeGiB = 10;
+            # hcloudVolumeId deliberately unset: the operator provisions
+            # the Volume and fills it in (see the header comment). Until
+            # then this service generates no `fileSystems` mount and no
+            # backup job, and its mount guard keeps it from starting.
+          };
+          # Retained-data service. Both units hold the SQLite database
+          # open -- the PHP workers on every request, the updater on
+          # every poll -- so both stop for the snapshot, same reasoning
+          # as pocket-id and actual-budget. freshrss-config is a
+          # RemainAfterExit oneshot that only touches the datastore at
+          # activation, so it is not named here.
+          backupSet = ["/mnt/freshrss"];
+          backupPauseUnits = ["phpfpm-freshrss.service" "freshrss-updater.service"];
+        }
       ];
     };
 
