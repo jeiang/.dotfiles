@@ -311,6 +311,24 @@
           firewall = [];
           stateful = false;
         }
+        {
+          # Glance dashboard (modules/nixos/glance.nix). Same
+          # NetBird-only reachability pattern as blocky above: served on
+          # the node's NetBird address, not a hcloud public/private
+          # firewall opening, so `firewall` stays empty and port 8085
+          # never enters this node's allowlists.
+          name = "glance";
+          # Deliberately no hostname: Glance 0.8.5 has no OIDC client and
+          # Pocket ID 2.12.0 has no forward-auth endpoint, so there is
+          # nothing the edge could gate a public glance.jeiang.dev
+          # against without a new auth service and its secrets. Reasoning
+          # in full in modules/nixos/glance.nix.
+          publicHostnames = [];
+          firewall = [];
+          # Config-only: widgets re-fetch on their own cache intervals and
+          # the rendered config lives in /run. No Volume, no Backup Set.
+          stateful = false;
+        }
       ];
     };
 
