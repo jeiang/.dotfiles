@@ -79,10 +79,21 @@
     hjem.users.${user}.files = {
       ".face".source = ../../../assets/face.png;
       ".config/hypr/hyprland.lua".source = ./hyprland.lua;
+      # hyprpaper 0.8 replaced the old `preload = <path>` +
+      # `wallpaper = <monitor>,<path>` pair with a `wallpaper {}` special
+      # category (src/config/ConfigManager.cpp: keys monitor/path/fit_mode/
+      # timeout/order/recursive; `preload` no longer exists). The old form is
+      # not rejected, just ignored -- hyprpaper started clean, logged
+      # "Monitor DP-1 has no target: no wp will be created", and left an
+      # unpainted white desktop. An empty `monitor` matches every output.
       ".config/hypr/hyprpaper.conf".text = ''
-        preload = ${self}/assets/wallpaper-kanabox.jpg
-        wallpaper = , ${self}/assets/wallpaper-kanabox.jpg
         splash = false
+
+        wallpaper {
+            monitor =
+            path = ${self}/assets/wallpaper-kanabox.jpg
+            fit_mode = cover
+        }
       '';
       ".config/hypr/rules.lua".source = ./rules.lua;
       ".config/hypr/animations.lua".source = ./animations.lua;
