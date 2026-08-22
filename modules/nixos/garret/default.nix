@@ -145,7 +145,15 @@
             ref_patterns = ["refs/heads/main"];
             allowed_groups = [];
           }
-          pocketIdIssuer
+          # `client_id` lives here rather than in `pocketIdIssuer` itself for
+          # two reasons: the Puller's `browseOidc` submodule has no such
+          # option (eval fails if it is set there), and discovery advertises
+          # the *first* issuer that sets one -- so exactly one issuer should,
+          # and it must be the human one. Without it `/api/v1/discovery`
+          # returns `"oidc": null` and `garret login` fails with "the
+          # server's discovery document has no oidc section". Pocket ID uses
+          # the client id as the audience, hence the same value twice.
+          (pocketIdIssuer // {client_id = pocketIdAudience;})
         ];
       };
 
