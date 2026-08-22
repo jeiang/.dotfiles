@@ -54,6 +54,7 @@
         self.nixosModules.backupTunnel
         self.nixosModules.impermanence
         self.nixosModules.llama-swap
+        self.nixosModules.hypr-rdp
 
         # disks
         self.diskoConfigurations.artemis
@@ -220,16 +221,8 @@
       # pins the CLI's own updater off (DISABLE_AUTOUPDATER), so it stays
       # on whatever version this flake's nixpkgs input carries. Its state
       # lives in ~/.claude and ~/.claude.json, both persisted above.
-      # hypr-rdp is here and not in the shared toolbox for the same reason:
-      # it serves this workstation's Hyprland session to RDP clients over
-      # the mesh, and no legion node runs a compositor. Run by hand rather
-      # than as a unit -- it takes credentials on the command line, so a
-      # service would need a secret first. modules/nixos/hyprland's
-      # screencopy permission grant is what lets it capture unattended.
-      environment.systemPackages = [
-        pkgs.claude-code
-        self.packages.${pkgs.stdenv.hostPlatform.system}.hypr-rdp
-      ];
+      environment.systemPackages = [pkgs.claude-code];
+
       environment.variables = {
         AMD_VULKAN_ICD = "RADV";
         MESA_SHADER_CACHE_MAX_SIZE = "12G";
@@ -305,6 +298,36 @@
         # wakeOnLan option above), and until now avahi only came up as a
         # transitive mkDefault of the nixpkgs sunshine module.
         avahi.enable = true;
+
+        # RDP onto the Hyprland session, alongside Sunshine's Moonlight
+        # path (modules/nixos/sunshine.nix). No firewall entry on purpose,
+        # same as sunshine's `openFirewall = false`: the netbird interface
+        # is already in `networking.firewall.trustedInterfaces`
+        # (modules/nixos/netbird.nix), so binding 0.0.0.0 is reachable over
+        # the mesh and stays shut to the LAN. modules/nixos/hyprland's
+        # screencopy grant is what lets it capture with nobody at the desk.
+        hypr-rdp = {
+          enable = true;
+          user = "aidanp";
+          username = "aidanp";
+          sopsFile = ./secrets.yaml;
+          settings = {
+            bind = "0.0.0.0:3389";
+            # No `output`: hypr-rdp manages its own headless output, sized
+            # to whatever the client asks for. Deliberately not mirroring
+            # DP-1 -- when the physical display powers down its EDID goes
+            # with it, Hyprland drops to a lone FALLBACK output, and a
+            # pinned `output = "DP-1"` fails start-up with "not found in
+            # Hyprland monitors" exactly when remote access is wanted
+            # most. Sunshine already covers see-the-real-screen; this is a
+            # separate desktop that does not care about the monitor.
+            # VA-API on the discrete GPU; `auto` would quietly fall back to
+            # software H.264 if the driver ever failed to load, which is
+            # exactly the regression that building hypr-rdp against this
+            # flake's nixpkgs fixed (modules/packages/hypr-rdp.nix).
+            h264_backend = "vaapi";
+          };
+        };
       };
 
       # hermes-ops: Hermes' fleet-execution identity (ADR 0012, amended
