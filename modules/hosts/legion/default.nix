@@ -49,16 +49,19 @@
         # backup units" is a free/tier-1 read-adjacent action).
         "restic-backups-netbird-server.service"
         "restic-backups-pocket-id.service"
-        # FreshRSS is a self-contained single-user app published through
-        # the reverse proxy: restarting any of its units affects nothing
-        # but itself, unlike the mesh/SSO units in tier 2 below. nginx is
-        # here for the same reason -- on this node it serves exactly one
-        # thing, FreshRSS's PHP frontend (modules/nixos/freshrss.nix).
+        # FreshRSS and changedetection.io are self-contained single-user
+        # apps published through the reverse proxy: restarting any of
+        # their units affects nothing but themselves, unlike the mesh/SSO
+        # units in tier 2 below. nginx is here for the same reason -- on
+        # this node it serves exactly one thing, FreshRSS's PHP frontend
+        # (modules/nixos/freshrss.nix).
         "freshrss-config.service"
         "freshrss-updater.service"
         "phpfpm-freshrss.service"
         "nginx.service"
+        "changedetection-io.service"
         "restic-backups-freshrss.service"
+        "restic-backups-changedetection-io.service"
       ];
       # Every one of these is load-bearing fleet infrastructure (mesh
       # control plane, SSO, DNS) -- ADR 0012 tier 2 names all five
@@ -302,7 +305,7 @@ in {
           # confirmed against the pinned node_exporter 1.12.0 binary. The
           # trailing `\.service` restricts matches to service units.
           extraFlags = [
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|freshrss-config|freshrss-updater|phpfpm-freshrss|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync)\\.service"
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|freshrss-config|freshrss-updater|phpfpm-freshrss|changedetection-io|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync)\\.service"
           ];
         };
 
@@ -571,7 +574,14 @@ in {
             # node rather than through the edge (docs/adr/0002).
             ++ lib.optional
             (lib.any (service: service.name == "freshrss") node.services)
-            self.nixosModules.freshrss;
+            self.nixosModules.freshrss
+            # changedetection.io, same optional-import pattern, gated on
+            # the inventory node placing `changedetection-io`
+            # (legion-node2 today, alongside freshrss above and published
+            # the same way).
+            ++ lib.optional
+            (lib.any (service: service.name == "changedetection-io") node.services)
+            self.nixosModules.changedetection-io;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;

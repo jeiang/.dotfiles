@@ -360,6 +360,33 @@
           backupSet = ["/mnt/freshrss"];
           backupPauseUnits = ["phpfpm-freshrss.service" "freshrss-updater.service"];
         }
+        {
+          # changedetection.io (modules/nixos/changedetection-io.nix),
+          # published through the NetBird reverse proxy at
+          # watch.proxy.jeiang.dev -- same wildcard as freshrss above.
+          # Placed here for the same capacity reasons.
+          name = "changedetection-io";
+          publicHostnames = [];
+          # Empty for the same reason as freshrss above: 0.0.0.0:5000
+          # scoped by trustedInterfaces, never in the public allowlist.
+          firewall = [];
+          stateful = true;
+          volume = {
+            name = "legion-changedetection-io";
+            mountpoint = "/mnt/changedetection-io";
+            # The watch history is a tree of fetched page snapshots and
+            # grows with watch count * check frequency * retention, so
+            # this is sized above freshrss's rather than matching it.
+            sizeGiB = 20;
+            # hcloudVolumeId deliberately unset, same as freshrss above.
+          };
+          # Retained-data service: url-watches.json plus the per-watch
+          # snapshot history. pauseUnits stops the service before the
+          # snapshot -- it rewrites url-watches.json in place on every
+          # check, so a live copy can catch a partial write.
+          backupSet = ["/mnt/changedetection-io"];
+          backupPauseUnits = ["changedetection-io.service"];
+        }
       ];
     };
 
