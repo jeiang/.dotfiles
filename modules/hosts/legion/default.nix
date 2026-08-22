@@ -59,12 +59,6 @@
         # backup units" is a free/tier-1 read-adjacent action).
         "restic-backups-netbird-server.service"
         "restic-backups-pocket-id.service"
-        # Both are read-only presentation layers over data that lives
-        # elsewhere -- a restart costs a dashboard reload and, for gatus,
-        # its in-memory sample window. Nothing depends on either being
-        # up (ADR 0012 tier 1).
-        "glance.service"
-        "gatus.service"
         # FreshRSS and changedetection.io are self-contained single-user
         # apps published through the reverse proxy: restarting any of
         # their units affects nothing but themselves, unlike the mesh/SSO
@@ -123,6 +117,12 @@
         "restic-backups-garret.service"
         "restic-backups-hath.service"
         "prometheus-node-exporter.service"
+        # Both are read-only presentation layers over data that lives
+        # elsewhere -- a restart costs a dashboard reload and, for gatus,
+        # its in-memory sample window. Nothing depends on either being
+        # up (ADR 0012 tier 1).
+        "glance.service"
+        "gatus.service"
       ];
       # No node4 unit is load-bearing for anything outside itself --
       # every placed service here is already tier 1. Stop rules still
@@ -578,7 +578,7 @@ in {
             (lib.any (service: service.name == "blocky") node.services)
             self.nixosModules.blocky
             # Glance dashboard, same optional-import pattern, gated on the
-            # inventory node placing `glance` (legion-node2 today).
+            # inventory node placing `glance` (legion-node4 today).
             # Requires self.nixosModules.netbird (imported fleet-wide
             # above) for trustedInterfaces, same as blocky: it has no
             # public/private firewall opening at all.
@@ -586,7 +586,7 @@ in {
             (lib.any (service: service.name == "glance") node.services)
             self.nixosModules.glance
             # Gatus status page, same optional-import pattern, gated on
-            # the inventory node placing `gatus` (legion-node2 today).
+            # the inventory node placing `gatus` (legion-node4 today).
             ++ lib.optional
             (lib.any (service: service.name == "gatus") node.services)
             self.nixosModules.gatus

@@ -1,7 +1,14 @@
 {self, ...}: {
-  # Glance, the fleet's at-a-glance dashboard, for legion-node2.
+  # Glance, the fleet's at-a-glance dashboard, for legion-node4.
   # First-party `services.glance` (DESIGN.md Service Ownership: prefer a
   # first-party module when it fits) -- no custom systemd unit needed.
+  #
+  # On legion-node4 rather than legion-node2, where it was first written:
+  # node2 carries the mesh control plane, SSO and DNS, and once FreshRSS
+  # and changedetection.io landed there its declared MemoryMax summed to
+  # 2016M against 1922 MiB of RAM. Nothing about this dashboard needs to
+  # sit next to those services -- every widget fetches over the network
+  # regardless -- so it moved to the node with the headroom.
   # Imported only for the inventory node that places `glance`
   # (modules/hosts/legion/default.nix, same optional-import pattern as
   # blocky/pocket-id).
@@ -33,7 +40,7 @@
       settings = {
         server = {
           # The nixpkgs module defaults this to 127.0.0.1, which would make
-          # Glance unreachable from anything but legion-node2 itself. Bind
+          # Glance unreachable from anything but legion-node4 itself. Bind
           # every interface instead and scope reachability with the
           # firewall, the same way modules/nixos/blocky.nix does: the
           # NetBird interface's address isn't known at eval time, so an
@@ -60,7 +67,7 @@
                     # `timezones` (a list), not `timezone` -- the widget's
                     # own clock is always local to the host, and this list
                     # is the extra zones shown beside it
-                    # (internal/glance/widget-clock.go). legion-node2 runs
+                    # (internal/glance/widget-clock.go). legion-node4 runs
                     # UTC, so the operator's own zone is the useful one.
                     timezones = [
                       {
@@ -193,7 +200,7 @@
     # 64M: Glance is a Go binary holding a handful of cached widget
     # responses in memory and nothing else -- no database, no index, no
     # per-request buffering of anything large. Budgeted against
-    # legion-node2's remaining headroom alongside gatus' matching 64M
+    # legion-node4's remaining headroom alongside gatus' matching 64M
     # (modules/nixos/gatus.nix).
     systemd.services.glance.serviceConfig.MemoryMax = "64M";
 

@@ -333,16 +333,37 @@ legion-node2's free ports and both picked 8086. Neither could see the other.
 FreshRSS moved to 8087; Gatus keeps 8086 because the edge `reverse_proxy`
 names it.
 
-## legion-node2 memory concentration, open
+## legion-node2 memory concentration, resolved
 
-All three merged service branches placed on legion-node2. Declared `MemoryMax`
-there is now 2016M against 1922 MiB of RAM (1312M existing + 576M FreshRSS and
-changedetection.io + 128M Glance and Gatus). These are ceilings rather than
-reservations and legion-node3 already runs ~2.2x oversubscribed deliberately,
-so this is not a build or boot failure -- but node3 is a monitoring node and
-node2 is the mesh control plane plus SSO. Moving Glance and Gatus to
-legion-node4 costs 128M into its 258 MiB of headroom and leaves node2 at 1888M.
-Undecided.
+All three merged service branches independently placed on legion-node2, which
+put its declared `MemoryMax` at 2016M against 1922 MiB of RAM (1312M existing +
+576M FreshRSS and changedetection.io + 128M Glance and Gatus). Ceilings rather
+than reservations, so not a boot failure -- but node2 carries the mesh control
+plane, SSO and DNS, and is the wrong node to run closest to the line.
+
+Resolved by moving Glance and Gatus to legion-node4: node2 drops to 1888M and
+node4 rises to 1792M, both under. Ports 8085 and 8086 are free on node4 (it
+holds 8081, 8082, 9091, 9092, 5006 and 8888), so neither port changed and the
+edge `status.jeiang.dev` route just re-points from `${node2}` to `${node4}`.
+
+Gatus gains a real improvement from the move rather than merely fitting: it no
+longer shares a node with Pocket ID, which is one of the services it checks.
+
+## Gatus exposure: public behind the edge, settled
+
+Publishing Gatus through netbird-proxy was considered and rejected. The proxy
+authenticates against Pocket ID, and Pocket ID is one of the endpoints Gatus
+monitors, so proxying it would mean an IdP outage hides the page reporting that
+outage. It stays public and ungated behind the edge with `crowdsec` (cheap IP
+decision) but without `appsec`, so it fails open under load -- a status page
+that 403s when things are breaking is worse than no status page. Reasoning is
+recorded in `modules/nixos/gatus.nix` under "Why this hostname is public and
+ungated".
+
+Glance is unaffected: it still has no public hostname at all and is reachable
+only on the node's NetBird address, because Glance 0.8.5 has no OIDC client and
+Pocket ID 2.12.0 has no forward-auth endpoint. Publishing it through
+netbird-proxy would work and remains open as a convenience change.
 
 ## Corrections
 

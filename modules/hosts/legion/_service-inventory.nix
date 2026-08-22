@@ -344,53 +344,6 @@
           stateful = false;
         }
         {
-          # Glance dashboard (modules/nixos/glance.nix). Same
-          # NetBird-only reachability pattern as blocky above: served on
-          # the node's NetBird address, not a hcloud public/private
-          # firewall opening, so `firewall` stays empty and port 8085
-          # never enters this node's allowlists.
-          name = "glance";
-          # Deliberately no hostname: Glance 0.8.5 has no OIDC client and
-          # Pocket ID 2.12.0 has no forward-auth endpoint, so there is
-          # nothing the edge could gate a public glance.jeiang.dev
-          # against without a new auth service and its secrets. Reasoning
-          # in full in modules/nixos/glance.nix.
-          publicHostnames = [];
-          firewall = [];
-          # Config-only: widgets re-fetch on their own cache intervals and
-          # the rendered config lives in /run. No Volume, no Backup Set.
-          stateful = false;
-        }
-        {
-          # Gatus status page (modules/nixos/gatus.nix). DNS points at the
-          # edge (legion-node1); Caddy proxies here
-          # (modules/nixos/edge/default.nix status.jeiang.dev route), so
-          # the hostname itself is declared on legion-node1's `caddy`
-          # entry alongside every other edge-served hostname.
-          name = "gatus";
-          publicHostnames = [];
-          firewall = [
-            {
-              # Same documentation-only "private" scope as the other
-              # legion-node2 backends above: enforcement is
-              # trustedInterfaces (enp7s0) plus the port not being in the
-              # "public" allowlist. 8086 rather than the module default
-              # 8080, which netbird-relay already holds on this node.
-              port = 8086;
-              proto = "tcp";
-              scope = "private";
-            }
-          ];
-          # Deliberate: Gatus keeps its default in-memory store rather
-          # than SQLite, so a restart drops the sample history and there
-          # is nothing to retain. Durable uptime history is
-          # legion-node3's VictoriaMetrics, which survives this node
-          # entirely. Choosing SQLite here would require a Hetzner Volume
-          # (the statefulServicesWithoutVolume assert below) and a Backup
-          # Set for data the monitoring stack already holds.
-          stateful = false;
-        }
-        {
           # FreshRSS (modules/nixos/freshrss.nix), published through the
           # NetBird reverse proxy at rss.proxy.jeiang.dev -- covered by
           # the `*.proxy.jeiang.dev` wildcard the netbird-proxy entry
@@ -653,6 +606,70 @@
           # modules/nixos/hath.nix and satisfying the backup-subset check.
           backupSet = ["/mnt/hath/data" "/mnt/hath/cache"];
           backupPauseUnits = ["hath.service"];
+        }
+        {
+          # Glance dashboard (modules/nixos/glance.nix). Same
+          # NetBird-only reachability pattern blocky uses on
+          # legion-node2: served on the node's NetBird address, not a
+          # hcloud public/private firewall opening, so `firewall` stays
+          # empty and port 8085 never enters this node's allowlists.
+          #
+          # Placed here rather than on legion-node2, where it was first
+          # written: node2 carries the mesh control plane, SSO and DNS,
+          # and once FreshRSS and changedetection.io landed there its
+          # declared MemoryMax summed to 2016M against 1922 MiB of RAM.
+          # These are ceilings rather than reservations, so that is not a
+          # boot failure, but node2 is the wrong node to run closest to
+          # the line. This node had the headroom.
+          name = "glance";
+          # Deliberately no hostname: Glance 0.8.5 has no OIDC client and
+          # Pocket ID 2.12.0 has no forward-auth endpoint, so there is
+          # nothing the edge could gate a public glance.jeiang.dev
+          # against without a new auth service and its secrets. Reasoning
+          # in full in modules/nixos/glance.nix.
+          publicHostnames = [];
+          firewall = [];
+          # Config-only: widgets re-fetch on their own cache intervals and
+          # the rendered config lives in /run. No Volume, no Backup Set.
+          stateful = false;
+        }
+        {
+          # Gatus status page (modules/nixos/gatus.nix). DNS points at the
+          # edge (legion-node1); Caddy proxies here
+          # (modules/nixos/edge/default.nix status.jeiang.dev route), so
+          # the hostname itself is declared on legion-node1's `caddy`
+          # entry alongside every other edge-served hostname.
+          #
+          # Placed here rather than on legion-node2 for the capacity
+          # reason in the glance entry above. It also happens to improve
+          # the failure story: the status page no longer shares a node
+          # with Pocket ID, which is one of the services it reports on.
+          name = "gatus";
+          publicHostnames = [];
+          firewall = [
+            {
+              # Same documentation-only "private" scope as the garret and
+              # actual-budget backends on this node: enforcement is
+              # trustedInterfaces (enp7s0) plus the port not being in the
+              # "public" allowlist. 8086 rather than the module default
+              # 8080 -- that default was displaced by netbird-relay when
+              # this service lived on legion-node2, and the port is kept
+              # rather than reverted so the edge route and the module stay
+              # in step. 8085 and 8086 are both free here (this node holds
+              # 8081, 8082, 9091, 9092, 5006 and 8888).
+              port = 8086;
+              proto = "tcp";
+              scope = "private";
+            }
+          ];
+          # Deliberate: Gatus keeps its default in-memory store rather
+          # than SQLite, so a restart drops the sample history and there
+          # is nothing to retain. Durable uptime history is
+          # legion-node3's VictoriaMetrics, which survives this node
+          # entirely. Choosing SQLite here would require a Hetzner Volume
+          # (the statefulServicesWithoutVolume assert below) and a Backup
+          # Set for data the monitoring stack already holds.
+          stateful = false;
         }
       ];
     };

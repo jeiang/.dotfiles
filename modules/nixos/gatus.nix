@@ -1,17 +1,22 @@
 _: {
-  # Gatus, the public status page, for legion-node2, behind the edge at
+  # Gatus, the public status page, for legion-node4, behind the edge at
   # status.jeiang.dev (modules/nixos/edge/default.nix
-  # `status.jeiang.dev { reverse_proxy ${node2}:8086 }`). First-party
+  # `status.jeiang.dev { reverse_proxy ${node4}:8086 }`). First-party
   # `services.gatus` (DESIGN.md Service Ownership) -- no custom systemd
   # unit needed. Imported only for the inventory node that places `gatus`
   # (modules/hosts/legion/default.nix, same optional-import pattern as
   # pocket-id/blocky).
   #
-  # Deliberately placed on legion-node2 rather than beside the monitoring
-  # stack on legion-node3: a status page that shares a node with the
-  # thing it reports on goes down with it. node2 is also not the edge, so
-  # an edge outage still leaves the checks running and their history
-  # intact for when Caddy comes back.
+  # Placement, in order of what it rules out. Not legion-node3, beside the
+  # monitoring stack: a status page that shares a node with the thing it
+  # reports on goes down with it. Not legion-node1, the edge: an edge
+  # outage would take the page down along with everything it is meant to
+  # explain. Not legion-node2, which was the original choice and is where
+  # the module was first written -- node2 carries the mesh control plane,
+  # SSO and DNS, and once FreshRSS and changedetection.io landed there its
+  # declared MemoryMax summed to 2016M against 1922 MiB of RAM. That
+  # leaves legion-node4, which has the headroom and, usefully, does not
+  # run Pocket ID -- one of the services checked below.
   flake.nixosModules.gatus = _: let
     # Every check is HTTPS against a hostname that already resolves
     # publicly (modules/hosts/legion/_service-inventory.nix `caddy`
@@ -118,7 +123,7 @@ _: {
 
     # 64M: Gatus holds `storage.maximum-number-of-results` (100 by
     # default) samples per endpoint in memory and nothing else -- roughly
-    # a dozen endpoints here. Budgeted against legion-node2's remaining
+    # a dozen endpoints here. Budgeted against legion-node4's remaining
     # headroom alongside glance's matching 64M (modules/nixos/glance.nix).
     systemd.services.gatus.serviceConfig.MemoryMax = "64M";
 
@@ -128,8 +133,11 @@ _: {
     # exists for: Pocket ID (auth.jeiang.dev) is itself one of the
     # services being monitored, and it sits behind the same edge Caddy, so
     # gating this hostname would mean an edge or IdP outage takes the
-    # outage report down with it. Public and ungated is the only posture
-    # that survives its own failure modes.
+    # outage report down with it. Publishing it through netbird-proxy
+    # instead was considered and fails for the same reason: the proxy
+    # authenticates against Pocket ID, so it inherits exactly the
+    # dependency this needs to avoid. Public and ungated is the only
+    # posture that survives its own failure modes.
     #
     # That posture is what constrains the check list above to hostnames
     # that already resolve publicly. Gatus' dashboard API

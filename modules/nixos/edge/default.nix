@@ -19,7 +19,7 @@
     node1 = self.lib.legionNodes.legion-node1.privateIPv4; # This node's own private address (metrics bind)
     node2 = self.lib.legionNodes.legion-node2.privateIPv4; # NetBird server/relay, Pocket ID
     node3 = self.lib.legionNodes.legion-node3.privateIPv4; # Monitoring/Grafana
-    node4 = self.lib.legionNodes.legion-node4.privateIPv4; # garret, Actual Budget
+    node4 = self.lib.legionNodes.legion-node4.privateIPv4; # garret, Actual Budget, Gatus
 
     website = inputs.website.packages.${system}.default;
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
@@ -537,19 +537,22 @@
           }
 
           # --- status.jeiang.dev: Gatus status page -----------------------
-          # Port 8086 matches modules/nixos/gatus.nix's `web.port` (not
-          # Gatus' own 8080 default, which netbird-relay already holds on
-          # legion-node2).
+          # Port 8086 matches modules/nixos/gatus.nix's `web.port`. Not
+          # Gatus' own 8080 default: that was displaced by netbird-relay
+          # when the service lived on legion-node2, and the port is kept
+          # rather than reverted now that it runs on legion-node4.
           #
           # Public and ungated, deliberately: this is the page people load
           # when something is broken, and Pocket ID is one of the services
           # it reports on, so putting it behind SSO would take the outage
-          # report down with the outage. `appsec` is skipped for the same
-          # fail-open reasoning as the cache routes above -- a status page
-          # that 403s under load is worse than no status page -- while
-          # `crowdsec`'s cheap IP-decision check still applies.
+          # report down with the outage. That also rules out publishing it
+          # through netbird-proxy, which authenticates against Pocket ID.
+          # `appsec` is skipped for the same fail-open reasoning as the
+          # cache routes above -- a status page that 403s under load is
+          # worse than no status page -- while `crowdsec`'s cheap
+          # IP-decision check still applies.
           status.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node2}:8086
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:8086
           }
 
           # --- netbird.jeiang.dev: NetBird server/relay -------------------
