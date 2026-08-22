@@ -102,6 +102,12 @@
         inherit dbPath s3;
         signingKeyFiles = [config.sops.secrets."garret/signing-key".path];
 
+        # The one thing the Pusher cannot infer about itself. Advertised by
+        # `/api/v1/discovery` so `garret login` writes a complete client
+        # config; without it `garret use`, `list` and `tree` stay
+        # unconfigured on every machine that logs in.
+        pullerEndpoint = "https://cache.jeiang.dev";
+
         # 250 GiB budget with LRU eviction between the watermarks. Attic's
         # equivalent was time-based with a zero retention period, i.e. it
         # never evicted anything; a quota is what keeps the MEGA S4 bill
