@@ -55,6 +55,7 @@
         self.nixosModules.impermanence
         self.nixosModules.llama-swap
         self.nixosModules.hypr-rdp
+        self.nixosModules.qdrant
 
         # disks
         self.diskoConfigurations.artemis
