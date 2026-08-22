@@ -43,7 +43,16 @@ hl.permission({
 	mode = "allow",
 })
 hl.permission({
-	binary = vars.screenshot,
+	-- grim, not `vars.screenshot`. Hyprland matches on the Wayland client's
+	-- own /proc/<pid>/exe, and the screencopy client here is grim, several
+	-- execs below the SHIFT+S bind: the `screenshot` wrapper runs grimblast,
+	-- which runs grim from its wrapper PATH. Granting the outermost script
+	-- matched nothing, so every screenshot silently hung on an approval
+	-- popup (verified: grim prompts with that rule active). A regex, not
+	-- grim's exact store path, because the grim that matters is the one
+	-- baked into grimblast's PATH rather than one this module names --
+	-- RE2 full-matches, so this cannot catch `grimblast` itself.
+	binary = ".*/bin/grim",
 	type = "screencopy",
 	mode = "allow",
 })
