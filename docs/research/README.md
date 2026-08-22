@@ -33,6 +33,62 @@ setting any `MemoryMax`.
 | [flake-paradigms.md](flake-paradigms.md) | Flake architecture, deployment, secrets, testing |
 | [paper-2608.16157.md](paper-2608.16157.md) | arXiv:2608.16157, FreeToken MoE serving |
 
+Catalog surveys, each screened for prompt injection before use and each
+verified against the pinned nixpkgs revision:
+
+| Document | Catalog surveyed |
+| -------- | ---------------- |
+| [catalog-selfhosted.md](catalog-selfhosted.md) | awesome-selfhosted.net |
+| [catalog-sysadmin.md](catalog-sysadmin.md) | awesome-sysadmin, awesome-status-pages |
+| [catalog-macos.md](catalog-macos.md) | open-source-mac-os-apps, judged against ADR 0009 |
+| [catalog-network-storage.md](catalog-network-storage.md) | awesome-network-automation, awesome-storage |
+
+### Catalog findings
+
+The four catalogs produced far less than their size suggests, which is
+itself the finding: most entries duplicate something already running or
+assume an environment this fleet does not have.
+
+Worth acting on:
+
+- **reaction** — Rust log-pattern daemon, real NixOS module. Fills the
+  log-based alerting gap named below. The strongest single result of the
+  catalog sweep.
+- **Warpgate** — Rust SSH/HTTPS/database bastion, OIDC-native, real module.
+  Closes a genuine session-audit gap.
+- **Anubis** — Go anti-scraper gate, real module. Complements CrowdSec
+  rather than duplicating it.
+- **Healthchecks** — dead-man's-switch monitoring, real module. Partial
+  cover for backup verification.
+- **SearXNG** — real module; private search backend for Hermes.
+- **GoAccess** — package-only CLI, zero runtime cost, useful for Caddy log
+  triage.
+
+macOS picks for Zakkart, all plain nixpkgs and needing no ADR-0009
+exception: Rectangle, zoxide, Karabiner-Elements, MonitorControl,
+Beekeeper Studio, LuLu, AltTab, Stats. Note that CopyQ, MQTTX and
+Cryptomator are Linux-only in the pinned nixpkgs despite being
+cross-platform upstream, so each would need a declared cask exception;
+Hammerspoon has no darwin package at all.
+
+Explicit negatives, recorded so they are not re-surveyed:
+
+- **Network automation does not apply.** Ansible, NAPALM, Nornir, RANCID,
+  Oxidized, Batfish, SuzieQ and NetBox all exist to manage mutable,
+  CLI-driven network devices. This fleet has none: `_service-inventory.nix`
+  is already a compile-time-checked source of truth that deploy-rs applies
+  directly. NetBox was considered specifically and rejected — a
+  Postgres-and-Redis application to track four IP addresses currently held
+  in twelve lines of Nix.
+- **awesome-storage yielded nothing to adopt.** restic already covers
+  backup, deduplication and encryption; distributed filesystems do not fit
+  1.9 GiB nodes. Garage is the one TRY, with the caveat that hosting it on
+  the same four nodes as a restic target defeats off-fleet durability.
+- **Gatus is reconfirmed** as the status-page pick — the only option across
+  either catalog with a real NixOS module, against eight alternatives.
+- Neither catalog offers anything for CVE scanning, S3 object-lock, or
+  secret rotation. awesome-sysadmin has no security category at all.
+
 ## Implemented
 
 - Removed the `jellyfin.plyrex.dev` / `seerr.plyrex.dev` placeholder routes.
