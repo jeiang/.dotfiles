@@ -329,6 +329,35 @@
           # the rendered config lives in /run. No Volume, no Backup Set.
           stateful = false;
         }
+        {
+          # Gatus status page (modules/nixos/gatus.nix). DNS points at the
+          # edge (legion-node1); Caddy proxies here
+          # (modules/nixos/edge/default.nix status.jeiang.dev route), so
+          # the hostname itself is declared on legion-node1's `caddy`
+          # entry alongside every other edge-served hostname.
+          name = "gatus";
+          publicHostnames = [];
+          firewall = [
+            {
+              # Same documentation-only "private" scope as the other
+              # legion-node2 backends above: enforcement is
+              # trustedInterfaces (enp7s0) plus the port not being in the
+              # "public" allowlist. 8086 rather than the module default
+              # 8080, which netbird-relay already holds on this node.
+              port = 8086;
+              proto = "tcp";
+              scope = "private";
+            }
+          ];
+          # Deliberate: Gatus keeps its default in-memory store rather
+          # than SQLite, so a restart drops the sample history and there
+          # is nothing to retain. Durable uptime history is
+          # legion-node3's VictoriaMetrics, which survives this node
+          # entirely. Choosing SQLite here would require a Hetzner Volume
+          # (the statefulServicesWithoutVolume assert below) and a Backup
+          # Set for data the monitoring stack already holds.
+          stateful = false;
+        }
       ];
     };
 

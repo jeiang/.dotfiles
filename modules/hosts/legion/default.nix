@@ -49,10 +49,12 @@
         # backup units" is a free/tier-1 read-adjacent action).
         "restic-backups-netbird-server.service"
         "restic-backups-pocket-id.service"
-        # A read-only presentation layer over data that lives
-        # elsewhere -- a restart costs a dashboard reload and nothing
-        # depends on it being up (ADR 0012 tier 1).
+        # Both are read-only presentation layers over data that lives
+        # elsewhere -- a restart costs a dashboard reload and, for gatus,
+        # its in-memory sample window. Nothing depends on either being
+        # up (ADR 0012 tier 1).
         "glance.service"
+        "gatus.service"
       ];
       # Every one of these is load-bearing fleet infrastructure (mesh
       # control plane, SSO, DNS) -- ADR 0012 tier 2 names all five
@@ -296,7 +298,7 @@ in {
           # confirmed against the pinned node_exporter 1.12.0 binary. The
           # trailing `\.service` restricts matches to service units.
           extraFlags = [
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync|glance)\\.service"
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync|glance|gatus)\\.service"
           ];
         };
 
@@ -544,6 +546,11 @@ in {
             ++ lib.optional
             (lib.any (service: service.name == "glance") node.services)
             self.nixosModules.glance
+            # Gatus status page, same optional-import pattern, gated on
+            # the inventory node placing `gatus` (legion-node2 today).
+            ++ lib.optional
+            (lib.any (service: service.name == "gatus") node.services)
+            self.nixosModules.gatus
             # Monitoring composition (VictoriaMetrics, VictoriaLogs,
             # Grafana, vmalert, Alertmanager), same optional-import
             # pattern, gated on the inventory node placing `monitoring`
