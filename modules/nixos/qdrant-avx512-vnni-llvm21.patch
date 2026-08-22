@@ -24,9 +24,12 @@ at 22 or newer (i.e. once #544495, or a tree-wide default LLVM bump, has
 landed). Check with:
   nix-instantiate '<nixpkgs>' -A rustc.llvmPackages.llvm
 
-The shims are exact rather than approximations, and qdrant's own
-`test_avx512_vnni_matches_scalar` tests run them against the scalar
-reference during the build on any AVX-512 VNNI host.
+The shims are exact rather than approximations. That was checked by
+running both against a scalar reference over 200k random operand vectors
+on artemis (a Zen 4 part, so the AVX-512 VNNI paths are the ones it
+actually takes at runtime). Note that the packaged checkPhase does not
+cover this: it runs only qdrant's own test binary, not the `quantization`
+crate's `test_avx512_vnni_matches_scalar`.
 --- a/lib/quantization/src/turboquant/simd/query4bit/x64.rs
 +++ b/lib/quantization/src/turboquant/simd/query4bit/x64.rs
 @@ -10,7 +10,77 @@
