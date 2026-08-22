@@ -1,0 +1,142 @@
+name: Vulnix
+
+# CVE scan of each host's system closure, matched against the NVD feeds.
+#
+# Deliberately NOT a flake check (modules/checks.nix): vulnix downloads the
+# NVD archives at run time, and a sandboxed derivation has no network. The
+# only way to express it as a check would be `--impure`, which CI does not
+# get (docs/OPERATIONS.md; the devshell is the only surface allowed to be
+# impure). A workflow is the honest place for a scan that is inherently
+# online.
+#
+# Scheduled rather than per-PR. Findings here move when NVD publishes, not
+# when this repo changes: a PR that touches one module would re-report the
+# same closure CVEs as the PR before it, which trains everyone to ignore the
+# job. Weekly gives new advisories a bounded time to surface without
+# attaching noise to unrelated review.
+on:
+  schedule:
+    # Mondays 06:00 UTC.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Same anonymous pull setup as ci.yml: the toplevels this scans are exactly
+  # the ones ci.yml already built and pushed, so with the cache warm every leg
+  # here substitutes rather than compiles.
+  GARRET_SUBSTITUTER: https://cache.jeiang.dev
+  GARRET_PUBLIC_KEY: "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
+  MAX_SUBSTITUTION_JOBS: "32"
+  HTTP_CONNECTIONS: "64"
+
+jobs:
+  # Mirrors ci.yml's discover/build split for the same reason: one leg per
+  # host. Realising every toplevel in a single job would stack ~10-20 GB of
+  # closure per host on one runner, which is the disk pressure ci.yml's
+  # "free disk space" note describes.
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      hosts: ${{ steps.discover.outputs.hosts }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+        with:
+          extra_nix_config: |
+            extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
+            extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }}
+            max-substitution-jobs = ${{ env.MAX_SUBSTITUTION_JOBS }}
+            http-connections = ${{ env.HTTP_CONNECTIONS }}
+
+      # nixosConfigurations only. darwinConfigurations.zakkart is out of
+      # scope: vulnix matches against NVD's Linux-oriented package data, and
+      # scanning a darwin closure would mean substituting aarch64-darwin
+      # paths onto an x86_64-linux runner for results nothing here acts on.
+      - name: Discover hosts
+        id: discover
+        run: |
+          hosts=$(nix eval --json '.#nixosConfigurations' --apply builtins.attrNames)
+          echo "hosts=$hosts" >> "$GITHUB_OUTPUT"
+
+  scan:
+    needs: discover
+    strategy:
+      # One host's scan failing must not hide the other three.
+      fail-fast: false
+      matrix:
+        host: ${{ fromJson(needs.discover.outputs.hosts) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+        with:
+          extra_nix_config: |
+            extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
+            extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }}
+            max-substitution-jobs = ${{ env.MAX_SUBSTITUTION_JOBS }}
+            http-connections = ${{ env.HTTP_CONNECTIONS }}
+
+      - name: Build toplevel
+        id: build
+        env:
+          HOST: ${{ matrix.host }}
+        run: |
+          path=$(nix build --no-link --print-out-paths \
+            ".#nixosConfigurations.${HOST}.config.system.build.toplevel")
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+
+      # --inputs-from . resolves vulnix against this flake's locked nixpkgs
+      # rather than the runner's registry, so the scanner version moves with
+      # flake.lock like everything else instead of drifting per run.
+      #
+      # -C scans the runtime closure of the built output, which is what
+      # actually ships to the node -- not the build-time requisites, which
+      # would report compilers and other paths no running system contains.
+      #
+      # Exit codes: 0 clean, 2 vulnerabilities found, anything else a real
+      # error. Only the last of those should turn the job red. A NixOS
+      # closure always carries some known unpatched CVEs, so failing on 2
+      # would mean a permanently red job that everyone learns to skip -- the
+      # report is the deliverable here, not a gate.
+      - name: Scan closure
+        id: scan
+        env:
+          HOST: ${{ matrix.host }}
+          CLOSURE: ${{ steps.build.outputs.path }}
+        run: |
+          set +e
+          nix run --inputs-from . nixpkgs#vulnix -- -C "$CLOSURE" --json > "vulnix-${HOST}.json"
+          rc=$?
+          set -e
+          nix run --inputs-from . nixpkgs#vulnix -- -C "$CLOSURE" > "vulnix-${HOST}.txt" || true
+          if [ "$rc" -ne 0 ] && [ "$rc" -ne 2 ]; then
+            echo "vulnix failed with exit $rc" >&2
+            exit "$rc"
+          fi
+          count=$(jq 'length' "vulnix-${HOST}.json")
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          {
+            echo "## ${HOST}: ${count} affected package(s)"
+            echo
+            echo '```'
+            head -c 60000 "vulnix-${HOST}.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vulnix-${{ matrix.host }}
+          path: |
+            vulnix-${{ matrix.host }}.json
+            vulnix-${{ matrix.host }}.txt
+          retention-days: 90
