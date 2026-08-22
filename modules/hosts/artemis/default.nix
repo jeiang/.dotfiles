@@ -56,6 +56,7 @@
         self.nixosModules.llama-swap
         self.nixosModules.hypr-rdp
         self.nixosModules.qdrant
+        self.nixosModules.whisper-server
 
         # disks
         self.diskoConfigurations.artemis
