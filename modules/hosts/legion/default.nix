@@ -65,6 +65,19 @@
         # up (ADR 0012 tier 1).
         "glance.service"
         "gatus.service"
+        # FreshRSS and changedetection.io are self-contained single-user
+        # apps published through the reverse proxy: restarting any of
+        # their units affects nothing but themselves, unlike the mesh/SSO
+        # units in tier 2 below. nginx is here for the same reason -- on
+        # this node it serves exactly one thing, FreshRSS's PHP frontend
+        # (modules/nixos/freshrss.nix).
+        "freshrss-config.service"
+        "freshrss-updater.service"
+        "phpfpm-freshrss.service"
+        "nginx.service"
+        "changedetection-io.service"
+        "restic-backups-freshrss.service"
+        "restic-backups-changedetection-io.service"
       ];
       # Every one of these is load-bearing fleet infrastructure (mesh
       # control plane, SSO, DNS) -- ADR 0012 tier 2 names all five
@@ -314,7 +327,7 @@ in {
             # in front of four public hostnames -- a failed unit here is
             # a user-visible 502, and SystemdUnitFailed is the fleet's
             # existing path from that to Alertmanager.
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync|glance|gatus)\\.service"
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync|glance|gatus|freshrss-config|freshrss-updater|phpfpm-freshrss|changedetection-io)\\.service"
           ];
         };
 
@@ -599,7 +612,21 @@ in {
             # today).
             ++ lib.optional
             (lib.any (service: service.name == "camera-ingest") node.services)
-            self.nixosModules.camera-ingest;
+            self.nixosModules.camera-ingest
+            # FreshRSS, same optional-import pattern, gated on the
+            # inventory node placing `freshrss` (legion-node2 today).
+            # Published through the NetBird reverse proxy on this same
+            # node rather than through the edge (docs/adr/0002).
+            ++ lib.optional
+            (lib.any (service: service.name == "freshrss") node.services)
+            self.nixosModules.freshrss
+            # changedetection.io, same optional-import pattern, gated on
+            # the inventory node placing `changedetection-io`
+            # (legion-node2 today, alongside freshrss above and published
+            # the same way).
+            ++ lib.optional
+            (lib.any (service: service.name == "changedetection-io") node.services)
+            self.nixosModules.changedetection-io;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;
