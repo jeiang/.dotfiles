@@ -226,6 +226,19 @@
       environment.variables = {
         AMD_VULKAN_ICD = "RADV";
         MESA_SHADER_CACHE_MAX_SIZE = "12G";
+        # Pin aquamarine to the discrete GPU. Left to itself it makes the
+        # Raphael iGPU (2 CUs) primary and demotes the RX 9070 XT to a
+        # scanout-only secondary: the whole session renders on the iGPU and
+        # every frame crosses to the dGPU as a linear (untiled, no DCC)
+        # multi-GPU buffer before reaching DP-1, and every client that
+        # follows the compositor's advertised device -- Xwayland, hyprpaper,
+        # xdg-desktop-portal-hyprland -- lands on the iGPU too. Nothing is
+        # wired to the iGPU's outputs, so dropping it from the compositor
+        # costs nothing and also keeps the session off it on the boots where
+        # its PSP init fails (see the amdgpu.gpu_recovery note above).
+        # /dev/dri/egpu is the by-PCI-address symlink from ./hardware.nix --
+        # card* numbering is not stable across boots.
+        AQ_DRM_DEVICES = "/dev/dri/egpu";
       };
       networking = {
         hostName = "artemis";
