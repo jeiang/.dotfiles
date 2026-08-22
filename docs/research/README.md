@@ -280,6 +280,70 @@ tooling. vulnix now covers the first. The rest remain open:
 - No log-based alerting — vmalert covers metrics, LogsQL rules are unused.
 - No secret rotation tracking; sops-nix has no expiry mechanism.
 
+## qdrant AVX-512 breakage: resolved, 2026-08-22
+
+The build failure recorded above is a nixpkgs rustc/LLVM pairing bug, not a
+qdrant defect and not a repo-config defect. LLVM 22 changed the operand types
+of the AVX-512 VNNI intrinsics (`llvm.x86.avx512.vpdpbusd.512` `<16 x i32>` ->
+`<64 x i8>`, `vpdpwssd.512` `<16 x i32>` -> `<32 x i16>`). rustc 1.97.1's
+bundled stdarch emits the new form, but nixpkgs at pin `2fcb964` builds rustc
+against `llvmPackages_21`, which still declares the old one. Any crate calling
+`_mm512_dpbusd_epi32` / `_mm512_dpwssd_epi32` fails codegen; qdrant 1.18's
+`quantization` crate does so in six places.
+
+Upstream fix is [NixOS/nixpkgs#544495](https://github.com/NixOS/nixpkgs/pull/544495)
+("rust_1_97: build against LLVM 22"), open against staging and not imminent --
+it is a mass rebuild and reviewers are debating a tree-wide LLVM default bump
+instead. nixpkgs has already merged the same class of per-package workaround
+for vectorchord ([#538998](https://github.com/NixOS/nixpkgs/pull/538998)) and
+mistral-rs ([#541607](https://github.com/NixOS/nixpkgs/pull/541607)).
+
+Rejected alternatives: a qdrant version bump (master still calls the same
+intrinsics, and `quantization`'s only cargo feature is `testing`, so nothing
+gates the AVX-512 path); building rustc locally against LLVM 22 (correct, but
+every cold CI leg would pay 1.5-2h with no binary cache for it).
+
+Taken: `modules/nixos/qdrant-avx512-vnni-llvm21.patch` replaces the two
+intrinsics with shims built from plain AVX-512BW ops, wired via
+`services.qdrant.package = pkgs.qdrant.overrideAttrs` (the inline-override
+precedent from `llama-swap.nix`, rather than an overlay). Closure is unchanged
+in shape: 9 paths, 131 MiB, no rustc and no second toolchain.
+
+Correctness was verified twice, independently. The implementing agent compared
+both shims against a scalar reference over 200k random operand vectors. The
+main session then compared them against the **actual hardware instructions** on
+artemis (Zen 4, `avx512_vnni` present): 500k iterations x 16 lanes = 8M lane
+comparisons per shim, plus forced edge cases (a=255 x b=-1, a=128 x b=-128, and
+`src` seeded at `INT32_MIN`/`INT32_MAX` to exercise the non-saturating wrap).
+Zero mismatches. The hardware comparison is the stronger of the two because it
+also confirms the wrap semantics, which a scalar reference has to assume.
+
+Worth knowing: nixpkgs' `checkPhase` for qdrant runs only qdrant's own test
+binary, not the `quantization` crate's `test_avx512_vnni_matches_scalar`. The
+build passing does *not* exercise these shims, which is why both checks above
+were run separately.
+
+Delete the patch and the `package =` override once the pin has
+`rustc.llvmPackages.llvm` at 22 or newer.
+
+## Port collision found at merge, 2026-08-22
+
+FreshRSS and Gatus were built on separate branches and both surveyed
+legion-node2's free ports and both picked 8086. Neither could see the other.
+FreshRSS moved to 8087; Gatus keeps 8086 because the edge `reverse_proxy`
+names it.
+
+## legion-node2 memory concentration, open
+
+All three merged service branches placed on legion-node2. Declared `MemoryMax`
+there is now 2016M against 1922 MiB of RAM (1312M existing + 576M FreshRSS and
+changedetection.io + 128M Glance and Gatus). These are ceilings rather than
+reservations and legion-node3 already runs ~2.2x oversubscribed deliberately,
+so this is not a build or boot failure -- but node3 is a monitoring node and
+node2 is the mesh control plane plus SSO. Moving Glance and Gatus to
+legion-node4 costs 128M into its 258 MiB of headroom and leaves node2 at 1888M.
+Undecided.
+
 ## Corrections
 
 Two claims made during this survey were wrong and are corrected here so the
