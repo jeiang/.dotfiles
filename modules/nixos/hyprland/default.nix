@@ -32,18 +32,27 @@
     services = {
       greetd = {
         enable = true;
-        useTextGreeter = true;
         settings = {
-          # Boot straight into the session: this host is used unattended as
-          # a Sunshine streaming target, so nobody is at the keyboard to log
-          # in. initial_session runs exactly once per greetd start; tuigreet
-          # below remains the fallback greeter after a logout.
-          initial_session = {
+          # Straight into the session, every time. This host is used
+          # unattended as a Sunshine/RDP target, so a greeter is a dead end:
+          # nobody is at the keyboard to answer it, and both remote-access
+          # services are session-scoped, so a session parked at a login
+          # prompt is a box that has to be walked to.
+          #
+          # default_session rather than initial_session: greetd runs
+          # initial_session exactly once per greetd start, so it covers the
+          # boot and nothing after it. Autologin here is what brings the
+          # session back on its own after a logout, a compositor crash, or
+          # a `systemctl restart greetd` to pick up new session env.
+          #
+          # The trade is that a session which dies immediately respawns in a
+          # tight loop rather than falling back to a greeter -- the hjem
+          # race below is exactly that shape of failure. `systemctl stop
+          # greetd` over SSH breaks the loop, and getty still has tty2-6 for
+          # a console login.
+          default_session = {
             command = "uwsm start -- hyprland-uwsm.desktop";
             inherit user;
-          };
-          default_session = {
-            command = "${pkgs.tuigreet}/bin/tuigreet --cmd 'uwsm start -- hyprland-uwsm.desktop'";
           };
         };
       };
