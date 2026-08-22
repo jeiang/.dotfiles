@@ -199,7 +199,45 @@
           # GPU is otherwise a truck-roll (docs/research/
           # unattended-nixos-gaming-remote-access.md).
           "amdgpu.gpu_recovery=1"
+          # Keep amdgpu off the Raphael iGPU (0000:19:00.0). Its PSP is the
+          # CPU-die secure processor, and on roughly a quarter of boots it
+          # rejects amdgpu's SETUP_TMR with 0x80000306; every firmware load
+          # then fails, the SMU never answers (hw_init -62) and the probe
+          # dies. On 7.1.3 that unwinds with a WARN storm out of
+          # amdgpu_irq_put and boots ~30s late, but the unwind reaches
+          # vcn_v3_0_sw_fini, which writes through
+          # adev->vcn.inst[i].fw_shared.cpu_addr unconditionally -- on 7.1.6
+          # that faults, kills the probe thread inside really_probe holding
+          # the driver-core lock, and every later udev worker and modprobe
+          # deadlocks in native_queued_spin_lock_slowpath ("waiting on
+          # filesystems"). Never probing the device removes the trigger, and
+          # with it the reason the kernel input was pinned.
+          #
+          # This is a Linux driver-binding gate only: the iGPU stays enabled
+          # in firmware, so POST and BIOS setup still come up on it. Nothing
+          # in the session uses it either -- both its connectors are empty,
+          # Sunshine and the compositor are pinned to the dGPU
+          # (AQ_DRM_DEVICES below). 19:00.1 (HDA) and 19:00.2 (ccp/PSP) are
+          # deliberately left alone; only the display function is stubbed.
+          "pci-stub.ids=1002:164e"
         ];
+        # pci-stub has to claim 19:00.0 before amdgpu binds it, and amdgpu
+        # is loaded from the initrd for plymouth -- so pci-stub (a module
+        # here, CONFIG_PCI_STUB=m) has to be in the initrd too. This entry
+        # is what gets the .ko into the initrd at all; the softdep below is
+        # what orders it, since boot.initrd.kernelModules lands amdgpu ahead
+        # of anything added here and the initrd closure does not follow
+        # softdeps.
+        initrd.kernelModules = ["pci-stub"];
+        # Load order, not just presence: amdgpu reaches the initrd through
+        # two paths (systemd-modules-load from boot.initrd.kernelModules,
+        # and a udev modalias match), and only the first one respects list
+        # order. A softdep makes every `modprobe amdgpu` pull pci-stub in
+        # first, so 19:00.0 is already claimed whichever path wins the race.
+        # The systemd initrd copies environment.etc's modprobe.d/nixos.conf
+        # -- which this option writes -- into the initrd, so one definition
+        # covers both stages.
+        extraModprobeConfig = "softdep amdgpu pre: pci-stub";
         # Unattended hang recovery: a D-state amdgpu wedge doesn't stop
         # PID 1 from petting the hardware watchdog, so panic on hung
         # tasks explicitly and let the panic reboot the box. The watchdog
@@ -226,6 +264,19 @@
       environment.variables = {
         AMD_VULKAN_ICD = "RADV";
         MESA_SHADER_CACHE_MAX_SIZE = "12G";
+        # Pin aquamarine to the discrete GPU. Left to itself it makes the
+        # Raphael iGPU (2 CUs) primary and demotes the RX 9070 XT to a
+        # scanout-only secondary: the whole session renders on the iGPU and
+        # every frame crosses to the dGPU as a linear (untiled, no DCC)
+        # multi-GPU buffer before reaching DP-1, and every client that
+        # follows the compositor's advertised device -- Xwayland, hyprpaper,
+        # xdg-desktop-portal-hyprland -- lands on the iGPU too. Nothing is
+        # wired to the iGPU's outputs, so dropping it from the compositor
+        # costs nothing and also keeps the session off it on the boots where
+        # its PSP init fails (see the amdgpu.gpu_recovery note above).
+        # /dev/dri/egpu is the by-PCI-address symlink from ./hardware.nix --
+        # card* numbering is not stable across boots.
+        AQ_DRM_DEVICES = "/dev/dri/egpu";
       };
       networking = {
         hostName = "artemis";
