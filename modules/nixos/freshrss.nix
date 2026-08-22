@@ -17,7 +17,7 @@
   # mattering once the proxy became the authentication point (below).
   #
   # Reachability, and why that is the whole security story:
-  #   * nginx binds 0.0.0.0:8086 here, and 8086 is deliberately absent
+  #   * nginx binds 0.0.0.0:8087 here, and 8087 is deliberately absent
   #     from this service's inventory `firewall` list
   #     (modules/hosts/legion/_service-inventory.nix), so it is never in
   #     the node's public allowlist
@@ -25,7 +25,7 @@
   #   * The host firewall's only trusted interfaces are enp7s0 (Hetzner
   #     private network) and the NetBird client's interface
   #     (modules/nixos/netbird.nix). Nothing else can open a connection to
-  #     8086 at all -- same "0.0.0.0 plus firewall scoping" pattern
+  #     8087 at all -- same "0.0.0.0 plus firewall scoping" pattern
   #     modules/nixos/blocky.nix documents for its port 553.
   #   * The NetBird reverse proxy reaches a published service's target
   #     *peer* over the WireGuard tunnel (NetBird docs, Reverse Proxy ->
@@ -76,8 +76,11 @@
 
     # Free on legion-node2: netbird-server holds 80, netbird-proxy 443 and
     # 9002, netbird-relay 8080, pocket-id 1411, blocky 553, node_exporter
-    # 9100.
-    listenPort = 8086;
+    # 9100, glance 8085 and gatus 8086 (modules/nixos/glance.nix,
+    # modules/nixos/gatus.nix -- both landed on this node in parallel with
+    # this service, which is why this is 8087 rather than the 8086 the
+    # port survey above would otherwise have picked).
+    listenPort = 8087;
   in {
     services = {
       freshrss = {
@@ -108,7 +111,7 @@
           # Explicit listen: the nginx module's default is port 80, which
           # netbird-server already binds on this node
           # (modules/nixos/netbird-server/default.nix, TLS terminated at
-          # the edge). Only vhost on 8086, so it is that port's default
+          # the edge). Only vhost on 8087, so it is that port's default
           # server and the Host header is irrelevant.
           listen = [
             {
