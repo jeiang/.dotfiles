@@ -102,6 +102,12 @@
         inherit dbPath s3;
         signingKeyFiles = [config.sops.secrets."garret/signing-key".path];
 
+        # The one thing the Pusher cannot infer about itself. Advertised by
+        # `/api/v1/discovery` so `garret login` writes a complete client
+        # config; without it `garret use`, `list` and `tree` stay
+        # unconfigured on every machine that logs in.
+        pullerEndpoint = "https://cache.jeiang.dev";
+
         # 250 GiB budget with LRU eviction between the watermarks. Attic's
         # equivalent was time-based with a zero retention period, i.e. it
         # never evicted anything; a quota is what keeps the MEGA S4 bill
@@ -145,7 +151,15 @@
             ref_patterns = ["refs/heads/main"];
             allowed_groups = [];
           }
-          pocketIdIssuer
+          # `client_id` lives here rather than in `pocketIdIssuer` itself for
+          # two reasons: the Puller's `browseOidc` submodule has no such
+          # option (eval fails if it is set there), and discovery advertises
+          # the *first* issuer that sets one -- so exactly one issuer should,
+          # and it must be the human one. Without it `/api/v1/discovery`
+          # returns `"oidc": null` and `garret login` fails with "the
+          # server's discovery document has no oidc section". Pocket ID uses
+          # the client id as the audience, hence the same value twice.
+          (pocketIdIssuer // {client_id = pocketIdAudience;})
         ];
       };
 
