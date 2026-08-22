@@ -302,7 +302,13 @@ in {
           # confirmed against the pinned node_exporter 1.12.0 binary. The
           # trailing `\.service` restricts matches to service units.
           extraFlags = [
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync)\\.service"
+            # anubis-content: the Anubis instance name is "content"
+            # (modules/nixos/anubis.nix), so the unit is
+            # anubis-content.service. Included because it is fail-closed
+            # in front of four public hostnames -- a failed unit here is
+            # a user-visible 502, and SystemdUnitFailed is the fleet's
+            # existing path from that to Alertmanager.
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync)\\.service"
           ];
         };
 
