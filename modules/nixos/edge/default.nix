@@ -451,16 +451,6 @@
           github.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}redir https://github.com/jeiang{uri} 301
           }
-
-          # --- jellyfin.plyrex.dev / seerr.plyrex.dev: placeholders -------
-          # jellyfin/seerr have a deferred Tailscale backend. 503 rather
-          # than 200: accurately signals "temporarily unavailable" instead
-          # of looking like real content that a client or proxy might
-          # cache. Not in Cloudflare DNS, so (like noelejoshua.com) these fall
-          # back to standard automatic HTTPS.
-          jellyfin.plyrex.dev, seerr.plyrex.dev {
-            ${logLine}${crowdsecLine}${appsecLine}respond "Service migrating. This service is temporarily unavailable while it moves to new infrastructure." 503
-          }
         '';
       };
 
