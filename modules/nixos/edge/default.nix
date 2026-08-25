@@ -19,7 +19,7 @@
     node1 = self.lib.legionNodes.legion-node1.privateIPv4; # This node's own private address (metrics bind)
     node2 = self.lib.legionNodes.legion-node2.privateIPv4; # NetBird server/relay, Pocket ID
     node3 = self.lib.legionNodes.legion-node3.privateIPv4; # Monitoring/Grafana
-    node4 = self.lib.legionNodes.legion-node4.privateIPv4; # garret, Actual Budget
+    node4 = self.lib.legionNodes.legion-node4.privateIPv4; # garret, Actual Budget, Gatus
 
     website = inputs.website.packages.${system}.default;
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
@@ -35,6 +35,74 @@
     # the site block's first real directive.
     crowdsecLine = lib.optionalString cfg.crowdsec.enable "crowdsec\n            ";
     appsecLine = lib.optionalString cfg.crowdsec.enable "appsec\n            ";
+
+    # Unix socket the Anubis gate binds (modules/nixos/anubis.nix). Read
+    # from the instance rather than restated, and only ever forced inside
+    # the `cfg.anubis.enable` branch of mkContentSite below -- with the
+    # module unimported `services.anubis.instances` is empty and this
+    # would throw.
+    anubisSocket = config.services.anubis.instances.content.settings.BIND;
+
+    # Body of a static-content site block, in one of two shapes.
+    #
+    # With the gate off: exactly what these blocks did before, `root` +
+    # `file_server` straight from the Nix store path.
+    #
+    # With it on: everything falls through to Anubis EXCEPT an explicitly
+    # enumerated set of paths that no browser-challenge can be applied to.
+    # Those exemptions are enforced here, in Caddy, and not as Anubis
+    # `policy.extraBots` ALLOW rules, because Anubis evaluates its bot
+    # rules in order with the imported default set first -- an ALLOW
+    # appended after them is only reached if no default rule matched
+    # earlier, which is not a property worth betting a certificate
+    # renewal on. A Caddy `handle` is unambiguous: first matching handle
+    # wins, and the gate is simply never consulted.
+    #
+    # What is exempt and why:
+    #   - /.well-known/*: ACME HTTP-01 validation. noelejoshua.com has no
+    #     Cloudflare DNS-01 issuer (see its site block) so it renews over
+    #     HTTP-01; Let's Encrypt's validator is not a browser and cannot
+    #     solve a proof-of-work challenge. Caddy's automatic-HTTPS
+    #     challenge handler very likely preempts site routes anyway, but a
+    #     silent cert-renewal failure surfaces as a total outage weeks
+    #     later, so this is belt-and-braces on purpose.
+    #   - /robots.txt, /sitemap.xml: crawler metadata whose entire purpose
+    #     is to be readable by non-browsers, including the well-behaved
+    #     crawlers this gate is not aimed at.
+    #   - /favicon.ico and the feed paths: fetched by clients (browsers
+    #     chrome-side, feed readers) that never run the challenge page's
+    #     JS, so gating them just breaks the fetch with no scraping
+    #     upside.
+    mkContentSite = root:
+      if cfg.anubis.enable
+      then ''
+        @unchallenged path /.well-known/* /robots.txt /sitemap.xml /favicon.ico /feed.xml /rss.xml /atom.xml
+        handle @unchallenged {
+          root * ${root}
+          file_server
+        }
+
+        handle {
+          reverse_proxy unix/${anubisSocket} {
+            # Anubis keys its challenge and rate decisions on X-Real-Ip,
+            # which Caddy's reverse_proxy does not set on its own (it
+            # only appends X-Forwarded-For). `{client_ip}` -- not
+            # `{remote_host}` -- is the Cloudflare-aware placeholder,
+            # resolved through the global `trusted_proxies cloudflare` +
+            # `client_ip_headers Cf-Connecting-Ip` block above. Getting
+            # this wrong is the same class of bug as the CrowdSec
+            # trusted-proxies outage documented there: every visitor
+            # would arrive as one of a handful of Cloudflare PoP
+            # addresses, collapsing per-client challenge state into a
+            # shared bucket.
+            header_up X-Real-Ip {client_ip}
+          }
+        }
+      ''
+      else ''
+        root * ${root}
+        file_server
+      '';
 
     # Bare `log` directive, same concatenation pattern as crowdsecLine/appsecLine
     # above. Caddy 2's HTTP access logging is opt-in per site block -- with
@@ -72,6 +140,37 @@
       }
     '';
   in {
+    options.edge.anubis = {
+      # Declared here rather than in modules/nixos/anubis.nix, and
+      # defaulting to false rather than true (the inverse of
+      # edge.crowdsec.enable below): this module renders the Caddy side,
+      # and a `reverse_proxy` at a socket no service binds 502s every
+      # protected hostname. So the safe default is "no gate", and
+      # modules/nixos/anubis.nix flips it with mkDefault when the
+      # inventory actually places the service on this node.
+      enable = lib.mkEnableOption ''
+        the Anubis proof-of-work gate in front of the static content site
+        blocks only (jeiang.dev apex, aidanpinard.co, pinard.co.tt,
+        noelejoshua.com). Enabled by modules/nixos/anubis.nix, which is
+        imported only for the inventory node placing `anubis`
+      '';
+
+      originPort = lib.mkOption {
+        type = lib.types.port;
+        default = 8129;
+        description = ''
+          Loopback port of the internal Caddy listener that serves the
+          protected static roots, and which the Anubis instance proxies
+          to as its TARGET. Read by modules/nixos/anubis.nix, so it is a
+          real cross-module boundary rather than a one-off constant.
+
+          Must not collide with Caddy's admin API (127.0.0.1:2019) or the
+          metrics site block (2020); site blocks sharing a port get merged
+          into a single listener, so a collision is a startup failure.
+        '';
+      };
+    };
+
     options.edge.crowdsec.enable =
       lib.mkEnableOption ''
         the CrowdSec bouncer HTTP + AppSec handlers on the edge, and (shared
@@ -236,6 +335,49 @@
             metrics /metrics
           }
 
+          ${lib.optionalString cfg.anubis.enable ''
+            # --- Anubis content origin, loopback only ---------------------
+            # The upstream the Anubis instance (modules/nixos/anubis.nix)
+            # proxies to once a client has solved its challenge: the same
+            # static roots the public site blocks below would otherwise
+            # serve directly. Bound to 127.0.0.1 so it is unreachable
+            # off-host -- it is an ungated view of the protected content,
+            # and the only thing that may talk to it is Anubis on this
+            # same node. Plain `http://` skips ACME entirely, same as the
+            # metrics block above.
+            #
+            # Host-matched on the real public hostnames: Anubis preserves
+            # the inbound Host header when it proxies (Go's
+            # httputil.ReverseProxy leaves Request.Host alone), so the
+            # original hostname arrives here intact. The `respond 404`
+            # fallback is the guard on that assumption -- if the Host ever
+            # stopped being preserved every protected site would 404
+            # visibly rather than one site quietly serving another's
+            # content.
+            #
+            # No `log` directive, same reasoning as the metrics block: an
+            # access record is already written by the public site block
+            # that fronted this request, and logging again would
+            # double-count every hit into CrowdSec's file acquisition.
+            http://127.0.0.1:${toString cfg.anubis.originPort} {
+              @website host jeiang.dev aidanpinard.co pinard.co.tt
+              handle @website {
+                root * ${website}
+                file_server
+              }
+
+              @portfolio host noelejoshua.com
+              handle @portfolio {
+                root * ${portfolio}
+                file_server
+              }
+
+              handle {
+                respond 404
+              }
+            }
+          ''}
+
           # --- jeiang.dev + *.jeiang.dev: one DNS-01 wildcard cert -------
           # Every other jeiang.dev site block below has no explicit `tls`
           # directive: Caddy 2.10+
@@ -247,10 +389,15 @@
               dns cloudflare {env.CLOUDFLARE_API_TOKEN}
             }
 
+            # Anubis-gated when the gate is on (mkContentSite, see the let
+            # block). Only the apex: the wildcard's other hostnames are
+            # the machine-consumed routes further down (cache, auth,
+            # netbird, budget, grafana, proxy), each of which has its own
+            # site block and none of which may sit behind a browser
+            # challenge.
             @apex host jeiang.dev
             handle @apex {
-              root * ${website}
-              file_server
+              ${mkContentSite website}
             }
 
             # Anything else under the wildcard that isn't one of the
@@ -267,16 +414,14 @@
             ${logLine}${crowdsecLine}${appsecLine}tls {
               dns cloudflare {env.CLOUDFLARE_API_TOKEN}
             }
-            root * ${website}
-            file_server
+            ${mkContentSite website}
           }
 
           pinard.co.tt {
             ${logLine}${crowdsecLine}${appsecLine}tls {
               dns cloudflare {env.CLOUDFLARE_API_TOKEN}
             }
-            root * ${website}
-            file_server
+            ${mkContentSite website}
           }
 
           # --- noelejoshua.com: jkmn-website, new input -------------------
@@ -284,9 +429,49 @@
           # directive, so this falls back to Caddy's standard automatic
           # HTTPS (HTTP-01/TLS-ALPN-01), per the TLS strategy section.
           noelejoshua.com {
-            ${logLine}${crowdsecLine}${appsecLine}root * ${portfolio}
-            file_server
+            ${logLine}${crowdsecLine}${appsecLine}${mkContentSite portfolio}
           }
+
+          # --- Anubis exclusions, from here down --------------------------
+          # Every remaining site block is deliberately NOT behind the
+          # Anubis gate (`mkContentSite` is used only by the four static
+          # content blocks above). A proof-of-work challenge is an
+          # HTML+JS interstitial: any client that is not a scripted
+          # browser sees a 200 full of markup where it expected its
+          # protocol, so gating these is not a trade-off, it is an
+          # outage.
+          #
+          #   auth.jeiang.dev   Pocket ID. OIDC discovery, JWKS, token and
+          #                     userinfo endpoints are fetched by NetBird,
+          #                     Grafana and garret server-side -- a gate
+          #                     here breaks SSO fleet-wide.
+          #   cache.jeiang.dev  Nix substituter. `nix` is the client.
+          #   cache-push.       garret push API, OIDC-authenticated
+          #                     streaming PUTs from CI.
+          #   budget.           Actual Budget's sync API and its desktop/
+          #                     mobile clients.
+          #   grafana.          API and datasource consumers, and it is
+          #                     the operator's own incident-time console;
+          #                     it is authenticated already, so there is
+          #                     nothing here to scrape.
+          #   netbird.          VPN control plane: gRPC streams and
+          #                     WebSockets, plus the dashboard's own
+          #                     backend calls.
+          #   proxy./*.proxy.   netbird-proxy published services
+          #                     (docs/adr/0002), arbitrary protocols.
+          #   github.           A 301 redirect; nothing to protect, and
+          #                     link-followers are frequently not
+          #                     browsers.
+          #   jellyfin./seerr.  Static 503 placeholders.
+          #   :2020 metrics     Prometheus scrape target.
+          #
+          # bill-split. and rivals. are the two judgement calls rather
+          # than hard constraints: both are browser-only static SPAs, so a
+          # gate would not break them. They are excluded anyway because
+          # the gate's purpose is protecting written content from AI
+          # scrapers, and a small interactive utility has no prose corpus
+          # worth harvesting -- adding an interstitial there would be pure
+          # friction for the one user who actually opens them.
 
           # --- auth.jeiang.dev: Pocket ID ---------------------------------
           # Port 1411 is Pocket ID's default listen port.
@@ -349,6 +534,25 @@
           # Port 3000 is Grafana's default listen port.
           grafana.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node3}:3000
+          }
+
+          # --- status.jeiang.dev: Gatus status page -----------------------
+          # Port 8086 matches modules/nixos/gatus.nix's `web.port`. Not
+          # Gatus' own 8080 default: that was displaced by netbird-relay
+          # when the service lived on legion-node2, and the port is kept
+          # rather than reverted now that it runs on legion-node4.
+          #
+          # Public and ungated, deliberately: this is the page people load
+          # when something is broken, and Pocket ID is one of the services
+          # it reports on, so putting it behind SSO would take the outage
+          # report down with the outage. That also rules out publishing it
+          # through netbird-proxy, which authenticates against Pocket ID.
+          # `appsec` is skipped for the same fail-open reasoning as the
+          # cache routes above -- a status page that 403s under load is
+          # worse than no status page -- while `crowdsec`'s cheap
+          # IP-decision check still applies.
+          status.jeiang.dev {
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:8086
           }
 
           # --- netbird.jeiang.dev: NetBird server/relay -------------------
@@ -450,16 +654,6 @@
           # --- github.jeiang.dev: redirect --------------------------------
           github.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}redir https://github.com/jeiang{uri} 301
-          }
-
-          # --- jellyfin.plyrex.dev / seerr.plyrex.dev: placeholders -------
-          # jellyfin/seerr have a deferred Tailscale backend. 503 rather
-          # than 200: accurately signals "temporarily unavailable" instead
-          # of looking like real content that a client or proxy might
-          # cache. Not in Cloudflare DNS, so (like noelejoshua.com) these fall
-          # back to standard automatic HTTPS.
-          jellyfin.plyrex.dev, seerr.plyrex.dev {
-            ${logLine}${crowdsecLine}${appsecLine}respond "Service migrating. This service is temporarily unavailable while it moves to new infrastructure." 503
           }
         '';
       };

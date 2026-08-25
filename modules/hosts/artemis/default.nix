@@ -55,6 +55,8 @@
         self.nixosModules.impermanence
         self.nixosModules.llama-swap
         self.nixosModules.hypr-rdp
+        self.nixosModules.qdrant
+        self.nixosModules.whisper-server
 
         # disks
         self.diskoConfigurations.artemis
@@ -97,6 +99,20 @@
           # entry nukeRoot drops tens of GB of models on every boot and the
           # unit re-downloads all of them before llama-swap can start.
           "/var/lib/llama-swap-models"
+          # GGML weights fetched by whisper-models
+          # (modules/nixos/whisper-server.nix), same deal as llama-swap's:
+          # not derivable state, and without this entry nukeRoot drops the
+          # model on every boot and the unit re-downloads it before
+          # whisper-server can start.
+          "/var/lib/whisper-models"
+          # Qdrant's storage and snapshots (StateDirectory=qdrant,
+          # modules/nixos/qdrant.nix). This is the Hermes Agent's vector
+          # index -- the one path here that is genuinely irreplaceable
+          # rather than merely expensive to refetch, since losing it means
+          # re-embedding every source document. A real directory, not the
+          # /var/lib/private symlink upstream's DynamicUser would produce;
+          # see the comment in the module for why that user was made static.
+          "/var/lib/qdrant"
         ];
 
         # User-level state.

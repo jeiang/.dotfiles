@@ -39,8 +39,18 @@
       # a backupSet (_service-inventory.nix, both stateful = false).
       tier1 = ["crowdsec.service" "prometheus-node-exporter.service"];
       # Caddy is the edge's public entrypoint -- load-bearing for every
-      # public hostname this fleet serves (ADR 0012 tier 2).
-      tier2 = ["caddy.service"];
+      # public hostname this fleet serves (ADR 0012 tier 2). Anubis
+      # joins it rather than sitting in tier 1 beside CrowdSec, despite
+      # both being edge-security services, because the two fail in
+      # opposite directions: CrowdSec is wired fail-open (Caddy keeps
+      # serving if the engine is down, see modules/nixos/crowdsec), so a
+      # restart costs some enforcement for a few seconds. Anubis is
+      # Caddy's upstream for four public hostnames, so a restart 502s
+      # them outright -- "load-bearing but recoverable", which is exactly
+      # ADR 0012's tier 2 description. It is also the unit that decides
+      # whether a visitor is served at all, and an agent should not get
+      # to toggle that unprompted.
+      tier2 = ["caddy.service" "anubis-content.service"];
     };
     legion-node2 = {
       tier1 = [
@@ -49,6 +59,19 @@
         # backup units" is a free/tier-1 read-adjacent action).
         "restic-backups-netbird-server.service"
         "restic-backups-pocket-id.service"
+        # FreshRSS and changedetection.io are self-contained single-user
+        # apps published through the reverse proxy: restarting any of
+        # their units affects nothing but themselves, unlike the mesh/SSO
+        # units in tier 2 below. nginx is here for the same reason -- on
+        # this node it serves exactly one thing, FreshRSS's PHP frontend
+        # (modules/nixos/freshrss.nix).
+        "freshrss-config.service"
+        "freshrss-updater.service"
+        "phpfpm-freshrss.service"
+        "nginx.service"
+        "changedetection-io.service"
+        "restic-backups-freshrss.service"
+        "restic-backups-changedetection-io.service"
       ];
       # Every one of these is load-bearing fleet infrastructure (mesh
       # control plane, SSO, DNS) -- ADR 0012 tier 2 names all five
@@ -94,6 +117,12 @@
         "restic-backups-garret.service"
         "restic-backups-hath.service"
         "prometheus-node-exporter.service"
+        # Both are read-only presentation layers over data that lives
+        # elsewhere -- a restart costs a dashboard reload and, for gatus,
+        # its in-memory sample window. Nothing depends on either being
+        # up (ADR 0012 tier 1).
+        "glance.service"
+        "gatus.service"
       ];
       # No node4 unit is load-bearing for anything outside itself --
       # every placed service here is already tier 1. Stop rules still
@@ -292,7 +321,13 @@ in {
           # confirmed against the pinned node_exporter 1.12.0 binary. The
           # trailing `\.service` restricts matches to service units.
           extraFlags = [
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync)\\.service"
+            # anubis-content: the Anubis instance name is "content"
+            # (modules/nixos/anubis.nix), so the unit is
+            # anubis-content.service. Included because it is fail-closed
+            # in front of four public hostnames -- a failed unit here is
+            # a user-visible 502, and SystemdUnitFailed is the fleet's
+            # existing path from that to Alertmanager.
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync|glance|gatus|freshrss-config|freshrss-updater|phpfpm-freshrss|changedetection-io)\\.service"
           ];
         };
 
@@ -488,6 +523,16 @@ in {
             # CrowdSec engine, same edge-node condition as above. Both
             # modules share the edge.crowdsec.enable toggle.
             ++ lib.optional (node.edge or false) self.nixosModules.crowdsec
+            # Anubis proof-of-work gate. Gated on the inventory entry
+            # rather than on `node.edge` (the older crowdsec-style
+            # condition above): it is a placed service with its own
+            # inventory record, so the inventory stays the single source
+            # of truth. Importing it is also what flips
+            # `edge.anubis.enable`, which is what renders the Caddy side
+            # -- see modules/nixos/anubis.nix.
+            ++ lib.optional
+            (lib.any (service: service.name == "anubis") node.services)
+            self.nixosModules.anubis
             # NetBird server + relay, only for the inventory node that
             # places `netbird-server`
             # (modules/hosts/legion/_service-inventory.nix, legion-node2
@@ -532,6 +577,19 @@ in {
             ++ lib.optional
             (lib.any (service: service.name == "blocky") node.services)
             self.nixosModules.blocky
+            # Glance dashboard, same optional-import pattern, gated on the
+            # inventory node placing `glance` (legion-node4 today).
+            # Requires self.nixosModules.netbird (imported fleet-wide
+            # above) for trustedInterfaces, same as blocky: it has no
+            # public/private firewall opening at all.
+            ++ lib.optional
+            (lib.any (service: service.name == "glance") node.services)
+            self.nixosModules.glance
+            # Gatus status page, same optional-import pattern, gated on
+            # the inventory node placing `gatus` (legion-node4 today).
+            ++ lib.optional
+            (lib.any (service: service.name == "gatus") node.services)
+            self.nixosModules.gatus
             # Monitoring composition (VictoriaMetrics, VictoriaLogs,
             # Grafana, vmalert, Alertmanager), same optional-import
             # pattern, gated on the inventory node placing `monitoring`
@@ -554,7 +612,21 @@ in {
             # today).
             ++ lib.optional
             (lib.any (service: service.name == "camera-ingest") node.services)
-            self.nixosModules.camera-ingest;
+            self.nixosModules.camera-ingest
+            # FreshRSS, same optional-import pattern, gated on the
+            # inventory node placing `freshrss` (legion-node2 today).
+            # Published through the NetBird reverse proxy on this same
+            # node rather than through the edge (docs/adr/0002).
+            ++ lib.optional
+            (lib.any (service: service.name == "freshrss") node.services)
+            self.nixosModules.freshrss
+            # changedetection.io, same optional-import pattern, gated on
+            # the inventory node placing `changedetection-io`
+            # (legion-node2 today, alongside freshrss above and published
+            # the same way).
+            ++ lib.optional
+            (lib.any (service: service.name == "changedetection-io") node.services)
+            self.nixosModules.changedetection-io;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;
