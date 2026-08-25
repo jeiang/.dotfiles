@@ -377,11 +377,8 @@
             # text FreshRSS retains per entry. 10 GiB matches the other
             # small stateful services in this file and is far beyond what
             # a single-operator reader accumulates.
+            hcloudVolumeId = "106696813";
             sizeGiB = 10;
-            # hcloudVolumeId deliberately unset: the operator provisions
-            # the Volume and fills it in (see the header comment). Until
-            # then this service generates no `fileSystems` mount and no
-            # backup job, and its mount guard keeps it from starting.
           };
           # Retained-data service. Both units hold the SQLite database
           # open -- the PHP workers on every request, the updater on
@@ -409,8 +406,8 @@
             # The watch history is a tree of fetched page snapshots and
             # grows with watch count * check frequency * retention, so
             # this is sized above freshrss's rather than matching it.
+            hcloudVolumeId = "106696816";
             sizeGiB = 20;
-            # hcloudVolumeId deliberately unset, same as freshrss above.
           };
           # Retained-data service: url-watches.json plus the per-watch
           # snapshot history. pauseUnits stops the service before the
