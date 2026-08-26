@@ -21,6 +21,10 @@
         # software in moonlight-qt as of 2026).
         moonlight-qt
         mos
+        # nixpkgs-first (docs/adr/0009): the vendor .app unpacked from
+        # Notion's own per-arch desktop zip (the aarch64 entry of the
+        # package's info.json), so no Homebrew cask exception is needed.
+        notion-app
         obsidian
         qbittorrent
         raycast
