@@ -25,6 +25,7 @@
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
     billSplitter = "${inputs.bill-splitter.packages.${system}.default}/dist";
     rivalsRandomizer = inputs.character-randomizer.packages.${system}.default;
+    mdTableEditor = inputs.markdown-table-live-editor.packages.${system}.default;
     netbirdDashboard = config.services.netbird.server.dashboard.finalDrv;
     netbirdIronRDP = self.packages.${system}.netbird-ironrdp-web;
 
@@ -648,6 +649,14 @@
           # served the same way as the other static sites above.
           rivals.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}root * ${rivalsRandomizer}
+            file_server
+          }
+
+          # --- mdtable.jeiang.dev: markdown-table-live-editor -------------
+          # jeiang/markdown-table-live-editor builds a static site to $out,
+          # served the same way as the other static sites above.
+          mdtable.jeiang.dev {
+            ${logLine}${crowdsecLine}${appsecLine}root * ${mdTableEditor}
             file_server
           }
 

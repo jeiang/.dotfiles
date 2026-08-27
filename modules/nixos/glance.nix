@@ -115,6 +115,10 @@
                             title = "Rivals Randomizer";
                             url = "https://rivals.jeiang.dev";
                           }
+                          {
+                            title = "Markdown Table Editor";
+                            url = "https://mdtable.jeiang.dev";
+                          }
                         ];
                       }
                     ];
