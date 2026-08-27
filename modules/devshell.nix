@@ -29,6 +29,7 @@
             self'.packages.git
             deploy-rs
             disko
+            dnscontrol
             fd
             fzf
             just

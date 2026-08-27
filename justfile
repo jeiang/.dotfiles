@@ -29,6 +29,11 @@ sops-edit:
 sops-create path:
   sops {{path}}
 
+# Preview dns/dnsconfig.js against live Cloudflare. Read-only; the push
+# happens in CI on merge to main (.github/workflows/dns.yml).
+dns-preview *args:
+  CLOUDFLARE_API_TOKEN=$(sops -d --extract '["caddy"]["cloudflare-dns-token"]' modules/nixos/edge/secrets.yaml) dnscontrol preview --config dns/dnsconfig.js --creds dns/creds.json {{args}}
+
 disko-format system sudo="sudo":
   {{sudo}} disko -f .#{{system}} --mode destroy,format,mount
 
