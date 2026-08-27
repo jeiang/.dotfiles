@@ -91,6 +91,11 @@
     # reasoning as portfolio above.
     character-randomizer.url = "github:jeiang/character-randomizer";
     character-randomizer.inputs.nixpkgs.follows = "nixpkgs";
+    # markdown-table-live-editor: plain runCommandNoCC static page (web
+    # markdown table editor) with no external deps beyond nixpkgs, same
+    # reasoning as portfolio above.
+    markdown-table-live-editor.url = "github:jeiang/markdown-table-live-editor";
+    markdown-table-live-editor.inputs.nixpkgs.follows = "nixpkgs";
     # garret: the binary cache server and client (docs/adr/0013).
     # Deliberately not following our nixpkgs -- CI installs the `garret`
     # client from this input's locked rev (.github/workflows/ci.yml), and

@@ -75,6 +75,7 @@ _: {
           (ok "Portfolio" "Web" "https://noelejoshua.com")
           (ok "Bill Splitter" "Web" "https://bill-split.jeiang.dev")
           (ok "Rivals Randomizer" "Web" "https://rivals.jeiang.dev")
+          (ok "Markdown Table Editor" "Web" "https://mdtable.jeiang.dev")
 
           # Each of these hits an endpoint the application itself answers,
           # not just Caddy's site block, so a proxied-but-dead backend

@@ -58,6 +58,7 @@
             "noelejoshua.com"
             "bill-split.jeiang.dev"
             "rivals.jeiang.dev"
+            "mdtable.jeiang.dev"
             "github.jeiang.dev"
             "status.jeiang.dev"
           ];
