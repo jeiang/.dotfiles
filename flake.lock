@@ -1059,6 +1059,26 @@
         "type": "github"
       }
     },
+    "markdown-table-live-editor": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1787836579,
+        "narHash": "sha256-UNfmAoZKLI+Tim6Pdp/BuGRBVS08YGWys3c7Ywo7Mm8=",
+        "owner": "jeiang",
+        "repo": "markdown-table-live-editor",
+        "rev": "b993e730ba71a7e451e77d93128de9bd1c336632",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "markdown-table-live-editor",
+        "type": "github"
+      }
+    },
     "netbird-tap": {
       "flake": false,
       "locked": {
@@ -1577,6 +1597,7 @@
         "impermanence": "impermanence",
         "import-tree": "import-tree",
         "k06a-tap": "k06a-tap",
+        "markdown-table-live-editor": "markdown-table-live-editor",
         "netbird-tap": "netbird-tap",
         "nix-cachyos-kernel": "nix-cachyos-kernel",
         "nix-darwin": "nix-darwin",
