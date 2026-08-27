@@ -1066,11 +1066,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787836579,
-        "narHash": "sha256-UNfmAoZKLI+Tim6Pdp/BuGRBVS08YGWys3c7Ywo7Mm8=",
+        "lastModified": 1787838651,
+        "narHash": "sha256-PqqDyOn7db3RH5tHIvgKDlevJzXVpXqSD53dTNyq1YM=",
         "owner": "jeiang",
         "repo": "markdown-table-live-editor",
-        "rev": "b993e730ba71a7e451e77d93128de9bd1c336632",
+        "rev": "515d9127a00490ca03f31a3670e1960a174ec691",
         "type": "github"
       },
       "original": {
