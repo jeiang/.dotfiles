@@ -32,8 +32,9 @@
     sopsFile = ./secrets.yaml;
     legionPrivateIPs = map (node: node.privateIPv4) (builtins.attrValues self.lib.legionNodes);
 
-    vmPort = 8428; # services.victoriametrics default listenAddress
-    vlPort = 9428; # services.victorialogs default listenAddress
+    ports = self.lib.ports;
+    vmPort = ports.legion-node3.victoria-metrics;
+    vlPort = ports.legion-node3.victoria-logs;
 
     # blackbox_exporter listen port. Kept at the nixpkgs module default
     # (services.prometheus.exporters.blackbox.port, 9115); named here so
@@ -304,7 +305,7 @@
             job_name = "netbird-server";
             static_configs = [
               {
-                targets = ["${node2}:9090"];
+                targets = ["${node2}:${toString ports.legion-node2.netbird-server-metrics}"];
                 labels.type = "netbird";
               }
             ];
@@ -375,14 +376,14 @@
             job_name = "garret";
             static_configs = [
               {
-                targets = ["${node4}:9091"];
+                targets = ["${node4}:${toString ports.legion-node4.garret-pusher-metrics}"];
                 labels = {
                   type = "cache";
                   component = "pusher";
                 };
               }
               {
-                targets = ["${node4}:9092"];
+                targets = ["${node4}:${toString ports.legion-node4.garret-puller-metrics}"];
                 labels = {
                   type = "cache";
                   component = "puller";
@@ -422,7 +423,7 @@
                 # down backend locks users out of every OAuth-gated service,
                 # so its probe failure is `critical` (pages), matching the
                 # netbird-server VPN target in the tcp job.
-                targets = ["http://${node2}:1411/healthz"];
+                targets = ["http://${node2}:${toString ports.legion-node2.pocket-id}/healthz"];
                 labels = {
                   type = "probe";
                   tier = "critical";
@@ -433,7 +434,7 @@
                 # an unreachable budget app degrades, it does not lock the
                 # fleet out -- so it stays `warning`, same tier as
                 # SystemdUnitFailed.
-                targets = ["http://${node4}:5006/health"];
+                targets = ["http://${node4}:${toString ports.legion-node4.actual-budget}/health"];
                 labels = {
                   type = "probe";
                   tier = "warning";
@@ -453,8 +454,8 @@
                 # requires a bearer token, so there is nothing there a
                 # blackbox probe can get a 2xx from.
                 targets = [
-                  "http://${node4}:8081/nix-cache-info"
-                  "http://${node4}:9091/healthz"
+                  "http://${node4}:${toString ports.legion-node4.garret-puller}/nix-cache-info"
+                  "http://${node4}:${toString ports.legion-node4.garret-pusher-metrics}/healthz"
                 ];
                 labels = {
                   type = "probe";

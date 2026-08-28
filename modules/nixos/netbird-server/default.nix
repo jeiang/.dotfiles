@@ -26,12 +26,8 @@
 
     sopsFile = ./secrets.yaml;
 
-    # Matches modules/nixos/edge/default.nix's @relay backend port
-    # (`reverse_proxy ${node2}:8080`) and the
-    # `netbird-relay` firewall entry in
-    # modules/hosts/legion/_service-inventory.nix.
-    relayPort = 8080;
-    stunPort = 3478;
+    relayPort = self.lib.ports.legion-node2.netbird-relay;
+    stunPort = self.lib.ports.legion-node2.netbird-stun;
     metricsPort = 9091;
     healthcheckPort = 9001;
 
@@ -41,9 +37,9 @@
     # and secret values filled in via sops placeholders.
     configYaml = ''
       server:
-        listenAddress: ":80"
+        listenAddress: ":${toString self.lib.ports.legion-node2.netbird-http}"
         exposedAddress: "https://netbird.jeiang.dev:443"
-        metricsPort: 9090
+        metricsPort: ${toString self.lib.ports.legion-node2.netbird-server-metrics}
         healthcheckAddress: ":9000"
         logLevel: "info"
         logFile: "console"

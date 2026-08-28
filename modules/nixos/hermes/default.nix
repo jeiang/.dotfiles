@@ -317,8 +317,8 @@
       # "0.0.0.0"`) -- reached over loopback since Grafana runs on this
       # same node (legion-node3).
       environment = {
-        ACTUAL_SERVER_URL = "http://172.17.0.4:5006";
-        GRAFANA_URL = "http://127.0.0.1:3000";
+        ACTUAL_SERVER_URL = "http://172.17.0.4:${toString self.lib.ports.legion-node4.actual-budget}";
+        GRAFANA_URL = "http://127.0.0.1:${toString self.lib.ports.legion-node3.grafana}";
         # vdirsyncer config path for the agent's own ad-hoc use (SERVERS.md
         # "Calendar"); the dedicated `hermes-vdirsyncer-sync` unit below
         # sets this independently on its own EnvironmentFile-carrying

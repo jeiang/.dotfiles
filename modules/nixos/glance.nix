@@ -33,7 +33,7 @@
     # cross-node private network, which a NetBird-connected browser has no
     # route to. Anything the page links out to must use a public hostname
     # (see the widget's own href below).
-    victoriaMetrics = "http://${node3}:8428";
+    victoriaMetrics = "http://${node3}:${toString self.lib.ports.legion-node3.victoria-metrics}";
   in {
     services.glance = {
       enable = true;

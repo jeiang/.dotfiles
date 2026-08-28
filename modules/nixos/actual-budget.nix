@@ -16,9 +16,7 @@
       enable = true;
       settings = {
         inherit dataDir;
-        # Matches modules/nixos/edge/default.nix's backend port
-        # (`reverse_proxy ${node4}:5006`).
-        port = 5006;
+        port = self.lib.ports.legion-node4.actual-budget;
       };
       # Password-based login is app-managed (set on first run through the
       # Actual UI/API); nothing for this module to configure or store in

@@ -1,4 +1,8 @@
-{inputs, ...}: {
+{
+  inputs,
+  self,
+  ...
+}: {
   # Color Hunt Validator analysis worker for artemis: BiRefNet
   # segmentation + color extraction on ONNX Runtime CPU, polling
   # legion-node2's job queue over the mesh. Upstream module (unit + model
@@ -15,14 +19,9 @@
 
     services.color-hunt-worker = {
       enable = true;
-      # legion-node2's NetBird peer IP, raw, like
-      # modules/nixos/hermes/default.nix's artemis references. Not mesh
-      # DNS: node2's registered peer FQDN is the collision-suffixed
-      # legion-node2-86-24.jeiang.vpn (no friendly alias exists --
-      # blocky's customDNS.mapping is empty), which embeds this same IP
-      # and so buys no indirection over the literal. The two must move
-      # together if the peer is ever re-registered.
-      apiUrl = "http://100.89.86.24:8867";
+      # node2's raw NetBird peer IP (no friendly mesh alias exists); must
+      # be updated if the peer is ever re-registered.
+      apiUrl = "http://100.89.86.24:${toString self.lib.ports.legion-node2.color-hunt}";
       # /var/lib/color-hunt-models is fetched by the input's oneshot
       # fetch-unit (SRI-verified curl, whisper-models pattern) and
       # persisted via persistence.directories below.

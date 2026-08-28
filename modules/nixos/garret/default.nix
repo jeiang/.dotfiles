@@ -31,13 +31,10 @@
     dataDir = "/mnt/garret";
     dbPath = "${dataDir}/garret.db";
 
-    # Ports, all declared private-scope in
-    # modules/hosts/legion/_service-inventory.nix and matched by
-    # modules/nixos/edge/default.nix's two routes.
-    pusherPort = 8082; # not upstream's 8080; see the header comment
-    pullerPort = 8081;
-    pusherMetricsPort = 9091;
-    pullerMetricsPort = 9092;
+    pusherPort = self.lib.ports.legion-node4.garret-pusher;
+    pullerPort = self.lib.ports.legion-node4.garret-puller;
+    pusherMetricsPort = self.lib.ports.legion-node4.garret-pusher-metrics;
+    pullerMetricsPort = self.lib.ports.legion-node4.garret-puller-metrics;
 
     # Metrics listeners bind this node's private address rather than
     # loopback (the upstream default) so legion-node3's VictoriaMetrics can

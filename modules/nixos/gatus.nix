@@ -1,4 +1,4 @@
-_: {
+{self, ...}: {
   # Gatus, the public status page, for legion-node4, behind the edge at
   # status.jeiang.dev (modules/nixos/edge/default.nix
   # `status.jeiang.dev { reverse_proxy ${node4}:8086 }`). First-party
@@ -34,10 +34,7 @@ _: {
     services.gatus = {
       enable = true;
       settings = {
-        # 8080 (the module default) is netbird-relay's on this node, 8085
-        # is glance's, 8000 is blocky's, 1411 is pocket-id's
-        # (modules/hosts/legion/_service-inventory.nix). 8086 is free.
-        web.port = 8086;
+        web.port = self.lib.ports.legion-node4.gatus;
 
         # In-memory store, Gatus' own default, stated explicitly because
         # it is the deliberate choice that keeps this service off the

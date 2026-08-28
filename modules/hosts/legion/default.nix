@@ -14,7 +14,10 @@
 
   nodeAddresses = lib.concatMap (node: [node.privateIPv4 node.publicIPv4 node.publicIPv6]) (builtins.attrValues legionNodes);
 
-  legionServices = import ./_service-inventory.nix {inherit lib;};
+  legionServices = import ./_service-inventory.nix {
+    inherit lib;
+    ports = self.lib.ports;
+  };
   unknownServicePlacements = builtins.filter (name: !(legionNodes ? ${name})) (builtins.attrNames legionServices);
 
   # hermes-ops' per-node Fleet Operations Tiers (docs/adr/0012, CONTEXT.md
@@ -348,7 +351,7 @@ in {
         # VictoriaLogs supports this ingestion path natively.
         journald.upload = {
           enable = true;
-          settings.Upload.URL = "http://${legionNodes.legion-node3.privateIPv4}:9428/insert/journald";
+          settings.Upload.URL = "http://${legionNodes.legion-node3.privateIPv4}:${toString self.lib.ports.legion-node3.victoria-logs}/insert/journald";
         };
 
         # Cap the local journal's on-disk footprint. No explicit limit

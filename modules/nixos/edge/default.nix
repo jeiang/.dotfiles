@@ -21,6 +21,9 @@
     node3 = self.lib.legionNodes.legion-node3.privateIPv4; # Monitoring/Grafana
     node4 = self.lib.legionNodes.legion-node4.privateIPv4; # garret, Actual Budget, Gatus
 
+    ports = self.lib.ports;
+    port = node: service: toString ports.${node}.${service};
+
     website = inputs.website.packages.${system}.default;
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
     billSplitter = "${inputs.bill-splitter.packages.${system}.default}/dist";
@@ -479,14 +482,12 @@
           # friction for the one user who actually opens them.
 
           # --- auth.jeiang.dev: Pocket ID ---------------------------------
-          # Port 1411 is Pocket ID's default listen port.
           auth.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node2}:1411
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node2}:${port "legion-node2" "pocket-id"}
           }
 
           # --- cache.jeiang.dev: garret Puller ----------------------------
-          # The public substituter (docs/adr/0013). Port 8081 matches
-          # modules/nixos/garret/default.nix's puller `listen`.
+          # The public substituter (docs/adr/0013).
           #
           # Short timeouts are fine here, unlike the push route below: a
           # NAR request answers 302 to a presigned S3 URL rather than
@@ -506,12 +507,11 @@
           # the proxy keeps the cache clear of the shared-PoP ban behaviour
           # that made it unreachable from CI (docs/adr/0013).
           cache.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:8081
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "legion-node4" "garret-puller"}
           }
 
           # --- cache-push.jeiang.dev: garret Pusher -----------------------
-          # OIDC-authenticated pushes. Port 8082 matches
-          # modules/nixos/garret/default.nix's pusher `listen`.
+          # OIDC-authenticated pushes.
           #
           # This hostname MUST stay grey-clouded/DNS-only in Cloudflare: a
           # push is one streaming PUT of a whole zstd-compressed NAR
@@ -519,7 +519,7 @@
           # 100 MB on the free plan. Long timeouts (>= 15m) for those
           # whole-NAR uploads.
           cache-push.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:8082 {
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "legion-node4" "garret-pusher"} {
               transport http {
                 read_timeout 15m
                 write_timeout 15m
@@ -529,14 +529,11 @@
           }
 
           # --- budget.jeiang.dev: Actual Budget ---------------------------
-          # Port 5006 matches Actual Budget's configured listen port
-          # (modules/nixos/actual-budget.nix).
           budget.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node4}:5006
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node4}:${port "legion-node4" "actual-budget"}
           }
 
           # --- color-hunt.jeiang.dev: Color Hunt Validator ----------------
-          # Port 8867 matches modules/nixos/color-hunt.nix's listenPort.
           # The app ships no auth of its own (its spec assumed mesh-only
           # exposure), so the edge gates it with basic_auth -- the one
           # mechanism available here, since Pocket ID exposes no
@@ -556,21 +553,15 @@
             ${logLine}${crowdsecLine}basic_auth {
               jeiang $2a$14$5LJ5Rw4wAUPKO8.EN0q6Z.sCiFrjFT0a.h1rSn4xbgD2u7xB9WuLa
             }
-            reverse_proxy ${node2}:8867
+            reverse_proxy ${node2}:${port "legion-node2" "color-hunt"}
           }
 
           # --- grafana.jeiang.dev: monitoring stack -----------------------
-          # Port 3000 is Grafana's default listen port.
           grafana.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node3}:3000
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node3}:${port "legion-node3" "grafana"}
           }
 
           # --- status.jeiang.dev: Gatus status page -----------------------
-          # Port 8086 matches modules/nixos/gatus.nix's `web.port`. Not
-          # Gatus' own 8080 default: that was displaced by netbird-relay
-          # when the service lived on legion-node2, and the port is kept
-          # rather than reverted now that it runs on legion-node4.
-          #
           # Public and ungated, deliberately: this is the page people load
           # when something is broken, and Pocket ID is one of the services
           # it reports on, so putting it behind SSO would take the outage
@@ -581,7 +572,7 @@
           # worse than no status page -- while `crowdsec`'s cheap
           # IP-decision check still applies.
           status.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:8086
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "legion-node4" "gatus"}
           }
 
           # --- netbird.jeiang.dev: NetBird server/relay -------------------
@@ -603,22 +594,21 @@
             # streaming traffic it would just allow anyway.
             ${logLine}${crowdsecLine}@grpc path /signalexchange.SignalExchange/* /management.ManagementService/* /management.ProxyService/*
             handle @grpc {
-              reverse_proxy h2c://${node2}:80
+              reverse_proxy h2c://${node2}:${port "legion-node2" "netbird-http"}
             }
 
             @backend path /api/* /oauth2/* /ws-proxy/*
             handle @backend {
-              reverse_proxy ${node2}:80 {
+              reverse_proxy ${node2}:${port "legion-node2" "netbird-http"} {
                 transport http {
                   read_timeout 15m
                 }
               }
             }
 
-            # Relay port from the inventory (legion-node2 netbird-relay).
             @relay path /relay*
             handle @relay {
-              reverse_proxy ${node2}:8080 {
+              reverse_proxy ${node2}:${port "legion-node2" "netbird-relay"} {
                 transport http {
                   read_timeout 15m
                 }

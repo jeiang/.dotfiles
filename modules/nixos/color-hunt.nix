@@ -42,10 +42,7 @@
     dataDir = "/mnt/color-hunt";
     mountpoint = "/mnt/color-hunt";
 
-    # Free on legion-node2: netbird-server holds 80, netbird-proxy 443 and
-    # 9002, netbird-relay 8080, pocket-id 1411, blocky 553, freshrss's
-    # nginx 8086, node_exporter 9100, changedetection-io 5000.
-    listenPort = 8867;
+    listenPort = self.lib.ports.legion-node2.color-hunt;
   in {
     imports = [inputs.color-hunt.nixosModules.server];
 

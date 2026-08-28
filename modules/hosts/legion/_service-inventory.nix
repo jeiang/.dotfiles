@@ -36,7 +36,10 @@
 #   - `publishedPorts`: list of `{port; proto;}`, durable module-owned
 #     ports opened (public scope) on this node's host firewall alongside
 #     `firewall` above. Defaults to `[]` when omitted.
-{lib}: let
+{
+  lib,
+  ports,
+}: let
   inventory = {
     legion-node1 = {
       edge = true;
@@ -210,7 +213,7 @@
               # documentation only, same as the legion-node1 crowdsec
               # entry above: enforcement is trustedInterfaces (enp7s0)
               # plus the port not being in the "public" allowlist.
-              port = 80;
+              port = ports.legion-node2.netbird-http;
               proto = "tcp";
               scope = "private";
             }
@@ -234,7 +237,7 @@
           publicHostnames = ["stun.netbird.jeiang.dev"];
           firewall = [
             {
-              port = 3478;
+              port = ports.legion-node2.netbird-stun;
               proto = "udp";
               scope = "public";
             }
@@ -242,7 +245,7 @@
               # Relay WS backend the edge's netbird.jeiang.dev @relay route
               # proxies to (modules/nixos/edge/default.nix). Same
               # documentation-only "private" scope as above.
-              port = 8080;
+              port = ports.legion-node2.netbird-relay;
               proto = "tcp";
               scope = "private";
             }
@@ -314,7 +317,7 @@
               # legion-node2 backends above: enforcement is
               # trustedInterfaces (enp7s0) plus the port not being in the
               # "public" allowlist.
-              port = 1411;
+              port = ports.legion-node2.pocket-id;
               proto = "tcp";
               scope = "private";
             }
@@ -444,7 +447,7 @@
               # the NetBird client interface, which is how the artemis
               # worker polls in) with the port never entering the public
               # allowlist.
-              port = 8867;
+              port = ports.legion-node2.color-hunt;
               proto = "tcp";
               scope = "private";
             }
@@ -489,7 +492,7 @@
               # scope is documentation only, same as every other backend
               # entry in this file: enforcement is trustedInterfaces
               # (enp7s0) plus the port not being in the "public" allowlist.
-              port = 3000;
+              port = ports.legion-node3.grafana;
               proto = "tcp";
               scope = "private";
             }
@@ -556,13 +559,13 @@
           firewall = [
             {
               # Puller: the public substituter's backend port.
-              port = 8081;
+              port = ports.legion-node4.garret-puller;
               proto = "tcp";
               scope = "private";
             }
             {
               # Pusher: the OIDC-authenticated push API's backend port.
-              port = 8082;
+              port = ports.legion-node4.garret-pusher;
               proto = "tcp";
               scope = "private";
             }
@@ -570,13 +573,13 @@
               # Pusher /metrics + /healthz, scraped and blackbox-probed by
               # legion-node3 (modules/nixos/monitoring/default.nix). Bound
               # to this node's private address, not loopback.
-              port = 9091;
+              port = ports.legion-node4.garret-pusher-metrics;
               proto = "tcp";
               scope = "private";
             }
             {
               # Puller /metrics + /healthz, same as above.
-              port = 9092;
+              port = ports.legion-node4.garret-puller-metrics;
               proto = "tcp";
               scope = "private";
             }
@@ -607,7 +610,7 @@
           publicHostnames = [];
           firewall = [
             {
-              port = 5006;
+              port = ports.legion-node4.actual-budget;
               proto = "tcp";
               scope = "private";
             }
@@ -709,7 +712,7 @@
               # rather than reverted so the edge route and the module stay
               # in step. 8085 and 8086 are both free here (this node holds
               # 8081, 8082, 9091, 9092, 5006 and 8888).
-              port = 8086;
+              port = ports.legion-node4.gatus;
               proto = "tcp";
               scope = "private";
             }
