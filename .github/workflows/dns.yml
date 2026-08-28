@@ -1,0 +1,68 @@
+# Public DNS GitOps (docs/adr/0014): dns/dnsconfig.js is the single source
+# of truth for the Cloudflare-hosted zones. PRs get a preview of the
+# resulting changes, merge to main applies them with full purge, and a
+# weekly run fails red when live state has drifted — i.e. an emergency
+# dashboard edit that was never back-ported into the repo.
+#
+# CLOUDFLARE_DNS_TOKEN is a dedicated token scoped to Zone:Read + DNS:Edit
+# on exactly these zones, separate from Caddy's DNS-01 token
+# (modules/nixos/edge/secrets.yaml) so revoking either never breaks the
+# other.
+name: DNS
+
+on:
+  pull_request:
+    paths:
+      - dns/**
+      - .github/workflows/dns.yml
+  push:
+    branches:
+      - main
+    paths:
+      - dns/**
+      - .github/workflows/dns.yml
+  schedule:
+    # Weekly drift check.
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+# Applies on main share one group and never cancel: two quick merges must
+# apply in order, and a push must not be killed mid-correction.
+concurrency:
+  group: dns-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    # Fork PRs are excluded explicitly. GitHub already withholds secrets
+    # from them, so a fork run could only fail with an auth error — this
+    # just skips it instead of leaving a red herring on the PR.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DNS_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+
+      # --inputs-from . resolves nixpkgs to this repo's flake.lock pin, so
+      # CI runs the same dnscontrol build the devshell carries.
+      - name: Preview
+        if: github.event_name == 'pull_request'
+        run: nix run --inputs-from . nixpkgs#dnscontrol -- preview --config dns/dnsconfig.js --creds dns/creds.json
+
+      # Scheduled/manual runs are the drift check: any pending correction
+      # means live state no longer matches the repo, so exit non-zero.
+      - name: Drift check
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: nix run --inputs-from . nixpkgs#dnscontrol -- preview --expect-no-changes --config dns/dnsconfig.js --creds dns/creds.json
+
+      - name: Push
+        if: github.event_name == 'push'
+        run: nix run --inputs-from . nixpkgs#dnscontrol -- push --config dns/dnsconfig.js --creds dns/creds.json
