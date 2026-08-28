@@ -25,9 +25,12 @@ harmless to run anyway.
 
 ## 2. Netbird ACL (dashboard-side, like all ACLs)
 
-Allow artemis to reach legion-node2's TCP 8867 if the current policy does
-not already. The organizer's own devices do NOT need an ACL -- they come
-in through the edge at color-hunt.jeiang.dev.
+Verified open at first deploy (a TCP probe from artemis to
+100.89.86.24:8867 got connection-refused, i.e. reached the host): the
+current policy already lets artemis reach legion-node2's ports, so
+nothing to do unless the policy is later tightened. The organizer's own
+devices need no ACL -- they come in through the edge at
+color-hunt.jeiang.dev.
 
 ## 3. Verify
 

@@ -15,15 +15,14 @@
 
     services.color-hunt-worker = {
       enable = true;
-      # Mesh DNS rather than the raw peer address, unlike
-      # modules/nixos/hermes/default.nix's SSH config: this is a retrying
-      # poll loop with nothing time-critical behind it, so a blocky/DNS
-      # outage only delays job pickup by a poll interval -- and blocky
-      # runs on legion-node2 itself, so when mesh DNS is down the API this
-      # URL names is typically down with it. Nothing here is on a
-      # boot-critical or alerting path (the DNS-off-the-critical-path
-      # reasoning that forces raw IPs elsewhere does not apply).
-      apiUrl = "http://node2.jeiang.vpn:8867";
+      # legion-node2's NetBird peer IP, raw, like
+      # modules/nixos/hermes/default.nix's artemis references. Not mesh
+      # DNS: node2's registered peer FQDN is the collision-suffixed
+      # legion-node2-86-24.jeiang.vpn (no friendly alias exists --
+      # blocky's customDNS.mapping is empty), which embeds this same IP
+      # and so buys no indirection over the literal. The two must move
+      # together if the peer is ever re-registered.
+      apiUrl = "http://100.89.86.24:8867";
       # /var/lib/color-hunt-models is fetched by the input's oneshot
       # fetch-unit (SRI-verified curl, whisper-models pattern) and
       # persisted via persistence.directories below.
