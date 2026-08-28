@@ -98,6 +98,10 @@ on:
         description: "jeiang/bill-splitter (auto-updated weekly)"
         type: boolean
         default: true
+      color-hunt:
+        description: "jeiang/color-hunt-validator -- app updates land through this bump (deploy after merging)"
+        type: boolean
+        default: false
       garret:
         description: "jeiang/garret -- bumping this rebuilds the cache server AND the client ci.yml installs; a rev not yet seeded in the cache forces a from-source Rust build in every push job. See ci.yml for why garret doesn't follow nixpkgs"
         type: boolean

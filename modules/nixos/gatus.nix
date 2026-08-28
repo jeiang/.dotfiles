@@ -83,6 +83,11 @@ _: {
           (ok "Pocket ID" "Services" "https://auth.jeiang.dev/healthz")
           (ok "Grafana" "Services" "https://grafana.jeiang.dev/api/health")
           (ok "Actual Budget" "Services" "https://budget.jeiang.dev")
+          # 401, not 200: the whole app sits behind the edge's basic_auth
+          # gate (modules/nixos/edge/default.nix), so the challenge
+          # response IS proof that Caddy, the gate, and the route are up.
+          # A 200 here would mean the gate is gone.
+          (https "Color Hunt" "Services" "https://color-hunt.jeiang.dev" ["[STATUS] == 401"])
           (ok "NetBird" "Services" "https://netbird.jeiang.dev")
           # garret's puller: `nix-cache-info` is the first request every
           # substituter client makes (docs/adr/0013), so this is the check

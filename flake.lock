@@ -136,6 +136,26 @@
         "type": "github"
       }
     },
+    "color-hunt": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1787890200,
+        "narHash": "sha256-xerm0NiKwn4Ek2xJkjJZXalMXYEU+0cqpBM0Q5TIk+o=",
+        "owner": "jeiang",
+        "repo": "color-hunt-validator",
+        "rev": "680df5b2e06bf79c39f18a0a0f8dff895bf36579",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "color-hunt-validator",
+        "type": "github"
+      }
+    },
     "crate2nix": {
       "flake": false,
       "locked": {
@@ -1581,6 +1601,7 @@
         "bill-splitter": "bill-splitter",
         "can1357-tap": "can1357-tap",
         "character-randomizer": "character-randomizer",
+        "color-hunt": "color-hunt",
         "deploy-rs": "deploy-rs",
         "determinate": "determinate",
         "devenv": "devenv",

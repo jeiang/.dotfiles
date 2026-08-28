@@ -61,6 +61,7 @@
             "mdtable.jeiang.dev"
             "github.jeiang.dev"
             "status.jeiang.dev"
+            "color-hunt.jeiang.dev"
           ];
           firewall = [
             {
@@ -416,6 +417,59 @@
           # check, so a live copy can catch a partial write.
           backupSet = ["/mnt/changedetection-io"];
           backupPauseUnits = ["changedetection-io.service"];
+        }
+        {
+          # Color Hunt Validator server (modules/nixos/color-hunt.nix,
+          # from the color-hunt flake input). DNS points at the edge
+          # (legion-node1); Caddy proxies here with a basic_auth gate
+          # (modules/nixos/edge/default.nix color-hunt.jeiang.dev route).
+          # Port 8867 matches services.color-hunt's own default.
+          #
+          # Placed on this node for the same capacity reasoning as
+          # freshrss above: node4 has ~258 MiB of undeclared headroom,
+          # node3 is oversubscribed, the edge is stateless by design.
+          # Declared MemoryMax on this node now sums past its 1922 MiB
+          # (2144M with this entry's 256M) -- accepted deliberately:
+          # these are ceilings, not reservations, and the actual resident
+          # sum sits far below them (blocky's 512M cap alone is ~4x its
+          # observed usage). The Go server idles in tens of MiB; the cap
+          # exists for upload bursts.
+          name = "color-hunt";
+          publicHostnames = [];
+          firewall = [
+            {
+              # The edge Caddy's backend target. "private" scope is
+              # documentation only, same as every other backend entry in
+              # this file: enforcement is trustedInterfaces (enp7s0 plus
+              # the NetBird client interface, which is how the artemis
+              # worker polls in) with the port never entering the public
+              # allowlist.
+              port = 8867;
+              proto = "tcp";
+              scope = "private";
+            }
+          ];
+          stateful = true;
+          volume = {
+            name = "legion-color-hunt";
+            mountpoint = "/mnt/color-hunt";
+            # SQLite database plus the per-submission photo tree
+            # (originals, derivatives, masks). Phone photos run a few MB
+            # each; 10 GiB matches the other small stateful services and
+            # holds thousands of submissions.
+            hcloudVolumeId = "106729764";
+            sizeGiB = 10;
+          };
+          # Retained-data service: rulings and hunts are operator work
+          # that cannot be regenerated (analyses could be re-run, but
+          # only from the originals stored in the same tree). pauseUnits
+          # stops the server for the snapshot: the SQLite database is
+          # live under it (WAL mode), same reasoning as pocket-id and
+          # actual-budget. The artemis worker needs no pausing -- it is
+          # on another host and only talks HTTP; a job claim during the
+          # snapshot window just retries.
+          backupSet = ["/mnt/color-hunt"];
+          backupPauseUnits = ["color-hunt.service"];
         }
       ];
     };

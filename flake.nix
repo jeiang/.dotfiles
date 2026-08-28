@@ -96,6 +96,14 @@
     # reasoning as portfolio above.
     markdown-table-live-editor.url = "github:jeiang/markdown-table-live-editor";
     markdown-table-live-editor.inputs.nixpkgs.follows = "nixpkgs";
+    # color-hunt: the Color Hunt Validator (Go API + Svelte frontend on
+    # legion-node2, BiRefNet analysis worker on artemis). Ships its own
+    # nixosModules for both halves (garret/hermes-agent precedent for the
+    # wrapper modules here). Plain buildGoModule / buildNpmPackage /
+    # nixpkgs-python builds with no pinned toolchain of its own, so
+    # following our nixpkgs is safe (same reasoning as portfolio above).
+    color-hunt.url = "github:jeiang/color-hunt-validator";
+    color-hunt.inputs.nixpkgs.follows = "nixpkgs";
     # garret: the binary cache server and client (docs/adr/0013).
     # Deliberately not following our nixpkgs -- CI installs the `garret`
     # client from this input's locked rev (.github/workflows/ci.yml), and

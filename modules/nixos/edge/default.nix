@@ -463,6 +463,10 @@
           #   github.           A 301 redirect; nothing to protect, and
           #                     link-followers are frequently not
           #                     browsers.
+          #   color-hunt.       basic_auth-gated single-operator app; a
+          #                     PoW interstitial in front of a 401
+          #                     challenge is pure friction, and there is
+          #                     no public prose to protect.
           #   jellyfin./seerr.  Static 503 placeholders.
           #   :2020 metrics     Prometheus scrape target.
           #
@@ -529,6 +533,30 @@
           # (modules/nixos/actual-budget.nix).
           budget.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node4}:5006
+          }
+
+          # --- color-hunt.jeiang.dev: Color Hunt Validator ----------------
+          # Port 8867 matches modules/nixos/color-hunt.nix's listenPort.
+          # The app ships no auth of its own (its spec assumed mesh-only
+          # exposure), so the edge gates it with basic_auth -- the one
+          # mechanism available here, since Pocket ID exposes no
+          # forward-auth endpoint (see modules/nixos/changedetection-io.nix
+          # for that reasoning; this app got a public hostname instead of
+          # the reverse-proxy path by operator decision). The bcrypt hash
+          # is not a secret -- that is the point of storing a hash -- so it
+          # lives in the Caddyfile rather than a sops shard.
+          #
+          # appsec is deliberately skipped (crowdsec IP-decisions kept):
+          # photo batch uploads are large multipart bursts, the same
+          # fail-open reasoning as the cache routes. This hostname rides
+          # the orange-clouded wildcard, so a single upload batch is
+          # capped by Cloudflare's 100 MB body limit -- fine for phone
+          # photos; upload in smaller batches if a hunt ever hits it.
+          color-hunt.jeiang.dev {
+            ${logLine}${crowdsecLine}basic_auth {
+              jeiang $2a$14$5LJ5Rw4wAUPKO8.EN0q6Z.sCiFrjFT0a.h1rSn4xbgD2u7xB9WuLa
+            }
+            reverse_proxy ${node2}:8867
           }
 
           # --- grafana.jeiang.dev: monitoring stack -----------------------

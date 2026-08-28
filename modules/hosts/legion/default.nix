@@ -72,6 +72,10 @@
         "changedetection-io.service"
         "restic-backups-freshrss.service"
         "restic-backups-changedetection-io.service"
+        # Color Hunt is the same shape: a self-contained single-operator
+        # app whose restart affects nothing but itself.
+        "color-hunt.service"
+        "restic-backups-color-hunt.service"
       ];
       # Every one of these is load-bearing fleet infrastructure (mesh
       # control plane, SSO, DNS) -- ADR 0012 tier 2 names all five
@@ -327,7 +331,7 @@ in {
             # in front of four public hostnames -- a failed unit here is
             # a user-visible 502, and SystemdUnitFailed is the fleet's
             # existing path from that to Alertmanager.
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync|glance|gatus|freshrss-config|freshrss-updater|phpfpm-freshrss|changedetection-io)\\.service"
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync|glance|gatus|freshrss-config|freshrss-updater|phpfpm-freshrss|changedetection-io|color-hunt)\\.service"
           ];
         };
 
