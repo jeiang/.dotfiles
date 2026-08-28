@@ -97,6 +97,30 @@ state on its own.
 - `just sops-edit` opens a secrets file and keys new entries automatically.
 - `just sops-updatekeys` is only needed after changing recipients in
   `.sops.yaml`.
+- Rotating a secret reaches a running process only through the units listed in
+  that secret's `restartUnits` — values are read once at process start, and a
+  secret-only rotation leaves unit definitions unchanged, so nothing restarts
+  on its own.
+
+## Re-Enrollment And First-Deploy Notes
+
+- Artemis' NetBird peer IP (`100.89.148.91`) is a hardcoded literal in three
+  places: hermes' SSH config `Host artemis`, hermes'
+  `providers.artemis.base_url`, and monitoring's artemis node-exporter scrape
+  target. Update all three together if the peer is re-enrolled. The same
+  applies to legion-node2's peer IP in `modules/nixos/color-hunt-worker.nix`.
+- Hermes' Codex auth requires a one-time interactive `hermes auth add
+  openai-codex` device login after first deploy; the sops seed only self-heals
+  a malformed auth store while its tokens are unexpired.
+- Pocket ID SMTP settings are DB-backed: after a from-scratch install they must
+  be re-entered through the admin UI.
+
+## DNS
+
+`dns/dnsconfig.js` is the single source of truth; CI previews on PRs and
+pushes with full purge on merge to `main`. Dashboard edits are for emergencies
+only and must be back-ported into the file — the weekly drift check stays red
+until they are.
 
 ## CI Secrets
 
