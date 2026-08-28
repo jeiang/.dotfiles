@@ -41,7 +41,8 @@ system.
   handles.
 - Artemis: `artemis.jeiang.vpn`. Bare `artemis` resolves through the wildcard
   DNS record and does not reach the host.
-- The Legion remote shell is fish. Wrap POSIX one-liners in `bash -c '...'`.
+- The default shell on every machine is fish. Wrap POSIX one-liners run over
+  SSH in `bash -c '...'`; commands written for the operator use fish syntax.
 - Legion nodes use `sudo` (password required); artemis uses `doas`. Neither is
   scriptable non-interactively; privileged commands are run by the operator.
 
@@ -54,7 +55,9 @@ just deploy legion-node2
 ```
 
 When the deploying machine and the target differ in system type (deploying
-x86_64-linux hosts from macOS, or vice versa), add `-s --remote-build`. Deploy
+x86_64-linux hosts from macOS, or vice versa), add `--skip-checks
+--remote-build`; `--skip-checks` avoids building and running checks that are
+incompatible with the local machine. Deploy
 only after the change is merged and CI has pushed closures to garret, so the
 target substitutes instead of building.
 

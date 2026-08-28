@@ -4,7 +4,7 @@ This file applies to the entire repository.
 
 ## Project Overview
 
-`cornn-flaek` is a Nix flake for personal systems:
+`cornn-flaek` is a Nix flake managing Nix-based systems (NixOS, and macOS with nix-darwin):
 
 - `artemis`: desktop NixOS host.
 - `zakkart`: nix-darwin macOS host.
@@ -92,7 +92,7 @@ CI evaluates in pure mode. Never add `--impure` to CI workflows; only the devshe
 
 ## Cross-Machine Work
 
-- Deploys across system types (darwin host deploying x86_64-linux targets, or vice versa) use `just deploy <system> -s --remote-build`.
+- Deploys across system types (darwin host deploying x86_64-linux targets, or vice versa) use `just deploy <system> --skip-checks --remote-build`; `--skip-checks` avoids building and running checks that are incompatible with the local machine.
 - Deploy only after the change is merged and CI has pushed closures to garret, so target nodes substitute instead of building.
 - Heavy package builds (Rust, C++, large derivations) go to artemis as a remote builder over the mesh, not the local macOS machine.
 - Remote access names, shells, and host facts are in `docs/OPERATIONS.md`.
@@ -101,7 +101,7 @@ CI evaluates in pure mode. Never add `--impure` to CI workflows; only the devshe
 
 This repo manages live systems, disks, cluster membership, and secrets. Treat operational commands as explicit actions, not as routine validation.
 
-- Never run `sudo` or `doas` yourself, on any host. Surface the exact command for the user to run.
+- Never run `sudo` or `doas` yourself, on any host. Surface the exact command for the user to run. The user's shell is fish on every machine; prefer fish syntax for surfaced commands.
 - Run deploy, `clean-deploy`, install, disko, or sops mutation commands only with the user's explicit approval for that action and target. Approval may be conditional in advance (e.g. "merge and deploy when CI is green").
 - Do not print, decrypt, rewrite, move, or re-key secrets casually. Use the existing sops workflow only when explicitly requested.
 - Do not change disk layouts, host networking, or deploy targets as incidental cleanup.
