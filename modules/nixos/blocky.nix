@@ -1,11 +1,4 @@
 _: {
-  # Blocky DNS for legion-node2 (moved from legion-node3 for capacity
-  # reasons), reachable only from NetBird peers (replaces the dropped
-  # Kubernetes NetworkResource). First-party `services.blocky` (DESIGN.md
-  # Service Ownership). Prometheus metrics are served on the same
-  # `ports.http` listener at /metrics, but only when `prometheus.enable`
-  # is set below -- Blocky defaults it off, so without it :8000/metrics
-  # 404s and legion-node3's `blocky` scrape job reads down.
   flake.nixosModules.blocky = {config, ...}: {
     services.blocky = {
       enable = true;
@@ -22,14 +15,9 @@ _: {
           ];
         };
         customDNS.mapping = {};
-        # Expose Prometheus metrics on the ports.http listener (:8000/metrics),
-        # scraped by legion-node3's monitoring module (`job_name = "blocky"`).
-        # Off by default in Blocky, so this must be set explicitly.
         prometheus.enable = true;
         ports = {
-          # 553, not the standard 53: NetBird's own embedded DNS resolver
-          # binds 53 on this host, so Blocky is reached on 553 instead
-          # (still NetBird-peer-only, see below).
+          # 553, not 53: NetBird's embedded DNS resolver binds 53 on this host.
           dns = 553;
           http = 8000;
         };
@@ -51,43 +39,10 @@ _: {
       };
     };
 
-    # The NetBird interface's IP isn't known at eval time (assigned by the
-    # tunnel at runtime), so `services.blocky.settings.ports.dns` above
-    # stays a bare port (binds 0.0.0.0, every interface) rather than an
-    # `<ip>:553` pin. Reachability is scoped by the firewall instead:
-    # modules/nixos/netbird.nix is imported fleet-wide, which already adds
-    # the client's interface to `networking.firewall.trustedInterfaces` --
-    # combined with 553 never being added to this node's public/private
-    # inventory-derived openings
-    # (modules/hosts/legion/_service-inventory.nix `blocky.firewall = []`),
-    # that leaves port 553 open only on the NetBird interface, i.e. reachable
-    # from NetBird peers only.
-    #
-    # All `systemd.*` contributions from this module in one attrset (statix
-    # "repeated keys" -- merging plain attrpath assignments across separate
-    # top-level entries works fine in Nix, but is flagged as a style issue).
-    #
-    # Startup ordering: wait for the NetBird tunnel so Blocky's port-553
-    # listener doesn't win a race against the interface it's meant to serve
-    # (harmless either way since the bind is 0.0.0.0, but blocklist
-    # downloads need working egress, which the client's own network-online
-    # ordering already provides -- this just keeps Blocky from starting
-    # before the tunnel it's semantically bound to conceptually exists).
-    #
-    # Single point of failure: peer DNS runs as a single instance on
-    # legion-node2, no replica/HPA equivalent. Accepted by the operator.
-    #
-    # The old 1.22 GiB "peak" reading was an artifact of a prior no-limits
-    # config; blocklist load caps real usage at <=350 MiB.
     systemd.services.blocky = {
       after = [(config.services.netbird.clients.default.service.name + ".service")];
       wants = [(config.services.netbird.clients.default.service.name + ".service")];
       serviceConfig.MemoryMax = "512M";
     };
-
-    # Stateless (Workload Inventory: Blocky "none"): blocklists are
-    # re-downloaded on start, so no Volume/backupSet -- matches the
-    # `blocky` entry in modules/hosts/legion/_service-inventory.nix
-    # (stateful = false, no volume, no backupSet).
   };
 }

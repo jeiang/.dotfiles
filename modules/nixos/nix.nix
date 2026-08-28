@@ -20,9 +20,8 @@
   }: {
     imports = [
       inputs.nix-index-database.nixosModules.nix-index
-      # Determinate keeps the stock NixOS nix.* module active (see
-      # docs/adr/0011); it just retargets rendered settings to
-      # /etc/nix/nix.custom.conf, so the settings below carry over unchanged.
+      # Determinate keeps the stock nix.* module active, retargeting rendered
+      # settings to /etc/nix/nix.custom.conf (docs/adr/0011).
       inputs.determinate.nixosModules.default
     ];
 
@@ -72,9 +71,6 @@
         keep-derivations = true;
         keep-outputs = true;
 
-        # garret is the self-hosted cache (docs/adr/0013); it serves at
-        # the host root rather than under a per-cache path -- there is
-        # only ever one cache.
         substituters = [
           "https://cache.jeiang.dev"
           "https://helix.cachix.org"

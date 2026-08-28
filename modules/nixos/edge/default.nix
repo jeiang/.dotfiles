@@ -3,8 +3,6 @@
   inputs,
   ...
 }: {
-  # Edge Node Caddy. Imported only for the inventory's edge node
-  # (modules/hosts/legion/default.nix).
   flake.nixosModules.edge = {
     config,
     lib,
@@ -14,12 +12,10 @@
     cfg = config.edge;
     system = pkgs.stdenv.hostPlatform.system;
 
-    # Legion private-network addresses (flake.lib.legionNodes,
-    # modules/hosts/legion/default.nix).
-    node1 = self.lib.legionNodes.legion-node1.privateIPv4; # This node's own private address (metrics bind)
-    node2 = self.lib.legionNodes.legion-node2.privateIPv4; # NetBird server/relay, Pocket ID
-    node3 = self.lib.legionNodes.legion-node3.privateIPv4; # Monitoring/Grafana
-    node4 = self.lib.legionNodes.legion-node4.privateIPv4; # garret, Actual Budget, Gatus
+    node1 = self.lib.legionNodes.legion-node1.privateIPv4;
+    node2 = self.lib.legionNodes.legion-node2.privateIPv4;
+    node3 = self.lib.legionNodes.legion-node3.privateIPv4;
+    node4 = self.lib.legionNodes.legion-node4.privateIPv4;
 
     ports = self.lib.ports;
     port = node: service: toString ports.${node}.${service};
@@ -32,51 +28,20 @@
     netbirdDashboard = config.services.netbird.server.dashboard.finalDrv;
     netbirdIronRDP = self.packages.${system}.netbird-ironrdp-web;
 
-    # Bare `crowdsec`/`appsec` HTTP handler directives (below, gated on
-    # cfg.crowdsec.enable so a disabled toggle renders byte-identical
-    # output to before this existed). Each already carries its own
-    # trailing newline + indent so callers just concatenate them ahead of
-    # the site block's first real directive.
+    # Each carries its own trailing newline + indent; callers concatenate
+    # them ahead of a site block's first real directive.
     crowdsecLine = lib.optionalString cfg.crowdsec.enable "crowdsec\n            ";
     appsecLine = lib.optionalString cfg.crowdsec.enable "appsec\n            ";
 
-    # Unix socket the Anubis gate binds (modules/nixos/anubis.nix). Read
-    # from the instance rather than restated, and only ever forced inside
-    # the `cfg.anubis.enable` branch of mkContentSite below -- with the
-    # module unimported `services.anubis.instances` is empty and this
-    # would throw.
+    # Only forced inside the cfg.anubis.enable branch of mkContentSite --
+    # with the module unimported, services.anubis.instances is empty and
+    # this would throw.
     anubisSocket = config.services.anubis.instances.content.settings.BIND;
 
-    # Body of a static-content site block, in one of two shapes.
-    #
-    # With the gate off: exactly what these blocks did before, `root` +
-    # `file_server` straight from the Nix store path.
-    #
-    # With it on: everything falls through to Anubis EXCEPT an explicitly
-    # enumerated set of paths that no browser-challenge can be applied to.
-    # Those exemptions are enforced here, in Caddy, and not as Anubis
-    # `policy.extraBots` ALLOW rules, because Anubis evaluates its bot
-    # rules in order with the imported default set first -- an ALLOW
-    # appended after them is only reached if no default rule matched
-    # earlier, which is not a property worth betting a certificate
-    # renewal on. A Caddy `handle` is unambiguous: first matching handle
-    # wins, and the gate is simply never consulted.
-    #
-    # What is exempt and why:
-    #   - /.well-known/*: ACME HTTP-01 validation. noelejoshua.com has no
-    #     Cloudflare DNS-01 issuer (see its site block) so it renews over
-    #     HTTP-01; Let's Encrypt's validator is not a browser and cannot
-    #     solve a proof-of-work challenge. Caddy's automatic-HTTPS
-    #     challenge handler very likely preempts site routes anyway, but a
-    #     silent cert-renewal failure surfaces as a total outage weeks
-    #     later, so this is belt-and-braces on purpose.
-    #   - /robots.txt, /sitemap.xml: crawler metadata whose entire purpose
-    #     is to be readable by non-browsers, including the well-behaved
-    #     crawlers this gate is not aimed at.
-    #   - /favicon.ico and the feed paths: fetched by clients (browsers
-    #     chrome-side, feed readers) that never run the challenge page's
-    #     JS, so gating them just breaks the fetch with no scraping
-    #     upside.
+    # Exemptions are enforced here in Caddy (first matching handle wins),
+    # not as Anubis ALLOW rules: non-browser clients -- ACME HTTP-01
+    # validation, crawler metadata, feed readers -- can never solve a
+    # proof-of-work challenge.
     mkContentSite = root:
       if cfg.anubis.enable
       then ''
@@ -88,17 +53,8 @@
 
         handle {
           reverse_proxy unix/${anubisSocket} {
-            # Anubis keys its challenge and rate decisions on X-Real-Ip,
-            # which Caddy's reverse_proxy does not set on its own (it
-            # only appends X-Forwarded-For). `{client_ip}` -- not
-            # `{remote_host}` -- is the Cloudflare-aware placeholder,
-            # resolved through the global `trusted_proxies cloudflare` +
-            # `client_ip_headers Cf-Connecting-Ip` block above. Getting
-            # this wrong is the same class of bug as the CrowdSec
-            # trusted-proxies outage documented there: every visitor
-            # would arrive as one of a handful of Cloudflare PoP
-            # addresses, collapsing per-client challenge state into a
-            # shared bucket.
+            # Anubis keys its challenge state on X-Real-Ip; {client_ip} is
+            # the Cloudflare-aware placeholder, not {remote_host}.
             header_up X-Real-Ip {client_ip}
           }
         }
@@ -108,29 +64,13 @@
         file_server
       '';
 
-    # Bare `log` directive, same concatenation pattern as crowdsecLine/appsecLine
-    # above. Caddy 2's HTTP access logging is opt-in per site block -- with
-    # no `log` directive a site produces zero access records, even though
-    # the named `journald` logger declared in globalConfig below exists and
-    # is reachable. Added unconditionally (not gated on cfg.crowdsec.enable)
-    # to every public site block except the private-network-only metrics
-    # listener (logging Prometheus's 15s scrape interval would just be
-    # noise); each block routes into whichever loggers are configured
-    # globally (`journald` -- and implicitly `default`, since Caddy always
-    # runs the default logger unless a site opts out of it).
+    # Caddy access logging is opt-in per site block: without a `log`
+    # directive a site emits zero access records.
     logLine = "log\n            ";
 
-    # Shared encoder for BOTH global loggers (default file logger via
-    # `logFormat`, named `journald` logger in globalConfig): plain JSON
-    # wrapped in Caddy's `filter` encoder so sensitive header values
-    # never reach disk or the journal in the first place (filtering at
-    # the encoder beats filtering downstream -- VictoriaLogs and the
-    # rolled files would otherwise retain them). Request Authorization/
-    # Proxy-Authorization/Cookie and response Set-Cookie carry
-    # credentials and session tokens; the response Location header is
-    # dropped because redirect targets routinely embed OAuth
-    # authorization codes and signed tokens (e.g. the Pocket ID flows
-    # behind auth.jeiang.dev).
+    # Shared by both global loggers: strip credential-bearing headers at the
+    # encoder so they never reach disk or the journal; Location routinely
+    # embeds OAuth authorization codes.
     logEncoder = ''
       format filter {
         wrap json
@@ -145,13 +85,6 @@
     '';
   in {
     options.edge.anubis = {
-      # Declared here rather than in modules/nixos/anubis.nix, and
-      # defaulting to false rather than true (the inverse of
-      # edge.crowdsec.enable below): this module renders the Caddy side,
-      # and a `reverse_proxy` at a socket no service binds 502s every
-      # protected hostname. So the safe default is "no gate", and
-      # modules/nixos/anubis.nix flips it with mkDefault when the
-      # inventory actually places the service on this node.
       enable = lib.mkEnableOption ''
         the Anubis proof-of-work gate in front of the static content site
         blocks only (jeiang.dev apex, aidanpinard.co, pinard.co.tt,
@@ -193,20 +126,8 @@
         enable = true;
         package = self.packages.${system}.caddy;
 
-        # Default (unnamed) logger: this is CrowdSec's acquisition source
-        # of truth, not a general access log -- modules/nixos/crowdsec/default.nix
-        # tails this exact file path (`services.caddy.logDir`/access.log)
-        # via a `source = "file"` acquisition, which needs a stable
-        # filesystem path rather than journal fields. It does NOT double
-        # as "the" access log for every site block: Caddy access logging
-        # is opt-in per site block (see the bare `log` line added to each
-        # public site block below), and the named `journald` logger in
-        # globalConfig below is what actually feeds those records (plus
-        # runtime logs) to VictoriaLogs via the fleet's systemd-journal-upload.
-        # Retention here is intentionally short: VictoriaLogs is now the
-        # searchable month-long archive, so this file only needs to cover
-        # CrowdSec's live tail plus a little local debugging headroom, not
-        # long-term storage.
+        # CrowdSec's file acquisition tails this exact path; retention is
+        # short since VictoriaLogs is the searchable archive.
         logFormat = ''
           level INFO
           output file ${config.services.caddy.logDir}/access.log {
@@ -218,64 +139,21 @@
         '';
 
         globalConfig = ''
-          # Second named logger: everything (runtime + every site's access
-          # log once `log` is added to that site block below) to stderr,
-          # which systemd captures into the journal, which the fleet's
-          # existing systemd-journal-upload ships to legion-node3's
-          # VictoriaLogs (modules/hosts/legion/default.nix
-          # `services.journald.upload`). No `include`/`exclude` filter on
-          # this logger -- deliberate, so both runtime and access records
-          # land in VictoriaLogs unfiltered; the file logger above stays
-          # the narrower CrowdSec-only source.
+          # Runtime + per-site access records to stderr -> journal ->
+          # VictoriaLogs via the fleet's systemd-journal-upload.
           log journald {
             output stderr
             ${logEncoder}
             level INFO
           }
 
-          # The top-level `metrics` global option turns on Prometheus
-          # metrics collection for every HTTP
-          # server config below (the older `servers { metrics }` nested
-          # form is deprecated as of the pinned caddy 2.11.4 -- confirmed
-          # via `caddy adapt`'s own warning). Deliberately NOT exposed by
-          # binding the `admin` API off localhost (a prior version of this
-          # module did that): the admin API is unauthenticated
-          # config-mutation surface (POST /load reconfigures the whole
-          # edge, /stop shuts it down, etc), and "private network" here
-          # means every Legion node (trustedInterfaces enp7s0) -- a single
-          # compromised node would be able to rewrite this edge's entire
-          # routing table. The admin API stays at the module default
-          # (127.0.0.1:2019, unreachable cross-node); metrics are served
-          # from the plain HTTP site block below instead, which exposes
-          # only the metrics output, nothing administrative.
+          # The admin API stays loopback-only (unauthenticated config
+          # mutation); metrics are served from the :2020 site block instead.
           metrics
 
-          # Cloudflare sits in front of every orange-clouded hostname here, so
-          # without this Caddy treats Cloudflare's edge as the client: every
-          # access record carries a Cloudflare IP as `client_ip`, and every
-          # CrowdSec decision derived from one bans a Cloudflare PoP rather
-          # than the actual client.
-          #
-          # That is not merely useless, it is an outage: a single probe from
-          # one attacker (observed: an Amazonbot `/media../.env` request to
-          # auth.jeiang.dev tripping crowdsecurity/appsec-vpatch) bans a shared
-          # Cloudflare address, which then 403s every unrelated visitor routed
-          # through that PoP, across every proxied hostname. It is what made
-          # the binary cache unreachable from GitHub Actions -- `nix` logged
-          # `unable to download '.../nix-cache-info': HTTP error 403` and fell
-          # back to building from source on every CI run.
-          #
-          # Both decision paths honour this once set: the bouncer resolves the
-          # client through Caddy's own ClientIPVarKey
-          # (caddy-crowdsec-bouncer internal/httputils, "the client IP
-          # reported here is the actual client IP"), and the hub's
-          # crowdsecurity/caddy-logs parser reads
-          # `evt.Unmarshaled.caddy.request.client_ip`.
-          #
-          # The range list comes from the `cloudflare` ip_source module
-          # (github.com/WeidiDeng/caddy-cloudflare-ip, modules/packages/caddy.nix)
-          # rather than a static list in Nix, so a Cloudflare range change does
-          # not silently reintroduce this by going stale.
+          # Without this every client_ip is a Cloudflare PoP address, and a
+          # CrowdSec decision bans a shared PoP -- 403ing unrelated visitors
+          # across every proxied hostname (observed: CI cache outage).
           servers {
             trusted_proxies cloudflare {
               interval 12h
@@ -285,30 +163,16 @@
           }
 
           ${lib.optionalString cfg.crowdsec.enable ''
-            # Handler ordering: neither the `crowdsec` nor `appsec` HTTP
-            # handler directive registers a position in Caddy's default
-            # directive order (both call only
-            # httpcaddyfile.RegisterHandlerDirective, never
-            # RegisterDirectiveOrder -- verified against
-            # github.com/hslatman/caddy-crowdsec-bouncer http/http.go and
-            # appsec/appsec.go @v0.13.1), so every site block below that
-            # uses them bare (not wrapped in an explicit `route`) needs
-            # this global placement: crowdsec's cheap IP-decision check
-            # runs before every other directive in its site block, appsec's
-            # deeper request inspection right after it.
+            # Neither handler registers a default directive order, so bare
+            # site-block usage needs this global placement.
             order crowdsec first
             order appsec after crowdsec
 
-            # Fail-open posture: enable_hard_fails stays off (default) so
-            # Caddy still starts
-            # if the LAPI is unreachable, and appsec_fail_open ignores
-            # AppSec connection errors instead of blocking traffic.
+            # Fail-open: enable_hard_fails stays off so Caddy starts with
+            # the LAPI unreachable; appsec_fail_open ignores AppSec errors.
             crowdsec {
-              # `{$VAR}` (not `{env.VAR}`): the crowdsec app parses this
-              # field eagerly at config-adapt time instead of through a
-              # placeholder replacer, so it needs Caddyfile's textual
-              # env-var substitution, confirmed by `caddy validate`
-              # rejecting `{env.VAR}` here with an invalid-URL error.
+              # {$VAR}, not {env.VAR}: this field is parsed at config-adapt
+              # time, before the placeholder replacer runs.
               api_url {$CROWDSEC_LAPI_URL}
               api_key {$CROWDSEC_LAPI_KEY}
               appsec_url http://127.0.0.1:7422
@@ -318,51 +182,16 @@
         '';
 
         extraConfig = ''
-          # --- Prometheus metrics, private network only ------------------
-          # Port 2020, deliberately NOT 2019: Caddy's admin API keeps
-          # listening at its module default (127.0.0.1:2019) since it's no
-          # longer reconfigured above, and site blocks sharing a port are
-          # merged by Caddy into one listener bound to every interface
-          # (`:<port>`, host-matched by route, not IP-bound) -- reusing
-          # 2019 here would collide with the admin API's own listener at
-          # startup. Plain `http://` scheme forces this listener to skip
-          # automatic HTTPS/ACME entirely (no cert to manage for an
-          # internal, private-network-only endpoint). Reachability: same
-          # pattern as every other cross-node backend in this repo, never
-          # opened on the public interface or added to this node's public
-          # firewall allowlist (modules/hosts/legion/_service-inventory.nix
-          # `caddy` entry, port 2020, "private" scope). Serves only the
-          # `metrics` handler -- no admin/config-mutation surface, unlike
-          # binding the `admin` API off localhost would (see the `servers
-          # { metrics }` comment above).
+          # 2019 would collide with the admin API listener; plain http://
+          # skips automatic HTTPS/ACME for this private-network-only block.
           http://${node1}:2020 {
             metrics /metrics
           }
 
           ${lib.optionalString cfg.anubis.enable ''
-            # --- Anubis content origin, loopback only ---------------------
-            # The upstream the Anubis instance (modules/nixos/anubis.nix)
-            # proxies to once a client has solved its challenge: the same
-            # static roots the public site blocks below would otherwise
-            # serve directly. Bound to 127.0.0.1 so it is unreachable
-            # off-host -- it is an ungated view of the protected content,
-            # and the only thing that may talk to it is Anubis on this
-            # same node. Plain `http://` skips ACME entirely, same as the
-            # metrics block above.
-            #
-            # Host-matched on the real public hostnames: Anubis preserves
-            # the inbound Host header when it proxies (Go's
-            # httputil.ReverseProxy leaves Request.Host alone), so the
-            # original hostname arrives here intact. The `respond 404`
-            # fallback is the guard on that assumption -- if the Host ever
-            # stopped being preserved every protected site would 404
-            # visibly rather than one site quietly serving another's
-            # content.
-            #
-            # No `log` directive, same reasoning as the metrics block: an
-            # access record is already written by the public site block
-            # that fronted this request, and logging again would
-            # double-count every hit into CrowdSec's file acquisition.
+            # Ungated view of the protected static roots; loopback-only, so
+            # only Anubis on this node can reach it. The respond 404
+            # fallback guards the Host-preservation assumption.
             http://127.0.0.1:${toString cfg.anubis.originPort} {
               @website host jeiang.dev aidanpinard.co pinard.co.tt
               handle @website {
@@ -382,38 +211,23 @@
             }
           ''}
 
-          # --- jeiang.dev + *.jeiang.dev: one DNS-01 wildcard cert -------
-          # Every other jeiang.dev site block below has no explicit `tls`
-          # directive: Caddy 2.10+
-          # reuses this already-managed wildcard for them instead of
-          # requesting a second certificate per hostname (see
-          # https://caddyserver.com/docs/automatic-https#wildcard-certificates).
+          # Caddy 2.10+ reuses this DNS-01 wildcard for the other jeiang.dev
+          # blocks below -- none of them needs its own tls directive.
           jeiang.dev, *.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}tls {
               dns cloudflare {env.CLOUDFLARE_API_TOKEN}
             }
 
-            # Anubis-gated when the gate is on (mkContentSite, see the let
-            # block). Only the apex: the wildcard's other hostnames are
-            # the machine-consumed routes further down (cache, auth,
-            # netbird, budget, grafana, proxy), each of which has its own
-            # site block and none of which may sit behind a browser
-            # challenge.
             @apex host jeiang.dev
             handle @apex {
               ${mkContentSite website}
             }
 
-            # Anything else under the wildcard that isn't one of the
-            # specific host blocks below is a stray/typo subdomain.
             handle {
               respond 404
             }
           }
 
-          # aidanpinard.co / pinard.co.tt: separate DNS-01 certs
-          # (Cloudflare-hosted zones, not part of the jeiang.dev wildcard
-          # SAN).
           aidanpinard.co {
             ${logLine}${crowdsecLine}${appsecLine}tls {
               dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -428,96 +242,30 @@
             ${mkContentSite website}
           }
 
-          # --- noelejoshua.com: jkmn-website, new input -------------------
-          # noelejoshua.com is not in Cloudflare DNS: no explicit `tls`
-          # directive, so this falls back to Caddy's standard automatic
-          # HTTPS (HTTP-01/TLS-ALPN-01), per the TLS strategy section.
+          # Not in Cloudflare DNS: renews via Caddy's standard automatic
+          # HTTPS (HTTP-01/TLS-ALPN-01) rather than DNS-01.
           noelejoshua.com {
             ${logLine}${crowdsecLine}${appsecLine}${mkContentSite portfolio}
           }
 
-          # --- Anubis exclusions, from here down --------------------------
-          # Every remaining site block is deliberately NOT behind the
-          # Anubis gate (`mkContentSite` is used only by the four static
-          # content blocks above). A proof-of-work challenge is an
-          # HTML+JS interstitial: any client that is not a scripted
-          # browser sees a 200 full of markup where it expected its
-          # protocol, so gating these is not a trade-off, it is an
-          # outage.
-          #
-          #   auth.jeiang.dev   Pocket ID. OIDC discovery, JWKS, token and
-          #                     userinfo endpoints are fetched by NetBird,
-          #                     Grafana and garret server-side -- a gate
-          #                     here breaks SSO fleet-wide.
-          #   cache.jeiang.dev  Nix substituter. `nix` is the client.
-          #   cache-push.       garret push API, OIDC-authenticated
-          #                     streaming PUTs from CI.
-          #   budget.           Actual Budget's sync API and its desktop/
-          #                     mobile clients.
-          #   grafana.          API and datasource consumers, and it is
-          #                     the operator's own incident-time console;
-          #                     it is authenticated already, so there is
-          #                     nothing here to scrape.
-          #   netbird.          VPN control plane: gRPC streams and
-          #                     WebSockets, plus the dashboard's own
-          #                     backend calls.
-          #   proxy./*.proxy.   netbird-proxy published services
-          #                     (docs/adr/0002), arbitrary protocols.
-          #   github.           A 301 redirect; nothing to protect, and
-          #                     link-followers are frequently not
-          #                     browsers.
-          #   color-hunt.       basic_auth-gated single-operator app; a
-          #                     PoW interstitial in front of a 401
-          #                     challenge is pure friction, and there is
-          #                     no public prose to protect.
-          #   jellyfin./seerr.  Static 503 placeholders.
-          #   :2020 metrics     Prometheus scrape target.
-          #
-          # bill-split. and rivals. are the two judgement calls rather
-          # than hard constraints: both are browser-only static SPAs, so a
-          # gate would not break them. They are excluded anyway because
-          # the gate's purpose is protecting written content from AI
-          # scrapers, and a small interactive utility has no prose corpus
-          # worth harvesting -- adding an interstitial there would be pure
-          # friction for the one user who actually opens them.
+          # Every site block from here down is deliberately NOT behind the
+          # Anubis gate: these are machine-consumed routes, and a
+          # proof-of-work interstitial in front of a non-browser client is
+          # an outage, not a trade-off.
 
-          # --- auth.jeiang.dev: Pocket ID ---------------------------------
           auth.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node2}:${port "legion-node2" "pocket-id"}
           }
 
-          # --- cache.jeiang.dev: garret Puller ----------------------------
-          # The public substituter (docs/adr/0013).
-          #
-          # Short timeouts are fine here, unlike the push route below: a
-          # NAR request answers 302 to a presigned S3 URL rather than
-          # streaming the body, so nothing large ever crosses this proxy --
-          # only narinfo and the redirect itself. crowdsec (IP-decision
-          # check) applies -- it's cheap, and the engine's own
-          # cache-whitelist parser (modules/nixos/crowdsec/default.nix)
-          # already keeps bursty cache traffic from generating bad-IP
-          # decisions in the first place. appsec is deliberately skipped:
-          # cache clients fetch in legitimate high-volume bursts, and
-          # skipping the deep-inspection handler on the cache routes is the
-          # fail-open-friendly choice for a single-node edge.
-          #
-          # Grey-clouded in Cloudflare, like the push hostname below but by
-          # choice rather than necessity: with NARs served as S3 redirects
-          # there is nothing worth proxying except narinfo, and staying off
-          # the proxy keeps the cache clear of the shared-PoP ban behaviour
-          # that made it unreachable from CI (docs/adr/0013).
+          # appsec skipped on the cache routes: clients legitimately fetch
+          # in high-volume bursts, and fail-open wins here.
           cache.jeiang.dev {
             ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "legion-node4" "garret-puller"}
           }
 
-          # --- cache-push.jeiang.dev: garret Pusher -----------------------
-          # OIDC-authenticated pushes.
-          #
-          # This hostname MUST stay grey-clouded/DNS-only in Cloudflare: a
-          # push is one streaming PUT of a whole zstd-compressed NAR
-          # (garret spec 01-push-protocol) and Cloudflare 413s bodies over
-          # 100 MB on the free plan. Long timeouts (>= 15m) for those
-          # whole-NAR uploads.
+          # MUST stay grey-clouded/DNS-only in Cloudflare: a push is one
+          # streaming PUT of a whole NAR and Cloudflare 413s bodies over
+          # 100 MB on the free plan. Long timeouts for those uploads.
           cache-push.jeiang.dev {
             ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "legion-node4" "garret-pusher"} {
               transport http {
@@ -528,27 +276,13 @@
             }
           }
 
-          # --- budget.jeiang.dev: Actual Budget ---------------------------
           budget.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node4}:${port "legion-node4" "actual-budget"}
           }
 
-          # --- color-hunt.jeiang.dev: Color Hunt Validator ----------------
-          # The app ships no auth of its own (its spec assumed mesh-only
-          # exposure), so the edge gates it with basic_auth -- the one
-          # mechanism available here, since Pocket ID exposes no
-          # forward-auth endpoint (see modules/nixos/changedetection-io.nix
-          # for that reasoning; this app got a public hostname instead of
-          # the reverse-proxy path by operator decision). The bcrypt hash
-          # is not a secret -- that is the point of storing a hash -- so it
-          # lives in the Caddyfile rather than a sops shard.
-          #
-          # appsec is deliberately skipped (crowdsec IP-decisions kept):
-          # photo batch uploads are large multipart bursts, the same
-          # fail-open reasoning as the cache routes. This hostname rides
-          # the orange-clouded wildcard, so a single upload batch is
-          # capped by Cloudflare's 100 MB body limit -- fine for phone
-          # photos; upload in smaller batches if a hunt ever hits it.
+          # basic_auth because Pocket ID exposes no forward-auth endpoint;
+          # the bcrypt hash is not a secret. appsec skipped: photo batch
+          # uploads are large multipart bursts.
           color-hunt.jeiang.dev {
             ${logLine}${crowdsecLine}basic_auth {
               jeiang $2a$14$5LJ5Rw4wAUPKO8.EN0q6Z.sCiFrjFT0a.h1rSn4xbgD2u7xB9WuLa
@@ -556,42 +290,21 @@
             reverse_proxy ${node2}:${port "legion-node2" "color-hunt"}
           }
 
-          # --- grafana.jeiang.dev: monitoring stack -----------------------
           grafana.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node3}:${port "legion-node3" "grafana"}
           }
 
-          # --- status.jeiang.dev: Gatus status page -----------------------
-          # Public and ungated, deliberately: this is the page people load
-          # when something is broken, and Pocket ID is one of the services
-          # it reports on, so putting it behind SSO would take the outage
-          # report down with the outage. That also rules out publishing it
-          # through netbird-proxy, which authenticates against Pocket ID.
-          # `appsec` is skipped for the same fail-open reasoning as the
-          # cache routes above -- a status page that 403s under load is
-          # worse than no status page -- while `crowdsec`'s cheap
-          # IP-decision check still applies.
+          # Ungated deliberately: it reports on Pocket ID, so SSO (or
+          # netbird-proxy, which authenticates against it) would take the
+          # outage report down with the outage. appsec skipped, fail-open.
           status.jeiang.dev {
             ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "legion-node4" "gatus"}
           }
 
-          # --- netbird.jeiang.dev: NetBird server/relay -------------------
-          # Route split: gRPC/h2c for signal + management + proxy
-          # registration, plain REST for api/oauth2 + the
-          # dashboard<->management WebSocket, a separate port for the
-          # relay WebSocket, and the dashboard static assets as the
-          # default fallback. Long read timeouts for the streaming routes.
           netbird.jeiang.dev {
-            # crowdsec (IP-decision check, cheap, no body/stream buffering)
-            # applies to the whole site including the gRPC/WebSocket
-            # routes below. appsec (deep request inspection) is placed
-            # only in the fallback dashboard handle at the bottom, not in
-            # @grpc/@backend/@relay: those are NetBird's long-lived
-            # streams, and modules/nixos/crowdsec/default.nix's local
-            # jeiang/appsec-caddy config already carries an on_match
-            # allow-rule for these same paths as a second layer -- skipping
-            # the handler here avoids paying for AppSec inspection on
-            # streaming traffic it would just allow anyway.
+            # appsec only on the dashboard handles below: @grpc/@backend/
+            # @relay are long-lived streams the local AppSec config would
+            # allow anyway.
             ${logLine}${crowdsecLine}@grpc path /signalexchange.SignalExchange/* /management.ManagementService/* /management.ProxyService/*
             handle @grpc {
               reverse_proxy h2c://${node2}:${port "legion-node2" "netbird-http"}
@@ -615,37 +328,17 @@
               }
             }
 
-            # The browser RDP client's IronRDP WASM bundle, which the
-            # nixpkgs-built dashboard above does not carry -- see
-            # modules/packages/netbird-ironrdp.nix for why. Must precede the
-            # fallback `handle`: without it these two paths fall through to
-            # `try_files`' final `/index.html` candidate, so the dashboard's
-            # `import("/ironrdp-pkg/ironrdp_web.js")` gets an HTML document,
-            # fails to parse as an ES module, and every RDP session dies with
-            # "IronRDP module not loaded". handle_path (not handle) because
-            # the release assets sit at the package's top level, so the
-            # `/ironrdp-pkg` prefix has to come off before the file lookup.
+            # IronRDP WASM bundle the nixpkgs dashboard doesn't carry
+            # (modules/packages/netbird-ironrdp.nix). Must precede the
+            # fallback handle or the module import gets index.html.
             handle_path /ironrdp-pkg/* {
               ${appsecLine}root * ${netbirdIronRDP}
               file_server
             }
 
-            # The dashboard (netbird-dashboard 2.x) is a Next.js `output:
-            # "export"` static build: every route is pre-rendered to its own
-            # top-level file (`networks.html`, `peers.html`, ...), not a
-            # single-page app served from one index.html. So a direct hit on
-            # `/networks` must resolve to `networks.html`; the `{path}.html`
-            # candidate is what does that. Without it, `try_files` skips the
-            # `networks/` dir (RSC `.txt` payloads, no HTML index) and falls
-            # straight through to `/index.html` -- serving the home page's
-            # document at the /networks URL, which makes Next's App Router
-            # hydrate with the wrong route tree and hard-reload forever (the
-            # deep-link "loading loop"; client-side nav works because it
-            # fetches the `.txt` RSC payloads directly). This mirrors
-            # NetBird's own reference nginx config's
-            # `try_files $uri $uri.html $uri/ =404` (dashboard
-            # docker/default.conf); the final `/index.html` keeps the
-            # SPA-style fallback for anything unmatched.
+            # Next.js `output: "export"` build: the {path}.html candidate is
+            # what makes a direct /networks hit resolve; without it deep
+            # links hydrate the wrong route tree and hard-reload forever.
             handle {
               ${appsecLine}root * ${netbirdDashboard}
               try_files {path} {path}.html {path}/index.html /index.html
@@ -653,40 +346,27 @@
             }
           }
 
-          # --- bill-split.jeiang.dev: bill-splitter -----------------------
-          # jeiang/bill-splitter's flake now builds a static site to
-          # $out/dist (verified via `nix flake show`/`nix build`), so it's
-          # served the same way as the other static sites above.
           bill-split.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}root * ${billSplitter}
             file_server
           }
 
-          # --- rivals.jeiang.dev: character-randomizer --------------------
-          # jeiang/character-randomizer builds a static site to $out,
-          # served the same way as the other static sites above.
           rivals.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}root * ${rivalsRandomizer}
             file_server
           }
 
-          # --- mdtable.jeiang.dev: markdown-table-live-editor -------------
-          # jeiang/markdown-table-live-editor builds a static site to $out,
-          # served the same way as the other static sites above.
           mdtable.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}root * ${mdTableEditor}
             file_server
           }
 
-          # --- github.jeiang.dev: redirect --------------------------------
           github.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}redir https://github.com/jeiang{uri} 301
           }
         '';
       };
 
-      # Cloudflare DNS API token for the DNS-01 issuer above, from the caddy
-      # secrets shard.
       sops.secrets = let
         sopsFile = ./secrets.yaml;
       in
@@ -701,10 +381,6 @@
       sops.templates."caddy.env" = {
         owner = config.services.caddy.user;
         group = config.services.caddy.group;
-        # An EnvironmentFile is read once at start-up, and a deploy that
-        # only rotates a secret leaves the unit definition byte-identical
-        # -- so without this Caddy keeps using the pre-rotation token/key.
-        # Same reasoning as modules/nixos/garret/default.nix's templates.
         restartUnits = ["caddy.service"];
         content =
           "CLOUDFLARE_API_TOKEN=${config.sops.placeholder."caddy/cloudflare-dns-token"}\n"
@@ -732,11 +408,6 @@
       };
 
       systemd.services.caddy.serviceConfig.MemoryMax = "256M";
-
-      # 80/443 tcp public are already opened for legion-node1 by the
-      # `caddy` entry in modules/hosts/legion/_service-inventory.nix (via
-      # firewallPortsFor in modules/hosts/legion/default.nix); no change
-      # needed here.
     };
   };
 }

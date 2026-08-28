@@ -33,23 +33,9 @@
       greetd = {
         enable = true;
         settings = {
-          # Straight into the session, every time. This host is used
-          # unattended as a Sunshine/RDP target, so a greeter is a dead end:
-          # nobody is at the keyboard to answer it, and both remote-access
-          # services are session-scoped, so a session parked at a login
-          # prompt is a box that has to be walked to.
-          #
-          # default_session rather than initial_session: greetd runs
-          # initial_session exactly once per greetd start, so it covers the
-          # boot and nothing after it. Autologin here is what brings the
-          # session back on its own after a logout, a compositor crash, or
-          # a `systemctl restart greetd` to pick up new session env.
-          #
-          # The trade is that a session which dies immediately respawns in a
-          # tight loop rather than falling back to a greeter -- the hjem
-          # race below is exactly that shape of failure. `systemctl stop
-          # greetd` over SSH breaks the loop, and getty still has tty2-6 for
-          # a console login.
+          # Autologin for an unattended Sunshine/RDP target; default_session,
+          # not initial_session, so the session comes back after a logout or
+          # compositor crash.
           default_session = {
             command = "uwsm start -- hyprland-uwsm.desktop";
             inherit user;
@@ -58,14 +44,8 @@
       };
     };
 
-    # hjem.target/hjem-activate@ (which link hjem.users.${user}.files below,
-    # including the hyprland config) are only WantedBy=multi-user.target,
-    # which pulls them in but doesn't order them relative to anything else
-    # also wanted by that target — Requires/WantedBy alone don't imply
-    # ordering. On persistent /home this raced harmlessly since hjem had
-    # nothing to do; with impermanence wiping / on every boot, hjem has to
-    # relink everything from scratch and can lose the race, starting
-    # Hyprland before its config exists. Make greetd wait for it.
+    # hjem-activate@ has no ordering relative to greetd; with impermanence
+    # relinking /home every boot, Hyprland can start before its config exists.
     systemd.services.greetd = {
       wants = ["hjem-activate@${user}.service"];
       after = ["hjem-activate@${user}.service"];
@@ -88,13 +68,8 @@
     hjem.users.${user}.files = {
       ".face".source = ../../../assets/face.png;
       ".config/hypr/hyprland.lua".source = ./hyprland.lua;
-      # hyprpaper 0.8 replaced the old `preload = <path>` +
-      # `wallpaper = <monitor>,<path>` pair with a `wallpaper {}` special
-      # category (src/config/ConfigManager.cpp: keys monitor/path/fit_mode/
-      # timeout/order/recursive; `preload` no longer exists). The old form is
-      # not rejected, just ignored -- hyprpaper started clean, logged
-      # "Monitor DP-1 has no target: no wp will be created", and left an
-      # unpainted white desktop. An empty `monitor` matches every output.
+      # hyprpaper 0.8 silently ignores the old preload/wallpaper pair; an
+      # empty `monitor` matches every output.
       ".config/hypr/hyprpaper.conf".text = ''
         splash = false
 
@@ -112,8 +87,7 @@
           mkdir -p $HOME/Pictures/Screenshots
           ${lib.getExe pkgs.grimblast} --notify copysave area "$HOME/Pictures/Screenshots/screenshot-$(date +"%Y%m%d%H%M%S").png"
         '';
-        # kanabox palette (flake.lib.palette, modules/theme.nix), stripped
-        # of the leading "#" for hyprland's rgba()/0x color syntax.
+        # strip the leading "#" for hyprland's rgba()/0x color syntax
         hex = c: builtins.substring 1 6 c;
         p = builtins.mapAttrs (_: hex) self.lib.palette.kanaboxDarkHard;
       in
