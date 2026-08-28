@@ -57,6 +57,7 @@
         self.nixosModules.hypr-rdp
         self.nixosModules.qdrant
         self.nixosModules.whisper-server
+        self.nixosModules.color-hunt-worker
 
         # disks
         self.diskoConfigurations.artemis
