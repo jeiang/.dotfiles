@@ -48,13 +48,11 @@
           rs = "!git restore --staged";
           st = "!git status -sb";
 
-          # reset
           soft = "!git reset --soft";
           hard = "!git reset --hard";
           s1ft = "!git soft HEAD~1";
           h1rd = "!git hard HEAD~1";
 
-          # logging
           lg = "!git log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit";
           plog = "!git log --graph --pretty='format:%C(red)%d%C(reset) %C(yellow)%h%C(reset) %ar %C(green)%aN%C(reset) %s'";
           tlog = "!git log --stat --since='1 Day Ago' --graph --pretty=oneline --abbrev-commit --date=relative";

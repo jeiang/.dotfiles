@@ -6,10 +6,7 @@
   perSystem = {pkgs, ...}: {
     packages.ghostty = inputs.wrapper-modules.lib.wrapPackage (_: {
       inherit pkgs;
-      # pkgs.ghostty is Linux-only; pkgs.ghostty-bin is nixpkgs' prebuilt
-      # macOS .app (with its own $out/bin/ghostty wrapper), used on darwin
-      # instead. This branch is eval-time only and never touches the Linux
-      # value above it.
+      # pkgs.ghostty is Linux-only; ghostty-bin is nixpkgs' prebuilt macOS .app.
       package =
         if pkgs.stdenv.hostPlatform.isDarwin
         then pkgs.ghostty-bin
@@ -17,9 +14,7 @@
       flags = {
         "--config-file" = pkgs.writeTextFile {
           name = "ghostty-config";
-          # Colors come from flake.lib.palette (modules/theme.nix) so the
-          # terminal matches helix's kanabox-dark-hard theme; the ANSI 16
-          # mapping follows kanagawa.nvim's "wave" terminal colors.
+          # The ANSI 16 mapping follows kanagawa.nvim's "wave" terminal colors.
           text = let
             p = self.lib.palette.kanaboxDarkHard;
             ansi = with p; [

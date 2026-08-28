@@ -4,9 +4,6 @@
   moduleLocation,
   ...
 }: {
-  # nix-darwin's own flake-parts module gives `flake.darwinConfigurations`
-  # the same treatment flake-parts core gives `flake.nixosConfigurations`
-  # (a proper lazyAttrsOf-raw option, not a freeform passthrough).
   imports = [inputs.nix-darwin.flakeModules.default];
 
   options = {
@@ -22,19 +19,7 @@
         };
         default = {};
       };
-      # Neither flake-parts core nor nix-darwin declares `darwinModules`, so
-      # without this, every module beyond the first one that sets
-      # `flake.darwinModules.<name>` would hit flake-parts' freeform
-      # "defined multiple times while it's expected to be unique" error
-      # (verified by trial). Mirrors flake-parts' own
-      # `modules/nixosModules.nix` (lazyAttrsOf deferredModule, `_class` set
-      # for module-system type-checking) so darwin modules get the exact
-      # same multi-file registration support `flake.nixosModules` already
-      # has.
-      # Same freeform-uniqueness problem as darwinModules below: `flake.lib`
-      # has no declared option, so a second module defining it (theme.nix
-      # alongside hosts/legion) errors. lazyAttrsOf raw lets each module
-      # register its own `flake.lib.<name>` entries.
+      # Neither flake-parts core nor nix-darwin declares darwinModules, and flake.lib has no declared option either; without these, a second module setting either hits flake-parts' freeform "defined multiple times" error.
       lib = lib.mkOption {
         type = lib.types.lazyAttrsOf lib.types.raw;
         default = {};

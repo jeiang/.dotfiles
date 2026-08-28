@@ -4,8 +4,7 @@
     lib,
     ...
   }: {
-    # Linux-only (Vulkan/OpenGL overlay): absent on darwin rather than an
-    # eval error, so output-enumerating commands work there.
+    # Linux-only: absent on darwin rather than an eval error.
     packages = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
       mangohud = inputs.wrapper-modules.lib.wrapPackage (_: {
         inherit pkgs;

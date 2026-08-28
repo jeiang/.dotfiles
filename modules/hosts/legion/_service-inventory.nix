@@ -1,41 +1,3 @@
-# Legion service placement inventory.
-#
-# This is metadata only: no service is enabled or started here. Firewall
-# openings and per-service modules are derived from this single source of
-# truth.
-#
-# Optional per-service fields, consumed by modules/nixos/backups.nix via
-# modules/hosts/legion/default.nix's `backups.jobs`:
-#   - `backupSet`: list of paths, an explicit Backup Set allowlist
-#     (DESIGN.md State And Backup Boundaries). Must be a subset of the
-#     service's declared Volume mountpoint -- enforced below by the
-#     `backupSetViolations` assert.
-#   - `backupPauseUnits`: list of systemd unit names to stop before the
-#     snapshot and restart after, for SQLite-safe snapshots of a service
-#     whose Backup Set contains a live DB (e.g. Pocket ID, Actual Budget).
-#     Defaults to `[]` (no-op) when omitted.
-#
-# Optional fields on a stateful service's `volume` attrset, consumed by
-# modules/hosts/legion/default.nix's declarative `fileSystems` derivation:
-#   - `hcloudVolumeId`: string, the numeric Hetzner Volume ID from
-#     `hcloud volume describe`. Unset until the operator provisions the
-#     Volume and fills it in -- a service's entry generates no
-#     `fileSystems` mount until then (`fileSystems` derivation filters on
-#     `service.volume ? hcloudVolumeId`).
-#   - `sizeGiB`: int, the recommended Volume size for provisioning. Not
-#     consumed by any Nix evaluation, documentation only.
-#
-# Optional per-service fields, consumed by
-# modules/hosts/legion/default.nix's firewall derivation
-# (docs/adr/0002-expose-the-netbird-reverse-proxy-directly.md):
-#   - `firewallPortRanges`: list of `{from; to; proto; scope;}`, a bounded
-#     port range opened wholesale on this node's host firewall (e.g. a
-#     reserved range for ad-hoc Layer-4 services). Never opened wholesale
-#     on the Hetzner Cloud Firewall side -- that stays a manual per-port
-#     gate. Defaults to `[]` when omitted.
-#   - `publishedPorts`: list of `{port; proto;}`, durable module-owned
-#     ports opened (public scope) on this node's host firewall alongside
-#     `firewall` above. Defaults to `[]` when omitted.
 {
   lib,
   ports,
@@ -78,14 +40,6 @@
               scope = "public";
             }
             {
-              # Prometheus metrics site block
-              # (modules/nixos/edge/default.nix, deliberately NOT the
-              # admin API -- that stays at its module default,
-              # 127.0.0.1:2019, never exposed cross-node), scraped by
-              # legion-node3's monitoring module. "private" scope is
-              # documentation only, same as every other backend entry in
-              # this file: enforcement is trustedInterfaces (enp7s0) plus
-              # the port not being in the "public" allowlist.
               port = 2020;
               proto = "tcp";
               scope = "private";
@@ -96,12 +50,6 @@
         {
           name = "crowdsec";
           publicHostnames = [];
-          # LAPI: reachable from the edge Caddy bouncer on loopback and
-          # from legion-node2's netbird-proxy bouncer over the private
-          # network. "private" scope is documentation only here (see
-          # netbird-proxy below); enforcement
-          # is trustedInterfaces (enp7s0) plus the port not being in the
-          # "public" allowlist modules/hosts/legion/default.nix derives.
           firewall = [
             {
               port = 8080;
@@ -109,10 +57,6 @@
               scope = "private";
             }
             {
-              # Prometheus metrics (modules/nixos/crowdsec/default.nix),
-              # scraped by
-              # legion-node3's monitoring module. Same documentation-only
-              # "private" scope as the LAPI entry above.
               port = 6060;
               proto = "tcp";
               scope = "private";
@@ -121,45 +65,13 @@
           stateful = false;
         }
         {
-          # Anubis, the proof-of-work anti-AI-scraper gate
-          # (modules/nixos/anubis.nix). Sits between the edge Caddy and
-          # the static content roots only -- jeiang.dev apex,
-          # aidanpinard.co, pinard.co.tt, noelejoshua.com. Complements
-          # rather than duplicates the crowdsec entry above: CrowdSec
-          # scores IP reputation and answers 403 to the already-bad,
-          # Anubis asks the unrecognised-but-unremarkable to prove they
-          # are a browser.
           name = "anubis";
-          # None: DNS points at the edge Caddy, which reaches this over a
-          # unix socket. Anubis never terminates a public hostname
-          # itself.
           publicHostnames = [];
-          # Empty on purpose, not an oversight, and the reason there is
-          # no `scope` to document here: Anubis binds a unix socket under
-          # its RuntimeDirectory and its metrics server likewise (nixpkgs
-          # module defaults). It opens no TCP port at all, on either
-          # interface -- Caddy reaches it through group membership on the
-          # socket, not through the network. The loopback origin listener
-          # it proxies to is a Caddy site block bound to 127.0.0.1
-          # (modules/nixos/edge/default.nix `edge.anubis.originPort`),
-          # also not a firewall surface.
+          # Unix sockets only (nixpkgs module defaults); opens no TCP port on any interface.
           firewall = [];
-          # Anubis' default policy keeps its challenge store in memory,
-          # and the module runs it with DynamicUser + RuntimeDirectory
-          # only -- no StateDirectory, no Volume. The cost of that is
-          # bounded and acceptable: a restart makes in-flight visitors
-          # re-solve one challenge. Do not "fix" this by configuring the
-          # bbolt store backend; it would buy nothing here and turn a
-          # stateless service into a placed, backed-up one.
           stateful = false;
         }
         {
-          # Static WireGuard responder for artemis's backup tunnel
-          # (modules/nixos/backup-tunnel): the way back into artemis when
-          # the NetBird mesh is down. Public scope: artemis dials in from
-          # a home connection with no fixed IP. Must also be opened on
-          # the Hetzner Cloud Firewall (manual per-port gate, see the
-          # header comment above).
           name = "backup-tunnel";
           publicHostnames = [];
           firewall = [
@@ -172,15 +84,6 @@
           stateful = false;
         }
         {
-          # Static WireGuard responder + nginx DAV receiver for the
-          # GT-S5360L camera phone (modules/nixos/camera-ingest). Public
-          # scope: the phone dials in from arbitrary roaming Wi-Fi
-          # networks. Must also be opened on the Hetzner Cloud Firewall
-          # (manual per-port gate, see the header comment above), same as
-          # backup-tunnel's 51821. The nginx receiver port (8090) is
-          # deliberately absent: it is opened only on the wg-camera
-          # interface by the module itself, not a hcloud public/private
-          # opening.
           name = "camera-ingest";
           publicHostnames = [];
           firewall = [
@@ -190,8 +93,6 @@
               scope = "public";
             }
           ];
-          # Node-local spool only; files pause here between phone upload
-          # and relay pickup. Accepted-loss window, no Volume.
           stateful = false;
         }
       ];
@@ -201,18 +102,10 @@
       edge = false;
       services = [
         {
-          # Unified management + signal server.
           name = "netbird-server";
-          # DNS points at the edge (legion-node1); Caddy proxies here.
           publicHostnames = [];
           firewall = [
             {
-              # Management/signal backend the edge Caddy netbird.jeiang.dev
-              # @grpc/@backend routes proxy to
-              # (modules/nixos/edge/default.nix). "private" scope is
-              # documentation only, same as the legion-node1 crowdsec
-              # entry above: enforcement is trustedInterfaces (enp7s0)
-              # plus the port not being in the "public" allowlist.
               port = ports.legion-node2.netbird-http;
               proto = "tcp";
               scope = "private";
@@ -225,15 +118,11 @@
             sizeGiB = 10;
             hcloudVolumeId = "106121301";
           };
-          # Retained-data service. pauseUnits stops the server before the
-          # snapshot: its store.engine is sqlite
-          # (modules/nixos/netbird-server/default.nix).
           backupSet = ["/mnt/netbird"];
           backupPauseUnits = ["netbird-server.service"];
         }
         {
           name = "netbird-relay";
-          # DNS points directly here, not through the edge.
           publicHostnames = ["stun.netbird.jeiang.dev"];
           firewall = [
             {
@@ -242,9 +131,6 @@
               scope = "public";
             }
             {
-              # Relay WS backend the edge's netbird.jeiang.dev @relay route
-              # proxies to (modules/nixos/edge/default.nix). Same
-              # documentation-only "private" scope as above.
               port = ports.legion-node2.netbird-relay;
               proto = "tcp";
               scope = "private";
@@ -254,10 +140,6 @@
         }
         {
           name = "netbird-proxy";
-          # proxy.jeiang.dev/*.proxy.jeiang.dev resolve directly to this
-          # node (docs/adr/0002-expose-the-netbird-reverse-proxy-directly.md):
-          # no edge hop, the proxy terminates its own TLS on its own
-          # public :443.
           publicHostnames = [];
           firewall = [
             {
@@ -266,11 +148,6 @@
               scope = "public";
             }
           ];
-          # Reserved range for ad-hoc Layer-4 published services
-          # (docs/adr/0002): opened once on this node's host firewall,
-          # never opened wholesale on the Hetzner Cloud Firewall side --
-          # each in-range port still needs its own manual Hetzner Cloud
-          # Firewall rule to actually be reachable.
           firewallPortRanges = [
             {
               from = 40000;
@@ -285,38 +162,14 @@
               scope = "public";
             }
           ];
-          # Durable, module-owned published ports (docs/adr/0002): empty
-          # for now -- this is where a future durable published service
-          # declares its exact {port; proto;}, opened on this node's host
-          # firewall the same way `firewall` is (still needs a matching
-          # manual Hetzner Cloud Firewall rule). The full cross-host
-          # abstraction letting a module declare both a service and its
-          # public exposure together is deferred until a durable service
-          # actually needs it.
           publishedPorts = [];
-          # Stateless (modules/nixos/netbird-server/proxy.nix): the proxy
-          # consumes an externally-provisioned static wildcard cert
-          # (security.acme, node-local /var/lib/acme, reissued via
-          # DNS-01) instead of its own ACME state, so it has no Volume.
-          # No `legion-node2-netbird-proxy` Volume entry either -- one was
-          # originally anticipated for a built-in-ACME fallback the
-          # module doesn't use; dropped here.
           stateful = false;
         }
         {
-          # DNS points at the edge (legion-node1); Caddy proxies here
-          # (modules/nixos/edge/default.nix auth.jeiang.dev route). Port
-          # 1411 matches the nixpkgs pocket-id v2.10.0 binary's own
-          # default PORT (backend/internal/common/env_config.go
-          # `defaultConfig().Port = "1411"`) -- nothing to override.
           name = "pocket-id";
           publicHostnames = [];
           firewall = [
             {
-              # Same documentation-only "private" scope as the other
-              # legion-node2 backends above: enforcement is
-              # trustedInterfaces (enp7s0) plus the port not being in the
-              # "public" allowlist.
               port = ports.legion-node2.pocket-id;
               proto = "tcp";
               scope = "private";
@@ -329,124 +182,48 @@
             hcloudVolumeId = "106117410";
             sizeGiB = 10;
           };
-          # Retained-data service. pauseUnits stops the service before
-          # the snapshot: its DB is SQLite (modules/nixos/pocket-id.nix).
           backupSet = ["/mnt/pocket-id"];
           backupPauseUnits = ["pocket-id.service"];
         }
         {
-          # Moved from legion-node3 for capacity reasons: the old 1.22 GiB
-          # peak was an artifact of a prior no-limits config -- a config
-          # value already caps Blocky's heavy read load, so real usage is
-          # <=350 MiB. Node2 has room; same NetBird-only reachability
-          # pattern as before (trustedInterfaces, no public/private
-          # firewall opening).
           name = "blocky";
           publicHostnames = [];
-          # Served on the node's NetBird address; not a hcloud
-          # public/private firewall opening.
           firewall = [];
           stateful = false;
         }
         {
-          # FreshRSS (modules/nixos/freshrss.nix), published through the
-          # NetBird reverse proxy at rss.proxy.jeiang.dev -- covered by
-          # the `*.proxy.jeiang.dev` wildcard the netbird-proxy entry
-          # above documents, so nothing new is declared here.
-          #
-          # Placed on this node, not the Edge Node and not legion-node4:
-          # summing declared MemoryMax per node against 1922 MiB of RAM
-          # leaves legion-node4 (the usual stateful app tier) with only
-          # ~258 MiB and legion-node3 already oversubscribed ~2.2x, while
-          # the edge is the fleet's single public entrypoint and is
-          # deliberately excluded from the restic secret shard
-          # (docs/adr/0006) precisely because it runs no backup job.
-          # This node has the headroom, already holds two Volumes and two
-          # restic jobs, and is not public-facing.
           name = "freshrss";
           publicHostnames = [];
-          # Empty on purpose. nginx binds 0.0.0.0:8086 for this service,
-          # but reachability is scoped by the firewall rather than by an
-          # hcloud public/private opening -- exactly the pattern the
-          # blocky entry above uses: trustedInterfaces (enp7s0 plus the
-          # NetBird client interface) with the port never entering this
-          # node's public allowlist. That is what makes it true that the
-          # only way in is the reverse proxy, which reaches its target as
-          # a NetBird peer over the tunnel.
           firewall = [];
           stateful = true;
           volume = {
             name = "legion-freshrss";
             mountpoint = "/mnt/freshrss";
-            # config.php, the SQLite database, and the cached article
-            # text FreshRSS retains per entry. 10 GiB matches the other
-            # small stateful services in this file and is far beyond what
-            # a single-operator reader accumulates.
             hcloudVolumeId = "106696813";
             sizeGiB = 10;
           };
-          # Retained-data service. Both units hold the SQLite database
-          # open -- the PHP workers on every request, the updater on
-          # every poll -- so both stop for the snapshot, same reasoning
-          # as pocket-id and actual-budget. freshrss-config is a
-          # RemainAfterExit oneshot that only touches the datastore at
-          # activation, so it is not named here.
           backupSet = ["/mnt/freshrss"];
           backupPauseUnits = ["phpfpm-freshrss.service" "freshrss-updater.service"];
         }
         {
-          # changedetection.io (modules/nixos/changedetection-io.nix),
-          # published through the NetBird reverse proxy at
-          # watch.proxy.jeiang.dev -- same wildcard as freshrss above.
-          # Placed here for the same capacity reasons.
           name = "changedetection-io";
           publicHostnames = [];
-          # Empty for the same reason as freshrss above: 0.0.0.0:5000
-          # scoped by trustedInterfaces, never in the public allowlist.
           firewall = [];
           stateful = true;
           volume = {
             name = "legion-changedetection-io";
             mountpoint = "/mnt/changedetection-io";
-            # The watch history is a tree of fetched page snapshots and
-            # grows with watch count * check frequency * retention, so
-            # this is sized above freshrss's rather than matching it.
             hcloudVolumeId = "106696816";
             sizeGiB = 20;
           };
-          # Retained-data service: url-watches.json plus the per-watch
-          # snapshot history. pauseUnits stops the service before the
-          # snapshot -- it rewrites url-watches.json in place on every
-          # check, so a live copy can catch a partial write.
           backupSet = ["/mnt/changedetection-io"];
           backupPauseUnits = ["changedetection-io.service"];
         }
         {
-          # Color Hunt Validator server (modules/nixos/color-hunt.nix,
-          # from the color-hunt flake input). DNS points at the edge
-          # (legion-node1); Caddy proxies here with a basic_auth gate
-          # (modules/nixos/edge/default.nix color-hunt.jeiang.dev route).
-          # Port 8867 matches services.color-hunt's own default.
-          #
-          # Placed on this node for the same capacity reasoning as
-          # freshrss above: node4 has ~258 MiB of undeclared headroom,
-          # node3 is oversubscribed, the edge is stateless by design.
-          # Declared MemoryMax on this node now sums past its 1922 MiB
-          # (2144M with this entry's 256M) -- accepted deliberately:
-          # these are ceilings, not reservations, and the actual resident
-          # sum sits far below them (blocky's 512M cap alone is ~4x its
-          # observed usage). The Go server idles in tens of MiB; the cap
-          # exists for upload bursts.
           name = "color-hunt";
           publicHostnames = [];
           firewall = [
             {
-              # The edge Caddy's backend target. "private" scope is
-              # documentation only, same as every other backend entry in
-              # this file: enforcement is trustedInterfaces (enp7s0 plus
-              # the NetBird client interface, which is how the artemis
-              # worker polls in) with the port never entering the public
-              # allowlist.
               port = ports.legion-node2.color-hunt;
               proto = "tcp";
               scope = "private";
@@ -456,21 +233,9 @@
           volume = {
             name = "legion-color-hunt";
             mountpoint = "/mnt/color-hunt";
-            # SQLite database plus the per-submission photo tree
-            # (originals, derivatives, masks). Phone photos run a few MB
-            # each; 10 GiB matches the other small stateful services and
-            # holds thousands of submissions.
             hcloudVolumeId = "106729764";
             sizeGiB = 10;
           };
-          # Retained-data service: rulings and hunts are operator work
-          # that cannot be regenerated (analyses could be re-run, but
-          # only from the originals stored in the same tree). pauseUnits
-          # stops the server for the snapshot: the SQLite database is
-          # live under it (WAL mode), same reasoning as pocket-id and
-          # actual-budget. The artemis worker needs no pausing -- it is
-          # on another host and only talks HTTP; a job claim during the
-          # snapshot window just retries.
           backupSet = ["/mnt/color-hunt"];
           backupPauseUnits = ["color-hunt.service"];
         }
@@ -481,62 +246,21 @@
       edge = false;
       services = [
         {
-          # VictoriaMetrics, VictoriaLogs, Grafana, vmalert, Alertmanager
-          # (modules/nixos/monitoring/default.nix).
           name = "monitoring";
           publicHostnames = [];
           firewall = [
             {
-              # Grafana backend the edge Caddy grafana.jeiang.dev route
-              # proxies to (modules/nixos/edge/default.nix). "private"
-              # scope is documentation only, same as every other backend
-              # entry in this file: enforcement is trustedInterfaces
-              # (enp7s0) plus the port not being in the "public" allowlist.
               port = ports.legion-node3.grafana;
               proto = "tcp";
               scope = "private";
             }
           ];
-          # Raw VictoriaMetrics (8428) and VictoriaLogs (9428) are
-          # deliberately absent from this list: reachable only from
-          # NetBird peers, same mechanism legion-node2's blocky entry uses
-          # (default 0.0.0.0 bind + trustedInterfaces covering the
-          # NetBird client's interface, the port never added to this
-          # node's public/private hcloud openings) -- no firewall entry
-          # needed for them, matching that pattern exactly (see
-          # modules/nixos/blocky.nix's comment).
-          #
-          # Reset allowed: Disposable State on node-local storage, no
-          # Hetzner Volume, no backupSet. MemoryMax values live
-          # per-service in modules/nixos/monitoring/default.nix.
-          #
-          # Blocky moved to legion-node2 for capacity reasons: this node
-          # is now monitoring-only.
           stateful = false;
         }
         {
-          # Hermes Agent (CONTEXT.md "Hermes Agent",
-          # modules/nixos/hermes/default.nix). Placed here rather than a
-          # dedicated node: it queries this node's own VictoriaMetrics/
-          # VictoriaLogs over localhost (SERVERS.md), so co-locating avoids
-          # a cross-node hop for its heaviest read traffic.
           name = "hermes";
-          # Telegram long-polling is outbound-only: no DNS hostname, no
-          # Caddy route.
           publicHostnames = [];
-          # No inbound ports at all: the agent only makes outbound
-          # connections (Telegram long-polling, GitHub, and
-          # VictoriaMetrics/VictoriaLogs over localhost -- not even the
-          # NetBird-only reachability pattern the `monitoring` entry above
-          # documents for its own raw ports).
           firewall = [];
-          # Deliberate call, not an oversight: the on-node state (agent
-          # sessions under stateDir, the Knowledge Base clone) is
-          # Disposable State (CONTEXT.md) -- durable knowledge lives in the
-          # jeiang/knowledge-base remote, kept current by the module's own
-          # hermes-kb-sync timer, and secrets live in sops (already backed
-          # by the repo's sops workflow). Nothing here needs a Hetzner
-          # Volume or a Backup Set (CONTEXT.md "Knowledge Base").
           stateful = false;
         }
       ];
@@ -546,48 +270,30 @@
       edge = false;
       services = [
         {
-          # garret, the Nix binary cache (docs/adr/0013). The Pusher sits
-          # on 8082 rather than its upstream default of 8080, a holdover
-          # from the retired atticd that held 8080 on this node.
-          #
-          # DNS points at the edge (legion-node1); Caddy proxies here
-          # (modules/nixos/edge/default.nix cache.jeiang.dev and
-          # cache-push.jeiang.dev routes). Ports match
-          # modules/nixos/garret/default.nix.
           name = "garret";
           publicHostnames = [];
           firewall = [
             {
-              # Puller: the public substituter's backend port.
               port = ports.legion-node4.garret-puller;
               proto = "tcp";
               scope = "private";
             }
             {
-              # Pusher: the OIDC-authenticated push API's backend port.
               port = ports.legion-node4.garret-pusher;
               proto = "tcp";
               scope = "private";
             }
             {
-              # Pusher /metrics + /healthz, scraped and blackbox-probed by
-              # legion-node3 (modules/nixos/monitoring/default.nix). Bound
-              # to this node's private address, not loopback.
               port = ports.legion-node4.garret-pusher-metrics;
               proto = "tcp";
               scope = "private";
             }
             {
-              # Puller /metrics + /healthz, same as above.
               port = ports.legion-node4.garret-puller-metrics;
               proto = "tcp";
               scope = "private";
             }
           ];
-          # garret keeps a local SQLite index -- and that
-          # index is the only record of what the S3 bucket contains, so
-          # losing it strands every stored object as an orphan GC can never
-          # reclaim. Retained, not regenerable in practice.
           stateful = true;
           volume = {
             name = "legion-garret";
@@ -596,16 +302,9 @@
             sizeGiB = 10;
           };
           backupSet = ["/mnt/garret"];
-          # Both units hold the same SQLite database open, so both must
-          # stop for a consistent snapshot -- same reasoning as
-          # actual-budget and pocket-id above.
           backupPauseUnits = ["garret-pusher.service" "garret-puller.service"];
         }
         {
-          # DNS points at the edge; Caddy proxies here
-          # (modules/nixos/edge/default.nix budget.jeiang.dev route). Port
-          # 5006 matches services.actual's own default
-          # (modules/nixos/actual-budget.nix).
           name = "actual-budget";
           publicHostnames = [];
           firewall = [
@@ -622,18 +321,12 @@
             hcloudVolumeId = "106251385";
             sizeGiB = 10;
           };
-          # Retained-data service. pauseUnits stops the service before
-          # the snapshot: server-files/account.sqlite is a live SQLite DB
-          # (modules/nixos/actual-budget.nix).
           backupSet = ["/mnt/actual-budget"];
           backupPauseUnits = ["actual.service"];
         }
         {
           name = "hath";
-          # Direct TCP 8888, no DNS hostname. Fleet-wide interim opening
-          # (modules/hosts/legion/default.nix `++ [8888]`) should narrow
-          # to just this entry's firewall scope eventually, not here --
-          # see modules/nixos/hath.nix.
+          # Interim fleet-wide 8888 opening in modules/hosts/legion/default.nix should narrow to this entry's scope; see modules/nixos/hath.nix.
           publicHostnames = [];
           firewall = [
             {
@@ -649,81 +342,25 @@
             hcloudVolumeId = "106251745";
             sizeGiB = 40;
           };
-          # Backup Set covers both the login/config data (`data`,
-          # hath-rust's --data-dir) and the 30 Gi download cache
-          # (`cache`, --cache-dir). The cache is technically rebuildable
-          # by re-fetching from the H@H network, but the operator chose to
-          # retain it in backups: restoring 30 Gi from Restic is far
-          # cheaper than re-earning cache trust and re-downloading, and a
-          # cold cache degrades the client's hourly quota until it refills.
-          # `download`/`log` stay out (transient). `data` and `cache` are
-          # subdirs of the /mnt/hath Volume mount, matching
-          # modules/nixos/hath.nix and satisfying the backup-subset check.
           backupSet = ["/mnt/hath/data" "/mnt/hath/cache"];
           backupPauseUnits = ["hath.service"];
         }
         {
-          # Glance dashboard (modules/nixos/glance.nix). Same
-          # NetBird-only reachability pattern blocky uses on
-          # legion-node2: served on the node's NetBird address, not a
-          # hcloud public/private firewall opening, so `firewall` stays
-          # empty and port 8085 never enters this node's allowlists.
-          #
-          # Placed here rather than on legion-node2, where it was first
-          # written: node2 carries the mesh control plane, SSO and DNS,
-          # and once FreshRSS and changedetection.io landed there its
-          # declared MemoryMax summed to 2016M against 1922 MiB of RAM.
-          # These are ceilings rather than reservations, so that is not a
-          # boot failure, but node2 is the wrong node to run closest to
-          # the line. This node had the headroom.
           name = "glance";
-          # Deliberately no hostname: Glance 0.8.5 has no OIDC client and
-          # Pocket ID 2.12.0 has no forward-auth endpoint, so there is
-          # nothing the edge could gate a public glance.jeiang.dev
-          # against without a new auth service and its secrets. Reasoning
-          # in full in modules/nixos/glance.nix.
           publicHostnames = [];
           firewall = [];
-          # Config-only: widgets re-fetch on their own cache intervals and
-          # the rendered config lives in /run. No Volume, no Backup Set.
           stateful = false;
         }
         {
-          # Gatus status page (modules/nixos/gatus.nix). DNS points at the
-          # edge (legion-node1); Caddy proxies here
-          # (modules/nixos/edge/default.nix status.jeiang.dev route), so
-          # the hostname itself is declared on legion-node1's `caddy`
-          # entry alongside every other edge-served hostname.
-          #
-          # Placed here rather than on legion-node2 for the capacity
-          # reason in the glance entry above. It also happens to improve
-          # the failure story: the status page no longer shares a node
-          # with Pocket ID, which is one of the services it reports on.
           name = "gatus";
           publicHostnames = [];
           firewall = [
             {
-              # Same documentation-only "private" scope as the garret and
-              # actual-budget backends on this node: enforcement is
-              # trustedInterfaces (enp7s0) plus the port not being in the
-              # "public" allowlist. 8086 rather than the module default
-              # 8080 -- that default was displaced by netbird-relay when
-              # this service lived on legion-node2, and the port is kept
-              # rather than reverted so the edge route and the module stay
-              # in step. 8085 and 8086 are both free here (this node holds
-              # 8081, 8082, 9091, 9092, 5006 and 8888).
               port = ports.legion-node4.gatus;
               proto = "tcp";
               scope = "private";
             }
           ];
-          # Deliberate: Gatus keeps its default in-memory store rather
-          # than SQLite, so a restart drops the sample history and there
-          # is nothing to retain. Durable uptime history is
-          # legion-node3's VictoriaMetrics, which survives this node
-          # entirely. Choosing SQLite here would require a Hetzner Volume
-          # (the statefulServicesWithoutVolume assert below) and a Backup
-          # Set for data the monitoring stack already holds.
           stateful = false;
         }
       ];

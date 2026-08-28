@@ -5,38 +5,12 @@
     ...
   }: {
     packages = {
-      # The deployed management plane is the unified config.yaml-driven
-      # server shipped as netbirdio/netbird-server. nixpkgs has no
-      # such component: its netbird package only knows about
-      # client/ui/upload/management/signal/relay/proxy, and the legacy
-      # `management` component uses a materially different state layout
-      # than the unified server. The unified server instead lives at
-      # `combined/` in the netbird monorepo:
-      # `combined/main.go` calls `combined/cmd.Execute()`, whose root
-      # command requires `--config`/`-c` and loads it via
-      # `combined/cmd.LoadConfig` (combined/cmd/config.go), which
-      # `yaml.Unmarshal`s into a struct tagged to match
-      # `combined/config.yaml.example` (server.listenAddress,
-      # exposedAddress, management/signal/relay/stun sections) - i.e. the
-      # same config.yaml shape the deployment uses.
-      # combined/Dockerfile.multistage builds this exact subpackage as
-      # `netbird-server` and runs it with `--config /etc/netbird/config.yaml`,
-      # matching the upstream image.
-      #
-      # Built as an overrideAttrs layer on this flake's pinned netbird
-      # derivation (modules/packages/netbird.nix), so the server tracks the
-      # same upstream tag as the client/relay/proxy pins with the same
-      # buildGoModule inputs/vendorHash - `combined` only imports packages
-      # already vendored for the other components. Not a `componentName`
-      # override, since nixpkgs' componentName switch is a closed set that
-      # does not include "combined".
+      # nixpkgs' netbird has no "combined" (unified server) component and its componentName switch is a closed set, so build that subpackage as an overrideAttrs layer on the pinned netbird derivation.
       netbird-server = config.packages.netbird.overrideAttrs (_: {
         pname = "netbird-server";
         subPackages = ["combined"];
         postInstall = "mv $out/bin/combined $out/bin/netbird-server";
-        # No `version`/`--version` subcommand exists on the combined
-        # server's cobra root command, so the client component's
-        # versionCheckHook wiring doesn't apply here.
+        # The combined server has no version subcommand, so the versionCheckHook wiring doesn't apply.
         doInstallCheck = false;
         meta = {
           description = "Unified NetBird server (management + signal + relay + STUN)";

@@ -7,7 +7,6 @@
         config = pkgs.writeTextFile {
           name = "starship.toml";
           text = ''
-            # version: 1.0.0
             "$schema" = 'https://starship.rs/config-schema.json'
 
             add_newline = true
@@ -107,7 +106,6 @@
             success_symbol = "[◎](bold italic bright-yellow)"
             error_symbol = "[○](italic purple)"
             vimcmd_symbol = "[■](italic dimmed green)"
-            # not supported in zsh
             vimcmd_replace_one_symbol = "◌"
             vimcmd_replace_symbol = "□"
             vimcmd_visual_symbol = "▼"

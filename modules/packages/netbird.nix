@@ -1,11 +1,6 @@
 {
   perSystem = {pkgs, ...}: let
-    # Pinned ahead of nixpkgs (currently 0.76.3) to track upstream releases.
-    # One shared override for every component built from the netbird
-    # monorepo: the client and relay/proxy here, and the combined server in
-    # modules/packages/netbird-server.nix (derived from `packages.netbird`).
-    # proxyVendor and the socket-path postPatch come from the nixpkgs base
-    # expression, which already carries them for 0.76.x+.
+    # Pinned ahead of nixpkgs; one shared override for every component built from the netbird monorepo.
     pin = _: rec {
       version = "0.77.0";
       src = pkgs.fetchFromGitHub {
