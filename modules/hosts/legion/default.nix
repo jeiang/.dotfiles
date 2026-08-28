@@ -630,7 +630,14 @@ in {
             # the same way).
             ++ lib.optional
             (lib.any (service: service.name == "changedetection-io") node.services)
-            self.nixosModules.changedetection-io;
+            self.nixosModules.changedetection-io
+            # Color Hunt Validator server, same optional-import pattern,
+            # gated on the inventory node placing `color-hunt`
+            # (legion-node2 today). Published through the edge Caddy at
+            # color-hunt.jeiang.dev, unlike its node2 neighbours above.
+            ++ lib.optional
+            (lib.any (service: service.name == "color-hunt") node.services)
+            self.nixosModules.color-hunt;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;
