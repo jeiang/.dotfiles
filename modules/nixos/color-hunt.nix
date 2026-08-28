@@ -29,7 +29,17 @@
     # (originals, worker-made derivatives, masks) -- all retained state,
     # none of it regenerable except the derivatives, and those only by
     # re-running analysis over the originals stored beside them.
-    dataDir = "/mnt/color-hunt/data";
+    #
+    # dataDir IS the mountpoint, not a subdirectory: the unit's
+    # ReadWritePaths names dataDir, and systemd builds the sandbox before
+    # any ExecStartPre runs -- a ReadWritePaths entry that does not exist
+    # yet fails the unit 226/NAMESPACE before the create-it ExecStartPre
+    # ever executes (observed on the first node2 deploy, with dataDir at
+    # /mnt/color-hunt/data). The mountpoint always exists once the mount
+    # guard lets the unit start, which is the same reason every other
+    # Volume service here (garret, actual-budget, changedetection-io)
+    # points its data path at the mountpoint itself.
+    dataDir = "/mnt/color-hunt";
     mountpoint = "/mnt/color-hunt";
 
     # Free on legion-node2: netbird-server holds 80, netbird-proxy 443 and
