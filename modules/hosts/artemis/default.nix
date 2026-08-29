@@ -10,14 +10,8 @@
       ];
     };
     deploy.nodes.artemis = {
-      # NetBird mesh DNS name; deploys ride the mesh (artemis has no
-      # public DNS). When the mesh is down, `deploy .#artemis --hostname
-      # <LAN IP or 10.100.0.2 via the backup tunnel>` overrides it.
+      # Deploys ride the NetBird mesh (no public DNS); when it's down: deploy .#artemis --hostname <LAN IP or 10.100.0.2 via the backup tunnel>.
       hostname = "artemis.jeiang.vpn";
-      # No dedicated deploy user (unlike legion): artemis is a personal
-      # box whose admin user already has passwordless doas via wheel
-      # (modules/nixos/security.nix); deploy-rs's sudo prefix and its
-      # magic-rollback canary rm both run through that.
       sshUser = "aidanp";
       sudo = "doas -u";
       profiles.system = {
@@ -31,8 +25,6 @@
       pkgs,
       ...
     }: let
-      # Desktop-only performance tuning: CachyOS kernel built for this host's
-      # zen4 CPU with the BORE scheduler and full LTO.
       originalKernel = inputs.nix-cachyos-kernel.legacyPackages.x86_64-linux.linux-cachyos-latest;
       kernel = originalKernel.override {
         pname = "linux-cachyos-bore-lto-zen4";
@@ -59,28 +51,17 @@
         self.nixosModules.whisper-server
         self.nixosModules.color-hunt-worker
 
-        # disks
         self.diskoConfigurations.artemis
       ];
 
       persistence = {
         enable = true;
-        # Roll the "/rootfs" btrfs subvolume (mounted as /, see
-        # ./disko.nix) back to empty on every boot, in the initrd, before
-        # anything else is mounted. Only paths explicitly listed below
-        # survive a reboot; everything else on / is gone. device matches
-        # the same partition disko.nix mounts for /persist, /nix, etc. —
-        # any one member device of the multi-device btrfs filesystem works.
         nukeRoot = {
           enable = true;
           device = "/dev/disk/by-partlabel/disk-nvme3-root";
           subvolume = "rootfs";
         };
 
-        # Core system state that has to survive reinstalls/rebuilds: host
-        # identity, generated secrets, and machine-specific network/pairing
-        # state. See modules/nixos/impermanence.nix for the reminder that
-        # none of this migrates automatically.
         files = [
           "/etc/machine-id"
           "/var/lib/systemd/random-seed"
@@ -95,28 +76,13 @@
           "/var/lib/NetworkManager"
           "/var/lib/bluetooth"
           "/var/lib/netbird"
-          # GGUF weights fetched by llama-swap-models
-          # (modules/nixos/llama-swap.nix). Not derivable state: without this
-          # entry nukeRoot drops tens of GB of models on every boot and the
-          # unit re-downloads all of them before llama-swap can start.
+          # Model weights: without these entries nukeRoot drops tens of GB every boot and the fetch units re-download before the servers can start.
           "/var/lib/llama-swap-models"
-          # GGML weights fetched by whisper-models
-          # (modules/nixos/whisper-server.nix), same deal as llama-swap's:
-          # not derivable state, and without this entry nukeRoot drops the
-          # model on every boot and the unit re-downloads it before
-          # whisper-server can start.
           "/var/lib/whisper-models"
-          # Qdrant's storage and snapshots (StateDirectory=qdrant,
-          # modules/nixos/qdrant.nix). This is the Hermes Agent's vector
-          # index -- the one path here that is genuinely irreplaceable
-          # rather than merely expensive to refetch, since losing it means
-          # re-embedding every source document. A real directory, not the
-          # /var/lib/private symlink upstream's DynamicUser would produce;
-          # see the comment in the module for why that user was made static.
+          # Hermes' vector index: genuinely irreplaceable, losing it means re-embedding every source document.
           "/var/lib/qdrant"
         ];
 
-        # User-level state.
         data.directories = [
           "Desktop"
           "Documents"
@@ -150,10 +116,6 @@
             mode = "0700";
           }
           {
-            # Claude Code's whole per-user state tree: settings.json,
-            # memory/, skills/, plugins/, per-project session history and
-            # todos — and .credentials.json, the OAuth tokens it writes
-            # here on Linux (no system keychain), hence 0700 like .ssh.
             directory = ".claude";
             mode = "0700";
           }
@@ -170,15 +132,8 @@
           ".local/share/PrismLauncher"
           ".local/share/rivalsmodmanager"
         ];
-        # ~/.claude.json is Claude Code's global config file (onboarding
-        # state, per-project trust/history, MCP server entries) and sits
-        # next to ~/.claude rather than inside it. impermanence creates an
-        # empty file at this path if /persist has none yet; Claude Code
-        # treats an unparseable config as a fresh one (it moves it aside to
-        # ~/.claude.json.corrupted) rather than failing to start.
         data.files = [".claude.json"];
         cache.directories = [
-          # Per-project MCP server logs; regenerated, safe to lose.
           ".cache/claude-cli-nodejs"
           ".cache/devenv"
           ".cache/direnv"
@@ -204,62 +159,22 @@
             })
           ];
         };
-        # Enable "Silent boot"
         consoleLogLevel = 3;
         initrd.verbose = false;
         kernelParams = [
           "quiet"
           "udev.log_level=3"
           "systemd.show_status=auto"
-          # Let amdgpu attempt an engine reset instead of leaving the GPU
-          # wedged until reboot -- this host streams unattended and a dead
-          # GPU is otherwise a truck-roll (docs/research/
-          # unattended-nixos-gaming-remote-access.md).
+          # This host streams unattended: let amdgpu attempt an engine reset instead of leaving the GPU wedged until reboot.
           "amdgpu.gpu_recovery=1"
-          # Keep amdgpu off the Raphael iGPU (0000:19:00.0). Its PSP is the
-          # CPU-die secure processor, and on roughly a quarter of boots it
-          # rejects amdgpu's SETUP_TMR with 0x80000306; every firmware load
-          # then fails, the SMU never answers (hw_init -62) and the probe
-          # dies. On 7.1.3 that unwinds with a WARN storm out of
-          # amdgpu_irq_put and boots ~30s late, but the unwind reaches
-          # vcn_v3_0_sw_fini, which writes through
-          # adev->vcn.inst[i].fw_shared.cpu_addr unconditionally -- on 7.1.6
-          # that faults, kills the probe thread inside really_probe holding
-          # the driver-core lock, and every later udev worker and modprobe
-          # deadlocks in native_queued_spin_lock_slowpath ("waiting on
-          # filesystems"). Never probing the device removes the trigger, and
-          # with it the reason the kernel input was pinned.
-          #
-          # This is a Linux driver-binding gate only: the iGPU stays enabled
-          # in firmware, so POST and BIOS setup still come up on it. Nothing
-          # in the session uses it either -- both its connectors are empty,
-          # Sunshine and the compositor are pinned to the dGPU
-          # (AQ_DRM_DEVICES below). 19:00.1 (HDA) and 19:00.2 (ccp/PSP) are
-          # deliberately left alone; only the display function is stubbed.
+          # Raphael iGPU's PSP rejects SETUP_TMR (0x80000306) on ~25% of boots, killing the amdgpu probe and (on 7.1.6) deadlocking udev; stubbing the display function (19:00.0 only) removes the trigger.
           "pci-stub.ids=1002:164e"
         ];
-        # pci-stub has to claim 19:00.0 before amdgpu binds it, and amdgpu
-        # is loaded from the initrd for plymouth -- so pci-stub (a module
-        # here, CONFIG_PCI_STUB=m) has to be in the initrd too. This entry
-        # is what gets the .ko into the initrd at all; the softdep below is
-        # what orders it, since boot.initrd.kernelModules lands amdgpu ahead
-        # of anything added here and the initrd closure does not follow
-        # softdeps.
+        # pci-stub must be in the initrd (amdgpu loads there for plymouth); this entry ships the .ko, the softdep below orders it.
         initrd.kernelModules = ["pci-stub"];
-        # Load order, not just presence: amdgpu reaches the initrd through
-        # two paths (systemd-modules-load from boot.initrd.kernelModules,
-        # and a udev modalias match), and only the first one respects list
-        # order. A softdep makes every `modprobe amdgpu` pull pci-stub in
-        # first, so 19:00.0 is already claimed whichever path wins the race.
-        # The systemd initrd copies environment.etc's modprobe.d/nixos.conf
-        # -- which this option writes -- into the initrd, so one definition
-        # covers both stages.
+        # amdgpu reaches the initrd via two paths and only one respects list order; the softdep makes every modprobe pull pci-stub first.
         extraModprobeConfig = "softdep amdgpu pre: pci-stub";
-        # Unattended hang recovery: a D-state amdgpu wedge doesn't stop
-        # PID 1 from petting the hardware watchdog, so panic on hung
-        # tasks explicitly and let the panic reboot the box. The watchdog
-        # (systemd.settings.Manager below) remains the backstop for the
-        # cases where even the panic path is dead.
+        # A D-state amdgpu wedge doesn't stop PID 1 petting the hardware watchdog, so panic on hung tasks and let the panic reboot the box.
         kernel.sysctl = {
           "kernel.hung_task_panic" = 1;
           "kernel.panic" = 10;
@@ -270,53 +185,27 @@
           helpers.kernelModuleLLVMOverride (pkgs.linuxKernel.packagesFor kernel);
         blacklistedKernelModules = ["algif_aead"];
       };
-      # Claude Code, here rather than in the shared toolbox
-      # (modules/nixos/toolbox.nix) — it's a workstation tool, not
-      # something the legion nodes need. The nixpkgs derivation already
-      # pins the CLI's own updater off (DISABLE_AUTOUPDATER), so it stays
-      # on whatever version this flake's nixpkgs input carries. Its state
-      # lives in ~/.claude and ~/.claude.json, both persisted above.
       environment.systemPackages = [pkgs.claude-code];
 
       environment.variables = {
         AMD_VULKAN_ICD = "RADV";
         MESA_SHADER_CACHE_MAX_SIZE = "12G";
-        # Pin aquamarine to the discrete GPU. Left to itself it makes the
-        # Raphael iGPU (2 CUs) primary and demotes the RX 9070 XT to a
-        # scanout-only secondary: the whole session renders on the iGPU and
-        # every frame crosses to the dGPU as a linear (untiled, no DCC)
-        # multi-GPU buffer before reaching DP-1, and every client that
-        # follows the compositor's advertised device -- Xwayland, hyprpaper,
-        # xdg-desktop-portal-hyprland -- lands on the iGPU too. Nothing is
-        # wired to the iGPU's outputs, so dropping it from the compositor
-        # costs nothing and also keeps the session off it on the boots where
-        # its PSP init fails (see the amdgpu.gpu_recovery note above).
-        # /dev/dri/egpu is the by-PCI-address symlink from ./hardware.nix --
-        # card* numbering is not stable across boots.
+        # Pin aquamarine to the dGPU: left alone it makes the iGPU primary and renders the whole session there. /dev/dri/egpu is the by-PCI-address symlink from ./hardware.nix; card* numbering is not boot-stable.
         AQ_DRM_DEVICES = "/dev/dri/egpu";
       };
       networking = {
         hostName = "artemis";
         networkmanager.enable = true;
         nftables.enable = true;
-        # So the planned ESP8266 magic-packet sender (and any LAN
-        # neighbor) can wake this box after a manual shutdown. Known
-        # nixpkgs flakiness applying the policy (nixpkgs#415213) --
-        # verify with `ethtool enp16s0 | grep Wake-on` after deploys.
+        # nixpkgs#415213: applying the WoL policy is flaky -- verify with `ethtool enp16s0 | grep Wake-on` after deploys.
         interfaces.enp16s0.wakeOnLan.enable = true;
       };
 
-      # Hardware watchdog (sp5100_tco on this X670E board): reboot on a
-      # hard hang PID 1 can't recover from. BIOS must also be set to
-      # "Restore AC Power Loss: Power On" so outages don't strand the
-      # box -- firmware setting, not expressible here.
+      # BIOS must also be set to "Restore AC Power Loss: Power On" -- firmware setting, not expressible here.
       systemd.settings.Manager = {
         RuntimeWatchdogSec = "30s";
         RebootWatchdogSec = "10min";
       };
-      # This host is an always-on streaming/inference server now; nobody
-      # is at the keyboard to resume it, AMD suspend/resume is unreliable,
-      # and WoL doesn't cross the NetBird mesh.
       systemd.targets = {
         sleep.enable = false;
         suspend.enable = false;
@@ -324,56 +213,30 @@
         hybrid-sleep.enable = false;
       };
 
-      # Setup-key enrollment, same shape as the Legion fleet
-      # (modules/hosts/legion/default.nix): inert while the current
-      # SSO-registered state in /var/lib/netbird stays valid (the login
-      # unit only acts on NeedsLogin), and re-enrolls declaratively if
-      # that state is ever lost. The key itself is an operator-filled
-      # placeholder until the runbook
-      # (docs/runbooks/artemis-always-on-setup.md) is executed.
+      # The setup key is an operator-filled placeholder until docs/runbooks/artemis-always-on-setup.md is executed.
       sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
       services.netbird.clients.default.login = {
         enable = true;
         setupKeyFile = config.sops.secrets."netbird/setup-key".path;
       };
 
-      # Push key for gopass autosync (github.com:jeiang/pass) -- replaces
-      # the Bitwarden SSH agent, which part 3 removes and which needed an
-      # unlocked vault (useless unattended). sops-nix links the decrypted
-      # key into the persisted ~/.ssh; register the public half as a
-      # write-access deploy key per the always-on runbook.
+      # gopass autosync push key; the public half must be registered as a write-access deploy key on github.com:jeiang/pass.
       sops.secrets."gopass/github-ssh-key" = {
         sopsFile = ./secrets.yaml;
         owner = "aidanp";
         path = "/home/aidanp/.ssh/id_ed25519";
         mode = "0600";
       };
-      # Pin GitHub's published ed25519 host key so the first unattended
-      # push never stalls on an interactive known-hosts prompt.
+      # Pinned so the first unattended push never stalls on an interactive known-hosts prompt.
       programs.ssh.knownHosts."github.com".publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl";
 
-      # Grouped in one attrset (statix W20 fires on a third top-level
-      # `services.*` key in this file).
+      # Grouped in one attrset: statix W20 fires on a third top-level `services.*` key.
       services = {
-        # Scraped by legion-node3's VictoriaMetrics over the mesh
-        # (modules/nixos/monitoring/default.nix job "node"). Same
-        # trustedInterfaces-only reachability as the Legion nodes: the
-        # netbird interface is trusted, nothing is opened publicly.
         prometheus.exporters.node.enable = true;
 
-        # Declared rather than inherited: the HomeKit Wake-on-LAN Switch
-        # resolves artemis.local over mDNS before pinging it (see the
-        # wakeOnLan option above), and until now avahi only came up as a
-        # transitive mkDefault of the nixpkgs sunshine module.
+        # The HomeKit Wake-on-LAN Switch resolves artemis.local over mDNS before pinging it.
         avahi.enable = true;
 
-        # RDP onto the Hyprland session, alongside Sunshine's Moonlight
-        # path (modules/nixos/sunshine.nix). No firewall entry on purpose,
-        # same as sunshine's `openFirewall = false`: the netbird interface
-        # is already in `networking.firewall.trustedInterfaces`
-        # (modules/nixos/netbird.nix), so binding 0.0.0.0 is reachable over
-        # the mesh and stays shut to the LAN. modules/nixos/hyprland's
-        # screencopy grant is what lets it capture with nobody at the desk.
         hypr-rdp = {
           enable = true;
           user = "aidanp";
@@ -381,30 +244,14 @@
           sopsFile = ./secrets.yaml;
           settings = {
             bind = "0.0.0.0:3389";
-            # No `output`: hypr-rdp manages its own headless output, sized
-            # to whatever the client asks for. Deliberately not mirroring
-            # DP-1 -- when the physical display powers down its EDID goes
-            # with it, Hyprland drops to a lone FALLBACK output, and a
-            # pinned `output = "DP-1"` fails start-up with "not found in
-            # Hyprland monitors" exactly when remote access is wanted
-            # most. Sunshine already covers see-the-real-screen; this is a
-            # separate desktop that does not care about the monitor.
-            # VA-API on the discrete GPU; `auto` would quietly fall back to
-            # software H.264 if the driver ever failed to load, which is
-            # exactly the regression that building hypr-rdp against this
-            # flake's nixpkgs fixed (modules/packages/hypr-rdp.nix).
+            # No `output` on purpose: a pinned DP-1 fails startup once the powered-down display's EDID vanishes; hypr-rdp manages its own headless output.
+            # `auto` would quietly fall back to software H.264 if the VA-API driver ever failed to load.
             h264_backend = "vaapi";
           };
         };
       };
 
-      # hermes-ops: Hermes' fleet-execution identity (ADR 0012, amended
-      # 2026-08-16 to cover artemis), reaching this box from legion-node3
-      # over the NetBird mesh. modules/nixos/hermes-ops/default.nix can't
-      # be imported here: its rules are sudo (this host disables sudo via
-      # self.nixosModules.doas above) and its authorized key is pinned to
-      # the Hetzner private network artemis isn't on -- so this is the
-      # doas-shaped variant, inline since artemis is its only consumer.
+      # Inline doas-shaped hermes-ops: modules/nixos/hermes-ops assumes sudo and a Hetzner-private-network source pin, neither of which applies here.
       users = {
         groups.hermes-ops = {};
         users.hermes-ops = {
@@ -414,30 +261,15 @@
           createHome = false;
           hashedPassword = "!";
           shell = pkgs.bashInteractive;
-          # Local journalctl reads, same grant as the Legion nodes.
           extraGroups = ["systemd-journal"];
           openssh.authorizedKeys.keys = [
-            # Same fleet key as modules/nixos/hermes-ops/default.nix --
-            # rotate both together. No from= pin, unlike Legion's
-            # 172.17.0.3: the source here is legion-node3's NetBird peer
-            # IP, which is declared nowhere in this repo and can change on
-            # re-registration, so a pin would silently dead-end the
-            # feature the day it drifts. Mesh membership + key auth are
-            # the gate.
+            # Same fleet key as modules/nixos/hermes-ops -- rotate both together. No from= pin: legion-node3's NetBird peer IP is declared nowhere and can change on re-registration.
             ''no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOvcTYBeAVez+6x8r4gCOR6eIjBE0oPSYOsW3Qj4znjE hermes-ops fleet key''
           ];
         };
       };
 
-      # The doas analog of hermes-ops' sudo allowlist: one exact-args rule
-      # per verb-unit pair, no wildcards (ADR 0012 "Why the sudo allowlist
-      # is the classifier" -- same story, different escalation binary; the
-      # tier split stays prompt-level, see SERVERS.md). greetd, not
-      # sunshine: sunshine.service is a systemd *user* unit inside the
-      # greetd-launched Hyprland session, which a system doas rule can't
-      # name -- restarting greetd bounces the whole session, Sunshine
-      # included. `systemctl reboot` is the only remediation for a wedged
-      # amdgpu (D-state hang, see the llama-swap notes) and is tier 2.
+      # greetd, not sunshine: sunshine.service is a systemd user unit inside the greetd-launched session, which a system doas rule can't name.
       security.doas.extraRules = let
         mkRule = args: {
           users = ["hermes-ops"];

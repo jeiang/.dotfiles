@@ -43,10 +43,7 @@
         verbosity = "err";
       };
     };
-    # bees holds btrfs extent locks that stall game I/O for seconds
-    # (confirmed by A/B test 2026-08-15), so it runs in a nightly
-    # window instead of 24/7. Missed windows are skipped rather than
-    # run late: a daytime catch-up scan would bring the stutter back.
+    # bees holds btrfs extent locks that stall game I/O, so it runs in a nightly window; missed windows are skipped, never run late.
     systemd = {
       services."beesd@-".wantedBy = lib.mkForce [];
       timers.beesd-start = {
@@ -116,9 +113,7 @@
                 size = "1800G";
                 content = {
                   type = "btrfs";
-                  # Intentional: striped raid0 across all 3 nvme drives for
-                  # throughput on this desktop host. No redundancy — data loss
-                  # on any single drive failure is accepted here.
+                  # Intentional raid0 across all 3 nvme drives for throughput; data loss on any single drive failure is accepted.
                   extraArgs = [
                     "-f"
                     "-m raid0"
@@ -136,12 +131,7 @@
                       mountOptions = btrfsMountOptions;
                       mountpoint = "/var/log";
                     };
-                    # /home is intentionally not its own persistent subvolume:
-                    # with impermanence enabled (modules/nixos/impermanence.nix),
-                    # only the paths explicitly listed under persistence.data/
-                    # persistence.cache are bind-mounted into $HOME from
-                    # /persist; unlisted home state is not guaranteed to
-                    # survive.
+                    # /home is intentionally not its own subvolume: only listed persistence.data/cache paths survive.
                     "/nix" = {
                       mountOptions = btrfsMountOptions;
                       mountpoint = "/nix";

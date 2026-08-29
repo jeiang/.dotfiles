@@ -4,12 +4,9 @@ _: {
     pkgs,
     ...
   }: let
-    # Best-effort mode switch to the connecting Moonlight client's requested
-    # resolution (Sunshine exports SUNSHINE_CLIENT_*). Never blocks the
-    # stream: the requested mode may not exist on the physical output/EDID
-    # dummy plug, and a failing prep-cmd would abort the app launch. This
-    # Hyprland build is Lua-configured; `hyprctl keyword` is dead ("unknown
-    # request"), live changes go through `hyprctl eval` + hl.monitor.
+    # Best-effort switch to the Moonlight client's requested mode; never
+    # exits nonzero since a failing prep-cmd aborts the app launch. `hyprctl
+    # keyword` is dead in this Lua-configured build; use `hyprctl eval`.
     stream-mode = pkgs.writeShellScriptBin "sunshine-stream-mode" ''
       if [ -z "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
         HYPRLAND_INSTANCE_SIGNATURE=$(ls "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr" 2>/dev/null | head -1)
@@ -36,11 +33,9 @@ _: {
       do = lib.getExe stream-mode;
       undo = "${lib.getExe stream-mode} reset";
     };
-    # Steam Big Picture inside *nested* gamescope, sized to the client.
-    # Running gamescope as a standalone session (DRM master) instead is
-    # known-broken with Sunshine (RTSP timeout, LizardByte/Sunshine#1928).
-    # Bare gamescope/steam on purpose: the wrapped gamescope and the
-    # programs.steam wrapper come from the session PATH.
+    # Nested gamescope: a standalone gamescope session is known-broken with
+    # Sunshine (RTSP timeout, LizardByte/Sunshine#1928). Bare gamescope/steam
+    # on purpose -- the wrappers come from the session PATH.
     steam-bp = pkgs.writeShellScriptBin "sunshine-steam-bigpicture" ''
       exec gamescope \
         -W "''${SUNSHINE_CLIENT_WIDTH:-1920}" \
@@ -53,19 +48,13 @@ _: {
 
     services.sunshine = {
       enable = true;
-      # For DRM/KMS capture of the Hyprland session (applied via
-      # security.wrappers, so it survives rebuilds unlike manual setcap).
+      # for DRM/KMS capture of the Hyprland session
       capSysAdmin = true;
-      # Streaming is reachable over the NetBird mesh only: the netbird
-      # interface is already a trusted firewall interface
-      # (modules/nixos/netbird.nix), and nothing on the LAN needs Moonlight.
       openFirewall = false;
       settings = {
         sunshine_name = "artemis";
-        # AMD on Linux encodes via VAAPI only. Pin the encoder to the
-        # discrete GPU's stable by-path render node — /dev/dri/renderD12x
-        # numbering can swap between boots, and nothing symlinks the render
-        # node (the egpu/igpu udev symlinks cover card* only).
+        # Pin the discrete GPU's stable by-path render node --
+        # /dev/dri/renderD12x numbering can swap between boots.
         encoder = "vaapi";
         adapter_name = "/dev/dri/by-path/pci-0000:03:00.0-render";
       };
@@ -85,8 +74,7 @@ _: {
       ];
     };
 
-    # Pairing state and credentials; without this every reboot forgets all
-    # paired Moonlight clients (nukeRoot wipes /).
+    # pairing state; without this every reboot forgets all paired clients
     persistence.data.directories = [".config/sunshine"];
   };
 }

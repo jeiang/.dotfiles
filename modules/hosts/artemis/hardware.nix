@@ -1,7 +1,6 @@
 {
   flake.nixosModules.artemisHardware = {pkgs, ...}: {
     hardware.facter.reportPath = ./facter.json;
-    # setup a symlink to /dev/dri/egpu and /dev/dri/igpu for hyprland/niri
     services.udev.packages = let
       name = "52-gpu-symlink.rules";
       gpu-rules = pkgs.writeText name ''

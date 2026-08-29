@@ -5,7 +5,6 @@ default:
 fmt:
   nix fmt
   statix fix
-  # anything that could not be autofixed would be reported here
   statix check
 
 # Check for nix errors
@@ -29,18 +28,14 @@ sops-edit:
 sops-create path:
   sops {{path}}
 
-# Preview dns/dnsconfig.js against live Cloudflare. Read-only; the push
-# happens in CI on merge to main (.github/workflows/dns.yml).
+# Preview dns/dnsconfig.js against live Cloudflare; read-only — the push happens in CI on merge to main
 dns-preview *args:
   CLOUDFLARE_API_TOKEN=$(sops -d --extract '["caddy"]["cloudflare-dns-token"]' modules/nixos/edge/secrets.yaml) dnscontrol preview --config dns/dnsconfig.js --creds dns/creds.json {{args}}
 
 disko-format system sudo="sudo":
   {{sudo}} disko -f .#{{system}} --mode destroy,format,mount
 
-# Run ON artemis, as root, before rebooting into a persistence.* change —
-# impermanence never migrates existing data into /persist on its own.
-# jq/rsync aren't guaranteed to be on PATH outside the dev shell, so pull
-# them in explicitly rather than assuming the target environment has them.
+# Run ON artemis, as root, before rebooting into a persistence.* change — impermanence never migrates data into /persist on its own
 migrate-persist flake="." sudo="sudo":
   {{sudo}} nix shell nixpkgs#jq nixpkgs#rsync -c ./modules/hosts/artemis/migrate-persist.sh {{flake}}
 
@@ -59,8 +54,6 @@ deploy-legion *args:
 legion-run *command:
   @for host in $(nix eval --raw '.#deploy.nodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrValues (builtins.mapAttrs (_: node: node.hostname) nodes))'); do ssh "$host" -- {{command}}; done
 
-# Regenerate assets/wallpaper-kanabox.jpg: recolor the pristine
-# assets/wallpaper.jpg onto the kanabox palette (flake.lib.palette,
-# modules/theme.nix). Run after changing the palette.
+# Regenerate assets/wallpaper-kanabox.jpg from the pristine assets/wallpaper.jpg; run after changing the palette
 wallpaper:
   nix run nixpkgs#lutgen -- apply -o assets/wallpaper-kanabox.jpg assets/wallpaper.jpg -- $(nix eval --raw '.#lib.palette.kanaboxDarkHard' --apply 'p: builtins.concatStringsSep " " (map (c: builtins.substring 1 6 c) (builtins.attrValues p))')

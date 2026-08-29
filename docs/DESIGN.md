@@ -83,6 +83,34 @@ DNS, Hetzner Cloud Firewalls, servers, and Volumes are provisioned outside this
 flake. Configuration here may depend on their stable names and identifiers, but
 must document those external prerequisites.
 
+## Legion Service Inventory Schema
+
+`modules/hosts/legion/_service-inventory.nix` is placement metadata only; no
+service is enabled there. Firewall openings, Volume mounts, and backup jobs are
+derived from it by `modules/hosts/legion/default.nix`.
+
+Per-service fields beyond `name`/`publicHostnames`/`firewall`/`stateful`:
+
+- `backupSet` (list of paths): explicit Backup Set allowlist. Must be a subset
+  of the service's declared Volume mountpoint (`backupSetViolations` assert).
+- `backupPauseUnits` (list of systemd unit names): stopped before the backup
+  snapshot and restarted after, for SQLite-safe snapshots of a live DB.
+  Defaults to `[]`.
+- `volume.hcloudVolumeId` (string): numeric Hetzner Volume ID from
+  `hcloud volume describe`. Until the operator provisions the Volume and fills
+  it in, the entry generates no `fileSystems` mount.
+- `volume.sizeGiB` (int): recommended provisioning size; documentation only.
+- `firewallPortRanges` (list of `{from; to; proto; scope;}`): a bounded range
+  opened wholesale on the node's host firewall. Never opened wholesale on the
+  Hetzner Cloud Firewall side. Defaults to `[]`.
+- `publishedPorts` (list of `{port; proto;}`): durable module-owned ports
+  opened public-scope on the node's host firewall. Defaults to `[]`.
+
+Firewall semantics: `scope = "private"` is documentation only — enforcement is
+`trustedInterfaces` (enp7s0, plus the NetBird interface where relevant) and the
+port never entering the public allowlist. Every public-scope opening
+additionally needs its own manual Hetzner Cloud Firewall rule to be reachable.
+
 ## Package-Wrapper Policy
 
 Several CLI tools are wrapped with `inputs.wrapper-modules.lib.wrapPackage` or a
@@ -134,6 +162,23 @@ intentional instead of moving it into a generalized abstraction.
 - Artemis gaming and VR modules encode its Moza wheel, GPU, and headset setup;
   they are not general-purpose modules despite their location under
   `modules/nixos`.
+- Anubis gates only the four static prose/portfolio sites and must never become
+  a fleet-wide edge filter: its PoW challenge breaks every non-browser client
+  (substituters, OIDC clients, NetBird gRPC, Actual sync, Prometheus). Its
+  challenge store is deliberately in-memory — do not configure the bbolt
+  backend; a restart costing visitors one re-solve is the accepted trade.
+- Stateless-on-purpose services: Gatus uses the in-memory store (durable uptime
+  history is VictoriaMetrics), and hermes' on-node state is Disposable State —
+  the jeiang/knowledge-base remote, synced by `hermes-kb-sync`, is the durable
+  copy of routines and memories.
+- hath's Backup Set retains the full 30 Gi cache: a restic restore is cheaper
+  than re-earning H@H cache trust and quota.
+- The hermes Alertmanager webhook route's "investigate only, never act" rule is
+  prompt-level, not mechanical; ADR 0012's sudo allowlist is the accepted
+  backstop against injection via alert content.
+- garret's GitHub Actions OIDC gate is weaker than the Attic policy it
+  replaced: no `ref_protected` check, only ref globs plus owner id. Accepted
+  because every pushing repo is owned by the same operator.
 
 ## When To Add A Custom Option
 

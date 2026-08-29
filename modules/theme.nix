@@ -1,8 +1,6 @@
 {
-  # Single source of truth for the kanabox colorscheme (kanagawa "wave"
-  # palette with hand-darkened ink backgrounds). Consumed by helix,
-  # ghostty, hyprland, and the `just wallpaper` recipe; edit here and
-  # every surface follows.
+  # Single source of truth for the kanabox colorscheme; `just wallpaper`
+  # regenerates the wallpaper recolor from it.
   flake.lib.palette = rec {
     kanabox = {
       autumnGreen = "#76946A";

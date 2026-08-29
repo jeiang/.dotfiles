@@ -1,8 +1,4 @@
-# Desktop preferences for zakkart. Everything nix-darwin's system.defaults
-# can express faithfully lives there; everything else (menu bar items whose
-# nix-darwin option writes stale pre-macOS-26 values, the Spotlight hotkey,
-# wallpaper, default browser, display scaling) is scripted as idempotent
-# user-context activation steps instead. Policy and rationale: docs/adr/0010.
+# What system.defaults can express faithfully lives there; the rest is scripted as idempotent user-context activation steps (docs/adr/0010).
 _: {
   flake.darwinModules.preferences = {
     config,
@@ -38,50 +34,33 @@ _: {
         CustomUserPreferences.NSGlobalDomain = {
           AppleAccentColor = 6;
           AppleHighlightColor = "1.000000 0.749020 0.823529 Pink";
-          # "Fill" is the macOS 26 window-tiling action; the pinned
-          # nix-darwin has no option for this key.
+          # "Fill" is the macOS 26 window-tiling action; the pinned nix-darwin has no option for this key.
           AppleActionOnDoubleClick = "Fill";
         };
       };
 
-      # Failure policy (ADR 0010): deterministic `defaults` writes fail
-      # loudly (activation runs under `set -e`); steps that touch TCC
-      # consent, LaunchServices, or WindowServer warn and continue instead,
-      # since those can be denied or unavailable (lid closed, consent not
-      # yet granted) without that being a configuration error.
+      # Deterministic `defaults` writes fail loudly; TCC/LaunchServices/WindowServer steps warn and continue (ADR 0010).
       activationScripts.postActivation.text = ''
-        # Menu bar: -currentHost mirrors the observed macOS 26 values.
-        # nix-darwin's own controlcenter.Bluetooth option writes the
-        # pre-macOS-26 constant (18), not the observed value (2), so these are
-        # scripted instead of expressed via system.defaults.
+        # nix-darwin's controlcenter options write pre-macOS-26 constants, so these menu bar items are scripted.
         ${asUser "defaults -currentHost write com.apple.controlcenter Bluetooth -int 2"}
         ${asUser "defaults -currentHost write com.apple.controlcenter Spotlight -int 8"}
         ${asUser "defaults -currentHost write com.apple.controlcenter Weather -int 2"}
         killall -qu ${userArg} ControlCenter || true
 
-        # Spotlight (Cmd+Space): disable symbolic hotkey 64 only, via a
-        # merge-safe -dict-add so other AppleSymbolicHotKeys entries survive
-        # (CustomUserPreferences would clobber the whole dict).
+        # Spotlight hotkey: -dict-add is merge-safe; CustomUserPreferences would clobber the whole AppleSymbolicHotKeys dict.
         ${asUser "defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 \"<dict><key>enabled</key><false/></dict>\""}
         ${asUser "/System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u"} || true
 
-        # Wallpaper: TCC (System Events automation) consent may be denied on
-        # first run, so warn instead of failing activation.
+        # TCC consent may be denied on first run, so warn instead of failing activation.
         ${asUser "osascript -e 'tell application \"System Events\" to set picture of every desktop to POSIX file \"${wallpaper}\"'"} \
           || echo >&2 "warning: failed to set wallpaper (System Events automation consent?)"
 
-        # Default browser: only touch LaunchServices (one-time consent dialog)
-        # if Helium isn't already the default.
         if ! ${asUser defaultbrowser} | grep -q '^\* helium$'; then
           ${asUser "${defaultbrowser} helium"} \
             || echo >&2 "warning: failed to set default browser to Helium"
         fi
 
-        # Display "More Space": scale the built-in display to 1800x1169 via
-        # displayplacer (ADR 0009 Homebrew exception; not packaged in nixpkgs
-        # for darwin). Skipped when no built-in screen is reported (lid
-        # closed) or it's already at the target resolution; never fails
-        # activation, since persistent screen ids can shift with topology.
+        # Display scaling never fails activation: no built-in screen is reported with the lid closed, and persistent screen ids shift with topology.
         if [ -x /opt/homebrew/bin/displayplacer ]; then
           displayList=$(${asUser "/opt/homebrew/bin/displayplacer list"} 2>/dev/null) || displayList=""
           builtinId=$(echo "$displayList" | awk '

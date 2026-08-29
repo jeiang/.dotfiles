@@ -1,6 +1,4 @@
 _: {
-  # Local models served on artemis, fronted by llama-swap so VRAM is freed
-  # after idle instead of holding a model resident forever.
   flake.nixosModules.llama-swap = {
     pkgs,
     lib,
@@ -8,21 +6,8 @@ _: {
   }: let
     llama-cpp = pkgs.llama-cpp.override {vulkanSupport = true;};
     llama-server = lib.getExe' llama-cpp "llama-server";
-    # Models are fetched at runtime into a persisted directory rather than
-    # hash-pinned into the store. As `pkgs.fetchurl` results they were store
-    # paths referenced by each `cmd` below, which put 34 GB of GGUF (four
-    # models, at the time) inside nixos-system-artemis's closure: every CI leg
-    # and every deploy had to
-    # drag all of it over the wire just to prove the configuration evaluates,
-    # and it made toplevel-artemis the slowest job in the matrix by a factor
-    # of four.
-    #
-    # The store was doing three jobs here -- fetching, integrity, and
-    # surviving the nukeRoot reboot (via the persisted /nix). The unit below
-    # takes over the first two; the third needs the /var/lib/llama-swap-models
-    # entry in modules/hosts/artemis/default.nix `persistence.directories`,
-    # which is what the original "no impermanence entry" comment was avoiding.
-    # Without that entry every reboot re-downloads the lot.
+    # models are persisted into this directory to avoid storing them in the
+    # nix store
     modelDir = "/var/lib/llama-swap-models";
     models = {
       "ornith-1.0-9b-Q6_K.gguf" = {
@@ -34,34 +19,21 @@ _: {
         hash = "sha256-gJYmV00MtD1L7PpWFpmA2iu0SPIpknD3vkQ8uJ0KauQ=";
       };
     };
-    # A plain string, deliberately: interpolating a store path here is exactly
-    # what pulled the weights into the closure.
     model = name: "${modelDir}/${name}";
   in {
     services.llama-swap = {
       enable = true;
-      # Bind all interfaces; the firewall (not the listen address) is what
-      # keeps this off the LAN -- see openFirewall below.
       listenAddress = "0.0.0.0";
       port = 8080;
-      # openFirewall stays at its false default. artemis trusts the netbird
-      # interface (modules/nixos/netbird.nix), so with the firewall closed
-      # this is reachable from localhost and the netbird mesh, but blocked
-      # from the LAN.
       settings = {
-        # Model load (7.4 GB, full GPU offload) can take longer than
-        # llama-swap's default health-check timeout.
+        # model load can exceed llama-swap's default health-check timeout
         healthCheckTimeout = 300;
-        # ${PORT} in each cmd is llama-swap's own macro (escaped with the
-        # extra $ so Nix leaves it literal in the generated YAML), not a Nix
-        # interpolation like ${llama-server}/${model "..."} etc.
-        # Shared flags: -ngl 99 full GPU offload; --jinja use the model's
-        # embedded chat template; ttl 1800 frees all VRAM after 30 min idle.
-        # Sampling flags follow each model card.
+        # ${PORT} in each cmd is llama-swap's own macro, escaped so Nix
+        # leaves it literal in the generated YAML.
         models = {
           "ornith-1.0-9b" = {
-            # -np 4: four parallel slots; -c 98304 is the total KV budget, so
-            # each slot gets 24576 tokens of context.
+            # -np 4: four parallel slots; -c 98304 is the total KV budget,
+            # so each slot gets 24576 tokens of context.
             cmd = "${llama-server} --port \${PORT} -m ${model "ornith-1.0-9b-Q6_K.gguf"} -ngl 99 -c 98304 -np 4 --jinja --temp 0.6 --top-p 0.95 --top-k 20";
             aliases = ["ornith"];
             ttl = 1800;
@@ -75,16 +47,12 @@ _: {
       };
     };
 
-    # Replaces what pkgs.fetchurl used to do at build time: download each
-    # model and refuse to hand it over unless the hash matches. Idempotent, so
-    # it is a no-op on every boot after the first, and re-fetches only a file
-    # that has gone missing or been corrupted.
+    # Downloads each model and refuses to hand it over unless the hash
+    # matches; a no-op on every boot after the first.
     systemd.services.llama-swap-models = {
       description = "Fetch llama-swap GGUF models";
-      # requiredBy + before rather than a plain wantedBy: llama-swap must not
-      # start against a model file that is absent or half-written. A failed
-      # fetch now holds llama-swap down instead of crash-looping llama-server
-      # against a missing -m argument.
+      # requiredBy + before: llama-swap must not start against a model file
+      # that is absent or half-written.
       before = ["llama-swap.service"];
       requiredBy = ["llama-swap.service"];
       after = ["network-online.target"];
@@ -93,14 +61,10 @@ _: {
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        # Tens of GB will blow past the 90s default long before it finishes;
-        # a genuinely dead transfer is caught by curl's --speed-limit instead,
-        # which fails in minutes rather than hanging the boot forever.
+        # tens of GB outlive the 90s default; a dead transfer fails in
+        # minutes via curl's --speed-limit instead
         TimeoutStartSec = "infinity";
       };
-      # nix-hash --sri prints the same format the `hash` attrs above are
-      # written in, so the check compares against those strings verbatim --
-      # nothing to convert, nothing to keep in sync.
       script =
         ''
           mkdir -p ${modelDir}
@@ -125,15 +89,13 @@ _: {
     };
 
     systemd.services.llama-swap = {
-      # rocm-smi on PATH gives llama-swap's UI VRAM/temperature stats -- it
-      # probes LACT, nvidia-smi, then rocm-smi (v224 has no sysfs fallback).
-      # The standalone sysfs reader, not the full ROCm stack.
+      # rocm-smi on PATH gives the UI its VRAM/temperature stats (llama-swap
+      # v224 has no sysfs fallback).
       path = [pkgs.rocmPackages.rocm-smi];
       serviceConfig = {
-        # GPU render-node access for the DynamicUser the upstream unit runs as.
+        # GPU render-node access for the upstream unit's DynamicUser
         SupplementaryGroups = ["render" "video"];
-        # Writable RADV shader cache; disposable state, fine for nukeRoot to
-        # wipe on reboot.
+        # writable RADV shader cache
         CacheDirectory = "llama-swap";
       };
       environment.XDG_CACHE_HOME = "/var/cache/llama-swap";

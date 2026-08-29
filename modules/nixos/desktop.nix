@@ -13,10 +13,6 @@
     # https://github.com/NixOS/nixpkgs/issues/409986
     environment = {
       etc."xdg/menus/applications.menu".source = "${pkgs.kdePackages.plasma-workspace}/etc/xdg/menus/plasma-applications.menu";
-      # Streaming-host essentials only: the Mac is the daily driver now,
-      # so the browser/chat/notes/torrent suite is gone. What survives is
-      # what a session seen through Moonlight needs -- terminal, file
-      # manager, audio mixer, GPU monitor, and the gopass keyring.
       systemPackages = with pkgs; [
         btop-rocm
         self.packages.${pkgs.stdenv.hostPlatform.system}.ghostty

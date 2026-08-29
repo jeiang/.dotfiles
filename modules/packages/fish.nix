@@ -18,26 +18,13 @@
         end
         ${lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
 
-          # Bitwarden's Mac App Store build is sandboxed (docs/adr/0009); its
-          # SSH agent socket lives under the container path instead of
-          # ~/.bitwarden-ssh-agent.sock.
+          # The sandboxed Mac App Store Bitwarden puts its SSH agent socket under the container path, not ~/.bitwarden-ssh-agent.sock.
           set -gx SSH_AUTH_SOCK $HOME/Library/Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock
 
-          # macOS login shells start from path_helper's PATH, which knows
-          # nothing about nix, and this fish deliberately isn't nix-darwin's
-          # programs.fish (which is what normally injects these). Prepend the
-          # nix-darwin profile paths (environment.systemPath order) so
-          # environment.systemPackages tools -- direnv below, bat, gh, ... --
-          # resolve. NixOS needs none of this: login PATH already carries the
-          # system profile there.
+          # macOS login shells start from path_helper's PATH, and this fish is deliberately not programs.fish (which normally injects the nix profile paths).
           fish_add_path --global --move --path $HOME/.nix-profile/bin /etc/profiles/per-user/$USER/bin /run/current-system/sw/bin /nix/var/nix/profiles/default/bin
 
-          # nix-darwin's programs.direnv exports DIRENV_CONFIG=/etc/direnv via
-          # environment.variables, but that only reaches shells that source
-          # nix-darwin's set-environment, which this wrapped fish (deliberately
-          # not programs.fish) never does. Without it direnv never loads
-          # /etc/direnv/direnvrc -- the nix-direnv loader -- and silently falls
-          # back to its builtin uncached use_flake. NixOS hosts are unaffected.
+          # DIRENV_CONFIG only reaches shells sourcing nix-darwin's set-environment, which this wrapped fish never does; without it direnv skips the nix-direnv loader.
           set -gx DIRENV_CONFIG /etc/direnv
         ''}
         status is-interactive; and begin
