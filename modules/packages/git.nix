@@ -61,7 +61,7 @@
           rank = "!git shortlog -sn --no-merges";
 
           # delete merged branches
-          bdm = "!git !git branch --merged | grep -v '*' | xargs -n 1 git branch -d";
+          bdm = "!git branch --merged | grep -v '*' | xargs -n 1 git branch -d";
         };
         diff.external = "${lib.getExe self'.packages.difft}";
         diff.tool = lib.mkDefault "difftastic";
