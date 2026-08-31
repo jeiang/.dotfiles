@@ -33,7 +33,9 @@
           (ok "Rivals Randomizer" "Web" "https://rivals.jeiang.dev")
           (ok "Markdown Table Editor" "Web" "https://mdtable.jeiang.dev")
 
-          (ok "Pocket ID" "Services" "https://auth.jeiang.dev/healthz")
+          # /healthz returns 204 No Content; 200 elsewhere is just the SPA
+          # fallback, which says nothing about backend health.
+          (https "Pocket ID" "Services" "https://auth.jeiang.dev/healthz" ["[STATUS] == 204"])
           (ok "Grafana" "Services" "https://grafana.jeiang.dev/api/health")
           (ok "Actual Budget" "Services" "https://budget.jeiang.dev")
           # 401, not 200: the edge's basic_auth challenge is proof the gate
