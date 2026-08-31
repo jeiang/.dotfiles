@@ -27,13 +27,6 @@
         "prometheus-node-exporter.service"
         "restic-backups-netbird-server.service"
         "restic-backups-pocket-id.service"
-        "freshrss-config.service"
-        "freshrss-updater.service"
-        "phpfpm-freshrss.service"
-        "nginx.service"
-        "changedetection-io.service"
-        "restic-backups-freshrss.service"
-        "restic-backups-changedetection-io.service"
         "color-hunt.service"
         "restic-backups-color-hunt.service"
       ];
@@ -47,8 +40,6 @@
     };
     legion-node3 = {
       tier1 = [
-        "hermes-kb-sync.service"
-        "obscura.service"
         "prometheus-node-exporter.service"
         "prometheus-blackbox-exporter.service"
       ];
@@ -189,7 +180,7 @@ in {
           enabledCollectors = ["systemd"];
           # Explicit unit-include keeps node_systemd_unit_state cardinality bounded for the memory-constrained VictoriaMetrics; the default `.+` would emit hundreds of series.
           extraFlags = [
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync|glance|gatus|freshrss-config|freshrss-updater|phpfpm-freshrss|changedetection-io|color-hunt)\\.service"
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|glance|gatus|color-hunt)\\.service"
           ];
         };
 
@@ -366,12 +357,6 @@ in {
             ++ lib.optional
             (lib.any (service: service.name == "camera-ingest") node.services)
             self.nixosModules.camera-ingest
-            ++ lib.optional
-            (lib.any (service: service.name == "freshrss") node.services)
-            self.nixosModules.freshrss
-            ++ lib.optional
-            (lib.any (service: service.name == "changedetection-io") node.services)
-            self.nixosModules.changedetection-io
             ++ lib.optional
             (lib.any (service: service.name == "color-hunt") node.services)
             self.nixosModules.color-hunt;

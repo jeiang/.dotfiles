@@ -192,34 +192,6 @@
           stateful = false;
         }
         {
-          name = "freshrss";
-          publicHostnames = [];
-          firewall = [];
-          stateful = true;
-          volume = {
-            name = "legion-freshrss";
-            mountpoint = "/mnt/freshrss";
-            hcloudVolumeId = "106696813";
-            sizeGiB = 10;
-          };
-          backupSet = ["/mnt/freshrss"];
-          backupPauseUnits = ["phpfpm-freshrss.service" "freshrss-updater.service"];
-        }
-        {
-          name = "changedetection-io";
-          publicHostnames = [];
-          firewall = [];
-          stateful = true;
-          volume = {
-            name = "legion-changedetection-io";
-            mountpoint = "/mnt/changedetection-io";
-            hcloudVolumeId = "106696816";
-            sizeGiB = 20;
-          };
-          backupSet = ["/mnt/changedetection-io"];
-          backupPauseUnits = ["changedetection-io.service"];
-        }
-        {
           name = "color-hunt";
           publicHostnames = [];
           firewall = [
@@ -255,12 +227,6 @@
               scope = "private";
             }
           ];
-          stateful = false;
-        }
-        {
-          name = "hermes";
-          publicHostnames = [];
-          firewall = [];
           stateful = false;
         }
       ];
