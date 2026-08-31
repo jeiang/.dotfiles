@@ -257,12 +257,6 @@
           ];
           stateful = false;
         }
-        {
-          name = "hermes";
-          publicHostnames = [];
-          firewall = [];
-          stateful = false;
-        }
       ];
     };
 

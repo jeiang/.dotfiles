@@ -421,14 +421,6 @@
                   webhook_url = "$DISCORD_WEBHOOK_URL";
                 }
               ];
-              webhook_configs = [
-                {
-                  # Port must match modules/nixos/hermes/default.nix's
-                  # platforms.webhook.extra.port.
-                  url = "http://127.0.0.1:8644/webhooks/alertmanager";
-                  send_resolved = true;
-                }
-              ];
             }
           ];
         };

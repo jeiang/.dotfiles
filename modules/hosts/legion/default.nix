@@ -47,8 +47,6 @@
     };
     legion-node3 = {
       tier1 = [
-        "hermes-kb-sync.service"
-        "obscura.service"
         "prometheus-node-exporter.service"
         "prometheus-blackbox-exporter.service"
       ];
@@ -189,7 +187,7 @@ in {
           enabledCollectors = ["systemd"];
           # Explicit unit-include keeps node_systemd_unit_state cardinality bounded for the memory-constrained VictoriaMetrics; the default `.+` would emit hundreds of series.
           extraFlags = [
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|hermes-agent|hermes-kb-sync|glance|gatus|freshrss-config|freshrss-updater|phpfpm-freshrss|changedetection-io|color-hunt)\\.service"
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|glance|gatus|freshrss-config|freshrss-updater|phpfpm-freshrss|changedetection-io|color-hunt)\\.service"
           ];
         };
 
