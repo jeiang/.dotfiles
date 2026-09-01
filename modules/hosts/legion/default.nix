@@ -27,8 +27,6 @@
         "prometheus-node-exporter.service"
         "restic-backups-netbird-server.service"
         "restic-backups-pocket-id.service"
-        "color-hunt.service"
-        "restic-backups-color-hunt.service"
       ];
       tier2 = [
         "netbird-server.service"
@@ -180,7 +178,7 @@ in {
           enabledCollectors = ["systemd"];
           # Explicit unit-include keeps node_systemd_unit_state cardinality bounded for the memory-constrained VictoriaMetrics; the default `.+` would emit hundreds of series.
           extraFlags = [
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|glance|gatus|color-hunt)\\.service"
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|glance|gatus)\\.service"
           ];
         };
 
@@ -356,10 +354,7 @@ in {
             self.nixosModules.backupTunnelResponder
             ++ lib.optional
             (lib.any (service: service.name == "camera-ingest") node.services)
-            self.nixosModules.camera-ingest
-            ++ lib.optional
-            (lib.any (service: service.name == "color-hunt") node.services)
-            self.nixosModules.color-hunt;
+            self.nixosModules.camera-ingest;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;

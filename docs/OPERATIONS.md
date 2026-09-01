@@ -107,8 +107,7 @@ state on its own.
 - Artemis' NetBird peer IP (`100.89.148.91`) is a hardcoded literal in three
   places: hermes' SSH config `Host artemis`, hermes'
   `providers.artemis.base_url`, and monitoring's artemis node-exporter scrape
-  target. Update all three together if the peer is re-enrolled. The same
-  applies to legion-node2's peer IP in `modules/nixos/color-hunt-worker.nix`.
+  target. Update all three together if the peer is re-enrolled.
 - Hermes' Codex auth requires a one-time interactive `hermes auth add
   openai-codex` device login after first deploy; the sops seed only self-heals
   a malformed auth store while its tokens are unexpired.
