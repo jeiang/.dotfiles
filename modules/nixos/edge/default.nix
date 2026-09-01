@@ -287,7 +287,7 @@
             ${logLine}${crowdsecLine}basic_auth {
               jeiang $2a$14$5LJ5Rw4wAUPKO8.EN0q6Z.sCiFrjFT0a.h1rSn4xbgD2u7xB9WuLa
             }
-            reverse_proxy ${node2}:${port "legion-node2" "color-hunt"}
+            reverse_proxy artemis.jeiang.vpn:${port "artemis" "color-hunt"}
           }
 
           grafana.jeiang.dev {

@@ -191,26 +191,6 @@
           firewall = [];
           stateful = false;
         }
-        {
-          name = "color-hunt";
-          publicHostnames = [];
-          firewall = [
-            {
-              port = ports.legion-node2.color-hunt;
-              proto = "tcp";
-              scope = "private";
-            }
-          ];
-          stateful = true;
-          volume = {
-            name = "legion-color-hunt";
-            mountpoint = "/mnt/color-hunt";
-            hcloudVolumeId = "106729764";
-            sizeGiB = 10;
-          };
-          backupSet = ["/mnt/color-hunt"];
-          backupPauseUnits = ["color-hunt.service"];
-        }
       ];
     };
 

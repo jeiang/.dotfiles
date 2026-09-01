@@ -6,7 +6,6 @@
       netbird-relay = 8080;
       netbird-server-metrics = 9090;
       pocket-id = 1411;
-      color-hunt = 8867;
     };
     legion-node3 = {
       grafana = 3000;
@@ -20,6 +19,9 @@
       garret-puller-metrics = 9092;
       actual-budget = 5006;
       gatus = 8086;
+    };
+    artemis = {
+      color-hunt = 8867;
     };
   };
 }

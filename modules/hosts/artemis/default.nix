@@ -49,7 +49,7 @@
         self.nixosModules.hypr-rdp
         self.nixosModules.qdrant
         self.nixosModules.whisper-server
-        self.nixosModules.color-hunt-worker
+        self.nixosModules.color-hunt
 
         self.diskoConfigurations.artemis
       ];
@@ -285,6 +285,9 @@
           ["start" "greetd.service"]
           ["restart" "greetd.service"]
           ["stop" "greetd.service"]
+          ["start" "color-hunt.service"]
+          ["restart" "color-hunt.service"]
+          ["stop" "color-hunt.service"]
           ["reboot"]
         ];
 
