@@ -8,24 +8,15 @@ _: {
   }: let
     userArg = lib.escapeShellArg config.preferences.user.name;
     asUser = cmd: ''launchctl asuser "$(id -u -- ${userArg})" sudo --user=${userArg} -- ${cmd}'';
-    # System Events' `picture rotation`/`change interval` fail with -10000 on
-    # macOS 26, so rotation is a launchd interval re-running `set picture`.
-    wallpaperRotate = pkgs.writeShellScript "wallpaper-rotate" ''
-      pick=$(${lib.getExe' pkgs.findutils "find"} ${../../assets/wallpapers-kanabox} -type f ! -name '.*' | ${lib.getExe' pkgs.coreutils "shuf"} -n1)
-      [ -n "$pick" ] || exit 0
-      # TCC consent may be denied on first run; the next interval retries.
-      exec /usr/bin/osascript -e "tell application \"System Events\" to set picture of every desktop to POSIX file \"$pick\""
-    '';
+    # Rotation is macOS' own folder wallpaper (Settings > Wallpaper, set once by
+    # hand: docs/runbooks/zakkart-bootstrap.md). Nothing scriptable does it:
+    # System Events' rotation properties fail with -10000, `set picture` only
+    # writes the current Space, and WallpaperAgent resets the whole store when
+    # its undocumented Index.plist is edited. The folder just has to sit at a
+    # stable path, so the store directory is symlinked into ~/Pictures.
+    wallpapers = ../../assets/wallpapers-kanabox;
     defaultbrowser = lib.getExe pkgs.defaultbrowser;
   in {
-    launchd.user.agents.wallpaper-rotate = {
-      command = wallpaperRotate;
-      serviceConfig = {
-        RunAtLoad = true;
-        StartInterval = 1800;
-      };
-    };
-
     system = {
       defaults = {
         dock = {
@@ -65,6 +56,9 @@ _: {
         # Spotlight hotkey: -dict-add is merge-safe; CustomUserPreferences would clobber the whole AppleSymbolicHotKeys dict.
         ${asUser "defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 \"<dict><key>enabled</key><false/></dict>\""}
         ${asUser "/System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u"} || true
+
+        ${asUser "mkdir -p /Users/${config.preferences.user.name}/Pictures"}
+        ${asUser "ln -sfn ${wallpapers} /Users/${config.preferences.user.name}/Pictures/Wallpapers"}
 
         if ! ${asUser defaultbrowser} | grep -q '^\* helium$'; then
           ${asUser "${defaultbrowser} helium"} \

@@ -98,7 +98,21 @@ configures as `sops.age.keyFile`:
 /var/lib/sops-nix/key.txt
 ```
 
-## 8. Verify
+## 8. Wallpaper rotation
+
+Activation symlinks `~/Pictures/Wallpapers` to the recolored wallpaper set
+(`modules/darwin/preferences.nix`). The rotation itself is a macOS setting
+nothing scriptable reaches, so set it once by hand:
+
+System Settings > Wallpaper > Add Photo (the "+" under the wallpaper
+picker) > Add Folder or Album > Add Folder > pick `~/Pictures/Wallpapers`.
+Then, on that folder entry: rotation "Every 30 Minutes", Shuffle on, and
+"Show on all Spaces" on.
+
+If a later palette change swaps the store path behind the symlink and macOS
+stops rotating, redo this step.
+
+## 9. Verify
 
 ```sh
 dscl . -read /Users/aidanp UserShell   # should end in .../bin/fish (the wrapped environment package)
