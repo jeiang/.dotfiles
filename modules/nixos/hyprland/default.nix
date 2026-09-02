@@ -69,14 +69,18 @@
       ".face".source = ../../../assets/face.png;
       ".config/hypr/hyprland.lua".source = ./hyprland.lua;
       # hyprpaper 0.8 silently ignores the old preload/wallpaper pair; an
-      # empty `monitor` matches every output.
+      # empty `monitor` matches every output. A directory `path` rotates
+      # through its images every `timeout` seconds (hyprctl IPC is gone in
+      # 0.8, so this is the only rotation surface).
       ".config/hypr/hyprpaper.conf".text = ''
         splash = false
 
         wallpaper {
             monitor =
-            path = ${self}/assets/wallpaper-kanabox.jpg
+            path = ${self}/assets/wallpapers-kanabox
             fit_mode = cover
+            timeout = 1800
+            order = random
         }
       '';
       ".config/hypr/rules.lua".source = ./rules.lua;
