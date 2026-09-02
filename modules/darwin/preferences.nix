@@ -8,47 +8,15 @@ _: {
   }: let
     userArg = lib.escapeShellArg config.preferences.user.name;
     asUser = cmd: ''launchctl asuser "$(id -u -- ${userArg})" sudo --user=${userArg} -- ${cmd}'';
-    # Rotation writes the wallpaper store directly. System Events' `set picture`
-    # only touches the current Space (and drops the "Show on all Spaces" entry
-    # when it runs), and its rotation properties fail with -10000 on macOS 26.
-    # The store's shape is undocumented, so an existing Desktop entry is copied
-    # as the template and only the image path is swapped.
-    wallpaperRotate = pkgs.writeShellScript "wallpaper-rotate" ''
-      pick=$(${lib.getExe' pkgs.findutils "find"} ${../../assets/wallpapers-kanabox} -type f ! -name '.*' | ${lib.getExe' pkgs.coreutils "shuf"} -n1)
-      [ -n "$pick" ] || exit 0
-      ${lib.getExe pkgs.python3} - "$HOME/Library/Application Support/com.apple.wallpaper/Store/Index.plist" "$pick" <<'PY'
-      import copy, datetime, plistlib, sys
-      path, pick = sys.argv[1], sys.argv[2]
-      with open(path, "rb") as f:
-          d = plistlib.load(f)
-      root = d["AllSpacesAndDisplays"]
-      tmpl = root.get("Desktop") or next(v["Desktop"] for v in d.get("Displays", {}).values() if "Desktop" in v)
-      desk = copy.deepcopy(tmpl)
-      desk["Content"]["Choices"] = [{
-          "Configuration": plistlib.dumps({"type": "imageFile", "url": {"relative": "file://" + pick}}, fmt=plistlib.FMT_BINARY),
-          "Files": [],
-          "Provider": "com.apple.wallpaper.choice.image",
-      }]
-      desk["LastSet"] = desk["LastUse"] = datetime.datetime.utcnow()
-      root["Desktop"] = desk
-      root["Type"] = "individual"
-      d.pop("Spaces", None)
-      d.pop("Displays", None)
-      with open(path, "wb") as f:
-          plistlib.dump(d, f, fmt=plistlib.FMT_BINARY)
-      PY
-      /usr/bin/killall WallpaperAgent
-    '';
+    # Rotation is macOS' own folder wallpaper (Settings > Wallpaper, set once by
+    # hand: docs/runbooks/zakkart-bootstrap.md). Nothing scriptable does it:
+    # System Events' rotation properties fail with -10000, `set picture` only
+    # writes the current Space, and WallpaperAgent resets the whole store when
+    # its undocumented Index.plist is edited. The folder just has to sit at a
+    # stable path, so the store directory is symlinked into ~/Pictures.
+    wallpapers = ../../assets/wallpapers-kanabox;
     defaultbrowser = lib.getExe pkgs.defaultbrowser;
   in {
-    launchd.user.agents.wallpaper-rotate = {
-      command = wallpaperRotate;
-      serviceConfig = {
-        RunAtLoad = true;
-        StartInterval = 1800;
-      };
-    };
-
     system = {
       defaults = {
         dock = {
@@ -88,6 +56,9 @@ _: {
         # Spotlight hotkey: -dict-add is merge-safe; CustomUserPreferences would clobber the whole AppleSymbolicHotKeys dict.
         ${asUser "defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 \"<dict><key>enabled</key><false/></dict>\""}
         ${asUser "/System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u"} || true
+
+        ${asUser "mkdir -p /Users/${config.preferences.user.name}/Pictures"}
+        ${asUser "ln -sfn ${wallpapers} /Users/${config.preferences.user.name}/Pictures/Wallpapers"}
 
         if ! ${asUser defaultbrowser} | grep -q '^\* helium$'; then
           ${asUser "${defaultbrowser} helium"} \
