@@ -23,6 +23,8 @@
 
           # macOS login shells start from path_helper's PATH, and this fish is deliberately not programs.fish (which normally injects the nix profile paths).
           fish_add_path --global --move --path $HOME/.nix-profile/bin /etc/profiles/per-user/$USER/bin /run/current-system/sw/bin /nix/var/nix/profiles/default/bin
+          # Homebrew's shellenv is never sourced either; keep it behind the nix paths.
+          fish_add_path --global --append --path /opt/homebrew/bin /opt/homebrew/sbin
 
           # DIRENV_CONFIG only reaches shells sourcing nix-darwin's set-environment, which this wrapped fish never does; without it direnv skips the nix-direnv loader.
           set -gx DIRENV_CONFIG /etc/direnv
