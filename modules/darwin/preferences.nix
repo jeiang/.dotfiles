@@ -8,9 +8,24 @@ _: {
   }: let
     userArg = lib.escapeShellArg config.preferences.user.name;
     asUser = cmd: ''launchctl asuser "$(id -u -- ${userArg})" sudo --user=${userArg} -- ${cmd}'';
-    wallpaper = ../../assets/wallpaper-kanabox.jpg;
+    # System Events' `picture rotation`/`change interval` fail with -10000 on
+    # macOS 26, so rotation is a launchd interval re-running `set picture`.
+    wallpaperRotate = pkgs.writeShellScript "wallpaper-rotate" ''
+      pick=$(${lib.getExe' pkgs.findutils "find"} ${../../assets/wallpapers-kanabox} -type f ! -name '.*' | ${lib.getExe' pkgs.coreutils "shuf"} -n1)
+      [ -n "$pick" ] || exit 0
+      # TCC consent may be denied on first run; the next interval retries.
+      exec /usr/bin/osascript -e "tell application \"System Events\" to set picture of every desktop to POSIX file \"$pick\""
+    '';
     defaultbrowser = lib.getExe pkgs.defaultbrowser;
   in {
+    launchd.user.agents.wallpaper-rotate = {
+      command = wallpaperRotate;
+      serviceConfig = {
+        RunAtLoad = true;
+        StartInterval = 1800;
+      };
+    };
+
     system = {
       defaults = {
         dock = {
@@ -50,10 +65,6 @@ _: {
         # Spotlight hotkey: -dict-add is merge-safe; CustomUserPreferences would clobber the whole AppleSymbolicHotKeys dict.
         ${asUser "defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 \"<dict><key>enabled</key><false/></dict>\""}
         ${asUser "/System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u"} || true
-
-        # TCC consent may be denied on first run, so warn instead of failing activation.
-        ${asUser "osascript -e 'tell application \"System Events\" to set picture of every desktop to POSIX file \"${wallpaper}\"'"} \
-          || echo >&2 "warning: failed to set wallpaper (System Events automation consent?)"
 
         if ! ${asUser defaultbrowser} | grep -q '^\* helium$'; then
           ${asUser "${defaultbrowser} helium"} \
