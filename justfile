@@ -54,6 +54,6 @@ deploy-legion *args:
 legion-run *command:
   @for host in $(nix eval --raw '.#deploy.nodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrValues (builtins.mapAttrs (_: node: node.hostname) nodes))'); do ssh "$host" -- {{command}}; done
 
-# Regenerate assets/wallpaper-kanabox.jpg from the pristine assets/wallpaper.jpg; run after changing the palette
+# Recolor every image in assets/wallpapers/ into assets/wallpapers-kanabox/; run after adding photos or changing the palette
 wallpaper:
-  nix run nixpkgs#lutgen -- apply -o assets/wallpaper-kanabox.jpg assets/wallpaper.jpg -- $(nix eval --raw '.#lib.palette.kanaboxDarkHard' --apply 'p: builtins.concatStringsSep " " (map (c: builtins.substring 1 6 c) (builtins.attrValues p))')
+  @for f in assets/wallpapers/*.jpg assets/wallpapers/*.png; do [ -e "$f" ] || continue; nix run nixpkgs#lutgen -- apply -o "assets/wallpapers-kanabox/$(basename "$f")" "$f" -- $(nix eval --raw '.#lib.palette.kanaboxDarkHard' --apply 'p: builtins.concatStringsSep " " (map (c: builtins.substring 1 6 c) (builtins.attrValues p))'); done
