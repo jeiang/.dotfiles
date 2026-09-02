@@ -73,10 +73,19 @@ nix run nixpkgs#grim -- -s 0.25 /tmp/wp-check.png
 ## zakkart after a switch
 
 Activation moves the `~/Pictures/Wallpapers` symlink to the new store path.
-macOS remembers the folder by path, so rotation normally continues. If it
-stops, or the picker shows an empty folder, remove the folder entry in
-System Settings > Wallpaper and redo step 8 of
-[`zakkart-bootstrap.md`](zakkart-bootstrap.md).
+macOS resolves the symlink when the folder is added and stores the
+`/nix/store/...-wallpapers-kanabox/` path, not `~/Pictures/Wallpapers`
+(visible in `~/Library/Application Support/com.apple.wallpaper/Store/Index.plist`).
+So any switch that changes the directory's store hash, which a palette
+change or any photo change does, leaves the folder entry pointing at a path
+that no longer exists once the old generation is collected. After such a
+switch, remove the folder entry in System Settings > Wallpaper and redo
+step 8 of [`zakkart-bootstrap.md`](zakkart-bootstrap.md).
+
+Spaces are not kept in lockstep. The store holds one all-Spaces entry, but
+WallpaperAgent picks and rotates per Space, so a Space can show a different
+photo from the pool than its neighbors. That is macOS behavior, not drift;
+there is nothing in this repo to fix it.
 
 ## Do not try again
 
