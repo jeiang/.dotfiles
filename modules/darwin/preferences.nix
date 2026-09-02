@@ -8,13 +8,36 @@ _: {
   }: let
     userArg = lib.escapeShellArg config.preferences.user.name;
     asUser = cmd: ''launchctl asuser "$(id -u -- ${userArg})" sudo --user=${userArg} -- ${cmd}'';
-    # System Events' `picture rotation`/`change interval` fail with -10000 on
-    # macOS 26, so rotation is a launchd interval re-running `set picture`.
+    # Rotation writes the wallpaper store directly. System Events' `set picture`
+    # only touches the current Space (and drops the "Show on all Spaces" entry
+    # when it runs), and its rotation properties fail with -10000 on macOS 26.
+    # The store's shape is undocumented, so an existing Desktop entry is copied
+    # as the template and only the image path is swapped.
     wallpaperRotate = pkgs.writeShellScript "wallpaper-rotate" ''
       pick=$(${lib.getExe' pkgs.findutils "find"} ${../../assets/wallpapers-kanabox} -type f ! -name '.*' | ${lib.getExe' pkgs.coreutils "shuf"} -n1)
       [ -n "$pick" ] || exit 0
-      # TCC consent may be denied on first run; the next interval retries.
-      exec /usr/bin/osascript -e "tell application \"System Events\" to set picture of every desktop to POSIX file \"$pick\""
+      ${lib.getExe pkgs.python3} - "$HOME/Library/Application Support/com.apple.wallpaper/Store/Index.plist" "$pick" <<'PY'
+      import copy, datetime, plistlib, sys
+      path, pick = sys.argv[1], sys.argv[2]
+      with open(path, "rb") as f:
+          d = plistlib.load(f)
+      root = d["AllSpacesAndDisplays"]
+      tmpl = root.get("Desktop") or next(v["Desktop"] for v in d.get("Displays", {}).values() if "Desktop" in v)
+      desk = copy.deepcopy(tmpl)
+      desk["Content"]["Choices"] = [{
+          "Configuration": plistlib.dumps({"type": "imageFile", "url": {"relative": "file://" + pick}}, fmt=plistlib.FMT_BINARY),
+          "Files": [],
+          "Provider": "com.apple.wallpaper.choice.image",
+      }]
+      desk["LastSet"] = desk["LastUse"] = datetime.datetime.utcnow()
+      root["Desktop"] = desk
+      root["Type"] = "individual"
+      d.pop("Spaces", None)
+      d.pop("Displays", None)
+      with open(path, "wb") as f:
+          plistlib.dump(d, f, fmt=plistlib.FMT_BINARY)
+      PY
+      /usr/bin/killall WallpaperAgent
     '';
     defaultbrowser = lib.getExe pkgs.defaultbrowser;
   in {
