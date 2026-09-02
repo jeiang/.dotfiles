@@ -109,8 +109,8 @@ picker) > Add Folder or Album > Add Folder > pick `~/Pictures/Wallpapers`.
 Then, on that folder entry: rotation "Every 30 Minutes", Shuffle on, and
 "Show on all Spaces" on.
 
-If a later palette change swaps the store path behind the symlink and macOS
-stops rotating, redo this step.
+Adding photos, palette changes, and what to do if rotation stops after a
+switch are in [`wallpaper.md`](wallpaper.md).
 
 ## 9. Verify
 
