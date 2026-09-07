@@ -68,6 +68,9 @@
       AUTH_PROXY_TRUSTED_IPS = "127.0.0.1";
       AUTH_PROXY_CREATE_UNKNOWN_USER = "True";
       AUTH_PROXY_USER_EMAIL_HEADER = "HTTP_X_REMOTE_EMAIL";
+      # auth_user.first_name is NOT NULL and the backend passes the name
+      # header verbatim, so an unset header makes every user creation fail.
+      AUTH_PROXY_USER_NAME_HEADER = "HTTP_X_REMOTE_USER";
     };
 
     container = extra:
