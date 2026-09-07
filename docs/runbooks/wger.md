@@ -55,12 +55,22 @@ Delete this section once wger has served a request through Pocket ID.
     ssh artemis.jeiang.vpn 'bash -c "journalctl -fu podman-wger-web"'
     ```
 
-6. Open `https://wger.jeiang.dev`. Pocket ID signs you in and wger creates
-    the matching user from the `X-Remote-User` header.
+6. Open `https://wger.jeiang.dev` and click **Login**. Pocket ID signs you
+    in at the edge; wger creates the matching user from the `X-Remote-User`
+    header only on its own login URL, so the anonymous landing page is what
+    you see until you click through.
+    wger's bootstrap also created a superuser `admin` with password
+    `adminadmin`, reachable through the app login API. Lock it before
+    anything else:
+
+    ```bash
+    ssh artemis.jeiang.vpn "doas podman exec wger-web python3 manage.py shell -c 'from django.contrib.auth.models import User; u=User.objects.get(username=\"admin\"); u.set_unusable_password(); u.save(); print(\"admin locked\")'"
+    ```
+
 7. Make that user an admin (replace `USERNAME` with the Pocket ID username):
 
     ```bash
-    ssh artemis.jeiang.vpn 'bash -c "doas podman exec wger-web python3 manage.py shell -c \"from django.contrib.auth.models import User; u=User.objects.get(username=\\\"USERNAME\\\"); u.is_staff=True; u.is_superuser=True; u.save()\""'
+    ssh artemis.jeiang.vpn "doas podman exec wger-web python3 manage.py shell -c 'from django.contrib.auth.models import User; u=User.objects.get(username=\"USERNAME\"); u.is_staff=True; u.is_superuser=True; u.save(); print(\"promoted\")'"
     ```
 
 ## Mobile app
