@@ -86,6 +86,10 @@
       }
       // extra;
   in {
+    imports = [self.nixosModules.backups];
+
+    backups.jobs.wger.paths = ["${dataDir}/media" "${dataDir}/backup"];
+
     virtualisation = {
       podman.enable = true;
       oci-containers = {
@@ -214,6 +218,21 @@
           };
         podman-wger-worker = volumeDirs;
         podman-wger-beat = volumeDirs;
+
+        wger-pg-dump = {
+          serviceConfig = {
+            Type = "oneshot";
+            User = "postgres";
+            ExecStartPre = "+${pkgs.coreutils}/bin/install -d -o postgres -g postgres -m 0750 ${dataDir}/backup";
+          };
+          path = [config.services.postgresql.package];
+          script = "pg_dump -Fc wger > ${dataDir}/backup/wger.dump";
+        };
+
+        restic-backups-wger = {
+          after = ["wger-pg-dump.service"];
+          requires = ["wger-pg-dump.service"];
+        };
 
         wger-powersync-compact = {
           startAt = "03:00";
