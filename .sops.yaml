@@ -64,12 +64,13 @@ creation_rules:
       - *server_legion_node3
       - *server_legion_node4
 
-  # modules/nixos/backups/default.nix -- every node with a Backup Set (not
+  # modules/nixos/backups/default.nix -- every host with a Backup Set (not
   # the edge node, which runs no backup job).
   - path_regex: modules/nixos/backups/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
+      - *server_artemis
       - *server_legion_node2
       - *server_legion_node3
       - *server_legion_node4

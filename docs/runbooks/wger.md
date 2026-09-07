@@ -43,6 +43,15 @@ notes for storage migrations; the service runs them itself on start.
 
 ## Backups
 
-None. `/var/lib/wger` (media, beat state) and `/var/lib/postgresql` are
-persisted across the artemis root rollback but are not in any off-node
-Backup Set.
+`restic-backups-wger` (`modules/nixos/backups/default.nix`, same MEGA S4
+bucket as the Legion nodes, repository `artemis/wger`) snapshots
+`/var/lib/wger/media` and `/var/lib/wger/backup/wger.dump`, a `pg_dump -Fc`
+that `wger-pg-dump.service` refreshes right before each run. Restore per
+[restore.md](restore.md); after restoring the dump:
+
+```bash
+ssh artemis.jeiang.vpn "doas -u postgres pg_restore -d wger --clean --if-exists /var/lib/wger/backup/wger.dump"
+```
+
+Static files and the PowerSync storage schema are regenerated on start and
+are not backed up.
