@@ -41,6 +41,7 @@
           # 401, not 200: the edge's basic_auth challenge is proof the gate
           # and the route are up; a 200 would mean the gate is gone.
           (https "Color Hunt" "Services" "https://color-hunt.jeiang.dev" ["[STATUS] == 401"])
+          (ok "wger" "Services" "https://wger.jeiang.dev/api/v2/version/")
           (ok "NetBird" "Services" "https://netbird.jeiang.dev")
           # nix-cache-info is the first request every substituter client makes.
           (ok "Nix cache" "Services" "https://cache.jeiang.dev/nix-cache-info")

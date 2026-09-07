@@ -290,6 +290,48 @@
             reverse_proxy artemis.jeiang.vpn:${port "artemis" "color-hunt"}
           }
 
+          # Pocket ID has no forward-auth endpoint, so oauth2-proxy sits
+          # between Caddy and it. /api, /ps, /static and /media stay open:
+          # the mobile app logs in with a wger password and never sees the
+          # OIDC flow. appsec skipped: /ps is a long-lived streaming POST.
+          wger.jeiang.dev {
+            ${logLine}${crowdsecLine}handle /oauth2/* {
+              reverse_proxy 127.0.0.1:${port "legion-node1" "oauth2-proxy"} {
+                header_up X-Real-IP {client_ip}
+              }
+            }
+
+            @open path /api/* /ps/* /static/* /media/*
+            handle @open {
+              reverse_proxy artemis.jeiang.vpn:${port "artemis" "wger"} {
+                header_up -X-Remote-User
+                header_up -X-Remote-Email
+                transport http {
+                  read_timeout 1d
+                  write_timeout 1d
+                }
+              }
+            }
+
+            handle {
+              request_header -X-Auth-Request-User
+              request_header -X-Auth-Request-Email
+              forward_auth 127.0.0.1:${port "legion-node1" "oauth2-proxy"} {
+                uri /oauth2/auth
+                header_up X-Real-IP {client_ip}
+                copy_headers X-Auth-Request-User X-Auth-Request-Email
+                @unauthenticated status 401
+                handle_response @unauthenticated {
+                  redir * /oauth2/start?rd={uri}
+                }
+              }
+              reverse_proxy artemis.jeiang.vpn:${port "artemis" "wger"} {
+                header_up X-Remote-User {http.request.header.X-Auth-Request-User}
+                header_up X-Remote-Email {http.request.header.X-Auth-Request-Email}
+              }
+            }
+          }
+
           grafana.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node3}:${port "legion-node3" "grafana"}
           }
