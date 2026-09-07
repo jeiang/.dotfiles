@@ -291,9 +291,10 @@
           }
 
           # Pocket ID has no forward-auth endpoint, so oauth2-proxy sits
-          # between Caddy and it. /api, /ps, /static and /media stay open:
-          # the mobile app logs in with a wger password and never sees the
-          # OIDC flow. appsec skipped: /ps is a long-lived streaming POST.
+          # between Caddy and it. /api, /allauth (the app's login API), /ps,
+          # /static and /media stay open: the mobile app logs in with a wger
+          # password and never sees the OIDC flow. appsec skipped: /ps is a
+          # long-lived streaming POST.
           wger.jeiang.dev {
             ${logLine}${crowdsecLine}handle /oauth2/* {
               reverse_proxy 127.0.0.1:${port "legion-node1" "oauth2-proxy"} {
@@ -301,7 +302,7 @@
               }
             }
 
-            @open path /api/* /ps/* /static/* /media/*
+            @open path /api/* /allauth/* /ps/* /static/* /media/*
             handle @open {
               reverse_proxy artemis.jeiang.vpn:${port "artemis" "wger"} {
                 header_up -X-Remote-User

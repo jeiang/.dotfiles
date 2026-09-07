@@ -15,8 +15,9 @@ Review [`AGENTS.md`](../../AGENTS.md) before running any command here.
 
 On legion-node1, `oauth2-proxy.service` (127.0.0.1:4180) turns Pocket ID
 into a Caddy `forward_auth` backend. Browser paths go through it; `/api`,
-`/ps`, `/static`, and `/media` do not, because the mobile app authenticates
-with a wger username and password and never sees the OIDC flow.
+`/allauth` (the app's login API), `/ps`, `/static`, and `/media` do not,
+because the mobile app authenticates with a wger username and password and
+never sees the OIDC flow.
 
 ## First deploy
 
