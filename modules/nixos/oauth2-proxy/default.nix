@@ -17,7 +17,6 @@
       extraConfig = {
         skip-provider-button = true;
         code-challenge-method = "S256";
-        user-id-claim = "preferred_username";
       };
     };
 
