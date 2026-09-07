@@ -314,23 +314,27 @@
               }
             }
 
+            # route, not handle: Caddy's directive order puts request_header
+            # after forward_auth, which would strip the header just copied.
             handle {
-              request_header -X-Remote-User
-              request_header -X-Remote-Email
-              forward_auth 127.0.0.1:${port "legion-node1" "oauth2-proxy"} {
-                uri /oauth2/auth
-                header_up X-Real-IP {client_ip}
-                copy_headers X-Auth-Request-Preferred-Username>X-Remote-User X-Auth-Request-Email>X-Remote-Email
-                @unauthenticated status 401
-                handle_response @unauthenticated {
-                  redir * /oauth2/start?rd={uri}
+              route {
+                request_header -X-Remote-User
+                request_header -X-Remote-Email
+                forward_auth 127.0.0.1:${port "legion-node1" "oauth2-proxy"} {
+                  uri /oauth2/auth
+                  header_up X-Real-IP {client_ip}
+                  copy_headers X-Auth-Request-Preferred-Username>X-Remote-User X-Auth-Request-Email>X-Remote-Email
+                  @unauthenticated status 401
+                  handle_response @unauthenticated {
+                    redir * /oauth2/start?rd={uri}
+                  }
                 }
+                # wger only consumes the identity header on its own login URL;
+                # the landing page stays anonymous otherwise.
+                @root path / /en /en/
+                redir @root /user/login?next=/en/dashboard
+                reverse_proxy artemis.jeiang.vpn:${port "artemis" "wger"}
               }
-              # wger only consumes the identity header on its own login URL;
-              # the landing page stays anonymous otherwise.
-              @root path / /en /en/
-              redir @root /user/login?next=/en/dashboard
-              reverse_proxy artemis.jeiang.vpn:${port "artemis" "wger"}
             }
           }
 
