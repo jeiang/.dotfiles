@@ -50,6 +50,7 @@
         self.nixosModules.qdrant
         self.nixosModules.whisper-server
         self.nixosModules.color-hunt
+        self.nixosModules.wger
 
         self.diskoConfigurations.artemis
       ];
