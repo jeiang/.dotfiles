@@ -19,60 +19,6 @@ into a Caddy `forward_auth` backend. Browser paths go through it; `/api`,
 because the mobile app authenticates with a wger username and password and
 never sees the OIDC flow.
 
-## First deploy
-
-Delete this section once wger has served a request through Pocket ID.
-
-1. Pocket ID: create an OIDC client named `wger` with callback URL
-    `https://wger.jeiang.dev/oauth2/callback`, PKCE enabled, restricted to
-    the user group that should reach the site. Copy the client ID and
-    secret into `modules/nixos/oauth2-proxy/secrets.yaml` with
-    `just sops-edit`, replacing the `CHANGEME` values. The cookie secret is
-    already set.
-2. `modules/nixos/wger/secrets.yaml` is complete (Django secret key, JWT
-    keypair, both Postgres passwords). Nothing to fill in.
-3. Merge, wait for CI, then:
-
-    ```bash
-    just deploy legion-node1 -s --remote-build
-    ```
-
-    ```bash
-    just deploy artemis -s --remote-build
-    ```
-
-4. On artemis, migrate the new persistence entries before the next reboot
-    (`docs/OPERATIONS.md`, "Artemis Persistence"):
-
-    ```bash
-    just migrate-persist
-    ```
-
-5. First start pulls two images and runs migrations; `podman-wger-web` can
-    take several minutes. Watch it:
-
-    ```bash
-    ssh artemis.jeiang.vpn 'bash -c "journalctl -fu podman-wger-web"'
-    ```
-
-6. Open `https://wger.jeiang.dev` and click **Login**. Pocket ID signs you
-    in at the edge; wger creates the matching user from the `X-Remote-User`
-    header only on its own login URL, so the anonymous landing page is what
-    you see until you click through.
-    wger's bootstrap also created a superuser `admin` with password
-    `adminadmin`, reachable through the app login API. Lock it before
-    anything else:
-
-    ```bash
-    ssh artemis.jeiang.vpn "doas podman exec wger-web python3 manage.py shell -c 'from django.contrib.auth.models import User; u=User.objects.get(username=\"admin\"); u.set_unusable_password(); u.save(); print(\"admin locked\")'"
-    ```
-
-7. Make that user an admin (replace `USERNAME` with the Pocket ID username):
-
-    ```bash
-    ssh artemis.jeiang.vpn "doas podman exec wger-web python3 manage.py shell -c 'from django.contrib.auth.models import User; u=User.objects.get(username=\"USERNAME\"); u.is_staff=True; u.is_superuser=True; u.save(); print(\"promoted\")'"
-    ```
-
 ## Mobile app
 
 The app logs in with a wger password, not Pocket ID. Set one for the
