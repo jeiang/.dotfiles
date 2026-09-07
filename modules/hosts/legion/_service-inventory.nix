@@ -27,6 +27,7 @@
             "github.jeiang.dev"
             "status.jeiang.dev"
             "color-hunt.jeiang.dev"
+            "wger.jeiang.dev"
           ];
           firewall = [
             {
@@ -62,6 +63,12 @@
               scope = "private";
             }
           ];
+          stateful = false;
+        }
+        {
+          name = "oauth2-proxy";
+          publicHostnames = [];
+          firewall = [];
           stateful = false;
         }
         {
