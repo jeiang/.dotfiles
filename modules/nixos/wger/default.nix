@@ -2,6 +2,7 @@
   flake.nixosModules.wger = {
     config,
     lib,
+    pkgs,
     ...
   }: let
     image = "docker.io/wger/server:2.7.0";
@@ -14,6 +15,13 @@
     redisPort = 6379;
     envFile = config.sops.templates."wger.env".path;
     podman = lib.getExe config.virtualisation.podman.package;
+
+    volumeDirs = {
+      unitConfig.RequiresMountsFor = [dataDir];
+      # The persistence bind mount lands on top of anything tmpfiles created
+      # at activation, so the volume dirs are made at each start.
+      serviceConfig.ExecStartPre = "+${pkgs.coreutils}/bin/install -d -o 1000 -g 1000 ${dataDir}/static ${dataDir}/media ${dataDir}/beat";
+    };
 
     environment = {
       SITE_URL = siteUrl;
@@ -162,13 +170,6 @@
     };
 
     systemd = {
-      tmpfiles.rules = [
-        "d ${dataDir} 0755 1000 1000 - -"
-        "d ${dataDir}/static 0755 1000 1000 - -"
-        "d ${dataDir}/media 0755 1000 1000 - -"
-        "d ${dataDir}/beat 0755 1000 1000 - -"
-      ];
-
       services = {
         wger-db-setup = {
           after = ["postgresql-setup.service"];
@@ -202,10 +203,14 @@
           '';
         };
 
-        podman-wger-web = {
-          after = ["wger-db-setup.service" "redis-wger.service"];
-          requires = ["wger-db-setup.service" "redis-wger.service"];
-        };
+        podman-wger-web =
+          volumeDirs
+          // {
+            after = ["wger-db-setup.service" "redis-wger.service"];
+            requires = ["wger-db-setup.service" "redis-wger.service"];
+          };
+        podman-wger-worker = volumeDirs;
+        podman-wger-beat = volumeDirs;
 
         wger-powersync-compact = {
           startAt = "03:00";
