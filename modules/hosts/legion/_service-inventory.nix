@@ -65,6 +65,12 @@
           stateful = false;
         }
         {
+          name = "oauth2-proxy";
+          publicHostnames = [];
+          firewall = [];
+          stateful = false;
+        }
+        {
           name = "anubis";
           publicHostnames = [];
           # Unix sockets only (nixpkgs module defaults); opens no TCP port on any interface.

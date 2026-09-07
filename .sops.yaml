@@ -125,6 +125,20 @@ creation_rules:
       - *user_aidanp
       - *server_legion_node3
 
+  # modules/nixos/wger/default.nix.
+  - path_regex: modules/nixos/wger/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *server_artemis
+
+  # modules/nixos/oauth2-proxy/default.nix.
+  - path_regex: modules/nixos/oauth2-proxy/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *server_legion_node1
+
   # modules/nixos/garret/default.nix.
   - path_regex: modules/nixos/garret/secrets\.yaml$
     key_groups:
