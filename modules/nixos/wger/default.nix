@@ -16,6 +16,16 @@
     envFile = config.sops.templates."wger.env".path;
     podman = lib.getExe config.virtualisation.podman.package;
 
+    # nginx's recommendedProxySettings would send X-Forwarded-Proto $scheme
+    # (http), and Django then paginates with http:// links the app rejects.
+    proxyHeaders = ''
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+      proxy_set_header X-Forwarded-Host $host;
+    '';
+
     volumeDirs = {
       unitConfig.RequiresMountsFor = [dataDir];
       # The persistence bind mount lands on top of anything tmpfiles created
@@ -142,7 +152,6 @@
 
       nginx = {
         enable = true;
-        recommendedProxySettings = true;
         virtualHosts.wger = {
           listen = [
             {
@@ -155,11 +164,13 @@
             "/" = {
               proxyPass = "http://127.0.0.1:${toString webPort}";
               proxyWebsockets = true;
+              extraConfig = proxyHeaders;
             };
             "/ps/" = {
               proxyPass = "http://127.0.0.1:${toString powersyncPort}/";
               proxyWebsockets = true;
               extraConfig = ''
+                ${proxyHeaders}
                 proxy_buffering off;
                 proxy_request_buffering off;
                 proxy_read_timeout 1d;
