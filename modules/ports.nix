@@ -26,6 +26,7 @@
     artemis = {
       color-hunt = 8867;
       wger = 8880;
+      walkmap = 8890;
     };
   };
 }
