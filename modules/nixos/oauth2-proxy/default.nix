@@ -7,7 +7,9 @@
       provider = "oidc";
       oidcIssuerUrl = "https://auth.jeiang.dev";
       keyFile = config.sops.templates."oauth2-proxy.env".path;
-      redirectURL = "https://wger.jeiang.dev/oauth2/callback";
+      # No fixed redirect-url: oauth2-proxy derives <scheme>://<host>/oauth2/callback
+      # per request, so one instance gates every forward_auth site. Each
+      # host's callback must be registered on the shared Pocket ID client.
       httpAddress = "http://127.0.0.1:${toString self.lib.ports.legion-node1.oauth2-proxy}";
       email.domains = ["*"];
       scope = "openid email profile";
