@@ -113,6 +113,14 @@ state on its own.
   a malformed auth store while its tokens are unexpired.
 - Pocket ID SMTP settings are DB-backed: after a from-scratch install they must
   be re-entered through the admin UI.
+- oauth2-proxy derives its callback from the request host, so every
+  forward_auth site needs `https://<host>/oauth2/callback` listed on the
+  shared Pocket ID client (`wger.jeiang.dev` and `walk.jeiang.dev` today).
+- walkmap on Artemis serves 503 until its first import: run
+  `systemctl start walkmap-import-osm` then `walkmap-import-overture` once by
+  hand after the first deploy (the OSM run fetches ~900 MB of coastline
+  polygons once, the Overture run reads ~2 GB of parquet). The upstream
+  module's `nix/README.md` has the full sequence.
 
 ## DNS
 
