@@ -51,6 +51,7 @@
         "roblox"
         "qview"
         "handbrake-app"
+        "notion-calendar"
         # The .app manages its own daemon/tunnel (a nix-managed daemon around the netbird CLI would fight it); the cask never auto-updates -- bump the netbird-tap input and run `brew upgrade --cask netbirdio/tap/netbird-ui` after switching.
         "netbirdio/tap/netbird-ui"
       ];
