@@ -1811,11 +1811,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789000172,
-        "narHash": "sha256-QL3qU8dFHkudGeW1lK2gK0+sMp4E9eGQ6wreL3ew4KA=",
+        "lastModified": 1789001133,
+        "narHash": "sha256-Bs16ozWybId0PvxMdxLvrg407XL7UA9K467B3De5vC8=",
         "owner": "jeiang",
         "repo": "walkmap",
-        "rev": "85909cdeccce7ace1c1a74855e75f3a71888d44e",
+        "rev": "adfa2ddad9e08731b67306bcb3354b7363cd0b55",
         "type": "github"
       },
       "original": {
