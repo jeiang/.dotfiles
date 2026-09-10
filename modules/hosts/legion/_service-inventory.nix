@@ -28,6 +28,7 @@
             "status.jeiang.dev"
             "color-hunt.jeiang.dev"
             "wger.jeiang.dev"
+            "walk.jeiang.dev"
           ];
           firewall = [
             {

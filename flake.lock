@@ -1628,6 +1628,7 @@
         "portfolio": "portfolio",
         "sops-nix": "sops-nix",
         "treefmt-nix": "treefmt-nix_2",
+        "walkmap": "walkmap",
         "website": "website",
         "wrapper-modules": "wrapper-modules"
       }
@@ -1800,6 +1801,26 @@
       "original": {
         "owner": "pyproject-nix",
         "repo": "uv2nix",
+        "type": "github"
+      }
+    },
+    "walkmap": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1789000172,
+        "narHash": "sha256-QL3qU8dFHkudGeW1lK2gK0+sMp4E9eGQ6wreL3ew4KA=",
+        "owner": "jeiang",
+        "repo": "walkmap",
+        "rev": "85909cdeccce7ace1c1a74855e75f3a71888d44e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "walkmap",
         "type": "github"
       }
     },

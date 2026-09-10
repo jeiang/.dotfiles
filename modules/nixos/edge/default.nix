@@ -338,6 +338,33 @@
             }
           }
 
+          # Every path is gated, the SPA included; the app trusts
+          # X-Remote-User from here and does no auth of its own.
+          walk.jeiang.dev {
+            ${logLine}${crowdsecLine}${appsecLine}handle /oauth2/* {
+              reverse_proxy 127.0.0.1:${port "legion-node1" "oauth2-proxy"} {
+                header_up X-Real-IP {client_ip}
+              }
+            }
+
+            handle {
+              route {
+                request_header -X-Remote-User
+                request_header -X-Remote-Email
+                forward_auth 127.0.0.1:${port "legion-node1" "oauth2-proxy"} {
+                  uri /oauth2/auth
+                  header_up X-Real-IP {client_ip}
+                  copy_headers X-Auth-Request-Preferred-Username>X-Remote-User X-Auth-Request-Email>X-Remote-Email
+                  @unauthenticated status 401
+                  handle_response @unauthenticated {
+                    redir * /oauth2/start?rd={uri}
+                  }
+                }
+                reverse_proxy artemis.jeiang.vpn:${port "artemis" "walkmap"}
+              }
+            }
+          }
+
           grafana.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node3}:${port "legion-node3" "grafana"}
           }
