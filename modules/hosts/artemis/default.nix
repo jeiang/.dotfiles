@@ -49,9 +49,6 @@
         self.nixosModules.hypr-rdp
         self.nixosModules.qdrant
         self.nixosModules.whisper-server
-        self.nixosModules.color-hunt
-        self.nixosModules.wger
-        self.nixosModules.walkmap
 
         self.diskoConfigurations.artemis
       ];
@@ -287,17 +284,6 @@
           ["start" "greetd.service"]
           ["restart" "greetd.service"]
           ["stop" "greetd.service"]
-          ["start" "color-hunt.service"]
-          ["restart" "color-hunt.service"]
-          ["stop" "color-hunt.service"]
-          ["start" "walkmap.service"]
-          ["restart" "walkmap.service"]
-          ["stop" "walkmap.service"]
-          ["start" "walkmap-valhalla.service"]
-          ["restart" "walkmap-valhalla.service"]
-          ["stop" "walkmap-valhalla.service"]
-          ["start" "walkmap-import-osm.service"]
-          ["start" "walkmap-import-overture.service"]
           ["reboot"]
         ];
 

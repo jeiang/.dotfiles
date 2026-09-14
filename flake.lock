@@ -136,26 +136,6 @@
         "type": "github"
       }
     },
-    "color-hunt": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1787923190,
-        "narHash": "sha256-b3zDo2LQYFWKRTkQ3M8FGt5Jm/feMh/dg0LVvaXdOK8=",
-        "owner": "jeiang",
-        "repo": "color-hunt-validator",
-        "rev": "d7bb077ee6ad0f80a1a9fe3b3436f29525217a3f",
-        "type": "github"
-      },
-      "original": {
-        "owner": "jeiang",
-        "repo": "color-hunt-validator",
-        "type": "github"
-      }
-    },
     "crate2nix": {
       "flake": false,
       "locked": {
@@ -1601,7 +1581,6 @@
         "bill-splitter": "bill-splitter",
         "can1357-tap": "can1357-tap",
         "character-randomizer": "character-randomizer",
-        "color-hunt": "color-hunt",
         "deploy-rs": "deploy-rs",
         "determinate": "determinate",
         "devenv": "devenv",
@@ -1628,7 +1607,6 @@
         "portfolio": "portfolio",
         "sops-nix": "sops-nix",
         "treefmt-nix": "treefmt-nix_2",
-        "walkmap": "walkmap",
         "website": "website",
         "wrapper-modules": "wrapper-modules"
       }
@@ -1801,26 +1779,6 @@
       "original": {
         "owner": "pyproject-nix",
         "repo": "uv2nix",
-        "type": "github"
-      }
-    },
-    "walkmap": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1789001133,
-        "narHash": "sha256-Bs16ozWybId0PvxMdxLvrg407XL7UA9K467B3De5vC8=",
-        "owner": "jeiang",
-        "repo": "walkmap",
-        "rev": "adfa2ddad9e08731b67306bcb3354b7363cd0b55",
-        "type": "github"
-      },
-      "original": {
-        "owner": "jeiang",
-        "repo": "walkmap",
         "type": "github"
       }
     },

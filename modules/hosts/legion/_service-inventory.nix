@@ -26,9 +26,6 @@
             "mdtable.jeiang.dev"
             "github.jeiang.dev"
             "status.jeiang.dev"
-            "color-hunt.jeiang.dev"
-            "wger.jeiang.dev"
-            "walk.jeiang.dev"
           ];
           firewall = [
             {
@@ -67,12 +64,6 @@
           stateful = false;
         }
         {
-          name = "oauth2-proxy";
-          publicHostnames = [];
-          firewall = [];
-          stateful = false;
-        }
-        {
           name = "anubis";
           publicHostnames = [];
           # Unix sockets only (nixpkgs module defaults); opens no TCP port on any interface.
@@ -85,18 +76,6 @@
           firewall = [
             {
               port = 51821;
-              proto = "udp";
-              scope = "public";
-            }
-          ];
-          stateful = false;
-        }
-        {
-          name = "camera-ingest";
-          publicHostnames = [];
-          firewall = [
-            {
-              port = 51822;
               proto = "udp";
               scope = "public";
             }

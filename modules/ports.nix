@@ -1,8 +1,5 @@
 {
   flake.lib.ports = {
-    legion-node1 = {
-      oauth2-proxy = 4180;
-    };
     legion-node2 = {
       netbird-http = 80;
       netbird-stun = 3478;
@@ -22,11 +19,6 @@
       garret-puller-metrics = 9092;
       actual-budget = 5006;
       gatus = 8086;
-    };
-    artemis = {
-      color-hunt = 8867;
-      wger = 8880;
-      walkmap = 8890;
     };
   };
 }

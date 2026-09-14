@@ -45,15 +45,6 @@ creation_rules:
       - *server_artemis
       - *server_legion_node1
 
-  # modules/nixos/camera-ingest/default.nix -- both tunnel endpoints'
-  # private halves; only legion-node1 consumes (the phone's half is
-  # extracted by the admin when baking the phone image).
-  - path_regex: modules/nixos/camera-ingest/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *server_legion_node1
-
   # modules/hosts/legion/default.nix -- every Legion node.
   - path_regex: modules/hosts/legion/secrets\.yaml$
     key_groups:
@@ -125,20 +116,6 @@ creation_rules:
     - age:
       - *user_aidanp
       - *server_legion_node3
-
-  # modules/nixos/wger/default.nix.
-  - path_regex: modules/nixos/wger/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *server_artemis
-
-  # modules/nixos/oauth2-proxy/default.nix.
-  - path_regex: modules/nixos/oauth2-proxy/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *server_legion_node1
 
   # modules/nixos/garret/default.nix.
   - path_regex: modules/nixos/garret/secrets\.yaml$
