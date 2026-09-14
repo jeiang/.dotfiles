@@ -64,6 +64,12 @@
                     units = "metric";
                     hour-format = "24h";
                   }
+                  {
+                    type = "weather";
+                    location = "Prior Park, Barbados";
+                    units = "metric";
+                    hour-format = "24h";
+                  }
                 ];
               }
               {
