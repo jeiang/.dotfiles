@@ -104,6 +104,9 @@
                       {
                         title = "Pocket ID";
                         url = "https://auth.jeiang.dev/healthz";
+                        # /healthz returns 204 No Content; the widget counts
+                        # only 200 as up unless listed here.
+                        alt-status-codes = [204];
                       }
                       {
                         title = "Actual Budget";
