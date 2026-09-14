@@ -38,21 +38,6 @@
           (https "Pocket ID" "Services" "https://auth.jeiang.dev/healthz" ["[STATUS] == 204"])
           (ok "Grafana" "Services" "https://grafana.jeiang.dev/api/health")
           (ok "Actual Budget" "Services" "https://budget.jeiang.dev")
-          # 401, not 200: the edge's basic_auth challenge is proof the gate
-          # and the route are up; a 200 would mean the gate is gone.
-          (https "Color Hunt" "Services" "https://color-hunt.jeiang.dev" ["[STATUS] == 401"])
-          (ok "wger" "Services" "https://wger.jeiang.dev/api/v2/version/")
-          # Every path is gated, so the 302 to /oauth2/start is the proof
-          # the gate and the route are up; following it would only test
-          # Pocket ID's login page.
-          {
-            name = "Walkmap";
-            group = "Services";
-            url = "https://walk.jeiang.dev/healthz";
-            interval = "2m";
-            client.ignore-redirect = true;
-            conditions = ["[STATUS] == 302"];
-          }
           (ok "NetBird" "Services" "https://netbird.jeiang.dev")
           # nix-cache-info is the first request every substituter client makes.
           (ok "Nix cache" "Services" "https://cache.jeiang.dev/nix-cache-info")

@@ -20,7 +20,7 @@
   hermesOpsTiers = {
     legion-node1 = {
       tier1 = ["crowdsec.service" "prometheus-node-exporter.service"];
-      tier2 = ["caddy.service" "anubis-content.service" "oauth2-proxy.service"];
+      tier2 = ["caddy.service" "anubis-content.service"];
     };
     legion-node2 = {
       tier1 = [
@@ -319,9 +319,6 @@ in {
             (lib.any (service: service.name == "anubis") node.services)
             self.nixosModules.anubis
             ++ lib.optional
-            (lib.any (service: service.name == "oauth2-proxy") node.services)
-            self.nixosModules.oauth2-proxy
-            ++ lib.optional
             (lib.any (service: service.name == "netbird-server") node.services)
             self.nixosModules.netbird-server
             ++ lib.optional
@@ -354,10 +351,7 @@ in {
             ++ lib.optional hermesPlaced self.nixosModules.hermes
             ++ lib.optional
             (lib.any (service: service.name == "backup-tunnel") node.services)
-            self.nixosModules.backupTunnelResponder
-            ++ lib.optional
-            (lib.any (service: service.name == "camera-ingest") node.services)
-            self.nixosModules.camera-ingest;
+            self.nixosModules.backupTunnelResponder;
         };
     in
       builtins.mapAttrs mkLegionSystem validatedLegionNodes;
