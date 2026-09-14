@@ -1,5 +1,8 @@
 {
   flake.lib.ports = {
+    legion-node1 = {
+      tinyauth = 3000;
+    };
     legion-node2 = {
       netbird-http = 80;
       netbird-stun = 3478;

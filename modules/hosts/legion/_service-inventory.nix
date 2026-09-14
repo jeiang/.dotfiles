@@ -26,6 +26,8 @@
             "mdtable.jeiang.dev"
             "github.jeiang.dev"
             "status.jeiang.dev"
+            "tinyauth.jeiang.dev"
+            "glance.jeiang.dev"
           ];
           firewall = [
             {
@@ -68,6 +70,14 @@
           publicHostnames = [];
           # Unix sockets only (nixpkgs module defaults); opens no TCP port on any interface.
           firewall = [];
+          stateful = false;
+        }
+        {
+          name = "tinyauth";
+          publicHostnames = [];
+          # Loopback only; Caddy fronts it.
+          firewall = [];
+          # Its SQLite file holds only sessions; losing it costs a re-login.
           stateful = false;
         }
         {
@@ -286,7 +296,13 @@
         {
           name = "glance";
           publicHostnames = [];
-          firewall = [];
+          firewall = [
+            {
+              port = ports.legion-node4.glance;
+              proto = "tcp";
+              scope = "private";
+            }
+          ];
           stateful = false;
         }
         {

@@ -168,9 +168,10 @@ intentional instead of moving it into a generalized abstraction.
   challenge store is deliberately in-memory — do not configure the bbolt
   backend; a restart costing visitors one re-solve is the accepted trade.
 - Stateless-on-purpose services: Gatus uses the in-memory store (durable uptime
-  history is VictoriaMetrics), and hermes' on-node state is Disposable State —
-  the jeiang/knowledge-base remote, synced by `hermes-kb-sync`, is the durable
-  copy of routines and memories.
+  history is VictoriaMetrics), tinyauth's SQLite file holds only login sessions
+  (losing it costs every user one re-login), and hermes' on-node state is
+  Disposable State — the jeiang/knowledge-base remote, synced by
+  `hermes-kb-sync`, is the durable copy of routines and memories.
 - hath's Backup Set retains the full 30 Gi cache: a restic restore is cheaper
   than re-earning H@H cache trust and quota.
 - The hermes Alertmanager webhook route's "investigate only, never act" rule is
