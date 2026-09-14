@@ -11,6 +11,7 @@
       grafana = 3000;
       victoria-metrics = 8428;
       victoria-logs = 9428;
+      alertmanager = 9093;
     };
     legion-node4 = {
       garret-puller = 8081;
@@ -19,6 +20,7 @@
       garret-puller-metrics = 9092;
       actual-budget = 5006;
       gatus = 8086;
+      glance = 8085;
     };
   };
 }

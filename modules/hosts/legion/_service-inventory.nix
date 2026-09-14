@@ -193,6 +193,11 @@
               proto = "tcp";
               scope = "private";
             }
+            {
+              port = ports.legion-node3.alertmanager;
+              proto = "tcp";
+              scope = "private";
+            }
           ];
           stateful = false;
         }
