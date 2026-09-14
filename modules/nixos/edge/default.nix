@@ -427,8 +427,24 @@
           }
 
           rivals.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}root * ${rivalsRandomizer}
-            file_server
+            ${logLine}${crowdsecLine}# Hero data comes from the upstream main branch, not the pinned
+            # flake input, so a weekly data refresh lands without a redeploy.
+            # Portraits ride along because the app derives img/ paths from
+            # heroes.json slugs. Caddy has no response cache without a plugin;
+            # the Cache-Control override caches per browser for a day.
+            @heroData path /heroes.json /meta.json /img/*
+            handle @heroData {
+              ${appsecLine}rewrite * /jeiang/character-randomizer/main/site{uri}
+              reverse_proxy https://raw.githubusercontent.com {
+                header_down Cache-Control "public, max-age=86400"
+                header_down -Content-Security-Policy
+              }
+            }
+
+            handle {
+              ${appsecLine}root * ${rivalsRandomizer}
+              file_server
+            }
           }
 
           mdtable.jeiang.dev {
