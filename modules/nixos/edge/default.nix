@@ -504,6 +504,12 @@
         };
       };
 
+      users.users.rivals-heroes = {
+        isSystemUser = true;
+        group = "rivals-heroes";
+      };
+      users.groups.rivals-heroes = {};
+
       systemd = {
         services.caddy.serviceConfig.MemoryMax = "256M";
 
@@ -516,7 +522,11 @@
           path = with pkgs; [curl jq coreutils findutils];
           serviceConfig = {
             Type = "oneshot";
-            DynamicUser = true;
+            # A static user, not DynamicUser: that would place the state
+            # under root-only /var/lib/private, which Caddy cannot traverse,
+            # and the store fallback would mask it.
+            User = "rivals-heroes";
+            Group = "rivals-heroes";
             StateDirectory = "rivals-heroes";
             # Snapshot dir + files must stay world-readable for Caddy.
             UMask = "0022";
