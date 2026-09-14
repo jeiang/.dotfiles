@@ -108,6 +108,10 @@
         # no upstream sends the header, and expecting one would break every
         # direct connection on this public node.
         NB_PROXY_ACME_CERTIFICATES = "false";
+        # Serves private services on the embedded peer's tunnel listener,
+        # which is what makes the cluster advertise the Private capability
+        # the dashboard's NetBird-Only Access option requires.
+        NB_PROXY_PRIVATE = "true";
         # Enforcement is per-service in the NetBird dashboard; `observe`
         # (or unset) always fails open, only `enforce` fails closed on an
         # unreachable LAPI -- start new services in observe.
