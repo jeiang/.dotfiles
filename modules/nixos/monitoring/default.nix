@@ -327,7 +327,7 @@
         enable = true;
         settings = {
           "datasource.url" = "http://127.0.0.1:${toString vmPort}";
-          "notifier.url" = ["http://127.0.0.1:9093"];
+          "notifier.url" = ["http://127.0.0.1:${toString ports.legion-node3.alertmanager}"];
         };
         rules.groups = [
           {

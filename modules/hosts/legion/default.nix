@@ -20,7 +20,7 @@
   hermesOpsTiers = {
     legion-node1 = {
       tier1 = ["crowdsec.service" "prometheus-node-exporter.service"];
-      tier2 = ["caddy.service" "anubis-content.service"];
+      tier2 = ["caddy.service" "anubis-content.service" "tinyauth.service"];
     };
     legion-node2 = {
       tier1 = [
@@ -178,7 +178,7 @@ in {
           enabledCollectors = ["systemd"];
           # Explicit unit-include keeps node_systemd_unit_state cardinality bounded for the memory-constrained VictoriaMetrics; the default `.+` would emit hundreds of series.
           extraFlags = [
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|glance|gatus)\\.service"
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|glance|gatus|tinyauth)\\.service"
           ];
         };
 
@@ -342,6 +342,9 @@ in {
             ++ lib.optional
             (lib.any (service: service.name == "glance") node.services)
             self.nixosModules.glance
+            ++ lib.optional
+            (lib.any (service: service.name == "tinyauth") node.services)
+            self.nixosModules.tinyauth
             ++ lib.optional
             (lib.any (service: service.name == "gatus") node.services)
             self.nixosModules.gatus

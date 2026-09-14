@@ -295,6 +295,19 @@
             ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "legion-node4" "gatus"}
           }
 
+          tinyauth.jeiang.dev {
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy 127.0.0.1:${port "legion-node1" "tinyauth"}
+          }
+
+          # Glance has no login of its own; tinyauth answers 2xx for a valid
+          # session and otherwise a redirect to its Pocket ID login.
+          glance.jeiang.dev {
+            ${logLine}${crowdsecLine}${appsecLine}forward_auth 127.0.0.1:${port "legion-node1" "tinyauth"} {
+              uri /api/auth/caddy
+            }
+            reverse_proxy ${node4}:${port "legion-node4" "glance"}
+          }
+
           netbird.jeiang.dev {
             # appsec only on the dashboard handles below: @grpc/@backend/
             # @relay are long-lived streams the local AppSec config would
