@@ -42,9 +42,6 @@ migrate-persist flake="." sudo="sudo":
 install system sudo="sudo":
   {{sudo}} nixos-install --flake .#{{system}}
 
-darwin-switch:
-  sudo darwin-rebuild switch --flake .#zakkart
-
 # Run after bumping the netbird-tap input and switching. `brew upgrade --cask` alone leaves the `netbird` formula (the daemon
 # binary) behind, and a formula-only upgrade swaps /opt/homebrew/bin/netbird under the running launchd job without restarting it.
 # The cask's installer.sh boots the old job out and its `netbird service start` can leave the plist unloaded, so re-bootstrap it

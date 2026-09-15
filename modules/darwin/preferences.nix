@@ -37,10 +37,12 @@ _: {
 
         controlcenter.BatteryShowPercentage = false;
 
+        NSGlobalDomain = {
+          AppleInterfaceStyleSwitchesAutomatically = true;
+          AppleIconAppearanceTheme = "ClearLight";
+        };
+
         CustomUserPreferences.NSGlobalDomain = {
-          # Graphite, as macOS 27 Settings writes it (highlight is a flat gray tagged "Other", not the old "Graphite" triple).
-          AppleAccentColor = -1;
-          AppleHighlightColor = "0.500000 0.500000 0.500000 Other";
           # "Fill" is the macOS 26 window-tiling action; the pinned nix-darwin has no option for this key.
           AppleActionOnDoubleClick = "Fill";
         };
@@ -48,6 +50,10 @@ _: {
 
       # Deterministic `defaults` writes fail loudly; TCC/LaunchServices/WindowServer steps warn and continue (ADR 0010).
       activationScripts.postActivation.text = ''
+        # Multicolor accent is the absence of both keys; defaults cannot declare a deletion.
+        ${asUser "defaults delete -g AppleAccentColor"} 2>/dev/null || true
+        ${asUser "defaults delete -g AppleHighlightColor"} 2>/dev/null || true
+
         # nix-darwin's controlcenter options write pre-macOS-26 constants, so these menu bar items are scripted.
         ${asUser "defaults -currentHost write com.apple.controlcenter Bluetooth -int 2"}
         ${asUser "defaults -currentHost write com.apple.controlcenter Spotlight -int 8"}

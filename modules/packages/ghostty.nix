@@ -3,7 +3,53 @@
   inputs,
   ...
 }: {
-  perSystem = {pkgs, ...}: {
+  perSystem = {
+    config,
+    pkgs,
+    ...
+  }: {
+    # Exposed separately because the macOS .app bundle is launched by
+    # LaunchServices, never through the wrapper's --config-file flag; the
+    # darwin apps module installs this file where Ghostty.app reads it.
+    packages.ghostty-config = pkgs.writeTextFile {
+      name = "ghostty-config";
+      # The ANSI 16 mapping follows kanagawa.nvim's "wave" terminal colors.
+      text = let
+        p = self.lib.palette.kanaboxDarkHard;
+        ansi = with p; [
+          sumiInk0
+          autumnRed
+          autumnGreen
+          boatYellow2
+          crystalBlue
+          oniViolet
+          waveAqua1
+          oldWhite
+          fujiGray
+          waveRed
+          springGreen
+          carpYellow
+          springBlue
+          springViolet1
+          waveAqua2
+          fujiWhite
+        ];
+        palette = builtins.concatStringsSep "\n" (inputs.nixpkgs.lib.imap0 (i: c: "palette = ${toString i}=${c}") ansi);
+      in ''
+        font-family = Mononoki Nerd Font
+        font-size = 13
+        background = ${p.sumiInk1}
+        foreground = ${p.fujiWhite}
+        cursor-color = ${p.springViolet2}
+        cursor-text = ${p.sumiInk1}
+        selection-background = ${p.waveBlue1_5}
+        selection-foreground = ${p.fujiWhite}
+        ${palette}
+        quit-after-last-window-closed = false
+        gtk-single-instance = true
+      '';
+    };
+
     packages.ghostty = inputs.wrapper-modules.lib.wrapPackage (_: {
       inherit pkgs;
       # pkgs.ghostty is Linux-only; ghostty-bin is nixpkgs' prebuilt macOS .app.
@@ -11,46 +57,7 @@
         if pkgs.stdenv.hostPlatform.isDarwin
         then pkgs.ghostty-bin
         else pkgs.ghostty;
-      flags = {
-        "--config-file" = pkgs.writeTextFile {
-          name = "ghostty-config";
-          # The ANSI 16 mapping follows kanagawa.nvim's "wave" terminal colors.
-          text = let
-            p = self.lib.palette.kanaboxDarkHard;
-            ansi = with p; [
-              sumiInk0
-              autumnRed
-              autumnGreen
-              boatYellow2
-              crystalBlue
-              oniViolet
-              waveAqua1
-              oldWhite
-              fujiGray
-              waveRed
-              springGreen
-              carpYellow
-              springBlue
-              springViolet1
-              waveAqua2
-              fujiWhite
-            ];
-            palette = builtins.concatStringsSep "\n" (inputs.nixpkgs.lib.imap0 (i: c: "palette = ${toString i}=${c}") ansi);
-          in ''
-            font-family = Mononoki Nerd Font
-            font-size = 13
-            background = ${p.sumiInk1}
-            foreground = ${p.fujiWhite}
-            cursor-color = ${p.springViolet2}
-            cursor-text = ${p.sumiInk1}
-            selection-background = ${p.waveBlue1_5}
-            selection-foreground = ${p.fujiWhite}
-            ${palette}
-            quit-after-last-window-closed = false
-            gtk-single-instance = true
-          '';
-        };
-      };
+      flags."--config-file" = config.packages.ghostty-config;
       flagSeparator = "=";
     });
   };

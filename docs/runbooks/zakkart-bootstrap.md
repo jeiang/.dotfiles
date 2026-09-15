@@ -32,7 +32,7 @@ Sign in with the Apple ID that owns the `homebrew.masApps` entries
 (Bitwarden, Yubico Authenticator, Wipr 2) **before** the first activation.
 `mas` only installs for a signed-in account, and `programs.mas` swallows the
 "not signed in" failure — activation would skip the App Store apps with no
-error and need a second `darwin-switch` afterward.
+error and need a second `nh darwin switch` afterward.
 
 ## 4. Clone the repo
 
@@ -66,7 +66,7 @@ Subsequent switches need no flags; the previous activation's config is
 already in `/etc/nix/nix.custom.conf`:
 
 ```sh
-just darwin-switch
+nh darwin switch .
 ```
 
 Don't reach for `brew trust` by hand. Homebrew >= 6.0 requires unofficial
