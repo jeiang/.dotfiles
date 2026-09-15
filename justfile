@@ -45,6 +45,13 @@ install system sudo="sudo":
 darwin-switch:
   sudo darwin-rebuild switch --flake .#zakkart
 
+# Run after bumping the netbird-tap input and switching. `brew upgrade --cask` alone leaves the `netbird` formula (the daemon
+# binary) behind, and a formula-only upgrade swaps /opt/homebrew/bin/netbird under the running launchd job without restarting it.
+netbird-update:
+  brew upgrade netbirdio/tap/netbird netbirdio/tap/netbird-ui
+  sudo launchctl kickstart -k system/netbird
+  netbird status | grep -i version
+
 nh *args:
   NH_FLAKE={{justfile_directory()}} nh {{args}}
 
