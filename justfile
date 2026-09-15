@@ -47,8 +47,12 @@ darwin-switch:
 
 # Run after bumping the netbird-tap input and switching. `brew upgrade --cask` alone leaves the `netbird` formula (the daemon
 # binary) behind, and a formula-only upgrade swaps /opt/homebrew/bin/netbird under the running launchd job without restarting it.
+# The cask's installer.sh boots the old job out and its `netbird service start` can leave the plist unloaded, so re-bootstrap it
+# (the plist has RunAtLoad=false, hence the kickstart).
 netbird-update:
   brew upgrade netbirdio/tap/netbird netbirdio/tap/netbird-ui
+  sudo launchctl bootout system/netbird 2>/dev/null || true
+  sudo launchctl bootstrap system /Library/LaunchDaemons/netbird.plist
   sudo launchctl kickstart -k system/netbird
   netbird status | grep -i version
 
