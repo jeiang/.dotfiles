@@ -39,7 +39,7 @@ undocumented binary format for a single toggle.
   options to catch up.
 - These steps converge state on every activation rather than enforcing it
   continuously — a user can change any of them by hand between activations,
-  and the next `darwin-switch` will silently reassert the declared value.
+  and the next `nh darwin switch` will silently reassert the declared value.
 - Activation stays non-interactive-safe: no step blocks on a dialog, and a
   denied consent degrades to a warning instead of failing the whole switch.
 - Night Shift stays a manual, undeclared setting; it won't survive a fresh
