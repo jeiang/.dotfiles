@@ -1082,11 +1082,11 @@
     "netbird-tap": {
       "flake": false,
       "locked": {
-        "lastModified": 1788504354,
-        "narHash": "sha256-er11KIKpHAQ57zPe8q4MnRuxeg37OBPC3F7FbeuKHdw=",
+        "lastModified": 1789407910,
+        "narHash": "sha256-AxbK+an2zKJvHxNgI3uYCERP1lVnDqPj8i0B0XnAFwA=",
         "owner": "netbirdio",
         "repo": "homebrew-tap",
-        "rev": "884a0cdd82a7eb6a68d99a51e4c5fc398ea8dc41",
+        "rev": "6a824c53bb7990aecbdd55107d8235df274be2a3",
         "type": "github"
       },
       "original": {
