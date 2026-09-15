@@ -38,8 +38,9 @@ _: {
         controlcenter.BatteryShowPercentage = false;
 
         CustomUserPreferences.NSGlobalDomain = {
-          AppleAccentColor = 6;
-          AppleHighlightColor = "1.000000 0.749020 0.823529 Pink";
+          # Graphite, as macOS 27 Settings writes it (highlight is a flat gray tagged "Other", not the old "Graphite" triple).
+          AppleAccentColor = -1;
+          AppleHighlightColor = "0.500000 0.500000 0.500000 Other";
           # "Fill" is the macOS 26 window-tiling action; the pinned nix-darwin has no option for this key.
           AppleActionOnDoubleClick = "Fill";
         };

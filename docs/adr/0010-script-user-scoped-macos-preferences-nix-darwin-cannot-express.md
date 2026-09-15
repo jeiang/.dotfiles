@@ -4,7 +4,7 @@ Zakkart's desktop preferences (`modules/darwin/preferences.nix`) use
 `system.defaults` wherever the pinned nix-darwin rev has an option that
 writes the same value macOS itself reads: dock placement/autohide/hot
 corners, the menu bar clock, `controlcenter.BatteryShowPercentage`, and the
-pink accent/highlight colors via `CustomUserPreferences.NSGlobalDomain`.
+graphite accent/highlight colors via `CustomUserPreferences.NSGlobalDomain`.
 Everything else is scripted in `system.activationScripts.postActivation.text`
 using nix-darwin's own user-context pattern (`launchctl asuser "$(id -u --
 <user>)" sudo --user=<user> -- <cmd>`, since all activation otherwise runs as
