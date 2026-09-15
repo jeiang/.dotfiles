@@ -1,14 +1,24 @@
 {self, ...}: {
-  flake.darwinModules.apps = {pkgs, ...}: {
+  flake.darwinModules.apps = {
+    config,
+    pkgs,
+    ...
+  }: let
+    wrapped = self.packages.${pkgs.stdenv.hostPlatform.system};
+  in {
+    fonts.packages = [pkgs.nerd-fonts.mononoki];
+
+    # Ghostty.app ignores the wrapper's --config-file flag when launched from
+    # the Dock or Raycast, so the same config is installed at the XDG path.
+    hjem.users.${config.preferences.user.name}.files.".config/ghostty/config".source = wrapped.ghostty-config;
+
     programs.direnv = {
       enable = true;
       silent = false;
       loadInNixShell = true;
     };
 
-    environment.systemPackages = let
-      wrapped = self.packages.${pkgs.stdenv.hostPlatform.system};
-    in
+    environment.systemPackages =
       (with pkgs; [
         discord
         iina
