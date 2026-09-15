@@ -47,7 +47,6 @@
         ${palette}
         quit-after-last-window-closed = false
         gtk-single-instance = true
-        macos-icon = glass
       '';
     };
 
