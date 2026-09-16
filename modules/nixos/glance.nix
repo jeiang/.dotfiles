@@ -1,6 +1,6 @@
 {self, ...}: {
   # Glance the widget dashboard (glanceapp/glance), not `services.glances`.
-  flake.nixosModules.glance = _: let
+  flake.nixosModules.glance = {lib, ...}: let
     node3 = self.lib.legionNodes.legion-node3.privateIPv4;
     ports = self.lib.ports;
 
@@ -162,6 +162,23 @@
                             url = "https://mdtable.jeiang.dev";
                           }
                         ];
+                      }
+                      {
+                        title = "Speed test";
+                        # The mesh links are plain http on NetBird peer IPs
+                        # and only open when the browser's host is on the mesh.
+                        links =
+                          [
+                            {
+                              title = "legion-node1 (public)";
+                              url = "https://speed.jeiang.dev";
+                            }
+                          ]
+                          ++ lib.mapAttrsToList (name: ip: {
+                            title = "${name} (mesh)";
+                            url = "http://${ip}:${toString ports.${name}.librespeed}";
+                          })
+                          self.lib.netbirdPeers;
                       }
                     ];
                   }

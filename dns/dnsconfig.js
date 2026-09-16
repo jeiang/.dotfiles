@@ -36,6 +36,10 @@ D("jeiang.dev", REG_NONE,
   A("cache-push", NODE1_V4, CF_PROXY_OFF),
   AAAA("cache-push", NODE1_V6, CF_PROXY_OFF),
 
+  // Grey-clouded so the speed test measures ISP-to-Hetzner rather than the Cloudflare edge, and upload bodies clear the 100 MB cap.
+  A("speed", NODE1_V4, CF_PROXY_OFF),
+  AAAA("speed", NODE1_V6, CF_PROXY_OFF),
+
   // NetBird control plane and STUN: long-lived gRPC/WebSocket streams and UDP, kept off the Cloudflare proxy.
   A("netbird", NODE1_V4),
   AAAA("netbird", NODE1_V6),

@@ -161,6 +161,7 @@ in {
         self.nixosModules.legionHardware
         self.nixosModules.backups
         self.nixosModules.netbird
+        self.nixosModules.speedtest
         self.nixosModules.hermes-ops
         self.diskoConfigurations.legion
       ];

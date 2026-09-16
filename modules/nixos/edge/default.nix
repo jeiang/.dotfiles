@@ -32,6 +32,27 @@
     netbirdDashboard = config.services.netbird.server.dashboard.finalDrv;
     netbirdIronRDP = self.packages.${system}.netbird-ironrdp-web;
 
+    # Replaces the servers_list.js librespeed bakes for the mesh page: a
+    # https page cannot call the http mesh listeners, so the public page
+    # lists only itself. Same entry shape the nixpkgs module generates.
+    speedtestServersList = pkgs.writeTextDir "servers_list.js" ''
+      function get_servers() {
+        return ${builtins.toJSON [
+        {
+          name = "legion-node1 (public)";
+          server = "//speed.jeiang.dev";
+          dlURL = "backend/garbage";
+          ulURL = "backend/empty";
+          pingURL = "backend/empty";
+          getIpURL = "backend/getIP";
+        }
+      ]};
+      }
+      function override_settings() {
+        s.setParameter("telemetry_level", "off");
+      }
+    '';
+
     # Each carries its own trailing newline + indent; callers concatenate
     # them ahead of a site block's first real directive.
     crowdsecLine = lib.optionalString cfg.crowdsec.enable "crowdsec\n            ";
@@ -306,6 +327,20 @@
               uri /api/auth/caddy
             }
             reverse_proxy ${node4}:${port "legion-node4" "glance"}
+          }
+
+          # Behind tinyauth so only a logged-in user can burn egress.
+          # appsec skipped: the upload test is a burst of large random
+          # POST bodies, the one shape a WAF exists to inspect.
+          speed.jeiang.dev {
+            ${logLine}${crowdsecLine}forward_auth 127.0.0.1:${port "legion-node1" "tinyauth"} {
+              uri /api/auth/caddy
+            }
+            handle /servers_list.js {
+              root * ${speedtestServersList}
+              file_server
+            }
+            reverse_proxy 127.0.0.1:${port "legion-node1" "librespeed"}
           }
 
           netbird.jeiang.dev {

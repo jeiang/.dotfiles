@@ -98,9 +98,8 @@
                 labels.type = "node";
               }
               {
-                # artemis's NetBird peer IP (mesh DNS doesn't resolve on
-                # Legion nodes); changes if artemis is ever re-enrolled.
-                targets = ["100.89.148.91:9100"];
+                # Raw NetBird peer IP: mesh DNS doesn't resolve on Legion nodes.
+                targets = ["${self.lib.netbirdPeers.artemis}:9100"];
                 labels.type = "node";
               }
             ];

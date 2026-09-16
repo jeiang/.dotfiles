@@ -28,6 +28,7 @@
             "status.jeiang.dev"
             "tinyauth.jeiang.dev"
             "glance.jeiang.dev"
+            "speed.jeiang.dev"
           ];
           firewall = [
             {
