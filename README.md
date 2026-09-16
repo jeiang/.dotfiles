@@ -4,15 +4,13 @@
 
 ![cornn flaek](assets/cornn-flaek.jpg "Cornn Flaek")
 
-Personal Nix flake for the Artemis workstation and Legion service hosts.
+Personal Nix flake for `artemis` (headless NixOS gaming and streaming box),
+`zakkart` (nix-darwin MacBook), and the `legion-node1`..`legion-node4`
+Hetzner service nodes.
 
-## Documentation
-
-- [`docs/OPERATIONS.md`](docs/OPERATIONS.md): development, validation, deployment,
-  and persistence procedures.
-- [`docs/DESIGN.md`](docs/DESIGN.md): system roles, architecture, and design rules.
-- [`CONTEXT.md`](CONTEXT.md): canonical terminology.
-- [`docs/adr/`](docs/adr/): architectural decisions and trade-offs.
-- [`docs/runbooks/`](docs/runbooks/): operator runbooks, including backup
-  restore.
-- [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md): project name and source credits.
+- [`AGENTS.md`](AGENTS.md): layout, operation, and the decisions that
+  constrain changes.
+- [`docs/runbooks/`](docs/runbooks/): restore, binary cache, wallpaper, and
+  zakkart bootstrap procedures.
+- [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md): project name and source
+  credits.

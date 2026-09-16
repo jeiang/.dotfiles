@@ -4,10 +4,8 @@ Rebuild Zakkart (the macOS workstation, `modules/hosts/zakkart/default.nix`)
 from a reset Mac. Review [`AGENTS.md`](../../AGENTS.md) before running any
 command here.
 
-Nix itself comes from the Determinate installer rather than from this flake
-([ADR 0008](../adr/0008-let-determinate-nix-own-the-nix-installation-on-zakkart.md));
-some apps come from Homebrew or the Mac App Store rather than nixpkgs
-([ADR 0009](../adr/0009-source-macos-applications-nixpkgs-first-with-declared-exceptions.md)).
+Nix itself comes from the Determinate installer rather than from this flake,
+and some apps come from Homebrew or the Mac App Store rather than nixpkgs.
 
 The steps are ordered: 3 before 5, or the App Store installs silently skip.
 
@@ -24,7 +22,7 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 ```
 
 It owns the daemon and `/etc/nix/nix.conf` from here on; nix-darwin's own
-`nix.*` options never apply on this host (ADR 0008).
+`nix.*` options never apply on this host.
 
 ## 3. Sign into the App Store
 
@@ -59,7 +57,7 @@ sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake .#zakkart \
 
 This installs Homebrew (via nix-homebrew) and its taps/casks/brews/App Store
 apps — including the NetBird desktop client cask, which installs its own
-system daemon on first run (ADR 0009) — sets the login shell, and every
+system daemon on first run — sets the login shell, and every
 other piece in `modules/darwin/`.
 
 Subsequent switches need no flags; the previous activation's config is
@@ -78,7 +76,7 @@ Homebrew's trust file to the Brewfile on every activation anyway.
 
 ## 6. Bitwarden SSH agent
 
-Sign into the Bitwarden app (the Mac App Store build, ADR 0009) and enable
+Sign into the Bitwarden app (the Mac App Store build) and enable
 its SSH agent in Settings. The socket appears at:
 
 ```
@@ -122,7 +120,14 @@ brew list --formula                     # matches `brews`
 mas list                                # matches `masApps`
 ```
 
-NetBird is the cask (`netbirdio/tap/netbird-ui`), not a nix-managed daemon —
-it installs and manages its own system service on first launch. Open the
-app, sign in, and check the menu bar shows "Connected"; there's no
-`launchctl`/`netbird status` check unless you separately install the CLI.
+NetBird is the cask (`netbirdio/tap/netbird-ui`), not a nix-managed daemon.
+It installs and manages its own system service on first launch, and the
+`netbird` CLI comes with it as the cask's formula dependency. Open the app,
+sign in, then check:
+
+```sh
+netbird status                          # Management: Connected
+sudo launchctl print system/netbird     # state = running
+```
+
+Upgrades go through `just netbird-update`.

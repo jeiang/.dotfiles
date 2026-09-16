@@ -1,8 +1,7 @@
 # Runbook: garret (Nix binary cache)
 
-Operator runbook for garret on legion-node4, the fleet's Nix binary cache
-([ADR 0013](../adr/0013-replace-attic-with-garret.md)). Review
-[`AGENTS.md`](../../AGENTS.md) before running any command here.
+Operator runbook for garret on legion-node4, the fleet's Nix binary cache.
+Review [`AGENTS.md`](../../AGENTS.md) before running any command here.
 
 garret is two units on one host:
 
