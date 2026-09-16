@@ -64,7 +64,8 @@ behavior for its own sake.
   `modules/hosts/legion/_service-inventory.nix`; files with a `_` prefix are
   not imported by import-tree.
 - `modules/nixos/`, `modules/darwin/`: feature modules. A secret shard sits
-  beside its consumer as `secrets.yaml`.
+  beside its consumer as `secrets.yaml`; a second shard in the same
+  directory is `secrets.<consumer>.yaml` (`netbird-server/secrets.proxy.yaml`).
 - `modules/packages/`: packages and wrapped programs.
 - `dns/dnsconfig.js`: public DNS.
 - `docs/runbooks/`: procedures that recur.
@@ -112,11 +113,12 @@ behavior for its own sake.
 - The root subvolume is rolled back to empty on every boot. Only
   `persistence.*` paths survive, and impermanence never copies existing
   data into `/persist`.
-- Before deploying a change that adds a `persistence.*` entry, run
+- Before deploying any change to `persistence.*` (an added entry, or an
+  entry moved between system, data, and cache), run
   `just migrate-persist <checkout>` on artemis as root from a checkout of
   the new revision, then deploy, then reboot.
-- A persisted path is not backed up. A backup set is an explicit
-  allowlist.
+- A persisted path is not backed up. A backup set is an explicit allowlist,
+  and every path in it must also be a `persistence.*` path.
 
 ### Secrets
 
@@ -139,7 +141,8 @@ behavior for its own sake.
 - Hetzner servers, Volumes, and Cloud Firewalls are provisioned outside the
   flake. A stateful Legion service keeps its state on a Volume and uses
   `mountGuard`, so a missing Volume never initializes fresh state on the
-  root disk.
+  root disk. Exactly one node owns each stateful service; moving it is an
+  explicit Volume and state migration, not a placement edit alone.
 - Legion host firewalls are on. The inventory's `scope = "private"` is
   documentation: `enp7s0` and the NetBird interface are trusted interfaces.
   A public opening also needs its own Hetzner Cloud Firewall rule.

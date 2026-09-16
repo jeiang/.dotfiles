@@ -7,7 +7,7 @@ keys:
   - &server_legion_node4 age1a80m5fpv387njdmg63q6vvkavahepdkx7zq4gjjkg62x3lme4f7q9s5c66
 
 # One shard per consuming module, encrypted to the admin plus the hosts that run it.
-# Anchor path_regex on the full path: every shard file is named secrets.yaml.
+# Anchor path_regex on the full path: shard files share the secrets*.yaml names.
 creation_rules:
   # No Nix consumer -- stored data only (the admin's own stashed key).
   - path_regex: modules/nixos/sops/secrets\.admin\.yaml$

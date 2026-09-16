@@ -41,7 +41,7 @@ ssh -t <node>.jeiang.dev sudo restic-<service> restore <snapshot-id> --target /t
 - Each SQLite database passes an integrity check:
 
   ```sh
-  ssh -t <node>.jeiang.dev sudo nix shell nixpkgs#sqlite -c sqlite3 /tmp/restore-<service>/<path-to-db> 'PRAGMA integrity_check;'
+  ssh -t <node>.jeiang.dev "sudo nix shell nixpkgs#sqlite -c sqlite3 /tmp/restore-<service>/<path-to-db> 'PRAGMA integrity_check;'"
   ```
 
 - File counts and sizes are close to the live path.
@@ -61,15 +61,14 @@ Only after the scratch copy passes, and only to recover from data loss.
     ssh -t <node>.jeiang.dev sudo systemctl stop <pause-units>
     ```
 
-2. Restore. `--delete` removes files that are not in the snapshot, inside the
-    restored paths only:
+2. Restore. Do not add `--delete`: with `--target /` it deletes everything on
+    the node that is not in the snapshot.
 
     ```sh
-    ssh -t <node>.jeiang.dev sudo restic-<service> restore <snapshot-id> --target / --overwrite always --delete
+    ssh -t <node>.jeiang.dev sudo restic-<service> restore <snapshot-id> --target / --overwrite always
     ```
 
-3. For garret, follow [`garret.md`](garret.md) before starting its units.
-4. Start the units again and confirm the service answers:
+3. Start the units again and confirm the service answers:
 
     ```sh
     ssh -t <node>.jeiang.dev sudo systemctl start <pause-units>
