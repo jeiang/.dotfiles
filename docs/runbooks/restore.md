@@ -76,5 +76,13 @@ Only after the scratch copy passes, and only to recover from data loss.
 
 ## Retention
 
-Each daily run keeps 30 daily snapshots (`--keep-daily 30` in
-`modules/nixos/backups/default.nix`). Older snapshots are gone.
+The daily `restic-backups-<service>` run only backs up; it keeps every
+snapshot. A separate weekly `restic-maintenance-<service>` timer runs
+`restic forget --prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6`
+followed by `restic check --read-data-subset=5%`, both defined in
+`modules/nixos/backups/default.nix`. Snapshots outside that policy are gone
+once a maintenance run has pruned them.
+
+garret is not restored with restic; see
+[`garret.md`](garret.md#recovering-a-lost-or-corrupt-index) for its cold-cache
+recovery procedure.

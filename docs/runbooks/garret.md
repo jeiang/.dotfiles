@@ -87,13 +87,17 @@ consumer's `trusted-public-keys` (`modules/nixos/nix.nix`,
 `modules/darwin/nix.nix`, `.github/workflows/ci.yml`, `zakkart-bootstrap.md`), and only
 then drop the old one from both places.
 
-### Losing the SQLite index
+### Recovering a lost or corrupt index
 
-`/mnt/garret/garret.db` is the only record of what the bucket contains —
-losing it strands every stored object as an orphan GC cannot reclaim. That
-is why the Volume is backed up (`restic-backups-garret.service`). Restore it
-per [`restore.md`](restore.md) with both units stopped.
+Never restore an older `garret.db` over a live bucket. The pusher's orphan
+sweep deletes any blob newer than the restored snapshot, and DB rows for
+blobs GC already evicted since that snapshot survive the restore and keep
+serving narinfo for NARs that no longer exist.
 
-If the index is genuinely unrecoverable, the cheapest fix is to empty the
-`garret` bucket and let CI re-push, rather than leave orphans accruing
-storage cost.
+The supported recovery is a cold cache:
+
+1. Stop both units: `systemctl stop garret-pusher garret-puller`.
+2. Empty the `garret` bucket.
+3. Delete `/mnt/garret/garret.db`.
+4. Start both units again: `systemctl start garret-pusher garret-puller`.
+5. Let CI push again on the next `main` run.

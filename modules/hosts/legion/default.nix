@@ -145,9 +145,9 @@ in {
           enable = true;
           enabledCollectors = ["systemd"];
           # Explicit unit-include keeps node_systemd_unit_state cardinality bounded for the memory-constrained VictoriaMetrics; the default `.+` would emit hundreds of series.
-          # restic-backups-* covers both the .service and its .timer, so node_systemd_timer_last_trigger_seconds is collected for the backup-freshness alert.
+          # restic-backups-*/restic-maintenance-* cover both each unit and its timer, so node_systemd_timer_last_trigger_seconds is collected for the backup-freshness alert.
           extraFlags = [
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|crowdsec-bouncers|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird|netbird-login|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|glance|gatus|tinyauth|rivals-heroes-sync|prometheus-blackbox-exporter|librespeed|iperf3|acme-.*)\\.service|restic-backups-.*\\.(service|timer)"
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|crowdsec-bouncers|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird|netbird-login|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|glance|gatus|tinyauth|rivals-heroes-sync|prometheus-blackbox-exporter|librespeed|iperf3|acme-.*)\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)"
           ];
         };
 
@@ -164,6 +164,7 @@ in {
         map (service:
           lib.nameValuePair service.name {
             paths = service.backupSet;
+            volume = service.volume.mountpoint;
             pauseUnits = service.backupPauseUnits or [];
           })
         (builtins.filter (service: service ? backupSet && (service.volume or {}) ? hcloudVolumeId)
