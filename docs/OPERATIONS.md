@@ -104,10 +104,12 @@ state on its own.
 
 ## Re-Enrollment And First-Deploy Notes
 
-- Artemis' NetBird peer IP (`100.89.148.91`) is a hardcoded literal in three
-  places: hermes' SSH config `Host artemis`, hermes'
-  `providers.artemis.base_url`, and monitoring's artemis node-exporter scrape
-  target. Update all three together if the peer is re-enrolled.
+- NetBird peer IPs live in `modules/netbird-peers.nix` (`flake.lib.netbirdPeers`),
+  consumed by monitoring's artemis scrape target, the speed test server
+  lists, and the Glance bookmarks. The deprecated hermes module still carries
+  its own two literal copies of artemis' IP (SSH config `Host artemis` and
+  `providers.artemis.base_url`). Update the attrset and those two together if
+  a peer is re-enrolled.
 - Hermes' Codex auth requires a one-time interactive `hermes auth add
   openai-codex` device login after first deploy; the sops seed only self-heals
   a malformed auth store while its tokens are unexpired.
