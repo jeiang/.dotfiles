@@ -10,7 +10,7 @@
     nixpkgs.pkgs = withSystem config.nixpkgs.hostPlatform.system ({pkgs, ...}: pkgs);
 
     determinateNix = {
-      registry = builtins.mapAttrs (_: v: {flake = v;}) inputs;
+      registry.nixpkgs.flake = inputs.nixpkgs;
 
       customSettings = {
         connect-timeout = 5;
@@ -22,11 +22,9 @@
         # extra-, not the bare keys: customSettings does no NixOS-style merging, so bare substituters/trusted-public-keys would replace Determinate's defaults and drop cache.nixos.org.
         extra-substituters = [
           "https://cache.jeiang.dev"
-          "https://helix.cachix.org"
         ];
         extra-trusted-public-keys = [
           "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
-          "helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="
         ];
         # @admin, not @wheel: macOS's wheel group has no members besides root.
         extra-trusted-users = ["@admin"];

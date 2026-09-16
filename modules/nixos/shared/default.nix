@@ -9,14 +9,13 @@
     imports = [
       self.nixosModules.hjem
       self.nixosModules.nix
-      self.nixosModules.toolbox
     ];
     users = {
       mutableUsers = false;
       users.${config.preferences.user.name} = {
         isNormalUser = true;
         description = "${config.preferences.user.name}'s account";
-        extraGroups = ["wheel" "networkmanager"];
+        extraGroups = ["wheel"];
         shell = self.packages.${pkgs.stdenv.hostPlatform.system}.environment;
 
         hashedPasswordFile = config.sops.secrets."passwords/aidanp".path;

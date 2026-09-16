@@ -41,6 +41,8 @@
     publicIPv4,
     publicIPv6,
   }: {
+    matchConfig.Name = "enp1s0";
+
     address = [
       "${publicIPv4}/32"
       "${publicIPv6}/64"
@@ -114,8 +116,22 @@ in {
         self.nixosModules.netbird
         self.nixosModules.speedtest
         self.nixosModules.tcp-tuning
+        self.nixosModules.toolbox
         self.diskoConfigurations.legion
       ];
+
+      # documentation.man.enable stays on: the toolbox keeps man pages, only the rest of the headless-server bulk goes.
+      documentation = {
+        nixos.enable = false;
+        doc.enable = false;
+        info.enable = false;
+      };
+      xdg = {
+        icons.enable = false;
+        sounds.enable = false;
+        mime.enable = false;
+      };
+      fonts.fontconfig.enable = false;
 
       # Host DNS must never use Blocky-over-NetBird as primary resolver: netbird.jeiang.dev has to resolve via public DNS before the tunnel is up.
       sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
@@ -209,7 +225,6 @@ in {
 
         loader.grub.enable = true;
         tmp.cleanOnBoot = true;
-        supportedFilesystems = ["nfs"];
       };
 
       systemd.network.networks."20-hcloud-private" = {

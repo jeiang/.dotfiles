@@ -1,6 +1,5 @@
 {
   inputs,
-  self,
   withSystem,
   ...
 }: {
@@ -11,45 +10,24 @@
     };
   };
 
-  flake.nixosModules.nix = {
-    lib,
-    config,
-    ...
-  }: {
+  flake.nixosModules.nix = {config, ...}: {
     imports = [
-      inputs.nix-index-database.nixosModules.nix-index
       # Determinate keeps the stock nix.* options and renders them to /etc/nix/nix.custom.conf.
       inputs.determinate.nixosModules.default
     ];
 
     nixpkgs.pkgs = withSystem config.nixpkgs.hostPlatform.system ({pkgs, ...}: pkgs);
 
-    programs = {
-      nix-index-database.comma.enable = true;
-      direnv = {
-        enable = true;
-        silent = false;
-        loadInNixShell = true;
-        nix-direnv = {
-          enable = true;
-        };
-      };
-      nix-ld.enable = true;
-      nh = {
-        enable = true;
-        clean.enable = true;
-        clean.extraArgs = "--keep-since 7d --keep 14 --optimise";
-        flake = "${self}";
-      };
+    programs.nh = {
+      enable = true;
+      clean.enable = true;
+      clean.extraArgs = "--keep-since 7d --keep 14";
     };
 
-    nix = let
-      # pin the registry to avoid downloading and evaling a new nixpkgs version every time
-      registry = lib.mapAttrs (_: v: {flake = v;}) inputs;
-    in {
-      inherit registry;
+    nix = {
+      registry.nixpkgs.flake = inputs.nixpkgs;
       # set the path for channels compat
-      nixPath = lib.mapAttrsToList (key: _: "${key}=flake:${key}") registry;
+      nixPath = ["nixpkgs=flake:nixpkgs"];
 
       settings = {
         auto-optimise-store = true;
@@ -64,19 +42,11 @@
         connect-timeout = 5;
         fallback = true;
 
-        # for direnv GC roots
-        keep-derivations = true;
-        keep-outputs = true;
-
         substituters = [
           "https://cache.jeiang.dev"
-          "https://helix.cachix.org"
-          "https://hyprland.cachix.org"
         ];
         trusted-public-keys = [
           "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
-          "helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="
-          "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
         ];
         trusted-users = ["root"];
       };

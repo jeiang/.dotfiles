@@ -48,6 +48,8 @@
         self.nixosModules.backupTunnel
         self.nixosModules.impermanence
         self.nixosModules.hypr-rdp
+        self.nixosModules.toolboxArtemis
+        self.nixosModules.nixArtemisExtras
 
         self.diskoConfigurations.artemis
       ];
@@ -193,6 +195,7 @@
         # nixpkgs#415213: applying the WoL policy is flaky -- verify with `ethtool enp16s0 | grep Wake-on` after deploys.
         interfaces.enp16s0.wakeOnLan.enable = true;
       };
+      users.users.${config.preferences.user.name}.extraGroups = ["networkmanager"];
 
       nix.settings.trusted-users = ["@wheel"];
 

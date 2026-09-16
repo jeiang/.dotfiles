@@ -77,7 +77,7 @@
 
         wallpaper {
             monitor =
-            path = ${self}/assets/wallpapers-kanabox
+            path = ${../../../assets/wallpapers-kanabox}
             fit_mode = cover
             timeout = 1800
             order = random
