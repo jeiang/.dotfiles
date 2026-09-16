@@ -1,13 +1,4 @@
-# Public DNS GitOps (docs/adr/0014): dns/dnsconfig.js is the single source
-# of truth for the Cloudflare-hosted zones. PRs get a preview of the
-# resulting changes, merge to main applies them with full purge, and a
-# weekly run fails red when live state has drifted — i.e. an emergency
-# dashboard edit that was never back-ported into the repo.
-#
-# CLOUDFLARE_DNS_TOKEN is a dedicated token scoped to Zone:Read + DNS:Edit
-# on exactly these zones, separate from Caddy's DNS-01 token
-# (modules/nixos/edge/secrets.yaml) so revoking either never breaks the
-# other.
+# CLOUDFLARE_DNS_TOKEN is scoped to Zone:Read + DNS:Edit on these zones and is separate from Caddy's DNS-01 token.
 name: DNS
 
 on:

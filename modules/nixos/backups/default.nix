@@ -14,19 +14,16 @@ _: {
         paths = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           description = ''
-            Backup Set paths for this service (DESIGN.md State And Backup
-            Boundaries: an explicit allowlist, subset of the service's
-            declared Volume mountpoint -- enforced by
-            _service-inventory.nix's backupSetViolations assert).
+            Explicit allowlist of paths to back up, inside the service's
+            Volume mountpoint.
           '';
         };
         pauseUnits = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           default = [];
           description = ''
-            systemd units to stop before the snapshot and start again after
-            (SQLite-safe snapshots for services with a live DB in their
-            Backup Set, e.g. Pocket ID, Actual Budget). No-op when empty.
+            systemd units to stop before the snapshot and start again after,
+            so live SQLite databases are captured consistently.
           '';
         };
       };

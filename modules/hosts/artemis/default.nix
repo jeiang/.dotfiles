@@ -47,10 +47,7 @@
         self.nixosModules.sunshine
         self.nixosModules.backupTunnel
         self.nixosModules.impermanence
-        self.nixosModules.llama-swap
         self.nixosModules.hypr-rdp
-        self.nixosModules.qdrant
-        self.nixosModules.whisper-server
 
         self.diskoConfigurations.artemis
       ];
@@ -77,11 +74,6 @@
           "/var/lib/NetworkManager"
           "/var/lib/bluetooth"
           "/var/lib/netbird"
-          # Model weights: without these entries nukeRoot drops tens of GB every boot and the fetch units re-download before the servers can start.
-          "/var/lib/llama-swap-models"
-          "/var/lib/whisper-models"
-          # Hermes' vector index: genuinely irreplaceable, losing it means re-embedding every source document.
-          "/var/lib/qdrant"
         ];
 
         data.directories = [
@@ -214,7 +206,6 @@
         hybrid-sleep.enable = false;
       };
 
-      # The setup key is an operator-filled placeholder until docs/runbooks/artemis-always-on-setup.md is executed.
       sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
       services.netbird.clients.default.login = {
         enable = true;
@@ -251,43 +242,6 @@
           };
         };
       };
-
-      # Inline doas-shaped hermes-ops: modules/nixos/hermes-ops assumes sudo and a Hetzner-private-network source pin, neither of which applies here.
-      users = {
-        groups.hermes-ops = {};
-        users.hermes-ops = {
-          isSystemUser = true;
-          group = "hermes-ops";
-          home = "/var/empty";
-          createHome = false;
-          hashedPassword = "!";
-          shell = pkgs.bashInteractive;
-          extraGroups = ["systemd-journal"];
-          openssh.authorizedKeys.keys = [
-            # Same fleet key as modules/nixos/hermes-ops -- rotate both together. No from= pin: legion-node3's NetBird peer IP is declared nowhere and can change on re-registration.
-            ''no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOvcTYBeAVez+6x8r4gCOR6eIjBE0oPSYOsW3Qj4znjE hermes-ops fleet key''
-          ];
-        };
-      };
-
-      # greetd, not sunshine: sunshine.service is a systemd user unit inside the greetd-launched session, which a system doas rule can't name.
-      security.doas.extraRules = let
-        mkRule = args: {
-          users = ["hermes-ops"];
-          cmd = "systemctl";
-          inherit args;
-          noPass = true;
-        };
-      in
-        map mkRule [
-          ["start" "llama-swap.service"]
-          ["restart" "llama-swap.service"]
-          ["stop" "llama-swap.service"]
-          ["start" "greetd.service"]
-          ["restart" "greetd.service"]
-          ["stop" "greetd.service"]
-          ["reboot"]
-        ];
 
       nixpkgs.hostPlatform = "x86_64-linux";
       system.stateVersion = "25.05";

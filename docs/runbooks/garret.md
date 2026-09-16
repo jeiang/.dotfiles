@@ -1,8 +1,7 @@
 # Runbook: garret (Nix binary cache)
 
-Operator runbook for garret on legion-node4, the fleet's Nix binary cache
-([ADR 0013](../adr/0013-replace-attic-with-garret.md)). Review
-[`AGENTS.md`](../../AGENTS.md) before running any command here.
+Operator runbook for garret on legion-node4, the fleet's Nix binary cache.
+Review [`AGENTS.md`](../../AGENTS.md) before running any command here.
 
 garret is two units on one host:
 
@@ -85,7 +84,7 @@ nix run github:jeiang/garret#garret-admin -- key show ./key
 key to `modules/nixos/garret/secrets.yaml` alongside the old, deploy, run
 `garret-admin resign` to backfill signatures, add the new public key to every
 consumer's `trusted-public-keys` (`modules/nixos/nix.nix`,
-`modules/darwin/nix.nix`, both workflows, `zakkart-bootstrap.md`), and only
+`modules/darwin/nix.nix`, `.github/workflows/ci.yml`, `zakkart-bootstrap.md`), and only
 then drop the old one from both places.
 
 ### Losing the SQLite index

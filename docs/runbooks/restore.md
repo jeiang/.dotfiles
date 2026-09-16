@@ -1,124 +1,80 @@
-# Runbook: Restic Restore
+# Runbook: restic restore
 
-Operator runbook for restoring a Host-Native Service's Backup Set
-(`modules/nixos/backups.nix`). Review [`AGENTS.md`](../../AGENTS.md) before
-running any command here.
+Restore one Legion service's backup set. Read [`AGENTS.md`](../../AGENTS.md)
+first. Every command runs on the node that owns the service and asks for the
+operator's sudo password, so use `ssh -t`.
 
-This runbook restores a single service's Backup Set from its Mega S4 Restic
-repository. It does not cover provisioning the bucket itself.
+## Where the backups are
 
-## Prerequisites
+- Bucket `legion-restic-backups` at `https://s3.eu-central-1.s4.mega.io`,
+  created outside this flake with an application key scoped to it.
+- One repository per service:
+  `s3:https://s3.eu-central-1.s4.mega.io/legion-restic-backups/<node>/<service>`.
+- Secrets in `modules/nixos/backups/secrets.yaml`: `restic/password` (one
+  repository password for all services) and `restic/s4-env` (an
+  `AWS_ACCESS_KEY_ID=` line and an `AWS_SECRET_ACCESS_KEY=` line).
+- Each node has a `restic-<service>` wrapper that already sets the
+  repository, password file, and S4 credentials, so no secret leaves the node.
+- The backed-up paths and the units a backup stops:
 
-### External: the Mega S4 bucket
-
-`modules/nixos/backups.nix` targets a dedicated bucket, separate from the
-binary cache's own `garret` bucket:
-
-| Setting | Value |
-| --- | --- |
-| Endpoint | `https://s3.eu-central-1.s4.mega.io` |
-| Bucket | `legion-restic-backups` |
-
-Create this bucket and an S3 application key scoped to it in the Mega S4
-console before the first node with a `backupSet` entry deploys (provisioning
-is outside this flake, per `DESIGN.md`).
-
-### sops secrets
-
-Create both with `just sops-edit` before the same deploy:
-
-| Secret | Value |
-| --- | --- |
-| `restic/password` | A random repository encryption password (e.g. `openssl rand -hex 32`). Shared across every service's repository -- restic repositories don't need distinct passwords, and this keeps the secret surface small. |
-| `restic/s4-env` | An env-file-shaped value: `AWS_ACCESS_KEY_ID=<key>` then `AWS_SECRET_ACCESS_KEY=<secret>` on the next line, for the Mega S4 application key above. |
-
-### Repository layout
-
-Each service gets its own independent repository:
-
-```
-s3:https://s3.eu-central-1.s4.mega.io/legion-restic-backups/<node>/<service>
-```
-
-e.g. `.../legion-restic-backups/legion-node2/pocket-id`.
+  ```sh
+  nix eval --json .#nixosConfigurations.<node>.config.backups.jobs
+  ```
 
 ## List snapshots
 
-Run on the node owning the service (its systemd units run as `root`, and
-`RESTIC_PASSWORD_FILE`/S3 credentials are only readable there). Every
-command below reads the credentials **inside** the SSH command, on the
-remote node — not via local command substitution: the operator's
-workstation doesn't have `/run/secrets/restic/s4-env`, and even where it
-does (running this from a node itself), local substitution would leak the
-decrypted secret into the local shell's environment/history instead of
-staying on the node that's allowed to read it.
-
 ```sh
-ssh <node>.jeiang.dev -- sudo systemctl cat restic-backups-<service>.service
-ssh <node>.jeiang.dev -- sudo bash -lc '
-  set -a; source /run/secrets/restic/s4-env; set +a
-  RESTIC_PASSWORD_FILE=/run/secrets/restic/password \
-    restic -r s3:https://s3.eu-central-1.s4.mega.io/legion-restic-backups/<node>/<service> \
-    snapshots
-'
+ssh -t <node>.jeiang.dev sudo restic-<service> snapshots
 ```
-
-Confirm a recent snapshot exists (daily schedule, `modules/nixos/backups.nix`)
-before proceeding.
 
 ## Restore to a scratch directory
 
-Never restore directly over live data first. Pick the latest snapshot ID
-from the listing above and restore it somewhere disposable:
+Never restore over live data first.
 
 ```sh
-ssh <node>.jeiang.dev -- sudo bash -lc '
-  set -a; source /run/secrets/restic/s4-env; set +a
-  RESTIC_PASSWORD_FILE=/run/secrets/restic/password \
-    restic -r s3:https://s3.eu-central-1.s4.mega.io/legion-restic-backups/<node>/<service> \
-    restore <snapshot-id> --target /tmp/restic-restore-<service>
-'
+ssh -t <node>.jeiang.dev sudo restic-<service> restore <snapshot-id> --target /tmp/restore-<service>
 ```
 
-## Verify content
+## Verify
 
-Required before trusting the backup for disaster recovery:
+- Every path in the job's `paths` exists under `/tmp/restore-<service>`.
+- Each SQLite database passes an integrity check:
 
-- Confirm every path from the service's `backupSet`
-  (`modules/hosts/legion/_service-inventory.nix`) is present under
-  `/tmp/restic-restore-<service>`.
-- For a SQLite-backed service (Pocket ID, Actual Budget -- both declare
-  `backupPauseUnits` so the snapshot is taken with the service stopped),
-  confirm the database opens cleanly:
   ```sh
-  sqlite3 /tmp/restic-restore-<service>/<path-to-db> "PRAGMA integrity_check;"
+  ssh -t <node>.jeiang.dev "sudo nix shell nixpkgs#sqlite -c sqlite3 /tmp/restore-<service>/<path-to-db> 'PRAGMA integrity_check;'"
   ```
-- Compare file sizes/counts against the live path as a sanity check that
-  the snapshot isn't truncated or empty.
-- Clean up the scratch directory once satisfied:
-  `sudo rm -rf /tmp/restic-restore-<service>`.
 
-## Restore to the live path (service stopped)
+- File counts and sizes are close to the live path.
+- Delete the scratch copy when done:
 
-Only after scratch-directory verification passes, and only when actually
-recovering from data loss:
+  ```sh
+  ssh -t <node>.jeiang.dev sudo rm -rf /tmp/restore-<service>
+  ```
 
-```sh
-ssh <node>.jeiang.dev -- sudo systemctl stop <service>.service
-ssh <node>.jeiang.dev -- sudo bash -lc '
-  set -a; source /run/secrets/restic/s4-env; set +a
-  RESTIC_PASSWORD_FILE=/run/secrets/restic/password \
-    restic -r s3:https://s3.eu-central-1.s4.mega.io/legion-restic-backups/<node>/<service> \
-    restore <snapshot-id> --target / --overwrite always
-'
-ssh <node>.jeiang.dev -- sudo systemctl start <service>.service
-```
+## Restore over the live path
 
-Confirm the service starts cleanly and serves traffic before considering
-the restore complete.
+Only after the scratch copy passes, and only to recover from data loss.
+
+1. Stop every unit in the job's `pauseUnits`:
+
+    ```sh
+    ssh -t <node>.jeiang.dev sudo systemctl stop <pause-units>
+    ```
+
+2. Restore. Do not add `--delete`: with `--target /` it deletes everything on
+    the node that is not in the snapshot.
+
+    ```sh
+    ssh -t <node>.jeiang.dev sudo restic-<service> restore <snapshot-id> --target / --overwrite always
+    ```
+
+3. Start the units again and confirm the service answers:
+
+    ```sh
+    ssh -t <node>.jeiang.dev sudo systemctl start <pause-units>
+    ```
 
 ## Retention
 
-`--keep-daily 30` (`modules/nixos/backups.nix`): each daily backup run
-prunes snapshots older than 30 daily generations. A snapshot ID from more
-than 30 days ago will not be listed.
+Each daily run keeps 30 daily snapshots (`--keep-daily 30` in
+`modules/nixos/backups/default.nix`). Older snapshots are gone.

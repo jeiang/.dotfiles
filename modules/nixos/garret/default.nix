@@ -117,9 +117,7 @@
     # The Volume mount is `nofail`, so without the guard a late or missing
     # Volume silently initializes a fresh, empty index on the root disk.
     systemd.services = let
-      # ExecStartPre, NOT tmpfiles: tmpfiles-setup is not ordered after the
-      # Volume mount, so a first-mount activation would have its work hidden
-      # (observed on the first legion-node4 deploy); `+` runs it as root.
+      # ExecStartPre, not tmpfiles: tmpfiles-setup is not ordered after the Volume mount. `+` runs it as root.
       ensureDataDir = "+${pkgs.coreutils}/bin/install -d -o garret -g garret -m 0750 ${dataDir}";
     in {
       garret-pusher =
@@ -145,9 +143,7 @@
       secrets = {
         "garret/s3-access-key-id" = {inherit sopsFile;};
         "garret/s3-secret-access-key" = {inherit sopsFile;};
-        # restartUnits is load-bearing: signing keys are read once at
-        # start-up, and a secret-only deploy leaves the unit byte-identical
-        # -- observed as pushes signed with the pre-rotation key.
+        # Signing keys are read once at start-up; a secret-only deploy leaves the unit unchanged.
         "garret/signing-key" = {
           inherit sopsFile;
           owner = "garret";

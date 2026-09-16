@@ -176,9 +176,8 @@
           # mutation); metrics are served from the :2020 site block instead.
           metrics
 
-          # Without this every client_ip is a Cloudflare PoP address, and a
-          # CrowdSec decision bans a shared PoP -- 403ing unrelated visitors
-          # across every proxied hostname (observed: CI cache outage).
+          # Without this every client_ip is a Cloudflare PoP, and a CrowdSec
+          # decision bans every visitor behind that PoP.
           servers {
             trusted_proxies cloudflare {
               interval 12h

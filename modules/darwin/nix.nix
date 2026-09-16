@@ -3,7 +3,7 @@
   withSystem,
   ...
 }: {
-  # Determinate Nix (docs/adr/0008) forces nix.enable = false, so every nix.settings equivalent must go through determinateNix.customSettings.
+  # Determinate Nix forces nix.enable = false, so every nix.settings equivalent must go through determinateNix.customSettings.
   flake.darwinModules.nix = {config, ...}: {
     imports = [inputs.determinate.darwinModules.default];
 

@@ -1,22 +1,6 @@
 #!/usr/bin/env bash
-# Push store paths to the garret cache, retrying on transient failures.
-# Replaces .ci/attic-login-push.sh + .ci/attic-push-retry.sh (docs/adr/0013):
-# there is no login step any more, because the garret client mints its own
-# token from the GitHub Actions OIDC provider (garret-client src/auth.rs
-# `bearer_token`).
-#
-# Pushes are idempotent server-side -- already-present paths answer
-# `{"status":"exists"}` with no body transfer (garret spec 01) -- so a retry
-# only re-uploads whatever failed mid-transfer.
-#
-# A cache push is an optimization, not a build product: exhausting all
-# attempts emits a workflow warning and exits 0 so cache outages cannot
-# fail CI. Set GARRET_PUSH_STRICT=1 to restore hard failure.
-#
-# Each attempt runs under a watchdog. The client has its own per-request
-# retry budget, but a black-holed connection can still stall a streaming
-# PUT indefinitely; the watchdog is what bounds the whole attempt. Tune
-# with GARRET_PUSH_TIMEOUT (seconds).
+# Push store paths to garret with retries and a per-attempt watchdog; a cache outage warns but never fails CI.
+# GARRET_PUSH_STRICT=1 makes exhausted retries fail; GARRET_PUSH_TIMEOUT sets the watchdog in seconds.
 set -euo pipefail
 
 if [ $# -lt 1 ]; then

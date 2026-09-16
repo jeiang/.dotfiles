@@ -51,11 +51,7 @@
       sopsFile = mkOption {
         type = types.path;
         description = ''
-          Secret Shard (docs/adr/0006) holding the RDP password under
-          `secretKey`. Declared here rather than by the host so enabling
-          this service adds exactly one key to the host's config -- the
-          file already carries a note about statix W20 firing on a third
-          top-level `sops.*`/`services.*` assignment.
+          Secret shard holding the RDP password under `secretKey`.
         '';
       };
 

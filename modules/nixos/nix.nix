@@ -20,8 +20,7 @@
   }: {
     imports = [
       inputs.nix-index-database.nixosModules.nix-index
-      # Determinate keeps the stock nix.* module active, retargeting rendered
-      # settings to /etc/nix/nix.custom.conf (docs/adr/0011).
+      # Determinate keeps the stock nix.* options and renders them to /etc/nix/nix.custom.conf.
       inputs.determinate.nixosModules.default
     ];
 
