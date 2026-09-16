@@ -96,8 +96,8 @@ serving narinfo for NARs that no longer exist.
 
 The supported recovery is a cold cache:
 
-1. Stop both units: `systemctl stop garret-pusher garret-puller`.
+1. Stop both units: `ssh -t node4.jeiang.dev sudo systemctl stop garret-pusher garret-puller`.
 2. Empty the `garret` bucket.
-3. Delete `/mnt/garret/garret.db`.
-4. Start both units again: `systemctl start garret-pusher garret-puller`.
+3. Delete the database: `ssh -t node4.jeiang.dev sudo rm -f /mnt/garret/garret.db /mnt/garret/garret.db-wal /mnt/garret/garret.db-shm`.
+4. Start both units again: `ssh -t node4.jeiang.dev sudo systemctl start garret-pusher garret-puller`.
 5. Let CI push again on the next `main` run.

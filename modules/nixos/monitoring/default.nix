@@ -457,7 +457,10 @@
               }
               {
                 alert = "ResticBackupStale";
-                expr = ''time() - node_systemd_timer_last_trigger_seconds{name=~"restic-backups-.*\\.timer"} > 36 * 3600'';
+                # node_systemd_timer_last_trigger_seconds is 0 for a timer
+                # that has never fired, which would otherwise satisfy > 36h
+                # for a newly added job until its first randomized run.
+                expr = ''(time() - node_systemd_timer_last_trigger_seconds{name=~"restic-backups-.*\\.timer"} > 36 * 3600) and node_systemd_timer_last_trigger_seconds{name=~"restic-backups-.*\\.timer"} > 0'';
                 for = "0m";
                 labels.severity = "warning";
                 annotations = {

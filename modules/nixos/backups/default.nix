@@ -76,6 +76,7 @@ _: {
           # job.pauseUnits are stopped. restic-maintenance-<name> below
           # prunes and checks on its own weekly schedule instead.
           pruneOpts = [];
+          extraBackupArgs = ["--retry-lock" "2h"];
           backupPrepareCommand =
             ''
               ${pkgs.util-linux}/bin/mountpoint -q ${job.volume} || { echo "restic-backups-${name}: ${job.volume} is not mounted, refusing to back up an empty directory" >&2; exit 1; }
@@ -98,7 +99,10 @@ _: {
         // lib.mapAttrs' (name: _job:
           lib.nameValuePair "restic-maintenance-${name}" {
             description = "Restic prune and integrity check for ${name}";
-            after = ["network-online.target"];
+            # Ordered after the backup unit (not just network-online.target)
+            # so a Persistent=true catch-up at boot runs the daily backup
+            # first instead of the two units racing for the repository lock.
+            after = ["network-online.target" "restic-backups-${name}.service"];
             wants = ["network-online.target"];
             environment = {
               RESTIC_CACHE_DIR = "/var/cache/restic-backups-${name}";
@@ -109,8 +113,8 @@ _: {
               Type = "oneshot";
               EnvironmentFile = config.sops.secrets."restic/s4-env".path;
               ExecStart = [
-                "${lib.getExe pkgs.restic} forget --prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6"
-                "${lib.getExe pkgs.restic} check --read-data-subset=5%"
+                "${lib.getExe pkgs.restic} forget --retry-lock 2h --prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6"
+                "${lib.getExe pkgs.restic} check --retry-lock 2h --read-data-subset=5%"
               ];
             };
           })

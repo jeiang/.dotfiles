@@ -84,11 +84,16 @@
       # renewals never restart this unit.
       after = [
         "network-online.target"
+        # network-online.target (--any) is satisfied by node2's static
+        # public interface alone; NB_PROXY_HEALTH_ADDRESS binds the
+        # DHCP-assigned private IP on enp7s0, so wait for it explicitly.
+        "systemd-networkd-wait-online@enp7s0:routable.service"
         "netbird-server.service"
         "acme-${certName}.service"
       ];
       wants = [
         "network-online.target"
+        "systemd-networkd-wait-online@enp7s0:routable.service"
         "netbird-server.service"
         "acme-${certName}.service"
       ];

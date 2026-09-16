@@ -67,6 +67,7 @@ netbird-update:
 nh *args:
   NH_FLAKE={{justfile_directory()}} nh {{args}}
 
+# Passes --skip-checks itself; add only other deploy-rs flags (e.g. just deploy-legion --remote-build)
 deploy-legion *args:
   @for node in $(nix eval --raw '.#lib.legionNodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrNames nodes)'); do just deploy "$node" --skip-checks {{args}}; done
 
