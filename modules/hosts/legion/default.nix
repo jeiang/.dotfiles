@@ -162,6 +162,7 @@ in {
         self.nixosModules.backups
         self.nixosModules.netbird
         self.nixosModules.speedtest
+        self.nixosModules.tcp-tuning
         self.nixosModules.hermes-ops
         self.diskoConfigurations.legion
       ];

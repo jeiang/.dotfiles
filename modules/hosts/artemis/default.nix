@@ -42,6 +42,7 @@
         self.nixosModules.desktop
         self.nixosModules.netbird
         self.nixosModules.speedtest
+        self.nixosModules.tcp-tuning
         self.nixosModules.gaming
         self.nixosModules.sunshine
         self.nixosModules.backupTunnel
