@@ -212,7 +212,6 @@
           # 2019 would collide with the admin API listener; plain http://
           # skips automatic HTTPS/ACME for this private-network-only block.
           http://${node1}:2020 {
-            bind ${node1}
             metrics /metrics
           }
 
@@ -482,14 +481,7 @@
       users.groups.rivals-heroes = {};
 
       systemd = {
-        services.caddy = {
-          serviceConfig.MemoryMax = "256M";
-          # 172.17.0.1 is DHCP-assigned on enp7s0; network-online.target (--any)
-          # is satisfied by the static public interface alone, so Caddy's bind
-          # can race the private address and exit before it exists.
-          wants = ["systemd-networkd-wait-online@enp7s0:routable.service"];
-          after = ["systemd-networkd-wait-online@enp7s0:routable.service"];
-        };
+        services.caddy.serviceConfig.MemoryMax = "256M";
 
         # Server-side cache for the rivals hero data: stock Caddy cannot cache
         # responses (that needs the cache-handler plugin), so a timer snapshots

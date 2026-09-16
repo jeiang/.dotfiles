@@ -237,7 +237,7 @@
                 };
               }
               {
-                targets = ["http://${node2}:9001/health"];
+                targets = ["http://${node2}:${toString ports.legion-node2.netbird-relay-health}/health"];
                 labels = {
                   type = "probe";
                   tier = "warning";
