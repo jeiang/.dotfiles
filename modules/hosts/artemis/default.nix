@@ -47,10 +47,7 @@
         self.nixosModules.sunshine
         self.nixosModules.backupTunnel
         self.nixosModules.impermanence
-        self.nixosModules.llama-swap
         self.nixosModules.hypr-rdp
-        self.nixosModules.qdrant
-        self.nixosModules.whisper-server
 
         self.diskoConfigurations.artemis
       ];
@@ -77,11 +74,6 @@
           "/var/lib/NetworkManager"
           "/var/lib/bluetooth"
           "/var/lib/netbird"
-          # Model weights: without these entries nukeRoot drops tens of GB every boot and the fetch units re-download before the servers can start.
-          "/var/lib/llama-swap-models"
-          "/var/lib/whisper-models"
-          # Hermes' vector index: genuinely irreplaceable, losing it means re-embedding every source document.
-          "/var/lib/qdrant"
         ];
 
         data.directories = [
