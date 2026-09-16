@@ -150,6 +150,9 @@
       services.caddy = {
         enable = true;
         package = self.packages.${system}.caddy;
+        # CAA on the three zones only permits letsencrypt.org; pin here so
+        # Caddy's ZeroSSL fallback never hits the CA and fails automatic HTTPS.
+        acmeCA = "https://acme-v02.api.letsencrypt.org/directory";
 
         # CrowdSec's file acquisition tails this exact path; retention is
         # short since VictoriaLogs is the searchable archive.
