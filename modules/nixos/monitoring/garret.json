@@ -48,7 +48,7 @@
       }
     ]
   },
-  "description": "Per-service board for garret, the fleet's Nix binary cache on legion-node4 (docs/adr/0013). One scrape job, job=\"garret\", with two targets distinguished by the `component` label: pusher (:9091) and puller (:9092). Metric names verified against garret rev 724ca56 (garret-server/src/{metrics,storage}.rs, garret-pusher/src/{main,gc}.rs, garret-puller/src/main.rs). Datasource is the fixed provisioned uid \"victoriametrics\"; the Logs row uses \"victorialogs\".",
+  "description": "Per-service board for garret, the fleet's Nix binary cache on legion-node4. One scrape job, job=\"garret\", with two targets distinguished by the `component` label: pusher (:9091) and puller (:9092). Metric names verified against garret rev 724ca56 (garret-server/src/{metrics,storage}.rs, garret-pusher/src/{main,gc}.rs, garret-puller/src/main.rs). Datasource is the fixed provisioned uid \"victoriametrics\"; the Logs row uses \"victorialogs\".",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,

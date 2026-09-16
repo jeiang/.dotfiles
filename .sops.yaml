@@ -6,12 +6,8 @@ keys:
   - &server_legion_node3 age1yc37qpvazdtfswa38057e73sh523q0exj75qqahzgax6kqaxeqmsq2wx9t
   - &server_legion_node4 age1a80m5fpv387njdmg63q6vvkavahepdkx7zq4gjjkg62x3lme4f7q9s5c66
 
-# Per-service Secret Shards (docs/DESIGN.md "Secret Shard"; docs/adr/0006).
-# Each shard is encrypted only to the Human Administrator plus the
-# host(s) whose modules consume it. path_regex is anchored to the full
-# colocated path ($-anchored, disjoint) rather than the bare filename --
-# every shard is named secrets.yaml (or secrets.proxy.yaml) beside its
-# consuming module, so a bare filename regex would match multiple shards.
+# One shard per consuming module, encrypted to the admin plus the hosts that run it.
+# Anchor path_regex on the full path: every shard file is named secrets.yaml.
 creation_rules:
   # No Nix consumer -- stored data only (the admin's own stashed key).
   - path_regex: modules/nixos/sops/secrets\.admin\.yaml$

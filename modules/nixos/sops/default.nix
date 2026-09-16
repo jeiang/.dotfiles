@@ -5,8 +5,7 @@
     ];
 
     sops = {
-      # No defaultSopsFile: a secret without an explicit per-shard sopsFile
-      # must fail eval (docs/adr/0006).
+      # No defaultSopsFile: a secret without an explicit shard must fail eval.
       age.sshKeyPaths = [
         "/etc/ssh/ssh_host_ed25519_key"
         "/persist/etc/ssh/ssh_host_ed25519_key"

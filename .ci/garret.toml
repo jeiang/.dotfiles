@@ -1,10 +1,5 @@
-# garret client config for CI (docs/adr/0013). Nothing here is secret.
-#
-# The client mints its own token from the GitHub Actions OIDC provider when
-# ACTIONS_ID_TOKEN_REQUEST_URL/_TOKEN are present (garret-client
-# src/auth.rs `bearer_token`), so there is no login step and no stored
-# credential -- the `issuer`/`client_id` below are only needed because the
-# config schema requires the `oidc` table, and are unused on that path.
+# garret client config for CI. In GitHub Actions the client mints its own OIDC token;
+# the schema still requires the [oidc] table, whose issuer/client_id go unused on that path.
 endpoint = "https://cache-push.jeiang.dev"
 puller_endpoint = "https://cache.jeiang.dev"
 

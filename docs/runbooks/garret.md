@@ -84,7 +84,7 @@ nix run github:jeiang/garret#garret-admin -- key show ./key
 key to `modules/nixos/garret/secrets.yaml` alongside the old, deploy, run
 `garret-admin resign` to backfill signatures, add the new public key to every
 consumer's `trusted-public-keys` (`modules/nixos/nix.nix`,
-`modules/darwin/nix.nix`, both workflows, `zakkart-bootstrap.md`), and only
+`modules/darwin/nix.nix`, `.github/workflows/ci.yml`, `zakkart-bootstrap.md`), and only
 then drop the old one from both places.
 
 ### Losing the SQLite index

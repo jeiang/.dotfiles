@@ -1,4 +1,4 @@
-# What system.defaults can express faithfully lives there; the rest is scripted as idempotent user-context activation steps (docs/adr/0010).
+# What system.defaults can express faithfully lives there; the rest is scripted as idempotent user-context activation steps.
 _: {
   flake.darwinModules.preferences = {
     config,
@@ -48,7 +48,7 @@ _: {
         };
       };
 
-      # Deterministic `defaults` writes fail loudly; TCC/LaunchServices/WindowServer steps warn and continue (ADR 0010).
+      # Deterministic `defaults` writes fail loudly; TCC/LaunchServices/WindowServer steps warn and continue.
       activationScripts.postActivation.text = ''
         # Multicolor accent is the absence of both keys; defaults cannot declare a deletion.
         ${asUser "defaults delete -g AppleAccentColor"} 2>/dev/null || true

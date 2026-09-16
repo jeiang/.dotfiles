@@ -206,7 +206,6 @@
         hybrid-sleep.enable = false;
       };
 
-      # The setup key is an operator-filled placeholder until docs/runbooks/artemis-always-on-setup.md is executed.
       sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
       services.netbird.clients.default.login = {
         enable = true;

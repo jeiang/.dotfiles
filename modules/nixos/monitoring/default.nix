@@ -427,9 +427,7 @@
     };
 
     systemd.services = {
-      # Unordered, an activation restarting both races: journal-upload
-      # crash-loops before VictoriaLogs is up and deploy-rs rolls the whole
-      # deploy back (observed 2026-08-17).
+      # Without the ordering, journal-upload crash-loops before VictoriaLogs is up and deploy-rs rolls back.
       systemd-journal-upload = {
         after = ["victorialogs.service"];
         wants = ["victorialogs.service"];
