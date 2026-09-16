@@ -8,8 +8,6 @@
     _module.args.pkgs = import inputs.nixpkgs {
       inherit system;
       config.allowUnfree = true;
-      # bitwarden depends on this, see https://github.com/NixOS/nixpkgs/issues/526914 for this being updated
-      config.permittedInsecurePackages = ["electron-39.8.10"];
     };
   };
 
@@ -80,10 +78,7 @@
           "helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="
           "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
         ];
-        trusted-users = [
-          "root"
-          "@wheel"
-        ];
+        trusted-users = ["root"];
       };
     };
 

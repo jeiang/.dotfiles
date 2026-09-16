@@ -5,7 +5,10 @@ _: let
   node1PublicKey = "ay1qHJCX2WQONRG5eTfh4fsIcTO6HOU8wdhSwHaJ+BM=";
 in {
   flake.nixosModules.backupTunnel = {config, ...}: {
-    sops.secrets."wireguard/artemis-private-key".sopsFile = ./secrets.yaml;
+    sops.secrets."wireguard/artemis-private-key" = {
+      sopsFile = ./secrets.yaml;
+      restartUnits = ["wireguard-wg-backup.service"];
+    };
 
     networking = {
       wireguard.interfaces.wg-backup = {
@@ -23,12 +26,15 @@ in {
           }
         ];
       };
-      firewall.trustedInterfaces = ["wg-backup"];
+      firewall.interfaces.wg-backup.allowedTCPPorts = [22];
     };
   };
 
   flake.nixosModules.backupTunnelResponder = {config, ...}: {
-    sops.secrets."wireguard/node1-private-key".sopsFile = ./secrets.yaml;
+    sops.secrets."wireguard/node1-private-key" = {
+      sopsFile = ./secrets.yaml;
+      restartUnits = ["systemd-networkd.service"];
+    };
 
     networking.wireguard.interfaces.wg-backup = {
       ips = ["10.100.0.1/30"];

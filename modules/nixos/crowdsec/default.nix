@@ -129,8 +129,14 @@ _: {
       # are registered idempotently below. The edge-caddy key is the same
       # value Caddy sends as CROWDSEC_LAPI_KEY; the other two are consumed by
       # legion-node2 (modules/nixos/netbird-server/proxy.nix).
-      sops.secrets."crowdsec/bouncer-netbird-proxy-key" = {inherit sopsFile;};
-      sops.secrets."crowdsec/bouncer-legion-node2-firewall" = {inherit sopsFile;};
+      sops.secrets."crowdsec/bouncer-netbird-proxy-key" = {
+        inherit sopsFile;
+        restartUnits = ["crowdsec-bouncers.service"];
+      };
+      sops.secrets."crowdsec/bouncer-legion-node2-firewall" = {
+        inherit sopsFile;
+        restartUnits = ["crowdsec-bouncers.service"];
+      };
 
       systemd.services = {
         crowdsec-bouncers = {
@@ -138,7 +144,6 @@ _: {
           after = ["crowdsec.service"];
           wants = ["crowdsec.service"];
           wantedBy = ["multi-user.target"];
-          path = [pkgs.gnugrep];
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
@@ -148,10 +153,11 @@ _: {
             # plus sudo-to-crowdsec-user); it is only exposed via
             # environment.systemPackages, so invoke the system profile copy.
             cscli = "/run/current-system/sw/bin/cscli";
+            # Delete-then-add converges the LAPI on the key currently on
+            # disk; add-if-absent left a rotated key unregistered.
             registerBouncer = name: keyPath: ''
-              if ! ${cscli} bouncers list -o json | grep -q "\"name\": \"${name}\""; then
-                ${cscli} bouncers add ${lib.escapeShellArg name} --key "$(cat ${lib.escapeShellArg keyPath})"
-              fi
+              ${cscli} bouncers delete ${lib.escapeShellArg name} || true
+              ${cscli} bouncers add ${lib.escapeShellArg name} --key "$(cat ${lib.escapeShellArg keyPath})"
             '';
           in ''
             set -euo pipefail

@@ -275,7 +275,6 @@
         }
         {
           name = "hath";
-          # Interim fleet-wide 8888 opening in modules/hosts/legion/default.nix should narrow to this entry's scope; see modules/nixos/hath.nix.
           publicHostnames = [];
           firewall = [
             {

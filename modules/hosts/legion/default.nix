@@ -225,10 +225,9 @@ in {
         ];
       };
 
-      # STUN (UDP 3478) and H@H (TCP 8888) are opened fleet-wide rather than pinned to their owning node.
       networking.firewall = {
-        allowedTCPPorts = firewallPortsFor config.networking.hostName "tcp" "public" ++ [8888];
-        allowedUDPPorts = firewallPortsFor config.networking.hostName "udp" "public" ++ [3478];
+        allowedTCPPorts = firewallPortsFor config.networking.hostName "tcp" "public";
+        allowedUDPPorts = firewallPortsFor config.networking.hostName "udp" "public";
         allowedTCPPortRanges = firewallPortRangesFor config.networking.hostName "tcp" "public";
         allowedUDPPortRanges = firewallPortRangesFor config.networking.hostName "udp" "public";
         trustedInterfaces = ["enp7s0"];

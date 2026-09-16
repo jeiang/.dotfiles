@@ -194,6 +194,8 @@
         interfaces.enp16s0.wakeOnLan.enable = true;
       };
 
+      nix.settings.trusted-users = ["@wheel"];
+
       # BIOS must also be set to "Restore AC Power Loss: Power On" -- firmware setting, not expressible here.
       systemd.settings.Manager = {
         RuntimeWatchdogSec = "30s";

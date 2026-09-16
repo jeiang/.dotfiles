@@ -209,14 +209,17 @@
           # 2019 would collide with the admin API listener; plain http://
           # skips automatic HTTPS/ACME for this private-network-only block.
           http://${node1}:2020 {
+            bind ${node1}
             metrics /metrics
           }
 
           ${lib.optionalString cfg.anubis.enable ''
-            # Ungated view of the protected static roots; loopback-only, so
-            # only Anubis on this node can reach it. The respond 404
-            # fallback guards the Host-preservation assumption.
+            # bind makes this loopback-only, so only Anubis on this node can
+            # reach it; the site address host alone would not restrict the
+            # listener. The respond 404 fallback guards the
+            # Host-preservation assumption.
             http://127.0.0.1:${toString cfg.anubis.originPort} {
+              bind 127.0.0.1
               @website host jeiang.dev aidanpinard.co pinard.co.tt
               handle @website {
                 root * ${website}
@@ -434,7 +437,10 @@
         }
         // lib.optionalAttrs cfg.crowdsec.enable {
           "caddy/crowdsec-lapi-url" = {inherit sopsFile;};
-          "caddy/crowdsec-lapi-key" = {inherit sopsFile;};
+          "caddy/crowdsec-lapi-key" = {
+            inherit sopsFile;
+            restartUnits = ["crowdsec-bouncers.service"];
+          };
         };
 
       sops.templates."caddy.env" = {
