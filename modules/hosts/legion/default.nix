@@ -17,55 +17,6 @@
   };
   unknownServicePlacements = builtins.filter (name: !(legionNodes ? ${name})) (builtins.attrNames legionServices);
 
-  hermesOpsTiers = {
-    legion-node1 = {
-      tier1 = ["crowdsec.service" "prometheus-node-exporter.service"];
-      tier2 = ["caddy.service" "anubis-content.service" "tinyauth.service"];
-    };
-    legion-node2 = {
-      tier1 = [
-        "prometheus-node-exporter.service"
-        "restic-backups-netbird-server.service"
-        "restic-backups-pocket-id.service"
-      ];
-      tier2 = [
-        "netbird-server.service"
-        "netbird-relay.service"
-        "netbird-proxy.service"
-        "pocket-id.service"
-        "blocky.service"
-      ];
-    };
-    legion-node3 = {
-      tier1 = [
-        "prometheus-node-exporter.service"
-        "prometheus-blackbox-exporter.service"
-      ];
-      tier2 = [
-        "victoriametrics.service"
-        "victorialogs.service"
-        "grafana.service"
-        "vmalert-default.service"
-        "alertmanager.service"
-      ];
-    };
-    legion-node4 = {
-      tier1 = [
-        "actual.service"
-        "hath.service"
-        "garret-pusher.service"
-        "garret-puller.service"
-        "restic-backups-actual-budget.service"
-        "restic-backups-garret.service"
-        "restic-backups-hath.service"
-        "prometheus-node-exporter.service"
-        "glance.service"
-        "gatus.service"
-      ];
-      tier2 = [];
-    };
-  };
-
   validatedLegionNodes = assert lib.assertMsg (builtins.length nodeAddresses == builtins.length (lib.unique nodeAddresses))
   "Legion inventory must not reuse an IP address";
   assert lib.assertMsg (unknownServicePlacements == [])
@@ -163,7 +114,6 @@ in {
         self.nixosModules.netbird
         self.nixosModules.speedtest
         self.nixosModules.tcp-tuning
-        self.nixosModules.hermes-ops
         self.diskoConfigurations.legion
       ];
 
@@ -289,31 +239,18 @@ in {
     };
 
     nixosConfigurations = let
-      mkLegionSystem = name: node: let
-        hermesPlaced = lib.any (service: service.name == "hermes") node.services;
-      in
+      mkLegionSystem = name: node:
         inputs.nixpkgs.lib.nixosSystem {
           modules =
             [
               self.nixosModules.legionConfiguration
-              ({
-                config,
-                lib,
-                ...
-              }: {
+              {
                 networking.hostName = name;
 
                 systemd.network.networks."10-wan" = mkWan {
                   inherit (node) publicIPv4 publicIPv6;
                 };
-
-                # journalGrantees reads config lazily: lib.optional never forces the branch on nodes where the hermes module (and its `user` option) is not imported.
-                hermesOps = {
-                  tier1Units = hermesOpsTiers.${name}.tier1;
-                  tier2Units = hermesOpsTiers.${name}.tier2;
-                  journalGrantees = lib.optional hermesPlaced config.services.hermes-agent.user;
-                };
-              })
+              }
             ]
             ++ lib.optional (node.edge or false) self.nixosModules.edge
             ++ lib.optional (node.edge or false) self.nixosModules.crowdsec
@@ -353,7 +290,6 @@ in {
             ++ lib.optional
             (lib.any (service: service.name == "monitoring") node.services)
             self.nixosModules.monitoring
-            ++ lib.optional hermesPlaced self.nixosModules.hermes
             ++ lib.optional
             (lib.any (service: service.name == "backup-tunnel") node.services)
             self.nixosModules.backupTunnelResponder;

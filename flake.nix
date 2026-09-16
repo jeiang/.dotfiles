@@ -71,8 +71,6 @@
     markdown-table-live-editor.inputs.nixpkgs.follows = "nixpkgs";
     # Deliberately no follows: CI installs the garret client from this input's locked rev, and a different pin than garret's own cache seeding would force from-source rebuilds every run.
     garret.url = "github:jeiang/garret";
-    # Deliberately no follows: upstream's uv2nix Python environment is tested against its own pin; following ours would rebuild it on every nixpkgs bump.
-    hermes-agent.url = "github:NousResearch/hermes-agent/v2026.7.30";
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);
