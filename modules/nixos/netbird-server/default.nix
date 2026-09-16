@@ -15,7 +15,7 @@
 
     relayPort = self.lib.ports.legion-node2.netbird-relay;
     stunPort = self.lib.ports.legion-node2.netbird-stun;
-    metricsPort = 9091;
+    metricsPort = self.lib.ports.legion-node2.netbird-relay-metrics;
     healthcheckPort = 9001;
 
     configYaml = ''

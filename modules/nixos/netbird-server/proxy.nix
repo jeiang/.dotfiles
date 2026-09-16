@@ -15,6 +15,8 @@
     crowdsecSopsFile = ../crowdsec/secrets.yaml;
 
     node1PrivateIp = self.lib.legionNodes.legion-node1.privateIPv4;
+    node2PrivateIp = self.lib.legionNodes.legion-node2.privateIPv4;
+    healthPort = self.lib.ports.legion-node2.netbird-proxy-health;
     lapiPort = 8080;
 
     # Static-cert mode: security.acme provisions the DNS-01 wildcard and the
@@ -96,7 +98,8 @@
         NB_PROXY_DOMAIN = domain;
         # The default localhost:8080 collides with the relay's WS port on
         # this node; 9002 continues the netbird health band (9000, 9001).
-        NB_PROXY_HEALTH_ADDRESS = "localhost:9002";
+        # Bound to the private IP, not localhost, so blackbox on node3 can probe it.
+        NB_PROXY_HEALTH_ADDRESS = "${node2PrivateIp}:${toString healthPort}";
         # The management connection MUST be TLS (gRPC refuses per-RPC
         # credentials over plaintext) and the local server is plain :80, so
         # this hairpins through the edge's TLS-terminating @grpc route.

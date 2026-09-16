@@ -229,7 +229,13 @@
 
       # Grouped in one attrset: statix W20 fires on a third top-level `services.*` key.
       services = {
-        prometheus.exporters.node.enable = true;
+        prometheus.exporters.node = {
+          enable = true;
+          enabledCollectors = ["systemd"];
+          extraFlags = [
+            "--collector.systemd.unit-include=(netbird|netbird-login|greetd|wireguard-wg-backup|beesd@.*|sshd)\\.service"
+          ];
+        };
 
         # The HomeKit Wake-on-LAN Switch resolves artemis.local over mDNS before pinging it.
         avahi.enable = true;

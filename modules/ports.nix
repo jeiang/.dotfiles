@@ -9,6 +9,8 @@
       netbird-stun = 3478;
       netbird-relay = 8080;
       netbird-server-metrics = 9090;
+      netbird-relay-metrics = 9091;
+      netbird-proxy-health = 9002;
       pocket-id = 1411;
       librespeed = 8989;
     };
