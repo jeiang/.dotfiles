@@ -9,58 +9,39 @@ on:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  # Never cancel a main-branch run: it's the one populating the authoritative
-  # cache state, and cancelling it mid-push would leave things half-populated.
+  # Never cancel a main-branch run: it populates the authoritative cache state.
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
 
 env:
-  # The cache is public for reads: pulls are anonymous on every event
-  # (PRs and forks included), so substitution needs no client, no login, and
-  # no secrets — just the substituters and their signing keys in nix.conf
-  # below. Push credentials are minted per-job by the garret client itself
-  # from GitHub OIDC, and only main is granted push server-side
-  # (modules/nixos/garret/default.nix `ref_patterns`).
+  # Pulls are anonymous, so only pushes need credentials; those are minted
+  # per-job from GitHub OIDC (only refs/heads/main is granted push server-side).
   GARRET_SUBSTITUTER: https://cache.jeiang.dev
   GARRET_PUBLIC_KEY: "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
 
-  # With the cache warm, a CI leg compiles almost nothing: it realises a few
-  # thousand already-built paths, so wall clock is substituter round-trips,
-  # not CPU. Nix's defaults (16 substitution jobs over 25 HTTP connections)
-  # leave the link mostly idle — the heavy legs were fetching ~2400 paths at
-  # roughly 6/s. These are the single biggest wall-clock knob left; they are
-  # also the knob that loads garret hardest, so they move together with its
-  # server-side limits.
+  # Raised from Nix's defaults: a warm-cache leg is substituter round-trips, not CPU.
   MAX_SUBSTITUTION_JOBS: "32"
   HTTP_CONNECTIONS: "64"
 
 jobs:
-  # Source of the check matrix below. Building every check in a single job
-  # previously ran for hours and got killed with no useful logs (likely OOM
-  # from building 6 NixOS closures, one with a full-LTO kernel, plus every
-  # package, all in one process) — splitting into a matrix gives each check
-  # its own runner, memory budget, and time budget.
-  #
-  # This only evaluates checks.x86_64-linux, not the whole flake: some
-  # packages (e.g. Hyprland, which reads a VERSION file from its own source
-  # at eval time) need a build-capable evaluation just to resolve their
-  # attributes, so a `nix flake check --no-build`-style pass over every
-  # output isn't viable here. The `build` job below is what actually
-  # validates each check.
+  # Splitting checks into a matrix gives each one its own runner, memory and time
+  # budget. This only evaluates checks.x86_64-linux, not the whole flake: some
+  # packages need a build-capable evaluation just to resolve their attributes, so
+  # a `nix flake check --no-build`-style pass over every output isn't viable here.
   discover:
     runs-on: ubuntu-latest
     outputs:
       checks: ${{ steps.discover.outputs.checks }}
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # The substituters go straight into nix.conf so evaluation-time
       # IFD sources substitute from the cache too.
       - name: Install Nix
-        uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
         with:
           extra_nix_config: |
             extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
@@ -68,58 +49,32 @@ jobs:
             max-substitution-jobs = ${{ env.MAX_SUBSTITUTION_JOBS }}
             http-connections = ${{ env.HTTP_CONNECTIONS }}
 
-      # A matrix entry is a space-separated list of check names, not a single
-      # name, so related checks can share one runner. The only collapse today:
-      # deploy-schema and deploy-activate both realise every deploy node's
-      # activation profile — the same ~2200 paths, which already subsume all
-      # four legion toplevels — so as separate legs they paid ~400s each to
-      # download identical closures. Together, the second is free.
       - name: Discover checks
         id: discover
         run: |
-          collapse='
-            ([.[] | select(startswith("deploy-"))] | if length > 0 then [join(" ")] else [] end) as $deploy
-            | [.[] | select(startswith("deploy-") | not)] + $deploy
-          '
-          checks=$(nix eval --json '.#checks.x86_64-linux' --apply builtins.attrNames | jq -c "$collapse")
+          checks=$(nix eval --json '.#checks.x86_64-linux' --apply builtins.attrNames)
           echo "checks=$checks" >> "$GITHUB_OUTPUT"
 
   build:
     needs: discover
     permissions:
       contents: read
-      # The garret client exchanges this for a short-lived push token right
-      # before pushing; the server only grants push to `refs/heads/main`
-      # (modules/nixos/garret/default.nix), so PR runs never use it.
+      # Exchanged for a short-lived push token; the server only grants push to refs/heads/main.
       id-token: write
     strategy:
       fail-fast: false
-      # 2 was set when every job compiled heavyweight closures from scratch;
-      # with the cache warm, jobs are mostly network-bound substitution, so
-      # this cap just trades cache server load for wall-clock time. Raised to
-      # 10 once garret's server-side limits were lifted to match.
+      # Bounds cache-server load, not build capacity: legs mostly substitute from a warm cache.
       max-parallel: 10
       matrix:
         check: ${{ fromJson(needs.discover.outputs.checks) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # ponytail: no "free disk space" step. It was added (0b64642) when every
-      # check built in ONE job and needed headroom for all six closures at
-      # once; the matrix split made it vestigial. Each leg now realises a
-      # single check, entirely by substitution (~2400 paths, ~10-20 GB), on a
-      # 145 GB runner with ~70 GB free before any cleanup. It cost 25-190s per
-      # leg — 1709s across the matrix, 38% of all job-seconds, routinely
-      # longer than the build it was making room for. If a leg ever hits
-      # ENOSPC, add the rm -rf back to that leg only.
-
-      # Pulls are anonymous against the public cache: baking the substituter
-      # into nix.conf here means every nix invocation below substitutes from
-      # the cache with zero setup steps — no client, no login, no secrets.
+      # Baking the substituter into nix.conf here needs no client, login, or secrets: pulls are anonymous.
       - name: Install Nix
-        uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
         with:
           extra_nix_config: |
             extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
@@ -127,16 +82,8 @@ jobs:
             max-substitution-jobs = ${{ env.MAX_SUBSTITUTION_JOBS }}
             http-connections = ${{ env.HTTP_CONNECTIONS }}
 
-      # print-out-paths emits one line per derivation output (e.g. mangohud's
-      # "out" and "man"), so this can be multi-line — write it to
-      # $GITHUB_OUTPUT with the delimiter form rather than a plain
-      # key=value line, which breaks on embedded newlines.
-      #
-      # CHECKS is a space-separated list (see `discover`), and goes through
-      # the environment rather than being spliced into the script for the
-      # same reason PATHS does below. Building the whole group in one `nix
-      # build` rather than a loop is the point: nix then substitutes their
-      # shared dependencies once, concurrently, instead of once per attr.
+      # print-out-paths can emit multiple lines, so use the GITHUB_OUTPUT
+      # delimiter form rather than a plain key=value line.
       - name: Build check
         id: build
         env:
@@ -153,49 +100,23 @@ jobs:
             echo "$delimiter"
           } >> "$GITHUB_OUTPUT"
 
-      # Main pushes only: PRs pull anonymously and never need a client or a
-      # token. There is no login step — the garret client mints its own
-      # short-lived token from this job's OIDC provider (garret-client
-      # src/auth.rs `bearer_token`), which is why `id-token: write` above is
-      # still required.
-      #
-      # The client rev comes from flake.lock (the same pin the flake itself
-      # uses). That build is NOT yet pre-seeded in any cache, so these first runs compile a Rust workspace from source;
-      # once jeiang/garret's own CI pushes its client build to
-      # cache.jeiang.dev, the install substitutes in seconds instead.
-      #
-      # The push is best-effort by design (continue-on-error plus the push
-      # script's soft-fail): the cache is an optimization, and a cache
-      # outage must never turn main red.
-      #
-      # PATHS goes through the environment rather than being spliced
-      # directly into the run script: the output can be multiple
-      # newline-separated paths, and unquoted $PATHS lets the shell
-      # word-split it into separate push arguments, whereas templating it
-      # straight into the YAML would paste literal newlines into the script
-      # and turn each extra path into its own (invalid) command.
+      # Main pushes only; best-effort (continue-on-error plus the push script's
+      # soft-fail) since a cache outage must never turn main red. Also pushes
+      # the garret client's own path so later installs substitute instead of
+      # building it from source; statix/treefmt have nothing worth pushing.
       - name: Push to garret
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.check != 'statix' && matrix.check != 'treefmt'
         continue-on-error: true
         env:
           PATHS: ${{ steps.build.outputs.paths }}
         run: |
           garret_rev=$(jq -r '.nodes.garret.locked.rev' flake.lock)
           nix profile install "github:jeiang/garret/${garret_rev}#garret"
-          ./.ci/garret-push.sh $PATHS
+          client_path=$(nix build --no-link --print-out-paths "github:jeiang/garret/${garret_rev}#garret")
+          ./.ci/garret-push.sh $PATHS $client_path
 
-  # Builds the zakkart darwin toplevel (checks.aarch64-darwin.zakkart-system,
-  # modules/checks.nix) on a hosted macOS runner (arm64). Not part of the
-  # `discover`/`build` matrix -- `discover` only enumerates
-  # checks.x86_64-linux, and this is a single fixed attribute rather than a
-  # per-check fan-out, so it's simpler as its own job than folded into that
-  # matrix. Same pure `nix build` and best-effort cache push pattern as
-  # `build` above.
-  #
-  # One attribute is all darwin needs, and a package fan-out here would be
-  # actively wasteful -- see the note in modules/checks.nix: the push below
-  # sends this toplevel's whole closure, which is already every darwin path
-  # zakkart installs.
+  # Not part of the discover/build matrix: darwin builds only the fixed
+  # zakkart-system attribute, so a matrix would add nothing here.
   build-macos:
     permissions:
       contents: read
@@ -203,10 +124,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Nix
-        uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31.10.7
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
         with:
           extra_nix_config: |
             extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
@@ -225,6 +146,8 @@ jobs:
             echo "$delimiter"
           } >> "$GITHUB_OUTPUT"
 
+      # Main pushes only; best-effort, and also pushes the garret client's own
+      # path so later installs substitute instead of building it from source.
       - name: Push to garret
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         continue-on-error: true
@@ -233,28 +156,14 @@ jobs:
         run: |
           garret_rev=$(jq -r '.nodes.garret.locked.rev' flake.lock)
           nix profile install "github:jeiang/garret/${garret_rev}#garret"
-          ./.ci/garret-push.sh $PATHS
+          client_path=$(nix build --no-link --print-out-paths "github:jeiang/garret/${garret_rev}#garret")
+          ./.ci/garret-push.sh $PATHS $client_path
 
-  # Aggregate gate: a single, stable status context that reflects the whole
-  # matrix, for branch protection to require. The `build` job above fans out
-  # into one context per discovered check (`build (toplevel-legion-node1)`,
-  # `build (package-caddy)`, ...) whose set changes as checks are added or
-  # removed, and there is no bare `build` context — so requiring the matrix
-  # directly is either brittle (name-per-check) or never satisfiable (a `build`
-  # requirement stays perpetually pending, silently blocking every merge). This
-  # job depends on the whole matrix and succeeds only if discovery and every
-  # matrix leg did, so `all-checks` is the one context to mark required in the
-  # branch ruleset.
-  #
-  # `if: always()` is required: without it, a failed matrix leg would skip this
-  # job, and a *skipped* required check blocks the PR just like a failing one
-  # (with no red signal explaining why). Running always lets it turn the result
-  # into an explicit pass/fail. Note `needs.build.result` collapses the whole
-  # matrix — it is `success` only when every leg succeeded, and `failure` if any
-  # leg failed — and the best-effort `Push to garret` step above is
-  # `continue-on-error`, so a cache-push hiccup never fails a leg or this gate.
+  # Single stable required status context: `build` fans out into one context
+  # per matrix leg, which branch protection can't require directly.
   all-checks:
     needs: [discover, build, build-macos]
+    # Runs even when a leg fails: a skipped required check blocks merges just like a failing one.
     if: always()
     runs-on: ubuntu-latest
     steps:
