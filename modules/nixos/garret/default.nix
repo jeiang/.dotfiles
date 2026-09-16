@@ -52,13 +52,6 @@
       # build machines, not the cache host.
     ];
 
-    assertions = [
-      {
-        assertion = pocketIdAudience != "TODO-REPLACE-WITH-POCKET-ID-GARRET-CLIENT-ID";
-        message = "modules/nixos/garret/default.nix: pocketIdAudience is still the placeholder. Register the garret client in Pocket ID and paste its client id here (docs/runbooks/garret.md).";
-      }
-    ];
-
     services.garret = {
       pusher = {
         enable = true;

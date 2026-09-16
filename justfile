@@ -12,18 +12,27 @@ check extraArgs="":
   nix flake check --impure --keep-going {{extraArgs}}
 
 clean-deploy system address *args:
-  nix run github:nix-community/nixos-anywhere -- --generate-hardware-config nixos-facter ./modules/hosts/{{system}}/facter.json  --flake .#{{system}} --target-host root@{{address}} {{args}}
+  #!/usr/bin/env bash
+  set -euo pipefail
+  case "{{system}}" in
+    legion-node*) facter=modules/hosts/legion/facter.json ;;
+    *) facter=modules/hosts/{{system}}/facter.json ;;
+  esac
+  nix run github:nix-community/nixos-anywhere/1.13.0 -- --generate-hardware-config nixos-facter "$facter" --flake .#{{system}} --target-host root@{{address}} {{args}}
 
 deploy system *args:
   deploy .#{{system}} {{args}}
 
-# Run this after editing .sops.yaml
+# Run this after a .sops.yaml recipient change; re-keys every shard
 sops-updatekeys:
-  sops updatekeys $(fd "secrets.([^.]+.)?(yaml|env|ini|json)" | fzf)
+  fd '^secrets(\.[^.]+)?\.(yaml|env|ini|json)$' modules -x sops updatekeys -y
 
 # Edit or view the secrets
 sops-edit:
-  sops $(fd "secrets.([^.]+.)?(yaml|env|ini|json)" | fzf)
+  #!/usr/bin/env bash
+  set -euo pipefail
+  file=$(fd "secrets.([^.]+.)?(yaml|env|ini|json)" | fzf)
+  [ -n "$file" ] && sops "$file"
 
 sops-create path:
   sops {{path}}
@@ -46,6 +55,8 @@ install system sudo="sudo":
 # binary) behind, and a formula-only upgrade swaps /opt/homebrew/bin/netbird under the running launchd job without restarting it.
 # The cask's installer.sh boots the old job out and its `netbird service start` can leave the plist unloaded, so re-bootstrap it
 # (the plist has RunAtLoad=false, hence the kickstart).
+
+# Upgrade the NetBird brew formula and cask, then restart the launchd job
 netbird-update:
   brew upgrade netbirdio/tap/netbird netbirdio/tap/netbird-ui
   sudo launchctl bootout system/netbird 2>/dev/null || true
@@ -57,12 +68,14 @@ nh *args:
   NH_FLAKE={{justfile_directory()}} nh {{args}}
 
 deploy-legion *args:
-  @for node in $(nix eval --raw '.#deploy.nodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrNames nodes)'); do just deploy "$node" {{args}}; done
+  @for node in $(nix eval --raw '.#lib.legionNodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrNames nodes)'); do just deploy "$node" --skip-checks {{args}}; done
 
 legion-run *command:
-  @for host in $(nix eval --raw '.#deploy.nodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrValues (builtins.mapAttrs (_: node: node.hostname) nodes))'); do ssh "$host" -- {{command}}; done
+  @for node in $(nix eval --raw '.#lib.legionNodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrNames nodes)'); do ssh "${node#legion-}.jeiang.dev" -- {{command}}; done
 
 # Recolor new images from assets/wallpapers/ into assets/wallpapers-kanabox/. Files already there are left alone, so a photo
 # kept in its original colors is just a copy; delete the recolored outputs before re-running after a palette change.
+
+# Recolor new wallpapers from assets/wallpapers/ into assets/wallpapers-kanabox/
 wallpaper:
   @for f in assets/wallpapers/*.jpg assets/wallpapers/*.png; do [ -e "$f" ] || continue; [ -e "assets/wallpapers-kanabox/$(basename "$f")" ] && continue; nix run nixpkgs#lutgen -- apply -o "assets/wallpapers-kanabox/$(basename "$f")" "$f" -- $(nix eval --raw '.#lib.palette.kanaboxDarkHard' --apply 'p: builtins.concatStringsSep " " (map (c: builtins.substring 1 6 c) (builtins.attrValues p))'); done

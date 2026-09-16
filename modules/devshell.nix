@@ -27,14 +27,13 @@
             config.treefmt.build.wrapper
             self'.packages.helix
             self'.packages.git
-            deploy-rs
+            inputs.deploy-rs.packages.${pkgs.stdenv.hostPlatform.system}.default
             disko
             dnscontrol
             fd
             fzf
             just
             nh
-            nixVersions.latest
             sops
             ssh-to-age
           ]
@@ -61,7 +60,6 @@
               })
             )
           ];
-        env.NH_FLAKE = ../.;
         languages = {
           nix.enable = true;
         };
