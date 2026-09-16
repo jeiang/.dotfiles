@@ -162,6 +162,7 @@ in {
         self.nixosModules.backups
         self.nixosModules.netbird
         self.nixosModules.speedtest
+        self.nixosModules.tcp-tuning
         self.nixosModules.hermes-ops
         self.diskoConfigurations.legion
       ];
@@ -250,16 +251,10 @@ in {
       ];
 
       boot = {
-        kernelModules = ["tcp_bbr"];
+        # Required by services.netbird's useRoutingFeatures = "both".
         kernel.sysctl = {
-          # Required by services.netbird's useRoutingFeatures = "both".
           "net.ipv4.ip_forward" = 1;
           "net.ipv6.conf.all.forwarding" = 1;
-          # Clients are ~85 ms away and the path drops packets: cubic treats
-          # every drop as congestion and takes seconds to regrow at that RTT,
-          # and the 4 MB default send buffer caps one stream near 400 Mbps.
-          "net.ipv4.tcp_congestion_control" = "bbr";
-          "net.ipv4.tcp_wmem" = "4096 16384 16777216";
         };
 
         loader.grub.enable = true;
