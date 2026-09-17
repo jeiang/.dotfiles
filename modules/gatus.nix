@@ -1,10 +1,14 @@
-{self, ...}: {
+_: let
+  port = 8086;
+in {
   legion.services.gatus = {
     node = "legion-node4";
     module = "gatus";
+    units = ["gatus"];
+    ports.app = port;
     firewall = [
       {
-        port = self.lib.ports.legion-node4.gatus;
+        inherit port;
         proto = "tcp";
         scope = "private";
       }
@@ -22,7 +26,7 @@
     services.gatus = {
       enable = true;
       settings = {
-        web.port = self.lib.ports.legion-node4.gatus;
+        web.port = port;
 
         # In-memory deliberately: keeps this service stateless and off the
         # backup path.

@@ -5,11 +5,14 @@
   ...
 }: let
   legionServices = config.legion.services;
+  metricsPort = 2020;
 in {
   legion.services.caddy = {
     node = "legion-node1";
     module = "edge";
     edge = true;
+    units = ["caddy" "rivals-heroes-sync"];
+    ports.metrics = metricsPort;
     publicHostnames = [
       "jeiang.dev"
       "aidanpinard.co"
@@ -42,7 +45,7 @@ in {
         scope = "public";
       }
       {
-        port = 2020;
+        port = metricsPort;
         proto = "tcp";
         scope = "private";
       }
@@ -63,8 +66,7 @@ in {
     node3 = self.lib.legionNodes.legion-node3.privateIPv4;
     node4 = self.lib.legionNodes.legion-node4.privateIPv4;
 
-    ports = self.lib.ports;
-    port = node: service: toString ports.${node}.${service};
+    port = svc: key: toString legionServices.${svc}.ports.${key};
 
     website = inputs.website.packages.${system}.default;
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
@@ -256,7 +258,7 @@ in {
               # time, before the placeholder replacer runs.
               api_url {$CROWDSEC_LAPI_URL}
               api_key {$CROWDSEC_LAPI_KEY}
-              appsec_url http://127.0.0.1:7422
+              appsec_url http://127.0.0.1:${toString legionServices.crowdsec.ports.appsec}
               appsec_fail_open
             }
           ''}
@@ -265,7 +267,7 @@ in {
         extraConfig = ''
           # 2019 would collide with the admin API listener; plain http://
           # skips automatic HTTPS/ACME for this private-network-only block.
-          http://${node1}:2020 {
+          http://${node1}:${toString metricsPort} {
             metrics /metrics
           }
 
@@ -337,20 +339,20 @@ in {
           # an outage, not a trade-off.
 
           auth.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node2}:${port "legion-node2" "pocket-id"}
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node2}:${port "pocket-id" "app"}
           }
 
           # appsec skipped on the cache routes: clients legitimately fetch
           # in high-volume bursts, and fail-open wins here.
           cache.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "legion-node4" "garret-puller"}
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "garret" "puller"}
           }
 
           # MUST stay grey-clouded/DNS-only in Cloudflare: a push is one
           # streaming PUT of a whole NAR and Cloudflare 413s bodies over
           # 100 MB on the free plan. Long timeouts for those uploads.
           cache-push.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "legion-node4" "garret-pusher"} {
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "garret" "pusher"} {
               transport http {
                 read_timeout 15m
                 write_timeout 15m
@@ -360,45 +362,45 @@ in {
           }
 
           budget.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node4}:${port "legion-node4" "actual-budget"}
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node4}:${port "actual-budget" "app"}
           }
 
           grafana.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node3}:${port "legion-node3" "grafana"}
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node3}:${port "monitoring" "grafana"}
           }
 
           # Ungated deliberately: it reports on Pocket ID, so SSO (or
           # netbird-proxy, which authenticates against it) would take the
           # outage report down with the outage. appsec skipped, fail-open.
           status.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "legion-node4" "gatus"}
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "gatus" "app"}
           }
 
           tinyauth.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy 127.0.0.1:${port "legion-node1" "tinyauth"}
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy 127.0.0.1:${port "tinyauth" "app"}
           }
 
           # Glance has no login of its own; tinyauth answers 2xx for a valid
           # session and otherwise a redirect to its Pocket ID login.
           glance.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}forward_auth 127.0.0.1:${port "legion-node1" "tinyauth"} {
+            ${logLine}${crowdsecLine}${appsecLine}forward_auth 127.0.0.1:${port "tinyauth" "app"} {
               uri /api/auth/caddy
             }
-            reverse_proxy ${node4}:${port "legion-node4" "glance"}
+            reverse_proxy ${node4}:${port "glance" "app"}
           }
 
           # Behind tinyauth so only a logged-in user can burn egress.
           # appsec skipped: the upload test is a burst of large random
           # POST bodies, the one shape a WAF exists to inspect.
           speed.jeiang.dev {
-            ${logLine}${crowdsecLine}forward_auth 127.0.0.1:${port "legion-node1" "tinyauth"} {
+            ${logLine}${crowdsecLine}forward_auth 127.0.0.1:${port "tinyauth" "app"} {
               uri /api/auth/caddy
             }
             handle /servers_list.js {
               root * ${speedtestServersList}
               file_server
             }
-            reverse_proxy 127.0.0.1:${port "legion-node1" "librespeed"}
+            reverse_proxy 127.0.0.1:${toString self.lib.speedtestPort}
           }
 
           netbird.jeiang.dev {
@@ -407,12 +409,12 @@ in {
             # allow anyway.
             ${logLine}${crowdsecLine}@grpc path /signalexchange.SignalExchange/* /management.ManagementService/* /management.ProxyService/*
             handle @grpc {
-              reverse_proxy h2c://${node2}:${port "legion-node2" "netbird-http"}
+              reverse_proxy h2c://${node2}:${port "netbird-server" "http"}
             }
 
             @backend path /api/* /oauth2/* /ws-proxy/*
             handle @backend {
-              reverse_proxy ${node2}:${port "legion-node2" "netbird-http"} {
+              reverse_proxy ${node2}:${port "netbird-server" "http"} {
                 transport http {
                   read_timeout 15m
                 }
@@ -421,7 +423,7 @@ in {
 
             @relay path /relay*
             handle @relay {
-              reverse_proxy ${node2}:${port "legion-node2" "netbird-relay"} {
+              reverse_proxy ${node2}:${port "netbird-relay" "relay"} {
                 transport http {
                   read_timeout 15m
                 }

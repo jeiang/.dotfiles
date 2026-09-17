@@ -1,7 +1,11 @@
-_: {
+_: let
+  httpPort = 8000;
+in {
   legion.services.blocky = {
     node = "legion-node2";
     module = "blocky";
+    units = ["blocky"];
+    ports.http = httpPort;
   };
 
   nixos.modules.blocky = {config, ...}: {
@@ -23,7 +27,7 @@ _: {
         ports = {
           # 553, not 53: NetBird's embedded DNS resolver binds 53 on this host.
           dns = 553;
-          http = 8000;
+          http = httpPort;
         };
         upstreams.groups.default = [
           "1.1.1.1"

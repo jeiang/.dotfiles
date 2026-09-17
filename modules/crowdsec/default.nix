@@ -1,15 +1,27 @@
-_: {
+{self, ...}: let
+  # Read by edge (appsec_url, and the LAPI port half of the sops-held LAPI
+  # URL) and netbird-proxy (its own bouncer's api_url).
+  lapiPort = 8080;
+  metricsPort = 6060;
+  appsecPort = 7422;
+in {
   legion.services.crowdsec = {
     node = "legion-node1";
     module = "crowdsec";
+    units = ["crowdsec" "crowdsec-bouncers"];
+    ports = {
+      lapi = lapiPort;
+      metrics = metricsPort;
+      appsec = appsecPort;
+    };
     firewall = [
       {
-        port = 8080;
+        port = lapiPort;
         proto = "tcp";
         scope = "private";
       }
       {
-        port = 6060;
+        port = metricsPort;
         proto = "tcp";
         scope = "private";
       }
@@ -24,11 +36,6 @@ _: {
   }: let
     cfg = config.edge.crowdsec;
     sopsFile = ./secrets.yaml;
-
-    # modules/edge/default.nix hardcodes appsec_url
-    # http://127.0.0.1:7422, so 7422 is not a free choice here.
-    lapiPort = 8080;
-    appsecPort = 7422;
 
     localAppsecConfigName = "jeiang/appsec-caddy";
 
@@ -133,7 +140,7 @@ _: {
               whitelist = {
                 reason = "Hetzner private network / NetBird mesh, never bans";
                 cidr = [
-                  "172.16.0.0/12"
+                  self.lib.hetznerPrivateCidr
                   "100.89.0.0/16"
                   "fd1a:6b4d:62e5:46a::/64"
                 ];

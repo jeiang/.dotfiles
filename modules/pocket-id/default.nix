@@ -1,22 +1,29 @@
-{self, ...}: {
+{self, ...}: let
+  # WorkingDirectory=dataDir, so the app's relative default paths resolve
+  # to ${dataDir}/data/*.
+  dataDir = "/mnt/pocket-id";
+  appPort = 1411;
+in {
   legion.services.pocket-id = {
     node = "legion-node2";
     module = "pocket-id";
     stateful = true;
+    units = ["pocket-id"];
+    ports.app = appPort;
     firewall = [
       {
-        port = self.lib.ports.legion-node2.pocket-id;
+        port = appPort;
         proto = "tcp";
         scope = "private";
       }
     ];
     volume = {
       name = "legion-pocket-id";
-      mountpoint = "/mnt/pocket-id";
+      mountpoint = dataDir;
       hcloudVolumeId = "106117410";
       sizeGiB = 10;
     };
-    backupSet = ["/mnt/pocket-id"];
+    backupSet = [dataDir];
     backupPauseUnits = ["pocket-id.service"];
   };
 
@@ -26,9 +33,6 @@
     pkgs,
     ...
   }: let
-    # The unit runs WorkingDirectory=dataDir, so the app's relative default
-    # paths resolve to ${dataDir}/data/*.
-    dataDir = "/mnt/pocket-id";
     sopsFile = ./secrets.yaml;
   in {
     services.pocket-id = {

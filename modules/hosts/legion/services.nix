@@ -43,6 +43,28 @@
         description = "Legion node this service is placed on.";
       };
 
+      ports = lib.mkOption {
+        type = lib.types.attrsOf lib.types.port;
+        default = {};
+        description = ''
+          This service's own listen/metrics ports, keyed by role (for
+          example `app`, `metrics`). The single source for a port shared
+          between this service's own module and any other module that
+          talks to it; read as `config.legion.services.<name>.ports.<key>`.
+        '';
+      };
+
+      units = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [];
+        description = ''
+          systemd unit names (without `.service`) this service owns.
+          modules/hosts/legion/default.nix builds each node's
+          node-exporter --collector.systemd.unit-include regex from the
+          units of the services placed there.
+        '';
+      };
+
       module = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
         default = null;
@@ -101,6 +123,11 @@
     };
   };
 in {
+  # Hetzner's private network range for all Legion nodes; shared between
+  # the 20-hcloud-private route (modules/hosts/legion/default.nix) and the
+  # CrowdSec mesh whitelist (modules/crowdsec/default.nix).
+  config.flake.lib.hetznerPrivateCidr = "172.16.0.0/12";
+
   options.legion.services = lib.mkOption {
     type = lib.types.attrsOf serviceType;
     default = {};

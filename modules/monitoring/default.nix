@@ -1,15 +1,33 @@
-{self, ...}: {
+{
+  self,
+  config,
+  ...
+}: let
+  grafanaPort = 3000;
+  vmPort = 8428;
+  vlPort = 9428;
+  alertmanagerPort = 9093;
+
+  legionServices = config.legion.services;
+in {
   legion.services.monitoring = {
     node = "legion-node3";
     module = "monitoring";
+    units = ["grafana" "victoriametrics" "victorialogs" "vmalert-default" "alertmanager" "prometheus-blackbox-exporter"];
+    ports = {
+      grafana = grafanaPort;
+      victoria-metrics = vmPort;
+      victoria-logs = vlPort;
+      alertmanager = alertmanagerPort;
+    };
     firewall = [
       {
-        port = self.lib.ports.legion-node3.grafana;
+        port = grafanaPort;
         proto = "tcp";
         scope = "private";
       }
       {
-        port = self.lib.ports.legion-node3.alertmanager;
+        port = alertmanagerPort;
         proto = "tcp";
         scope = "private";
       }
@@ -28,9 +46,17 @@
     sopsFile = ./secrets.yaml;
     legionPrivateIPs = map (node: node.privateIPv4) (builtins.attrValues self.lib.legionNodes);
 
-    ports = self.lib.ports;
-    vmPort = ports.legion-node3.victoria-metrics;
-    vlPort = ports.legion-node3.victoria-logs;
+    caddyPort = legionServices.caddy.ports.metrics;
+    crowdsecPort = legionServices.crowdsec.ports.metrics;
+    netbirdServerPort = legionServices.netbird-server.ports;
+    netbirdRelayPort = legionServices.netbird-relay.ports;
+    netbirdProxyPort = legionServices.netbird-proxy.ports;
+    blockyPort = legionServices.blocky.ports.http;
+    hathPort = legionServices.hath.ports.app;
+    garretPort = legionServices.garret.ports;
+    gatusPort = legionServices.gatus.ports.app;
+    pocketIdPort = legionServices.pocket-id.ports.app;
+    actualBudgetPort = legionServices.actual-budget.ports.app;
 
     blackboxPort = 9115;
 
@@ -135,7 +161,7 @@
             job_name = "caddy";
             static_configs = [
               {
-                targets = ["${node1}:2020"];
+                targets = ["${node1}:${toString caddyPort}"];
                 labels.type = "edge";
               }
             ];
@@ -144,7 +170,7 @@
             job_name = "crowdsec";
             static_configs = [
               {
-                targets = ["${node1}:6060"];
+                targets = ["${node1}:${toString crowdsecPort}"];
                 labels.type = "edge";
               }
             ];
@@ -153,7 +179,7 @@
             job_name = "netbird-server";
             static_configs = [
               {
-                targets = ["${node2}:${toString ports.legion-node2.netbird-server-metrics}"];
+                targets = ["${node2}:${toString netbirdServerPort.metrics}"];
                 labels.type = "netbird";
               }
             ];
@@ -164,7 +190,7 @@
             job_name = "netbird-relay";
             static_configs = [
               {
-                targets = ["${node2}:${toString ports.legion-node2.netbird-relay-metrics}"];
+                targets = ["${node2}:${toString netbirdRelayPort.metrics}"];
                 labels.type = "netbird";
               }
             ];
@@ -173,7 +199,7 @@
             job_name = "blocky";
             static_configs = [
               {
-                targets = ["${node2}:8000"];
+                targets = ["${node2}:${toString blockyPort}"];
                 labels.type = "dns";
               }
             ];
@@ -187,7 +213,7 @@
             tls_config.insecure_skip_verify = true;
             static_configs = [
               {
-                targets = ["${node4}:8888"];
+                targets = ["${node4}:${toString hathPort}"];
                 labels.type = "hath";
               }
             ];
@@ -196,14 +222,14 @@
             job_name = "garret";
             static_configs = [
               {
-                targets = ["${node4}:${toString ports.legion-node4.garret-pusher-metrics}"];
+                targets = ["${node4}:${toString garretPort.pusher-metrics}"];
                 labels = {
                   type = "cache";
                   component = "pusher";
                 };
               }
               {
-                targets = ["${node4}:${toString ports.legion-node4.garret-puller-metrics}"];
+                targets = ["${node4}:${toString garretPort.puller-metrics}"];
                 labels = {
                   type = "cache";
                   component = "puller";
@@ -215,7 +241,7 @@
             job_name = "gatus";
             static_configs = [
               {
-                targets = ["${node4}:${toString ports.legion-node4.gatus}"];
+                targets = ["${node4}:${toString gatusPort}"];
                 labels.type = "probe";
               }
             ];
@@ -226,14 +252,14 @@
             params.module = ["http_2xx"];
             static_configs = [
               {
-                targets = ["http://${node2}:${toString ports.legion-node2.pocket-id}/healthz"];
+                targets = ["http://${node2}:${toString pocketIdPort}/healthz"];
                 labels = {
                   type = "probe";
                   tier = "critical";
                 };
               }
               {
-                targets = ["http://${node4}:${toString ports.legion-node4.actual-budget}/health"];
+                targets = ["http://${node4}:${toString actualBudgetPort}/health"];
                 labels = {
                   type = "probe";
                   tier = "warning";
@@ -245,8 +271,8 @@
                 # fully token-gated, so its probe targets the metrics
                 # listener's /healthz instead.
                 targets = [
-                  "http://${node4}:${toString ports.legion-node4.garret-puller}/ready"
-                  "http://${node4}:${toString ports.legion-node4.garret-pusher-metrics}/healthz"
+                  "http://${node4}:${toString garretPort.puller}/ready"
+                  "http://${node4}:${toString garretPort.pusher-metrics}/healthz"
                 ];
                 labels = {
                   type = "probe";
@@ -254,14 +280,14 @@
                 };
               }
               {
-                targets = ["http://${node2}:${toString ports.legion-node2.netbird-relay-health}/health"];
+                targets = ["http://${node2}:${toString netbirdRelayPort.health}/health"];
                 labels = {
                   type = "probe";
                   tier = "warning";
                 };
               }
               {
-                targets = ["http://${node2}:${toString ports.legion-node2.netbird-proxy-health}/healthz"];
+                targets = ["http://${node2}:${toString netbirdProxyPort.health}/healthz"];
                 labels = {
                   type = "probe";
                   tier = "warning";
@@ -291,7 +317,7 @@
               {
                 # :80 multiplexes gRPC + the management HTTP API, so a TCP
                 # connect (not a plain GET) is the reliable liveness signal.
-                targets = ["${node2}:80"];
+                targets = ["${node2}:${toString netbirdServerPort.http}"];
                 labels = {
                   type = "probe";
                   tier = "critical";
@@ -414,7 +440,7 @@
         enable = true;
         settings = {
           "datasource.url" = "http://127.0.0.1:${toString vmPort}";
-          "notifier.url" = ["http://127.0.0.1:${toString ports.legion-node3.alertmanager}"];
+          "notifier.url" = ["http://127.0.0.1:${toString alertmanagerPort}"];
         };
         rules.groups = [
           {

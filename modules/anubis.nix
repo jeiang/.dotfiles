@@ -2,6 +2,7 @@ _: {
   legion.services.anubis = {
     node = "legion-node1";
     module = "anubis";
+    units = ["anubis-content"];
     # Unix sockets only (nixpkgs module defaults); opens no TCP port on any interface.
     firewall = [];
   };

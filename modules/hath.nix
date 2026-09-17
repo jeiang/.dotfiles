@@ -1,22 +1,27 @@
-{self, ...}: {
+{self, ...}: let
+  dataDir = "/mnt/hath";
+  port = 8888;
+in {
   legion.services.hath = {
     node = "legion-node4";
     module = "hath";
     stateful = true;
+    units = ["hath"];
+    ports.app = port;
     firewall = [
       {
-        port = 8888;
+        inherit port;
         proto = "tcp";
         scope = "public";
       }
     ];
     volume = {
       name = "legion-hath";
-      mountpoint = "/mnt/hath";
+      mountpoint = dataDir;
       hcloudVolumeId = "106251745";
       sizeGiB = 40;
     };
-    backupSet = ["/mnt/hath/data" "/mnt/hath/cache"];
+    backupSet = ["${dataDir}/data" "${dataDir}/cache"];
     backupPauseUnits = ["hath.service"];
   };
 
@@ -27,8 +32,6 @@
     ...
   }: let
     hathPkg = pkgs.hath-rust;
-
-    dataDir = "/mnt/hath";
   in {
     users.groups.hath = {};
     users.users.hath = {
@@ -47,7 +50,7 @@
           ExecStart = lib.escapeShellArgs [
             (lib.getExe hathPkg)
             "--port"
-            "8888"
+            (toString port)
             "--cache-dir"
             "${dataDir}/cache"
             "--data-dir"

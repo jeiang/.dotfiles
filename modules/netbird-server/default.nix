@@ -1,37 +1,60 @@
-{self, ...}: {
+{self, ...}: let
+  mainUnit = "netbird-server";
+  dataDir = "/mnt/netbird";
+
+  httpPort = 80;
+  serverMetricsPort = 9090;
+
+  stunPort = 3478;
+  relayPort = 8080;
+  relayMetricsPort = 9091;
+  relayHealthPort = 9001;
+in {
   legion.services.netbird-server = {
     node = "legion-node2";
     module = "netbird-server";
     stateful = true;
+    units = [mainUnit];
+    ports = {
+      http = httpPort;
+      metrics = serverMetricsPort;
+    };
     firewall = [
       {
-        port = self.lib.ports.legion-node2.netbird-http;
+        port = httpPort;
         proto = "tcp";
         scope = "private";
       }
     ];
     volume = {
       name = "legion-netbird";
-      mountpoint = "/mnt/netbird";
+      mountpoint = dataDir;
       sizeGiB = 10;
       hcloudVolumeId = "106121301";
     };
-    backupSet = ["/mnt/netbird"];
-    backupPauseUnits = ["netbird-server.service"];
+    backupSet = [dataDir];
+    backupPauseUnits = ["${mainUnit}.service"];
   };
 
   # Started by the netbird-server module above; no module of its own.
   legion.services.netbird-relay = {
     node = "legion-node2";
+    units = ["netbird-relay"];
+    ports = {
+      stun = stunPort;
+      relay = relayPort;
+      metrics = relayMetricsPort;
+      health = relayHealthPort;
+    };
     publicHostnames = ["stun.netbird.jeiang.dev"];
     firewall = [
       {
-        port = self.lib.ports.legion-node2.netbird-stun;
+        port = stunPort;
         proto = "udp";
         scope = "public";
       }
       {
-        port = self.lib.ports.legion-node2.netbird-relay;
+        port = relayPort;
         proto = "tcp";
         scope = "private";
       }
@@ -48,20 +71,13 @@
     serverPkg = self.packages.${system}.netbird-server;
     relayPkg = self.packages.${system}.netbird-relay;
 
-    dataDir = "/mnt/netbird";
-
     sopsFile = ./secrets.yaml;
-
-    relayPort = self.lib.ports.legion-node2.netbird-relay;
-    stunPort = self.lib.ports.legion-node2.netbird-stun;
-    metricsPort = self.lib.ports.legion-node2.netbird-relay-metrics;
-    healthcheckPort = self.lib.ports.legion-node2.netbird-relay-health;
 
     configYaml = ''
       server:
-        listenAddress: ":${toString self.lib.ports.legion-node2.netbird-http}"
+        listenAddress: ":${toString httpPort}"
         exposedAddress: "https://netbird.jeiang.dev:443"
-        metricsPort: ${toString self.lib.ports.legion-node2.netbird-server-metrics}
+        metricsPort: ${toString serverMetricsPort}
         healthcheckAddress: ":9000"
         logLevel: "info"
         logFile: "console"
@@ -116,7 +132,7 @@
         "netbird-server-config.yaml" = {
           owner = "netbird";
           group = "netbird";
-          restartUnits = ["netbird-server.service"];
+          restartUnits = ["${mainUnit}.service"];
           content = configYaml;
         };
 
@@ -137,7 +153,7 @@
       services = {
         # mountGuard: never silently initialize a fresh sqlite store on the
         # root disk when the Volume is missing or late.
-        netbird-server =
+        ${mainUnit} =
           lib.recursiveUpdate
           {
             description = "NetBird unified management/signal server";
@@ -173,8 +189,8 @@
             NB_ENABLE_STUN = "true";
             NB_STUN_PORTS = toString stunPort;
             NB_LOG_LEVEL = "info";
-            NB_METRICS_PORT = toString metricsPort;
-            NB_HEALTH_LISTEN_ADDRESS = ":${toString healthcheckPort}";
+            NB_METRICS_PORT = toString relayMetricsPort;
+            NB_HEALTH_LISTEN_ADDRESS = ":${toString relayHealthPort}";
           };
           serviceConfig = {
             ExecStart = lib.getExe relayPkg;

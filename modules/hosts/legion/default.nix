@@ -68,6 +68,22 @@
   in
     map (o: {inherit (o) from to;}) (builtins.filter (o: o.proto == proto && o.scope == scope) openings);
 
+  # Present on every Legion node regardless of placement: netbird/netbird-login
+  # (modules/netbird.nix, base), librespeed/iperf3 (modules/speedtest.nix,
+  # base), systemd-journal-upload (this file's nixos.modules.legion). A
+  # per-service unit that exists on only some nodes (acme-.*, blackbox) is
+  # declared in that service's own `units` instead.
+  fixedLegionUnits = ["netbird" "netbird-login" "systemd-journal-upload" "librespeed" "iperf3"];
+
+  # node_exporter's systemd collector, scoped to the units each node
+  # actually runs: the fixed host units plus whatever legion.services
+  # places there. restic-backups-*/restic-maintenance-* cover both each
+  # unit and its timer, so node_systemd_timer_last_trigger_seconds is
+  # collected for the backup-freshness alert.
+  unitIncludeFor = nodeName: let
+    units = lib.unique (fixedLegionUnits ++ lib.concatMap (s: s.units) (servicesByNode nodeName));
+  in "(${lib.concatStringsSep "|" units})\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)";
+
   nodeHostname = name: "${lib.removePrefix "legion-" name}.jeiang.dev";
 
   mkWan = {
@@ -170,16 +186,15 @@ in {
         enable = true;
         enabledCollectors = ["systemd"];
         # Explicit unit-include keeps node_systemd_unit_state cardinality bounded for the memory-constrained VictoriaMetrics; the default `.+` would emit hundreds of series.
-        # restic-backups-*/restic-maintenance-* cover both each unit and its timer, so node_systemd_timer_last_trigger_seconds is collected for the backup-freshness alert.
         extraFlags = [
-          "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|crowdsec-bouncers|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird|netbird-login|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|glance|gatus|tinyauth|rivals-heroes-sync|prometheus-blackbox-exporter|librespeed|iperf3|acme-.*)\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)"
+          "--collector.systemd.unit-include=${unitIncludeFor config.networking.hostName}"
         ];
       };
 
       # systemd-journal-upload appends `/upload` itself and VictoriaLogs' route is /insert/journald/upload, so this URL must end at /insert/journald.
       journald.upload = {
         enable = true;
-        settings.Upload.URL = "http://${legionNodes.legion-node3.privateIPv4}:${toString self.lib.ports.legion-node3.victoria-logs}/insert/journald";
+        settings.Upload.URL = "http://${legionNodes.legion-node3.privateIPv4}:${toString legionServices.monitoring.ports.victoria-logs}/insert/journald";
       };
 
       journald.extraConfig = "SystemMaxUse=1G";
@@ -259,7 +274,7 @@ in {
       dhcpV4Config.UseRoutes = false;
       routes = [
         {
-          Destination = "172.16.0.0/12";
+          Destination = self.lib.hetznerPrivateCidr;
           Gateway = "172.16.0.1";
           GatewayOnLink = true;
         }

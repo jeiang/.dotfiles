@@ -1,34 +1,34 @@
-{self, ...}: {
+{self, ...}: let
+  dataDir = "/mnt/actual-budget";
+  port = 5006;
+in {
   legion.services.actual-budget = {
     node = "legion-node4";
     module = "actual-budget";
     stateful = true;
+    units = ["actual"];
+    ports.app = port;
     firewall = [
       {
-        port = self.lib.ports.legion-node4.actual-budget;
+        inherit port;
         proto = "tcp";
         scope = "private";
       }
     ];
     volume = {
       name = "legion-actual-budget";
-      mountpoint = "/mnt/actual-budget";
+      mountpoint = dataDir;
       hcloudVolumeId = "106251385";
       sizeGiB = 10;
     };
-    backupSet = ["/mnt/actual-budget"];
+    backupSet = [dataDir];
     backupPauseUnits = ["actual.service"];
   };
 
-  nixos.modules.actual-budget = _: let
-    dataDir = "/mnt/actual-budget";
-  in {
+  nixos.modules.actual-budget = _: {
     services.actual = {
       enable = true;
-      settings = {
-        inherit dataDir;
-        port = self.lib.ports.legion-node4.actual-budget;
-      };
+      settings = {inherit dataDir port;};
     };
 
     systemd.services.actual =
