@@ -42,10 +42,10 @@ _: {
       type = lib.types.attrsOf jobType;
       default = {};
       description = ''
-        Per-service Restic backup jobs, keyed by service name. Populated
-        per-host from the Legion inventory's backupSet/backupPauseUnits
-        fields (modules/hosts/legion/default.nix); do not set by hand
-        elsewhere.
+        Per-service Restic backup jobs, keyed by service name. Legion nodes
+        populate them from each `legion.services` entry's backupSet and
+        units (modules/hosts/legion/default.nix); a backup pauses the
+        service's own units.
       '';
     };
 

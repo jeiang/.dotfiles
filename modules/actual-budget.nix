@@ -22,7 +22,6 @@ in {
       sizeGiB = 10;
     };
     backupSet = [dataDir];
-    backupPauseUnits = ["actual.service"];
   };
 
   nixos.modules.actual-budget = _: {

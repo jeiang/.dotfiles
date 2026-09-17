@@ -59,11 +59,7 @@
 
   fixedLegionUnits = ["netbird" "netbird-login" "systemd-journal-upload" "librespeed" "iperf3"];
 
-  # node_exporter's systemd collector, scoped to the units each node
-  # actually runs: the fixed host units plus whatever legion.services
-  # places there. restic-backups-*/restic-maintenance-* cover both each
-  # unit and its timer, so node_systemd_timer_last_trigger_seconds is
-  # collected for the backup-freshness alert.
+  # The restic pattern matches timers too; the backup-freshness alert reads their last trigger.
   unitIncludeFor = nodeName: let
     units = lib.unique (fixedLegionUnits ++ lib.concatMap (s: s.units) (servicesByNode nodeName));
   in "(${lib.concatStringsSep "|" units})\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)";
@@ -189,7 +185,7 @@ in {
         lib.nameValuePair s.name {
           paths = s.backupSet;
           volume = s.volume.mountpoint;
-          pauseUnits = s.backupPauseUnits;
+          pauseUnits = map (u: "${u}.service") s.units;
         })
       (builtins.filter (s: s.backupSet != [] && s.volume != null)
         (servicesByNode config.networking.hostName))

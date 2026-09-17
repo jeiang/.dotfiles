@@ -24,7 +24,6 @@ in {
       sizeGiB = 10;
     };
     backupSet = [dataDir];
-    backupPauseUnits = ["pocket-id.service"];
   };
 
   nixos.modules.pocket-id = {

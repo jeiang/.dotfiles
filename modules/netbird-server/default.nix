@@ -33,7 +33,6 @@ in {
       hcloudVolumeId = "106121301";
     };
     backupSet = [dataDir];
-    backupPauseUnits = ["${mainUnit}.service"];
   };
 
   # Started by the netbird-server module above; no module of its own.

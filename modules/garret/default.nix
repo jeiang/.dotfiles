@@ -54,7 +54,6 @@ in {
       sizeGiB = 10;
     };
     backupSet = [dataDir];
-    backupPauseUnits = ["garret-pusher.service" "garret-puller.service"];
   };
 
   nixos.modules.garret = {

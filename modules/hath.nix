@@ -22,7 +22,6 @@ in {
       sizeGiB = 40;
     };
     backupSet = ["${dataDir}/data" "${dataDir}/cache"];
-    backupPauseUnits = ["hath.service"];
   };
 
   # No edge route: Caddy cannot proxy H@H's binary protocol.

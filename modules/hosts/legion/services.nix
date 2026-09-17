@@ -115,11 +115,6 @@
         type = lib.types.listOf lib.types.str;
         default = [];
       };
-
-      backupPauseUnits = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [];
-      };
     };
   };
 in {
