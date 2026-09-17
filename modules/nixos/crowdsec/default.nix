@@ -38,6 +38,12 @@ _: {
             - CancelAlert()
             - SetRemediation("allow")
     '';
+
+    bouncerKeys = {
+      edge-caddy = config.sops.secrets."caddy/crowdsec-lapi-key".path;
+      netbird-proxy = config.sops.secrets."crowdsec/bouncer-netbird-proxy-key".path;
+      legion-node2-firewall = config.sops.secrets."crowdsec/bouncer-legion-node2-firewall".path;
+    };
   in {
     config = lib.mkIf cfg.enable {
       services.crowdsec = {
@@ -147,24 +153,20 @@ _: {
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
+            # As the crowdsec user the module's cscli wrapper skips sudo, which would log the --key argument.
+            User = config.services.crowdsec.user;
+            LoadCredential = lib.mapAttrsToList (name: path: "${name}:${path}") bouncerKeys;
           };
           script = let
-            # Must be the module's cscli wrapper (bakes in -c <store config>
-            # plus sudo-to-crowdsec-user); it is only exposed via
-            # environment.systemPackages, so invoke the system profile copy.
+            # The module's cscli wrapper bakes in -c <store config>; it is only exposed via environment.systemPackages.
             cscli = "/run/current-system/sw/bin/cscli";
-            # Delete-then-add converges the LAPI on the key currently on
-            # disk; add-if-absent left a rotated key unregistered.
-            registerBouncer = name: keyPath: ''
+            # Delete-then-add converges the LAPI on the key currently on disk.
+            registerBouncer = name: ''
               ${cscli} bouncers delete ${lib.escapeShellArg name} || true
-              ${cscli} bouncers add ${lib.escapeShellArg name} --key "$(cat ${lib.escapeShellArg keyPath})" > /dev/null
+              ${cscli} bouncers add ${lib.escapeShellArg name} --key "$(cat "$CREDENTIALS_DIRECTORY"/${lib.escapeShellArg name})" > /dev/null
             '';
-          in ''
-            set -euo pipefail
-            ${registerBouncer "edge-caddy" config.sops.secrets."caddy/crowdsec-lapi-key".path}
-            ${registerBouncer "netbird-proxy" config.sops.secrets."crowdsec/bouncer-netbird-proxy-key".path}
-            ${registerBouncer "legion-node2-firewall" config.sops.secrets."crowdsec/bouncer-legion-node2-firewall".path}
-          '';
+          in
+            lib.concatMapStrings registerBouncer (builtins.attrNames bouncerKeys);
         };
 
         crowdsec.serviceConfig.MemoryMax = "512M";
