@@ -1,7 +1,6 @@
 {self, ...}: {
   flake.nixosModules.sharedConfiguration = {
     pkgs,
-    lib,
     config,
     ...
   }: let
@@ -45,14 +44,5 @@
         PermitRootLogin = "no";
       };
     };
-
-    # Writes /etc/fish, which fish reads at login to load the NixOS environment.
-    programs.fish = {
-      enable = true;
-      generateCompletions = false;
-    };
-    documentation.man.cache.enable = false;
-    # programs.fish adds plain fish to the system path; the login shell resolves through it.
-    environment.systemPackages = [(lib.hiPrio self.packages.${pkgs.stdenv.hostPlatform.system}.environment)];
   };
 }
