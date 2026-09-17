@@ -11,7 +11,7 @@ end
 
 bind("T", hl.dsp.exec_cmd("uwsm app -- " .. vars.terminal))
 bind("E", hl.dsp.exec_cmd("uwsm app -- " .. vars.fileManager))
-bind("Space", hl.dsp.exec_cmd(vars.launcher))
+hl.bind("CTRL + Space", hl.dsp.exec_cmd(vars.launcher))
 bind("SHIFT + S", hl.dsp.exec_cmd(vars.screenshot))
 
 bind("Q", hl.dsp.window.close())
