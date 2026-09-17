@@ -59,6 +59,8 @@ in {
     ...
   }: let
     cfg = config.edge;
+    anubisHere = (legionServices ? anubis) && legionServices.anubis.node == config.networking.hostName;
+    crowdsecHere = (legionServices ? crowdsec) && legionServices.crowdsec.node == config.networking.hostName;
     system = pkgs.stdenv.hostPlatform.system;
 
     node1 = self.lib.legionNodes.legion-node1.privateIPv4;
@@ -103,12 +105,12 @@ in {
 
     # Each carries its own trailing newline + indent; callers concatenate
     # them ahead of a site block's first real directive.
-    crowdsecLine = lib.optionalString cfg.crowdsec.enable "crowdsec\n            ";
-    appsecLine = lib.optionalString cfg.crowdsec.enable "appsec\n            ";
+    crowdsecLine = lib.optionalString crowdsecHere "crowdsec\n            ";
+    appsecLine = lib.optionalString crowdsecHere "appsec\n            ";
 
-    # Only forced inside the cfg.anubis.enable branch of mkContentSite --
-    # with the module unimported, services.anubis.instances is empty and
-    # this would throw.
+    # Only forced inside the anubisHere branch of mkContentSite -- with
+    # the module unimported, services.anubis.instances is empty and this
+    # would throw.
     anubisSocket = config.services.anubis.instances.content.settings.BIND;
 
     # Exemptions are enforced here in Caddy (first matching handle wins),
@@ -116,7 +118,7 @@ in {
     # validation, crawler metadata, feed readers -- can never solve a
     # proof-of-work challenge.
     mkContentSite = root:
-      if cfg.anubis.enable
+      if anubisHere
       then ''
         @unchallenged path /.well-known/* /robots.txt /sitemap.xml /favicon.ico /feed.xml /rss.xml /atom.xml
         handle @unchallenged {
@@ -157,50 +159,20 @@ in {
       }
     '';
   in {
-    options.edge.anubis = {
-      enable =
-        lib.mkEnableOption ''
-          the Anubis proof-of-work gate in front of the static content site
-          blocks only (jeiang.dev apex, aidanpinard.co, pinard.co.tt,
-          noelejoshua.com). Defaults to whether legion.services.anubis
-          places `anubis` on this host, so modules/anubis.nix needs no
-          enable flag of its own
-        ''
-        // {
-          default = (legionServices ? anubis) && legionServices.anubis.node == config.networking.hostName;
-        };
+    options.edge.anubis.originPort = lib.mkOption {
+      type = lib.types.port;
+      default = 8129;
+      description = ''
+        Loopback port of the internal Caddy listener that serves the
+        protected static roots, and which the Anubis instance proxies
+        to as its TARGET. Read by modules/anubis.nix, so it is a
+        real cross-module boundary rather than a one-off constant.
 
-      originPort = lib.mkOption {
-        type = lib.types.port;
-        default = 8129;
-        description = ''
-          Loopback port of the internal Caddy listener that serves the
-          protected static roots, and which the Anubis instance proxies
-          to as its TARGET. Read by modules/anubis.nix, so it is a
-          real cross-module boundary rather than a one-off constant.
-
-          Must not collide with Caddy's admin API (127.0.0.1:2019) or the
-          metrics site block (2020); site blocks sharing a port get merged
-          into a single listener, so a collision is a startup failure.
-        '';
-      };
+        Must not collide with Caddy's admin API (127.0.0.1:2019) or the
+        metrics site block (2020); site blocks sharing a port get merged
+        into a single listener, so a collision is a startup failure.
+      '';
     };
-
-    options.edge.crowdsec.enable =
-      lib.mkEnableOption ''
-        the CrowdSec bouncer HTTP + AppSec handlers on the edge, and (shared
-        switch, modules/crowdsec/default.nix) the CrowdSec engine itself.
-        Defaults to whether legion.services.crowdsec places `crowdsec` on
-        this host. The sops secrets it and the Caddy wiring need
-        (caddy/crowdsec-lapi-url, caddy/crowdsec-lapi-key,
-        crowdsec/bouncer-netbird-proxy-key,
-        crowdsec/bouncer-legion-node2-firewall) must be present in the
-        caddy secrets shard or activation fails. Toggle off to deploy the
-        edge without CrowdSec
-      ''
-      // {
-        default = (legionServices ? crowdsec) && legionServices.crowdsec.node == config.networking.hostName;
-      };
 
     config = {
       services.caddy = {
@@ -245,7 +217,7 @@ in {
             client_ip_headers Cf-Connecting-Ip
           }
 
-          ${lib.optionalString cfg.crowdsec.enable ''
+          ${lib.optionalString crowdsecHere ''
             # Neither handler registers a default directive order, so bare
             # site-block usage needs this global placement.
             order crowdsec first
@@ -271,7 +243,7 @@ in {
             metrics /metrics
           }
 
-          ${lib.optionalString cfg.anubis.enable ''
+          ${lib.optionalString anubisHere ''
             # bind makes this loopback-only, so only Anubis on this node can
             # reach it; the site address host alone would not restrict the
             # listener. The respond 404 fallback guards the
@@ -493,7 +465,7 @@ in {
         {
           "caddy/cloudflare-dns-token" = {inherit sopsFile;};
         }
-        // lib.optionalAttrs cfg.crowdsec.enable {
+        // lib.optionalAttrs crowdsecHere {
           "caddy/crowdsec-lapi-url" = {inherit sopsFile;};
           "caddy/crowdsec-lapi-key" = {
             inherit sopsFile;
@@ -507,7 +479,7 @@ in {
         restartUnits = ["caddy.service"];
         content =
           "CLOUDFLARE_API_TOKEN=${config.sops.placeholder."caddy/cloudflare-dns-token"}\n"
-          + lib.optionalString cfg.crowdsec.enable ''
+          + lib.optionalString crowdsecHere ''
             CROWDSEC_LAPI_URL=${config.sops.placeholder."caddy/crowdsec-lapi-url"}
             CROWDSEC_LAPI_KEY=${config.sops.placeholder."caddy/crowdsec-lapi-key"}
           '';

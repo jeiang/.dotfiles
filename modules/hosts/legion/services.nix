@@ -123,9 +123,6 @@
     };
   };
 in {
-  # Hetzner's private network range for all Legion nodes; shared between
-  # the 20-hcloud-private route (modules/hosts/legion/default.nix) and the
-  # CrowdSec mesh whitelist (modules/crowdsec/default.nix).
   config.flake.lib.hetznerPrivateCidr = "172.16.0.0/12";
 
   options.legion.services = lib.mkOption {

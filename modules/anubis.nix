@@ -12,10 +12,9 @@ _: {
     lib,
     ...
   }: let
-    cfg = config.edge.anubis;
     instance = "content";
   in {
-    config = lib.mkIf cfg.enable {
+    config = {
       services.anubis.instances.${instance} = {
         settings = {
           TARGET = "http://127.0.0.1:${toString config.edge.anubis.originPort}";

@@ -17,21 +17,10 @@
   validatedLegionNodes = assert lib.assertMsg (builtins.length nodeAddresses == builtins.length (lib.unique nodeAddresses))
   "Legion inventory must not reuse an IP address"; legionNodes;
 
-  # config.legion.services carries its own placement (each service's own
-  # feature file sets its entry there); its `apply` enforces the fleet-wide
-  # invariants (one edge service, no reused hostname, every stateful
-  # service has a Volume, backup paths inside the Volume mountpoint). The
-  # `node` field is a strict enum of legionNodes' keys, so an unknown
-  # placement is a type error rather than a separate assertion.
   legionServices = config.legion.services;
   servicesByNode = nodeName: builtins.filter (s: s.node == nodeName) (lib.mapAttrsToList (name: s: s // {inherit name;}) legionServices);
 
-  # config.legion.services is an attrset, so iterating it directly would
-  # order modules alphabetically by service name; that only reorders
-  # cross-module After=/Wants= entries (harmless to systemd) but still
-  # perturbs the built unit text, so a fixed order keeps rebuilds free of
-  # unrelated diffs. Anything not listed here (a future service) sorts
-  # after, in whatever order it was declared.
+  # Fixed import order keeps the built unit text stable; unlisted services sort last.
   legionModuleOrder = [
     "edge"
     "crowdsec"
@@ -68,11 +57,6 @@
   in
     map (o: {inherit (o) from to;}) (builtins.filter (o: o.proto == proto && o.scope == scope) openings);
 
-  # Present on every Legion node regardless of placement: netbird/netbird-login
-  # (modules/netbird.nix, base), librespeed/iperf3 (modules/speedtest.nix,
-  # base), systemd-journal-upload (this file's nixos.modules.legion). A
-  # per-service unit that exists on only some nodes (acme-.*, blackbox) is
-  # declared in that service's own `units` instead.
   fixedLegionUnits = ["netbird" "netbird-login" "systemd-journal-upload" "librespeed" "iperf3"];
 
   # node_exporter's systemd collector, scoped to the units each node

@@ -1,8 +1,4 @@
 {self, ...}: let
-  # Every host (Legion + artemis) runs LibreSpeed on the same port, so this
-  # is a fleet-wide constant rather than a per-host lookup; exposed for
-  # modules/edge (public speed.jeiang.dev route) and modules/glance (mesh
-  # links).
   speedtestPort = 8989;
 in {
   flake.lib.speedtestPort = speedtestPort;

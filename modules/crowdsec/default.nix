@@ -1,6 +1,4 @@
 {self, ...}: let
-  # Read by edge (appsec_url, and the LAPI port half of the sops-held LAPI
-  # URL) and netbird-proxy (its own bouncer's api_url).
   lapiPort = 8080;
   metricsPort = 6060;
   appsecPort = 7422;
@@ -34,7 +32,6 @@ in {
     pkgs,
     ...
   }: let
-    cfg = config.edge.crowdsec;
     sopsFile = ./secrets.yaml;
 
     localAppsecConfigName = "jeiang/appsec-caddy";
@@ -69,7 +66,7 @@ in {
       legion-node2-firewall = config.sops.secrets."crowdsec/bouncer-legion-node2-firewall".path;
     };
   in {
-    config = lib.mkIf cfg.enable {
+    config = {
       services.crowdsec = {
         enable = true;
 
