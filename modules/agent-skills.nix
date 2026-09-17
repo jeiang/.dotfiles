@@ -3,32 +3,21 @@
   lib,
   ...
 }: let
-  src = inputs.agent-skills;
-
-  # install.sh writes this line, then a blank line, then the rendered profile.
-  marker = "<!-- Managed by agent-skills; rerun the installer to update. -->";
-  instructions = pkgs:
-    pkgs.writeText "agent-skills-personal.md" ''
-      ${marker}
-
-      ${builtins.readFile "${src}/dist/instructions/personal.md"}'';
-
-  namesOf = kind: dir: builtins.attrNames (lib.filterAttrs (_: t: t == kind) (builtins.readDir dir));
-
-  # install.sh takes every directory holding a SKILL.md from these roots.
-  skillRoots = harnessName: builtins.filter builtins.pathExists ["${src}/shared" "${src}/generic" "${src}/${harnessName}"];
-  skillsFor = harnessName:
-    lib.concatMap
-    (dir: map (name: lib.nameValuePair name "${dir}/${name}") (builtins.filter (name: builtins.pathExists "${dir}/${name}/SKILL.md") (namesOf "directory" dir)))
-    (skillRoots harnessName);
-  agentsFor = harness:
-    lib.concatMap
-    (dir: map (name: lib.nameValuePair name "${dir}/${name}") (namesOf "regular" dir))
-    ["${src}/agents/${harness}" "${src}/dist/agents/${harness}"];
+  profile = "personal";
 
   # The clients write inside these directories themselves (Claude Code syncs
   # skills, Codex ships .system), so hjem owns the entries, never the directory.
-  harness = root: harnessName:
+  harness = pkgs: root: name: let
+    entries = inputs.agent-skills.lib.entries.${name}.${profile};
+    tree = inputs.agent-skills.packages.${pkgs.stdenv.hostPlatform.system}."${name}-${profile}";
+    links = kind:
+      lib.listToAttrs (map
+        (entry:
+          lib.nameValuePair "${root}/${kind}/${entry}" {
+            source = "${tree}/${kind}/${entry}";
+          })
+        entries.${kind});
+  in
     {
       "${root}" = {
         type = "directory";
@@ -36,26 +25,20 @@
       };
       "${root}/skills".type = "directory";
       "${root}/agents".type = "directory";
+
+      # Claude Code ignores a symlinked CLAUDE.md in Cowork sessions and refuses to edit through one.
+      "${root}/${entries.instructions}" = {
+        source = "${tree}/${entries.instructions}";
+        type = "copy";
+        permissions = "0600";
+      };
     }
-    // lib.listToAttrs (map (s: lib.nameValuePair "${root}/skills/${s.name}" {source = s.value;}) (skillsFor harnessName))
-    // lib.listToAttrs (map (a: lib.nameValuePair "${root}/agents/${a.name}" {source = a.value;}) (agentsFor harnessName));
+    // links "skills"
+    // links "agents";
 
   files = pkgs:
-    harness ".claude" "claude"
-    // harness ".codex" "codex"
-    // {
-      # Claude Code ignores a symlinked CLAUDE.md in Cowork sessions and refuses to edit through one.
-      ".claude/CLAUDE.md" = {
-        source = instructions pkgs;
-        type = "copy";
-        permissions = "0600";
-      };
-      ".codex/AGENTS.md" = {
-        source = instructions pkgs;
-        type = "copy";
-        permissions = "0600";
-      };
-    };
+    harness pkgs ".claude" "claude"
+    // harness pkgs ".codex" "codex";
 in {
   nixos.modules.artemis = {
     config,
