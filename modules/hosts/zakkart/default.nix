@@ -1,27 +1,19 @@
-{
-  inputs,
-  self,
-  ...
-}: {
-  flake = {
-    darwinConfigurations.zakkart = inputs.nix-darwin.lib.darwinSystem {
-      modules = [
-        self.darwinModules.zakkartConfiguration
-      ];
-    };
+{config, ...}: let
+  inherit (config.darwin) modules;
+in {
+  darwin.configurations.zakkart.module = modules.zakkartConfiguration;
 
-    darwinModules.zakkartConfiguration = _: {
-      imports = [
-        self.darwinModules.base
-        self.darwinModules.nix
-        self.darwinModules.hjem
-        self.darwinModules.homebrew
-        self.darwinModules.apps
-        self.darwinModules.system
-        self.darwinModules.preferences
-      ];
+  darwin.modules.zakkartConfiguration = _: {
+    imports = [
+      modules.base
+      modules.nix
+      modules.hjem
+      modules.homebrew
+      modules.apps
+      modules.system
+      modules.preferences
+    ];
 
-      nixpkgs.hostPlatform = "aarch64-darwin";
-    };
+    nixpkgs.hostPlatform = "aarch64-darwin";
   };
 }

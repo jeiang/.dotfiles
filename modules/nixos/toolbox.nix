@@ -1,5 +1,5 @@
 {self, ...}: {
-  flake.nixosModules.toolbox = {pkgs, ...}: {
+  nixos.modules.toolbox = {pkgs, ...}: {
     environment.systemPackages = with pkgs; [
       self.packages.${pkgs.stdenv.hostPlatform.system}.git-minimal
       self.packages.${pkgs.stdenv.hostPlatform.system}.helix

@@ -1,5 +1,5 @@
 _: {
-  flake.nixosModules.blocky = {config, ...}: {
+  nixos.modules.blocky = {config, ...}: {
     services.blocky = {
       enable = true;
       settings = {

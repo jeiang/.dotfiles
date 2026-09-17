@@ -66,6 +66,12 @@ behavior for its own sake.
 - `modules/nixos/`, `modules/darwin/`: feature modules. A secret shard sits
   beside its consumer as `secrets.yaml`; a second shard in the same
   directory is `secrets.<consumer>.yaml` (`netbird-server/secrets.proxy.yaml`).
+- `modules/configurations.nix`: the dendritic plumbing. A feature module
+  declares itself under `nixos.modules.<name>` / `darwin.modules.<name>`; a
+  host declares itself under `nixos.configurations.<host>` /
+  `darwin.configurations.<host>` with a `module` importing the pieces it
+  needs, which builds `flake.nixosConfigurations.<host>` /
+  `flake.darwinConfigurations.<host>`.
 - `modules/packages/`: packages and wrapped programs.
 - `dns/dnsconfig.js`: public DNS.
 - `docs/runbooks/`: procedures that recur.

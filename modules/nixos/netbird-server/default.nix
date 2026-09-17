@@ -1,5 +1,5 @@
 {self, ...}: {
-  flake.nixosModules.netbird-server = {
+  nixos.modules.netbird-server = {
     config,
     lib,
     pkgs,

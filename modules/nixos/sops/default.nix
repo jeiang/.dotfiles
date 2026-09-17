@@ -1,5 +1,5 @@
 {inputs, ...}: {
-  flake.nixosModules.sops = {...}: {
+  nixos.modules.sops = {...}: {
     imports = [
       inputs.sops-nix.nixosModules.sops
     ];

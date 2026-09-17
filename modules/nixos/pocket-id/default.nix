@@ -1,5 +1,5 @@
 {self, ...}: {
-  flake.nixosModules.pocket-id = {
+  nixos.modules.pocket-id = {
     config,
     pkgs,
     ...

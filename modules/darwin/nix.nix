@@ -4,7 +4,7 @@
   ...
 }: {
   # Determinate Nix forces nix.enable = false, so every nix.settings equivalent must go through determinateNix.customSettings.
-  flake.darwinModules.nix = {config, ...}: {
+  darwin.modules.nix = {config, ...}: {
     imports = [inputs.determinate.darwinModules.default];
 
     nixpkgs.pkgs = withSystem config.nixpkgs.hostPlatform.system ({pkgs, ...}: pkgs);

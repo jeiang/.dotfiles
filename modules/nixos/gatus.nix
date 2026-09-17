@@ -1,5 +1,5 @@
 {self, ...}: {
-  flake.nixosModules.gatus = _: let
+  nixos.modules.gatus = _: let
     https = name: group: url: conditions: {
       inherit name group url conditions;
       interval = "2m";

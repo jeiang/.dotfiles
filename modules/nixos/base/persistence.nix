@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.base = {
+  nixos.modules.base = {
     config,
     lib,
     ...

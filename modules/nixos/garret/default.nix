@@ -3,7 +3,7 @@
   inputs,
   ...
 }: {
-  flake.nixosModules.garret = {
+  nixos.modules.garret = {
     config,
     pkgs,
     ...

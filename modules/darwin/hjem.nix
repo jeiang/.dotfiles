@@ -1,5 +1,5 @@
 {inputs, ...}: {
-  flake.darwinModules.hjem = {config, ...}: let
+  darwin.modules.hjem = {config, ...}: let
     user = config.preferences.user.name;
   in {
     imports = [inputs.hjem.darwinModules.default];

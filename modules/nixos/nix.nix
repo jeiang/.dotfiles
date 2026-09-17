@@ -10,7 +10,7 @@
     };
   };
 
-  flake.nixosModules.nix = {config, ...}: {
+  nixos.modules.nix = {config, ...}: {
     imports = [
       # Determinate keeps the stock nix.* options and renders them to /etc/nix/nix.custom.conf.
       inputs.determinate.nixosModules.default

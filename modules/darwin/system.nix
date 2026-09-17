@@ -1,5 +1,5 @@
 _: {
-  flake.darwinModules.system = {config, ...}: {
+  darwin.modules.system = {config, ...}: {
     security.pam.services.sudo_local.touchIdAuth = true;
 
     networking = {

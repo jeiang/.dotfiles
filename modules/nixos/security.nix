@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.doas = {pkgs, ...}: {
+  nixos.modules.doas = {pkgs, ...}: {
     security = {
       sudo.enable = false;
       doas = {

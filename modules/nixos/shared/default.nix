@@ -1,5 +1,11 @@
-{self, ...}: {
-  flake.nixosModules.sharedConfiguration = {
+{
+  self,
+  config,
+  ...
+}: let
+  inherit (config.nixos) modules;
+in {
+  nixos.modules.sharedConfiguration = {
     pkgs,
     lib,
     config,
@@ -8,8 +14,8 @@
     sopsFile = ./secrets.yaml;
   in {
     imports = [
-      self.nixosModules.hjem
-      self.nixosModules.nix
+      modules.hjem
+      modules.nix
     ];
     users = {
       mutableUsers = false;

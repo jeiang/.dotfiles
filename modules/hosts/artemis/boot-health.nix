@@ -1,5 +1,5 @@
 _: {
-  flake.nixosModules.artemisBootHealth = {
+  nixos.modules.artemisBootHealth = {
     config,
     lib,
     ...

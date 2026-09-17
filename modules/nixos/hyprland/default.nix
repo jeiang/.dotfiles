@@ -3,7 +3,7 @@
   inputs,
   ...
 }: {
-  flake.nixosModules.hyprland = {
+  nixos.modules.hyprland = {
     config,
     pkgs,
     lib,

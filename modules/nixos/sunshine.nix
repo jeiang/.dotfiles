@@ -1,5 +1,5 @@
 _: {
-  flake.nixosModules.sunshine = {
+  nixos.modules.sunshine = {
     lib,
     pkgs,
     ...

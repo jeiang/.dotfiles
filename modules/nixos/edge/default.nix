@@ -3,7 +3,7 @@
   inputs,
   ...
 }: {
-  flake.nixosModules.edge = {
+  nixos.modules.edge = {
     config,
     lib,
     pkgs,

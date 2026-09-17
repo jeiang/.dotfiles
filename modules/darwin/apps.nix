@@ -1,5 +1,5 @@
 {self, ...}: {
-  flake.darwinModules.apps = {
+  darwin.modules.apps = {
     config,
     pkgs,
     ...

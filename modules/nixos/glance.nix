@@ -1,6 +1,6 @@
 {self, ...}: {
   # Glance the widget dashboard (glanceapp/glance), not `services.glances`.
-  flake.nixosModules.glance = {lib, ...}: let
+  nixos.modules.glance = {lib, ...}: let
     node3 = self.lib.legionNodes.legion-node3.privateIPv4;
     ports = self.lib.ports;
 

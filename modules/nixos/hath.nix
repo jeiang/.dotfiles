@@ -1,6 +1,6 @@
 {self, ...}: {
   # No edge route: Caddy cannot proxy H@H's binary protocol.
-  flake.nixosModules.hath = {
+  nixos.modules.hath = {
     lib,
     pkgs,
     ...

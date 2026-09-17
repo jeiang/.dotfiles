@@ -1,5 +1,5 @@
 {self, ...}: {
-  flake.nixosModules.actual-budget = _: let
+  nixos.modules.actual-budget = _: let
     dataDir = "/mnt/actual-budget";
   in {
     services.actual = {

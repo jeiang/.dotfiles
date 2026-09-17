@@ -1,9 +1,15 @@
-{self, ...}: {
-  flake.nixosModules.desktop = {pkgs, ...}: {
+{
+  self,
+  config,
+  ...
+}: let
+  inherit (config.nixos) modules;
+in {
+  nixos.modules.desktop = {pkgs, ...}: {
     imports = [
-      self.nixosModules.gpg
-      self.nixosModules.hyprland
-      self.nixosModules.pipewire
+      modules.gpg
+      modules.hyprland
+      modules.pipewire
     ];
 
     # Fix Dolphin file associations on non-Plasma desktop environments

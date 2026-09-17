@@ -2,7 +2,7 @@
   # A systemd user service, not a system one: hypr-rdp is an ordinary
   # Wayland client (WAYLAND_DISPLAY, HYPRLAND_INSTANCE_SIGNATURE,
   # per-client wlr-screencopy grants), so it lives inside the session.
-  flake.nixosModules.hypr-rdp = {
+  nixos.modules.hypr-rdp = {
     config,
     lib,
     pkgs,

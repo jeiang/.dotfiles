@@ -1,5 +1,5 @@
 _: {
-  flake.nixosModules.anubis = {
+  nixos.modules.anubis = {
     config,
     lib,
     ...

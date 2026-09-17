@@ -2,7 +2,7 @@
   # Forward-auth gate for edge vhosts that have no login of their own; logs
   # in through Pocket ID. Colocated with Caddy so forward_auth stays on
   # loopback.
-  flake.nixosModules.tinyauth = {config, ...}: let
+  nixos.modules.tinyauth = {config, ...}: let
     appUrl = "https://tinyauth.jeiang.dev";
     pocketId = "https://auth.jeiang.dev";
     # Consumed only on the edge node, so it shares the edge Secret Shard.

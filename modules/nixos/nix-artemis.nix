@@ -1,5 +1,5 @@
 {inputs, ...}: {
-  flake.nixosModules.nixArtemisExtras = {
+  nixos.modules.nixArtemisExtras = {
     imports = [
       inputs.nix-index-database.nixosModules.nix-index
     ];

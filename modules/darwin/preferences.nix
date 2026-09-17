@@ -1,6 +1,6 @@
 # What system.defaults can express faithfully lives there; the rest is scripted as idempotent user-context activation steps.
 _: {
-  flake.darwinModules.preferences = {
+  darwin.modules.preferences = {
     config,
     lib,
     pkgs,

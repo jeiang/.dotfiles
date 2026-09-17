@@ -1,5 +1,5 @@
 {self, ...}: {
-  flake.nixosModules.gaming = {
+  nixos.modules.gaming = {
     config,
     pkgs,
     ...

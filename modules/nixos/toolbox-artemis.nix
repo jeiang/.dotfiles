@@ -1,5 +1,5 @@
 {self, ...}: {
-  flake.nixosModules.toolboxArtemis = {
+  nixos.modules.toolboxArtemis = {
     pkgs,
     lib,
     ...

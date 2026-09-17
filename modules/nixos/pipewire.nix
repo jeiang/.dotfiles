@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.pipewire = {pkgs, ...}: {
+  nixos.modules.pipewire = {pkgs, ...}: {
     persistence.cache.directories = [
       ".local/state/wireplumber"
     ];

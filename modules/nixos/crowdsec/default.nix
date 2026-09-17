@@ -1,5 +1,5 @@
 _: {
-  flake.nixosModules.crowdsec = {
+  nixos.modules.crowdsec = {
     config,
     lib,
     pkgs,

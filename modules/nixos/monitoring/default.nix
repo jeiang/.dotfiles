@@ -1,5 +1,5 @@
 {self, ...}: {
-  flake.nixosModules.monitoring = {
+  nixos.modules.monitoring = {
     config,
     pkgs,
     ...

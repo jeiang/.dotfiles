@@ -1,5 +1,5 @@
 {
-  flake.nixosModules.legionHardware = {lib, ...}: {
+  nixos.modules.legionHardware = {lib, ...}: {
     hardware.facter.reportPath = ./facter.json;
 
     boot.loader.grub.devices = lib.mkForce ["/dev/sda"];
