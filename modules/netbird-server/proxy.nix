@@ -1,4 +1,42 @@
-{self, ...}: {
+{
+  self,
+  config,
+  ...
+}: let
+  healthPort = 9002;
+  crowdsecLapiPort = config.legion.services.crowdsec.ports.lapi;
+in {
+  legion.services.netbird-proxy = {
+    node = "legion-node2";
+    module = "netbird-proxy";
+    units = ["netbird-proxy" "crowdsec-firewall-bouncer" "acme-.*"];
+    ports.health = healthPort;
+    # Serves proxy.jeiang.dev and its wildcard directly (its own security.acme
+    # cert), not node1's Caddy.
+    publicHostnames = ["proxy.jeiang.dev" "*.proxy.jeiang.dev"];
+    firewall = [
+      {
+        port = 443;
+        proto = "tcp";
+        scope = "public";
+      }
+    ];
+    firewallPortRanges = [
+      {
+        from = 40000;
+        to = 45000;
+        proto = "tcp";
+        scope = "public";
+      }
+      {
+        from = 40000;
+        to = 45000;
+        proto = "udp";
+        scope = "public";
+      }
+    ];
+  };
+
   nixos.modules.netbird-proxy = {
     config,
     lib,
@@ -16,8 +54,6 @@
 
     node1PrivateIp = self.lib.legionNodes.legion-node1.privateIPv4;
     node2PrivateIp = self.lib.legionNodes.legion-node2.privateIPv4;
-    healthPort = self.lib.ports.legion-node2.netbird-proxy-health;
-    lapiPort = 8080;
 
     # Static-cert mode: security.acme provisions the DNS-01 wildcard and the
     # proxy's own file watcher picks up renewals, so no reloadServices hook
@@ -123,7 +159,7 @@
         # Enforcement is per-service in the NetBird dashboard; `observe`
         # (or unset) always fails open, only `enforce` fails closed on an
         # unreachable LAPI -- start new services in observe.
-        NB_PROXY_CROWDSEC_API_URL = "http://${node1PrivateIp}:${toString lapiPort}";
+        NB_PROXY_CROWDSEC_API_URL = "http://${node1PrivateIp}:${toString crowdsecLapiPort}";
         NB_PROXY_LOG_LEVEL = "info";
       };
       serviceConfig = {
@@ -144,7 +180,7 @@
       enable = true;
       settings = {
         mode = "nftables";
-        api_url = "http://${node1PrivateIp}:${toString lapiPort}";
+        api_url = "http://${node1PrivateIp}:${toString crowdsecLapiPort}";
       };
       # Not registerBouncer.enable: that registers against a local crowdsec
       # service this node doesn't run; registration lives on node1.

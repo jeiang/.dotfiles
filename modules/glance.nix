@@ -1,13 +1,33 @@
-{self, ...}: {
+{
+  self,
+  config,
+  ...
+}: let
+  port = 8085;
+  monitoringPorts = config.legion.services.monitoring.ports;
+in {
+  legion.services.glance = {
+    node = "legion-node4";
+    module = "glance";
+    units = ["glance"];
+    ports.app = port;
+    firewall = [
+      {
+        inherit port;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+  };
+
   # Glance the widget dashboard (glanceapp/glance), not `services.glances`.
   nixos.modules.glance = {lib, ...}: let
     node3 = self.lib.legionNodes.legion-node3.privateIPv4;
-    ports = self.lib.ports;
 
     # Server-side fetch over the hcloud private network; browsers have no
     # route to 172.17.0.0/12, so anything the page links to must be public.
-    victoriaMetrics = "http://${node3}:${toString ports.legion-node3.victoria-metrics}";
-    alertmanager = "http://${node3}:${toString ports.legion-node3.alertmanager}";
+    victoriaMetrics = "http://${node3}:${toString monitoringPorts.victoria-metrics}";
+    alertmanager = "http://${node3}:${toString monitoringPorts.alertmanager}";
     grafana = "https://grafana.jeiang.dev";
 
     vmQuery = query: {
@@ -33,7 +53,7 @@
       settings = {
         server = {
           host = "0.0.0.0";
-          port = ports.legion-node4.glance;
+          inherit port;
         };
 
         branding.logo-text = "legion";
@@ -176,7 +196,7 @@
                           ]
                           ++ lib.mapAttrsToList (name: ip: {
                             title = "${name} (mesh)";
-                            url = "http://${ip}:${toString ports.${name}.librespeed}";
+                            url = "http://${ip}:${toString self.lib.speedtestPort}";
                           })
                           self.lib.netbirdPeers;
                       }

@@ -1,4 +1,29 @@
-{self, ...}: {
+{self, ...}: let
+  dataDir = "/mnt/hath";
+  port = 8888;
+in {
+  legion.services.hath = {
+    node = "legion-node4";
+    module = "hath";
+    stateful = true;
+    units = ["hath"];
+    ports.app = port;
+    firewall = [
+      {
+        inherit port;
+        proto = "tcp";
+        scope = "public";
+      }
+    ];
+    volume = {
+      name = "legion-hath";
+      mountpoint = dataDir;
+      hcloudVolumeId = "106251745";
+      sizeGiB = 40;
+    };
+    backupSet = ["${dataDir}/data" "${dataDir}/cache"];
+  };
+
   # No edge route: Caddy cannot proxy H@H's binary protocol.
   nixos.modules.hath = {
     lib,
@@ -6,8 +31,6 @@
     ...
   }: let
     hathPkg = pkgs.hath-rust;
-
-    dataDir = "/mnt/hath";
   in {
     users.groups.hath = {};
     users.users.hath = {
@@ -26,7 +49,7 @@
           ExecStart = lib.escapeShellArgs [
             (lib.getExe hathPkg)
             "--port"
-            "8888"
+            (toString port)
             "--cache-dir"
             "${dataDir}/cache"
             "--data-dir"

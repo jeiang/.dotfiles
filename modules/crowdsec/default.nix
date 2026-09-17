@@ -1,17 +1,38 @@
-_: {
+{self, ...}: let
+  lapiPort = 8080;
+  metricsPort = 6060;
+  appsecPort = 7422;
+in {
+  legion.services.crowdsec = {
+    node = "legion-node1";
+    module = "crowdsec";
+    units = ["crowdsec" "crowdsec-bouncers"];
+    ports = {
+      lapi = lapiPort;
+      metrics = metricsPort;
+      appsec = appsecPort;
+    };
+    firewall = [
+      {
+        port = lapiPort;
+        proto = "tcp";
+        scope = "private";
+      }
+      {
+        port = metricsPort;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+  };
+
   nixos.modules.crowdsec = {
     config,
     lib,
     pkgs,
     ...
   }: let
-    cfg = config.edge.crowdsec;
     sopsFile = ./secrets.yaml;
-
-    # modules/edge/default.nix hardcodes appsec_url
-    # http://127.0.0.1:7422, so 7422 is not a free choice here.
-    lapiPort = 8080;
-    appsecPort = 7422;
 
     localAppsecConfigName = "jeiang/appsec-caddy";
 
@@ -45,7 +66,7 @@ _: {
       legion-node2-firewall = config.sops.secrets."crowdsec/bouncer-legion-node2-firewall".path;
     };
   in {
-    config = lib.mkIf cfg.enable {
+    config = {
       services.crowdsec = {
         enable = true;
 
@@ -116,7 +137,7 @@ _: {
               whitelist = {
                 reason = "Hetzner private network / NetBird mesh, never bans";
                 cidr = [
-                  "172.16.0.0/12"
+                  self.lib.hetznerPrivateCidr
                   "100.89.0.0/16"
                   "fd1a:6b4d:62e5:46a::/64"
                 ];

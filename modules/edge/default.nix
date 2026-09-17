@@ -1,8 +1,57 @@
 {
   self,
   inputs,
+  config,
   ...
-}: {
+}: let
+  legionServices = config.legion.services;
+  metricsPort = 2020;
+in {
+  legion.services.caddy = {
+    node = "legion-node1";
+    module = "edge";
+    edge = true;
+    units = ["caddy" "rivals-heroes-sync"];
+    ports.metrics = metricsPort;
+    publicHostnames = [
+      "jeiang.dev"
+      "aidanpinard.co"
+      "pinard.co.tt"
+      "auth.jeiang.dev"
+      "cache.jeiang.dev"
+      "cache-push.jeiang.dev"
+      "budget.jeiang.dev"
+      "grafana.jeiang.dev"
+      "netbird.jeiang.dev"
+      "noelejoshua.com"
+      "bill-split.jeiang.dev"
+      "rivals.jeiang.dev"
+      "mdtable.jeiang.dev"
+      "github.jeiang.dev"
+      "status.jeiang.dev"
+      "tinyauth.jeiang.dev"
+      "glance.jeiang.dev"
+      "speed.jeiang.dev"
+    ];
+    firewall = [
+      {
+        port = 80;
+        proto = "tcp";
+        scope = "public";
+      }
+      {
+        port = 443;
+        proto = "tcp";
+        scope = "public";
+      }
+      {
+        port = metricsPort;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+  };
+
   nixos.modules.edge = {
     config,
     lib,
@@ -10,6 +59,8 @@
     ...
   }: let
     cfg = config.edge;
+    anubisHere = (legionServices ? anubis) && legionServices.anubis.node == config.networking.hostName;
+    crowdsecHere = (legionServices ? crowdsec) && legionServices.crowdsec.node == config.networking.hostName;
     system = pkgs.stdenv.hostPlatform.system;
 
     node1 = self.lib.legionNodes.legion-node1.privateIPv4;
@@ -17,8 +68,7 @@
     node3 = self.lib.legionNodes.legion-node3.privateIPv4;
     node4 = self.lib.legionNodes.legion-node4.privateIPv4;
 
-    ports = self.lib.ports;
-    port = node: service: toString ports.${node}.${service};
+    port = svc: key: toString legionServices.${svc}.ports.${key};
 
     website = inputs.website.packages.${system}.default;
     portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
@@ -55,12 +105,12 @@
 
     # Each carries its own trailing newline + indent; callers concatenate
     # them ahead of a site block's first real directive.
-    crowdsecLine = lib.optionalString cfg.crowdsec.enable "crowdsec\n            ";
-    appsecLine = lib.optionalString cfg.crowdsec.enable "appsec\n            ";
+    crowdsecLine = lib.optionalString crowdsecHere "crowdsec\n            ";
+    appsecLine = lib.optionalString crowdsecHere "appsec\n            ";
 
-    # Only forced inside the cfg.anubis.enable branch of mkContentSite --
-    # with the module unimported, services.anubis.instances is empty and
-    # this would throw.
+    # Only forced inside the anubisHere branch of mkContentSite -- with
+    # the module unimported, services.anubis.instances is empty and this
+    # would throw.
     anubisSocket = config.services.anubis.instances.content.settings.BIND;
 
     # Exemptions are enforced here in Caddy (first matching handle wins),
@@ -68,7 +118,7 @@
     # validation, crawler metadata, feed readers -- can never solve a
     # proof-of-work challenge.
     mkContentSite = root:
-      if cfg.anubis.enable
+      if anubisHere
       then ''
         @unchallenged path /.well-known/* /robots.txt /sitemap.xml /favicon.ico /feed.xml /rss.xml /atom.xml
         handle @unchallenged {
@@ -109,42 +159,20 @@
       }
     '';
   in {
-    options.edge.anubis = {
-      enable = lib.mkEnableOption ''
-        the Anubis proof-of-work gate in front of the static content site
-        blocks only (jeiang.dev apex, aidanpinard.co, pinard.co.tt,
-        noelejoshua.com). Enabled by modules/anubis.nix, which is
-        imported only for the inventory node placing `anubis`
+    options.edge.anubis.originPort = lib.mkOption {
+      type = lib.types.port;
+      default = 8129;
+      description = ''
+        Loopback port of the internal Caddy listener that serves the
+        protected static roots, and which the Anubis instance proxies
+        to as its TARGET. Read by modules/anubis.nix, so it is a
+        real cross-module boundary rather than a one-off constant.
+
+        Must not collide with Caddy's admin API (127.0.0.1:2019) or the
+        metrics site block (2020); site blocks sharing a port get merged
+        into a single listener, so a collision is a startup failure.
       '';
-
-      originPort = lib.mkOption {
-        type = lib.types.port;
-        default = 8129;
-        description = ''
-          Loopback port of the internal Caddy listener that serves the
-          protected static roots, and which the Anubis instance proxies
-          to as its TARGET. Read by modules/anubis.nix, so it is a
-          real cross-module boundary rather than a one-off constant.
-
-          Must not collide with Caddy's admin API (127.0.0.1:2019) or the
-          metrics site block (2020); site blocks sharing a port get merged
-          into a single listener, so a collision is a startup failure.
-        '';
-      };
     };
-
-    options.edge.crowdsec.enable =
-      lib.mkEnableOption ''
-        the CrowdSec bouncer HTTP + AppSec handlers on the edge, and (shared
-        switch, modules/crowdsec/default.nix) the CrowdSec engine
-        itself. On by default; the sops secrets it and the Caddy wiring need
-        (caddy/crowdsec-lapi-url, caddy/crowdsec-lapi-key,
-        crowdsec/bouncer-netbird-proxy-key,
-        crowdsec/bouncer-legion-node2-firewall) must be present in the
-        caddy secrets shard or activation fails. Toggle off to deploy the
-        edge without CrowdSec
-      ''
-      // {default = true;};
 
     config = {
       services.caddy = {
@@ -189,7 +217,7 @@
             client_ip_headers Cf-Connecting-Ip
           }
 
-          ${lib.optionalString cfg.crowdsec.enable ''
+          ${lib.optionalString crowdsecHere ''
             # Neither handler registers a default directive order, so bare
             # site-block usage needs this global placement.
             order crowdsec first
@@ -202,7 +230,7 @@
               # time, before the placeholder replacer runs.
               api_url {$CROWDSEC_LAPI_URL}
               api_key {$CROWDSEC_LAPI_KEY}
-              appsec_url http://127.0.0.1:7422
+              appsec_url http://127.0.0.1:${toString legionServices.crowdsec.ports.appsec}
               appsec_fail_open
             }
           ''}
@@ -211,11 +239,11 @@
         extraConfig = ''
           # 2019 would collide with the admin API listener; plain http://
           # skips automatic HTTPS/ACME for this private-network-only block.
-          http://${node1}:2020 {
+          http://${node1}:${toString metricsPort} {
             metrics /metrics
           }
 
-          ${lib.optionalString cfg.anubis.enable ''
+          ${lib.optionalString anubisHere ''
             # bind makes this loopback-only, so only Anubis on this node can
             # reach it; the site address host alone would not restrict the
             # listener. The respond 404 fallback guards the
@@ -283,20 +311,20 @@
           # an outage, not a trade-off.
 
           auth.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node2}:${port "legion-node2" "pocket-id"}
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node2}:${port "pocket-id" "app"}
           }
 
           # appsec skipped on the cache routes: clients legitimately fetch
           # in high-volume bursts, and fail-open wins here.
           cache.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "legion-node4" "garret-puller"}
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "garret" "puller"}
           }
 
           # MUST stay grey-clouded/DNS-only in Cloudflare: a push is one
           # streaming PUT of a whole NAR and Cloudflare 413s bodies over
           # 100 MB on the free plan. Long timeouts for those uploads.
           cache-push.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "legion-node4" "garret-pusher"} {
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "garret" "pusher"} {
               transport http {
                 read_timeout 15m
                 write_timeout 15m
@@ -306,45 +334,45 @@
           }
 
           budget.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node4}:${port "legion-node4" "actual-budget"}
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node4}:${port "actual-budget" "app"}
           }
 
           grafana.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node3}:${port "legion-node3" "grafana"}
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node3}:${port "monitoring" "grafana"}
           }
 
           # Ungated deliberately: it reports on Pocket ID, so SSO (or
           # netbird-proxy, which authenticates against it) would take the
           # outage report down with the outage. appsec skipped, fail-open.
           status.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "legion-node4" "gatus"}
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "gatus" "app"}
           }
 
           tinyauth.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy 127.0.0.1:${port "legion-node1" "tinyauth"}
+            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy 127.0.0.1:${port "tinyauth" "app"}
           }
 
           # Glance has no login of its own; tinyauth answers 2xx for a valid
           # session and otherwise a redirect to its Pocket ID login.
           glance.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}forward_auth 127.0.0.1:${port "legion-node1" "tinyauth"} {
+            ${logLine}${crowdsecLine}${appsecLine}forward_auth 127.0.0.1:${port "tinyauth" "app"} {
               uri /api/auth/caddy
             }
-            reverse_proxy ${node4}:${port "legion-node4" "glance"}
+            reverse_proxy ${node4}:${port "glance" "app"}
           }
 
           # Behind tinyauth so only a logged-in user can burn egress.
           # appsec skipped: the upload test is a burst of large random
           # POST bodies, the one shape a WAF exists to inspect.
           speed.jeiang.dev {
-            ${logLine}${crowdsecLine}forward_auth 127.0.0.1:${port "legion-node1" "tinyauth"} {
+            ${logLine}${crowdsecLine}forward_auth 127.0.0.1:${port "tinyauth" "app"} {
               uri /api/auth/caddy
             }
             handle /servers_list.js {
               root * ${speedtestServersList}
               file_server
             }
-            reverse_proxy 127.0.0.1:${port "legion-node1" "librespeed"}
+            reverse_proxy 127.0.0.1:${toString self.lib.speedtestPort}
           }
 
           netbird.jeiang.dev {
@@ -353,12 +381,12 @@
             # allow anyway.
             ${logLine}${crowdsecLine}@grpc path /signalexchange.SignalExchange/* /management.ManagementService/* /management.ProxyService/*
             handle @grpc {
-              reverse_proxy h2c://${node2}:${port "legion-node2" "netbird-http"}
+              reverse_proxy h2c://${node2}:${port "netbird-server" "http"}
             }
 
             @backend path /api/* /oauth2/* /ws-proxy/*
             handle @backend {
-              reverse_proxy ${node2}:${port "legion-node2" "netbird-http"} {
+              reverse_proxy ${node2}:${port "netbird-server" "http"} {
                 transport http {
                   read_timeout 15m
                 }
@@ -367,7 +395,7 @@
 
             @relay path /relay*
             handle @relay {
-              reverse_proxy ${node2}:${port "legion-node2" "netbird-relay"} {
+              reverse_proxy ${node2}:${port "netbird-relay" "relay"} {
                 transport http {
                   read_timeout 15m
                 }
@@ -437,7 +465,7 @@
         {
           "caddy/cloudflare-dns-token" = {inherit sopsFile;};
         }
-        // lib.optionalAttrs cfg.crowdsec.enable {
+        // lib.optionalAttrs crowdsecHere {
           "caddy/crowdsec-lapi-url" = {inherit sopsFile;};
           "caddy/crowdsec-lapi-key" = {
             inherit sopsFile;
@@ -451,7 +479,7 @@
         restartUnits = ["caddy.service"];
         content =
           "CLOUDFLARE_API_TOKEN=${config.sops.placeholder."caddy/cloudflare-dns-token"}\n"
-          + lib.optionalString cfg.crowdsec.enable ''
+          + lib.optionalString crowdsecHere ''
             CROWDSEC_LAPI_URL=${config.sops.placeholder."caddy/crowdsec-lapi-url"}
             CROWDSEC_LAPI_KEY=${config.sops.placeholder."caddy/crowdsec-lapi-key"}
           '';

@@ -2,24 +2,67 @@
   self,
   inputs,
   ...
-}: {
+}: let
+  # The SQLite index is the only record of what is in the S3 bucket. An
+  # older or missing index does not strand objects: the orphan sweep
+  # reclaims them, so a lost index is a cold-cache rebuild, not a data
+  # loss (docs/runbooks/garret.md).
+  dataDir = "/mnt/garret";
+
+  pullerPort = 8081;
+  pusherPort = 8082;
+  pusherMetricsPort = 9091;
+  pullerMetricsPort = 9092;
+in {
+  legion.services.garret = {
+    node = "legion-node4";
+    module = "garret";
+    stateful = true;
+    units = ["garret-pusher" "garret-puller"];
+    ports = {
+      puller = pullerPort;
+      pusher = pusherPort;
+      pusher-metrics = pusherMetricsPort;
+      puller-metrics = pullerMetricsPort;
+    };
+    firewall = [
+      {
+        port = pullerPort;
+        proto = "tcp";
+        scope = "private";
+      }
+      {
+        port = pusherPort;
+        proto = "tcp";
+        scope = "private";
+      }
+      {
+        port = pusherMetricsPort;
+        proto = "tcp";
+        scope = "private";
+      }
+      {
+        port = pullerMetricsPort;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+    volume = {
+      name = "legion-garret";
+      mountpoint = dataDir;
+      hcloudVolumeId = "106562809";
+      sizeGiB = 10;
+    };
+    backupSet = [dataDir];
+  };
+
   nixos.modules.garret = {
     config,
     lib,
     pkgs,
     ...
   }: let
-    # The SQLite index is the only record of what is in the S3 bucket. An
-    # older or missing index does not strand objects: the orphan sweep
-    # reclaims them, so a lost index is a cold-cache rebuild, not a data
-    # loss (docs/runbooks/garret.md).
-    dataDir = "/mnt/garret";
     dbPath = "${dataDir}/garret.db";
-
-    pusherPort = self.lib.ports.legion-node4.garret-pusher;
-    pullerPort = self.lib.ports.legion-node4.garret-puller;
-    pusherMetricsPort = self.lib.ports.legion-node4.garret-pusher-metrics;
-    pullerMetricsPort = self.lib.ports.legion-node4.garret-puller-metrics;
 
     privateIPv4 = self.lib.legionNodes.legion-node4.privateIPv4;
 

@@ -1,4 +1,15 @@
-{self, ...}: {
+_: let
+  port = 3000;
+in {
+  legion.services.tinyauth = {
+    node = "legion-node1";
+    module = "tinyauth";
+    units = ["tinyauth"];
+    ports.app = port;
+    # Loopback only; Caddy fronts it.
+    firewall = [];
+  };
+
   # Forward-auth gate for edge vhosts that have no login of their own; logs
   # in through Pocket ID. Colocated with Caddy so forward_auth stays on
   # loopback.
@@ -14,7 +25,7 @@
       settings = {
         APPURL = appUrl;
         SERVER_ADDRESS = "127.0.0.1";
-        SERVER_PORT = self.lib.ports.legion-node1.tinyauth;
+        SERVER_PORT = port;
         AUTH_TRUSTEDPROXIES = "127.0.0.1";
         AUTH_SECURECOOKIE = true;
         OAUTH_AUTOREDIRECT = "pocketid";
