@@ -136,8 +136,13 @@ behavior for its own sake.
   `just migrate-persist <checkout>` on artemis as root from a checkout of
   the new revision, then deploy with `--boot` and reboot. After the reboot
   the old data is only in `old_roots`.
-- A persisted path is not backed up. A backup set is an explicit allowlist,
-  and every path in it must also be a `persistence.*` path.
+- Persisting a path does not back it up. A backup set is an explicit
+  allowlist, and every path in it must also be a `persistence.*` path.
+  artemis backs up its allowlist (`modules/backups/default.nix`) from a
+  read-only btrfs snapshot of `/persist`, so the paths in its snapshots
+  carry a `/persist/.backup-snapshot` prefix. A btrfs snapshot is not
+  recursive: a backup path that is, or contains, a nested subvolume would
+  back up as an empty directory.
 
 ### Secrets
 
@@ -180,6 +185,10 @@ behavior for its own sake.
   database holds only sessions.
 - The H@H backup keeps the full cache: a restore costs less than earning
   back H@H trust and quota.
+- artemis and Legion back up to separate S4 buckets with separate keys, and
+  one repository password covers all of Legion. A host that owns no backup
+  job is therefore not a recipient of a backups shard, and adding one back
+  means rotating the key it could read.
 - `cache.jeiang.dev` and `cache-push.jeiang.dev` stay DNS-only in
   Cloudflare. Cloudflare rejects push bodies over 100 MB, and a proxied
   puller gets shared-PoP bans. The signing key `cache.jeiang.dev-1` is named

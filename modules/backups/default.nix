@@ -1,4 +1,48 @@
-_: {
+_: let
+  s4Endpoint = "https://s3.eu-central-1.s4.mega.io";
+  retention = "--keep-daily 7 --keep-weekly 4 --keep-monthly 6";
+
+  # Pruning gets its own unit and schedule: inside the backup unit it would
+  # hold the repository lock for the whole backup window, and on Legion it
+  # would run while a job's paused units are down.
+  maintenanceService = {
+    pkgs,
+    lib,
+    name,
+    repository,
+    passwordFile,
+    environmentFile,
+  }: {
+    description = "Restic prune and integrity check for ${name}";
+    # Ordered after the backup unit (not just network-online.target)
+    # so a Persistent=true catch-up at boot runs the daily backup
+    # first instead of the two units racing for the repository lock.
+    after = ["network-online.target" "restic-backups-${name}.service"];
+    wants = ["network-online.target"];
+    environment = {
+      RESTIC_CACHE_DIR = "/var/cache/restic-backups-${name}";
+      RESTIC_PASSWORD_FILE = passwordFile;
+      RESTIC_REPOSITORY = repository;
+    };
+    serviceConfig = {
+      Type = "oneshot";
+      EnvironmentFile = environmentFile;
+      ExecStart = [
+        "${lib.getExe pkgs.restic} forget --retry-lock 2h --prune ${retention}"
+        "${lib.getExe pkgs.restic} check --retry-lock 2h --read-data-subset=5%"
+      ];
+    };
+  };
+
+  maintenanceTimer = {
+    wantedBy = ["timers.target"];
+    timerConfig = {
+      OnCalendar = "weekly";
+      RandomizedDelaySec = "12h";
+      Persistent = true;
+    };
+  };
+in {
   nixos.modules.legion = {
     config,
     lib,
@@ -7,7 +51,6 @@ _: {
   }: let
     cfg = config.backups;
 
-    s4Endpoint = "https://s3.eu-central-1.s4.mega.io";
     s4Bucket = "legion-restic-backups";
     repositoryFor = name: "s3:${s4Endpoint}/${s4Bucket}/${config.networking.hostName}/${name}";
 
@@ -71,10 +114,7 @@ _: {
             RandomizedDelaySec = "4h";
             Persistent = true;
           };
-          # No forget/prune here: pruneOpts = [] makes the nixpkgs restic
-          # module skip that step entirely, so pruning never runs while
-          # job.pauseUnits are stopped. restic-maintenance-<name> below
-          # prunes and checks on its own weekly schedule instead.
+          # An empty list makes the nixpkgs module skip forget/prune here.
           pruneOpts = [];
           extraBackupArgs = ["--retry-lock" "2h"];
           backupPrepareCommand =
@@ -97,39 +137,123 @@ _: {
           })
         cfg.jobs
         // lib.mapAttrs' (name: _job:
-          lib.nameValuePair "restic-maintenance-${name}" {
-            description = "Restic prune and integrity check for ${name}";
-            # Ordered after the backup unit (not just network-online.target)
-            # so a Persistent=true catch-up at boot runs the daily backup
-            # first instead of the two units racing for the repository lock.
-            after = ["network-online.target" "restic-backups-${name}.service"];
-            wants = ["network-online.target"];
-            environment = {
-              RESTIC_CACHE_DIR = "/var/cache/restic-backups-${name}";
-              RESTIC_PASSWORD_FILE = config.sops.secrets."restic/password".path;
-              RESTIC_REPOSITORY = repositoryFor name;
-            };
-            serviceConfig = {
-              Type = "oneshot";
-              EnvironmentFile = config.sops.secrets."restic/s4-env".path;
-              ExecStart = [
-                "${lib.getExe pkgs.restic} forget --retry-lock 2h --prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6"
-                "${lib.getExe pkgs.restic} check --retry-lock 2h --read-data-subset=5%"
-              ];
-            };
-          })
+          lib.nameValuePair "restic-maintenance-${name}" (maintenanceService {
+            inherit lib name pkgs;
+            repository = repositoryFor name;
+            passwordFile = config.sops.secrets."restic/password".path;
+            environmentFile = config.sops.secrets."restic/s4-env".path;
+          }))
         cfg.jobs;
 
       systemd.timers = lib.mapAttrs' (name: _:
-        lib.nameValuePair "restic-maintenance-${name}" {
-          wantedBy = ["timers.target"];
-          timerConfig = {
-            OnCalendar = "weekly";
-            RandomizedDelaySec = "12h";
-            Persistent = true;
-          };
-        })
+        lib.nameValuePair "restic-maintenance-${name}" maintenanceTimer)
       cfg.jobs;
+    };
+  };
+
+  nixos.modules.artemis = {
+    config,
+    lib,
+    pkgs,
+    ...
+  }: let
+    home = config.users.users.${config.preferences.user.name}.home;
+
+    repository = "s3:${s4Endpoint}/artemis-restic-backups/persist";
+
+    # Read-only snapshot, so restic never reads a file while it is written.
+    # It sits inside /persist, which is already mounted, so the unit needs no
+    # mount of its own.
+    snapshot = "/persist/.backup-snapshot";
+    btrfs = "${pkgs.btrfs-progs}/bin/btrfs";
+
+    # Paths relative to /persist.
+    backupSet =
+      # Host identity: with these two a rebuilt artemis keeps its sops key and
+      # its NetBird peer address, which the flake hardcodes.
+      ["etc/ssh" "var/lib/netbird"]
+      ++ map (directory: "data${home}/${directory}") [
+        ".config/sunshine"
+        ".gnupg"
+        ".local/share/PrismLauncher"
+        ".local/share/fish"
+        ".password-store"
+        ".renpy"
+        ".ssh"
+      ];
+
+    entryPath = entry:
+      if builtins.isString entry
+      then entry
+      else entry.directory or entry.file;
+    persisted =
+      map (entry: lib.removePrefix "/" (entryPath entry))
+      (config.persistence.directories ++ config.persistence.files)
+      ++ map (entry: "data${home}/${entryPath entry}")
+      (config.persistence.data.directories ++ config.persistence.data.files);
+  in {
+    # A path that is not persisted is empty after a reboot, and restic would
+    # fail on it rather than quietly shrink the backup.
+    assertions =
+      map (path: {
+        assertion =
+          lib.elem path persisted
+          # Either a parent of persisted entries (/persist holds nothing else)
+          # or a path inside one.
+          || lib.any (lib.hasPrefix "${path}/") persisted
+          || lib.any (entry: lib.hasPrefix "${entry}/" path) persisted;
+        message = "backups: /persist/${path} is not a persistence.* path";
+      })
+      backupSet;
+
+    sops.secrets = let
+      sopsFile = ./secrets.artemis.yaml;
+    in {
+      "restic/password" = {inherit sopsFile;};
+      "restic/s4-env" = {inherit sopsFile;};
+    };
+
+    services.restic.backups.persist = {
+      inherit repository;
+      paths = map (path: "${snapshot}/${path}") backupSet;
+      passwordFile = config.sops.secrets."restic/password".path;
+      environmentFile = config.sops.secrets."restic/s4-env".path;
+      initialize = true;
+      timerConfig = {
+        # Ahead of bees at 03:00, which stalls disk I/O until 09:00.
+        OnCalendar = "02:00";
+        Persistent = true;
+      };
+      pruneOpts = [];
+      extraBackupArgs = ["--retry-lock" "2h"];
+      # Both guards are for a run that was killed before its cleanup: the
+      # snapshot outlives the unit, and deleting one that is not there would
+      # fail the unit after a successful backup.
+      backupPrepareCommand = ''
+        set -eu
+        if [ -e ${snapshot} ]; then
+          ${btrfs} subvolume delete ${snapshot}
+        fi
+        ${btrfs} subvolume snapshot -r /persist ${snapshot}
+      '';
+      backupCleanupCommand = ''
+        if [ -e ${snapshot} ]; then
+          ${btrfs} subvolume delete ${snapshot}
+        fi
+      '';
+    };
+
+    systemd = {
+      services = {
+        restic-backups-persist.unitConfig.RequiresMountsFor = ["/persist"];
+        restic-maintenance-persist = maintenanceService {
+          inherit lib pkgs repository;
+          name = "persist";
+          passwordFile = config.sops.secrets."restic/password".path;
+          environmentFile = config.sops.secrets."restic/s4-env".path;
+        };
+      };
+      timers.restic-maintenance-persist = maintenanceTimer;
     };
   };
 }

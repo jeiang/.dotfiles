@@ -181,7 +181,8 @@ in {
         enable = true;
         enabledCollectors = ["systemd"];
         extraFlags = [
-          "--collector.systemd.unit-include=(netbird|netbird-login|greetd|wireguard-wg-backup|beesd@.*|sshd)\\.service"
+          # The restic pattern matches timers too; the backup-freshness alert reads their last trigger.
+          "--collector.systemd.unit-include=(netbird|netbird-login|greetd|wireguard-wg-backup|beesd@.*|sshd)\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)"
         ];
       };
 

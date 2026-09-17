@@ -1,10 +1,11 @@
 # Runbook: restic restore
 
-Restore one Legion service's backup set. Read [`AGENTS.md`](../../AGENTS.md)
-first. Every command runs on the node that owns the service and asks for the
-operator's sudo password, so use `ssh -t`.
+Restore one Legion service's backup set, or artemis's `/persist` allowlist.
+Read [`AGENTS.md`](../../AGENTS.md) first. Every Legion command runs on the
+node that owns the service and asks for the operator's sudo password, so use
+`ssh -t`. On artemis `doas` needs no password.
 
-## Where the backups are
+## Where the Legion backups are
 
 - Bucket `legion-restic-backups` at `https://s3.eu-central-1.s4.mega.io`,
   created outside this flake with an application key scoped to it.
@@ -15,6 +16,7 @@ operator's sudo password, so use `ssh -t`.
   `AWS_ACCESS_KEY_ID=` line and an `AWS_SECRET_ACCESS_KEY=` line).
 - Each node has a `restic-<service>` wrapper that already sets the
   repository, password file, and S4 credentials, so no secret leaves the node.
+- The four sections below are the Legion procedure. artemis has its own.
 - The backed-up paths and the units a backup stops:
 
   ```sh
@@ -73,6 +75,46 @@ Only after the scratch copy passes, and only to recover from data loss.
     ```sh
     ssh -t <node>.jeiang.dev sudo systemctl start <pause-units>
     ```
+
+## artemis
+
+artemis has one repository,
+`s3:https://s3.eu-central-1.s4.mega.io/artemis-restic-backups/persist`, its
+own bucket with an application key scoped to it, and its own
+`restic/password` and `restic/s4-env` in
+`modules/backups/secrets.artemis.yaml`. The wrapper is `restic-persist`.
+
+Every path in a snapshot carries the `/persist/.backup-snapshot` prefix of
+the btrfs snapshot it was read from, so a restore never writes straight back
+over the live path. Restore, then copy:
+
+```sh
+ssh artemis.jeiang.vpn doas restic-persist snapshots
+```
+
+```sh
+ssh artemis.jeiang.vpn doas restic-persist restore <snapshot-id> --target /tmp/restore-persist --include '/persist/.backup-snapshot/data/home/aidanp/.gnupg'
+```
+
+Check the copy, then put it back with `rsync -a` (`--delete` only when the
+live directory must end up identical, and never with `/` as the target):
+
+```sh
+ssh artemis.jeiang.vpn doas rsync -a /tmp/restore-persist/persist/.backup-snapshot/data/home/aidanp/.gnupg/ /home/aidanp/.gnupg/
+```
+
+```sh
+ssh artemis.jeiang.vpn doas rm -rf /tmp/restore-persist
+```
+
+`/persist/data/home/aidanp/...` and the path under `/home/aidanp` are the
+same files: impermanence bind-mounts one onto the other. Writing to either
+is the same write.
+
+Rebuilding artemis from nothing reads the repository with the admin age key,
+not with anything on the host. Restore `/persist/etc/ssh` first anyway: the
+rebuilt host then decrypts every existing shard with its old key, instead of
+needing new recipients in `.sops.yaml`.
 
 ## Retention
 

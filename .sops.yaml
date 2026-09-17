@@ -51,16 +51,22 @@ creation_rules:
       - *server_legion_node3
       - *server_legion_node4
 
-  # modules/backups/default.nix -- every host with a Backup Set (not
-  # the edge node, which runs no backup job).
+  # modules/backups/default.nix -- only the Legion nodes that own a Backup
+  # Set. One repository password covers every Legion repository, so a node
+  # with no backup job must not be a recipient.
   - path_regex: modules/backups/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
-      - *server_artemis
       - *server_legion_node2
-      - *server_legion_node3
       - *server_legion_node4
+
+  # modules/backups/default.nix (the /persist job) -- artemis only.
+  - path_regex: modules/backups/secrets\.artemis\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *server_artemis
 
   # modules/edge/default.nix and modules/tinyauth.nix.
   - path_regex: modules/edge/secrets\.yaml$
