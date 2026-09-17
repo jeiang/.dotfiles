@@ -1,4 +1,9 @@
 _: {
+  legion.services.blocky = {
+    node = "legion-node2";
+    module = "blocky";
+  };
+
   nixos.modules.blocky = {config, ...}: {
     services.blocky = {
       enable = true;

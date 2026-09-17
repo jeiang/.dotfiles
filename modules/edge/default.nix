@@ -1,8 +1,54 @@
 {
   self,
   inputs,
+  config,
   ...
-}: {
+}: let
+  legionServices = config.legion.services;
+in {
+  legion.services.caddy = {
+    node = "legion-node1";
+    module = "edge";
+    edge = true;
+    publicHostnames = [
+      "jeiang.dev"
+      "aidanpinard.co"
+      "pinard.co.tt"
+      "auth.jeiang.dev"
+      "cache.jeiang.dev"
+      "cache-push.jeiang.dev"
+      "budget.jeiang.dev"
+      "grafana.jeiang.dev"
+      "netbird.jeiang.dev"
+      "noelejoshua.com"
+      "bill-split.jeiang.dev"
+      "rivals.jeiang.dev"
+      "mdtable.jeiang.dev"
+      "github.jeiang.dev"
+      "status.jeiang.dev"
+      "tinyauth.jeiang.dev"
+      "glance.jeiang.dev"
+      "speed.jeiang.dev"
+    ];
+    firewall = [
+      {
+        port = 80;
+        proto = "tcp";
+        scope = "public";
+      }
+      {
+        port = 443;
+        proto = "tcp";
+        scope = "public";
+      }
+      {
+        port = 2020;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+  };
+
   nixos.modules.edge = {
     config,
     lib,
@@ -110,12 +156,17 @@
     '';
   in {
     options.edge.anubis = {
-      enable = lib.mkEnableOption ''
-        the Anubis proof-of-work gate in front of the static content site
-        blocks only (jeiang.dev apex, aidanpinard.co, pinard.co.tt,
-        noelejoshua.com). Enabled by modules/anubis.nix, which is
-        imported only for the inventory node placing `anubis`
-      '';
+      enable =
+        lib.mkEnableOption ''
+          the Anubis proof-of-work gate in front of the static content site
+          blocks only (jeiang.dev apex, aidanpinard.co, pinard.co.tt,
+          noelejoshua.com). Defaults to whether legion.services.anubis
+          places `anubis` on this host, so modules/anubis.nix needs no
+          enable flag of its own
+        ''
+        // {
+          default = (legionServices ? anubis) && legionServices.anubis.node == config.networking.hostName;
+        };
 
       originPort = lib.mkOption {
         type = lib.types.port;
@@ -136,15 +187,18 @@
     options.edge.crowdsec.enable =
       lib.mkEnableOption ''
         the CrowdSec bouncer HTTP + AppSec handlers on the edge, and (shared
-        switch, modules/crowdsec/default.nix) the CrowdSec engine
-        itself. On by default; the sops secrets it and the Caddy wiring need
+        switch, modules/crowdsec/default.nix) the CrowdSec engine itself.
+        Defaults to whether legion.services.crowdsec places `crowdsec` on
+        this host. The sops secrets it and the Caddy wiring need
         (caddy/crowdsec-lapi-url, caddy/crowdsec-lapi-key,
         crowdsec/bouncer-netbird-proxy-key,
         crowdsec/bouncer-legion-node2-firewall) must be present in the
         caddy secrets shard or activation fails. Toggle off to deploy the
         edge without CrowdSec
       ''
-      // {default = true;};
+      // {
+        default = (legionServices ? crowdsec) && legionServices.crowdsec.node == config.networking.hostName;
+      };
 
     config = {
       services.caddy = {

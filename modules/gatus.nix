@@ -1,4 +1,16 @@
 {self, ...}: {
+  legion.services.gatus = {
+    node = "legion-node4";
+    module = "gatus";
+    firewall = [
+      {
+        port = self.lib.ports.legion-node4.gatus;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+  };
+
   nixos.modules.gatus = _: let
     https = name: group: url: conditions: {
       inherit name group url conditions;

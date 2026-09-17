@@ -1,4 +1,25 @@
 {self, ...}: {
+  legion.services.hath = {
+    node = "legion-node4";
+    module = "hath";
+    stateful = true;
+    firewall = [
+      {
+        port = 8888;
+        proto = "tcp";
+        scope = "public";
+      }
+    ];
+    volume = {
+      name = "legion-hath";
+      mountpoint = "/mnt/hath";
+      hcloudVolumeId = "106251745";
+      sizeGiB = 40;
+    };
+    backupSet = ["/mnt/hath/data" "/mnt/hath/cache"];
+    backupPauseUnits = ["hath.service"];
+  };
+
   # No edge route: Caddy cannot proxy H@H's binary protocol.
   nixos.modules.hath = {
     lib,

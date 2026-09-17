@@ -1,4 +1,25 @@
 {self, ...}: {
+  legion.services.pocket-id = {
+    node = "legion-node2";
+    module = "pocket-id";
+    stateful = true;
+    firewall = [
+      {
+        port = self.lib.ports.legion-node2.pocket-id;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+    volume = {
+      name = "legion-pocket-id";
+      mountpoint = "/mnt/pocket-id";
+      hcloudVolumeId = "106117410";
+      sizeGiB = 10;
+    };
+    backupSet = ["/mnt/pocket-id"];
+    backupPauseUnits = ["pocket-id.service"];
+  };
+
   nixos.modules.pocket-id = {
     config,
     lib,

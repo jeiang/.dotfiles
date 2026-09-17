@@ -1,4 +1,21 @@
 {self, ...}: {
+  legion.services.monitoring = {
+    node = "legion-node3";
+    module = "monitoring";
+    firewall = [
+      {
+        port = self.lib.ports.legion-node3.grafana;
+        proto = "tcp";
+        scope = "private";
+      }
+      {
+        port = self.lib.ports.legion-node3.alertmanager;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+  };
+
   nixos.modules.monitoring = {
     config,
     pkgs,

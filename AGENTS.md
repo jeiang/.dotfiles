@@ -60,9 +60,11 @@ behavior for its own sake.
 
 - `flake.nix`: inputs and the `mkFlake` entry point.
 - `modules/hosts/<host>/`: host assembly, hardware, disko, facter report,
-  host secrets. Legion placement is data in
-  `modules/hosts/legion/_service-inventory.nix`; files with a `_` prefix are
-  not imported by import-tree.
+  host secrets. `modules/hosts/legion/services.nix` declares the
+  `legion.services.<name>` option; each Legion service's own feature file
+  sets its own entry (node, ports, firewall, Volume, backup set), and
+  `modules/hosts/legion/default.nix` derives per-node module imports,
+  firewall openings, Volume `fileSystems`, and `backups.jobs` from it.
 - `modules/<feature>.nix`, or `modules/<feature>/` when it has sibling
   files (secrets shard, Lua, JSON, script): one flake-parts module that
   implements the feature for every class it applies to. A secret shard sits
@@ -160,9 +162,10 @@ behavior for its own sake.
   `mountGuard`, so a missing Volume never initializes fresh state on the
   root disk. Exactly one node owns each stateful service; moving it is an
   explicit Volume and state migration, not a placement edit alone.
-- Legion host firewalls are on. The inventory's `scope = "private"` is
-  documentation: `enp7s0` and the NetBird interface are trusted interfaces.
-  A public opening also needs its own Hetzner Cloud Firewall rule.
+- Legion host firewalls are on. A `legion.services.<name>` entry's
+  `scope = "private"` is documentation: `enp7s0` and the NetBird interface
+  are trusted interfaces. A public opening also needs its own Hetzner Cloud
+  Firewall rule.
 - `netbird-proxy` on `legion-node2` is public and terminates its own TLS
   (DNS-01 wildcard for `proxy.jeiang.dev`). CrowdSec IP reputation and an
   nftables bouncer protect it with decisions from the LAPI on

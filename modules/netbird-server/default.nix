@@ -1,4 +1,43 @@
 {self, ...}: {
+  legion.services.netbird-server = {
+    node = "legion-node2";
+    module = "netbird-server";
+    stateful = true;
+    firewall = [
+      {
+        port = self.lib.ports.legion-node2.netbird-http;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+    volume = {
+      name = "legion-netbird";
+      mountpoint = "/mnt/netbird";
+      sizeGiB = 10;
+      hcloudVolumeId = "106121301";
+    };
+    backupSet = ["/mnt/netbird"];
+    backupPauseUnits = ["netbird-server.service"];
+  };
+
+  # Started by the netbird-server module above; no module of its own.
+  legion.services.netbird-relay = {
+    node = "legion-node2";
+    publicHostnames = ["stun.netbird.jeiang.dev"];
+    firewall = [
+      {
+        port = self.lib.ports.legion-node2.netbird-stun;
+        proto = "udp";
+        scope = "public";
+      }
+      {
+        port = self.lib.ports.legion-node2.netbird-relay;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+  };
+
   nixos.modules.netbird-server = {
     config,
     lib,

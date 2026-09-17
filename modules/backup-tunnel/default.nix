@@ -4,6 +4,18 @@ _: let
   artemisPublicKey = "XWfbtRzMfHUrv1oJ0ULRKFTbSn8io1iLkwBcf7AgQwQ=";
   node1PublicKey = "ay1qHJCX2WQONRG5eTfh4fsIcTO6HOU8wdhSwHaJ+BM=";
 in {
+  legion.services.backup-tunnel = {
+    node = "legion-node1";
+    module = "backup-tunnel-responder";
+    firewall = [
+      {
+        port = 51821;
+        proto = "udp";
+        scope = "public";
+      }
+    ];
+  };
+
   nixos.modules.artemis = {config, ...}: {
     sops.secrets."wireguard/artemis-private-key" = {
       sopsFile = ./secrets.yaml;

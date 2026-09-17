@@ -1,4 +1,11 @@
 {self, ...}: {
+  legion.services.tinyauth = {
+    node = "legion-node1";
+    module = "tinyauth";
+    # Loopback only; Caddy fronts it.
+    firewall = [];
+  };
+
   # Forward-auth gate for edge vhosts that have no login of their own; logs
   # in through Pocket ID. Colocated with Caddy so forward_auth stays on
   # loopback.

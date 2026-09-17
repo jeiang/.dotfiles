@@ -3,6 +3,42 @@
   inputs,
   ...
 }: {
+  legion.services.garret = {
+    node = "legion-node4";
+    module = "garret";
+    stateful = true;
+    firewall = [
+      {
+        port = self.lib.ports.legion-node4.garret-puller;
+        proto = "tcp";
+        scope = "private";
+      }
+      {
+        port = self.lib.ports.legion-node4.garret-pusher;
+        proto = "tcp";
+        scope = "private";
+      }
+      {
+        port = self.lib.ports.legion-node4.garret-pusher-metrics;
+        proto = "tcp";
+        scope = "private";
+      }
+      {
+        port = self.lib.ports.legion-node4.garret-puller-metrics;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+    volume = {
+      name = "legion-garret";
+      mountpoint = "/mnt/garret";
+      hcloudVolumeId = "106562809";
+      sizeGiB = 10;
+    };
+    backupSet = ["/mnt/garret"];
+    backupPauseUnits = ["garret-pusher.service" "garret-puller.service"];
+  };
+
   nixos.modules.garret = {
     config,
     lib,

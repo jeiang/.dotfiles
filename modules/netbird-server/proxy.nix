@@ -1,4 +1,33 @@
 {self, ...}: {
+  legion.services.netbird-proxy = {
+    node = "legion-node2";
+    module = "netbird-proxy";
+    # Serves proxy.jeiang.dev and its wildcard directly (its own security.acme
+    # cert), not node1's Caddy.
+    publicHostnames = ["proxy.jeiang.dev" "*.proxy.jeiang.dev"];
+    firewall = [
+      {
+        port = 443;
+        proto = "tcp";
+        scope = "public";
+      }
+    ];
+    firewallPortRanges = [
+      {
+        from = 40000;
+        to = 45000;
+        proto = "tcp";
+        scope = "public";
+      }
+      {
+        from = 40000;
+        to = 45000;
+        proto = "udp";
+        scope = "public";
+      }
+    ];
+  };
+
   nixos.modules.netbird-proxy = {
     config,
     lib,

@@ -1,4 +1,21 @@
 _: {
+  legion.services.crowdsec = {
+    node = "legion-node1";
+    module = "crowdsec";
+    firewall = [
+      {
+        port = 8080;
+        proto = "tcp";
+        scope = "private";
+      }
+      {
+        port = 6060;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+  };
+
   nixos.modules.crowdsec = {
     config,
     lib,

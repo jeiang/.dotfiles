@@ -1,4 +1,16 @@
 {self, ...}: {
+  legion.services.glance = {
+    node = "legion-node4";
+    module = "glance";
+    firewall = [
+      {
+        port = self.lib.ports.legion-node4.glance;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+  };
+
   # Glance the widget dashboard (glanceapp/glance), not `services.glances`.
   nixos.modules.glance = {lib, ...}: let
     node3 = self.lib.legionNodes.legion-node3.privateIPv4;

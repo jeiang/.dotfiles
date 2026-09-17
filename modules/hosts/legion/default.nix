@@ -14,27 +14,57 @@
 
   nodeAddresses = lib.concatMap (node: [node.privateIPv4 node.publicIPv4 node.publicIPv6]) (builtins.attrValues legionNodes);
 
-  legionServices = import ./_service-inventory.nix {
-    inherit lib;
-    ports = self.lib.ports;
-  };
-  unknownServicePlacements = builtins.filter (name: !(legionNodes ? ${name})) (builtins.attrNames legionServices);
-
   validatedLegionNodes = assert lib.assertMsg (builtins.length nodeAddresses == builtins.length (lib.unique nodeAddresses))
-  "Legion inventory must not reuse an IP address";
-  assert lib.assertMsg (unknownServicePlacements == [])
-  "Legion service inventory places services on unknown nodes: ${builtins.concatStringsSep ", " unknownServicePlacements}";
-    lib.mapAttrs (name: node: node // (legionServices.${name} or {})) legionNodes;
+  "Legion inventory must not reuse an IP address"; legionNodes;
+
+  # config.legion.services carries its own placement (each service's own
+  # feature file sets its entry there); its `apply` enforces the fleet-wide
+  # invariants (one edge service, no reused hostname, every stateful
+  # service has a Volume, backup paths inside the Volume mountpoint). The
+  # `node` field is a strict enum of legionNodes' keys, so an unknown
+  # placement is a type error rather than a separate assertion.
+  legionServices = config.legion.services;
+  servicesByNode = nodeName: builtins.filter (s: s.node == nodeName) (lib.mapAttrsToList (name: s: s // {inherit name;}) legionServices);
+
+  # config.legion.services is an attrset, so iterating it directly would
+  # order modules alphabetically by service name; that only reorders
+  # cross-module After=/Wants= entries (harmless to systemd) but still
+  # perturbs the built unit text, so a fixed order keeps rebuilds free of
+  # unrelated diffs. Anything not listed here (a future service) sorts
+  # after, in whatever order it was declared.
+  legionModuleOrder = [
+    "edge"
+    "crowdsec"
+    "anubis"
+    "netbird-server"
+    "netbird-proxy"
+    "pocket-id"
+    "garret"
+    "actual-budget"
+    "hath"
+    "blocky"
+    "glance"
+    "tinyauth"
+    "gatus"
+    "monitoring"
+    "backup-tunnel-responder"
+  ];
+
+  moduleNamesFor = nodeName: let
+    present = lib.unique (builtins.filter (m: m != null) (map (s: s.module) (servicesByNode nodeName)));
+  in
+    builtins.filter (m: builtins.elem m present) legionModuleOrder
+    ++ builtins.filter (m: !(builtins.elem m legionModuleOrder)) present;
 
   firewallPortsFor = nodeName: proto: scope: let
-    services = validatedLegionNodes.${nodeName}.services or [];
-    exactOpenings = lib.concatMap (service: service.firewall or []) services;
-    publishedOpenings = lib.concatMap (service: map (p: p // {scope = "public";}) (service.publishedPorts or [])) services;
+    services = servicesByNode nodeName;
+    exactOpenings = lib.concatMap (s: s.firewall) services;
+    publishedOpenings = lib.concatMap (s: map (p: p // {scope = "public";}) s.publishedPorts) services;
   in
     lib.unique (map (o: o.port) (builtins.filter (o: o.proto == proto && o.scope == scope) (exactOpenings ++ publishedOpenings)));
 
   firewallPortRangesFor = nodeName: proto: scope: let
-    openings = lib.concatMap (service: service.firewallPortRanges or []) (validatedLegionNodes.${nodeName}.services or []);
+    openings = lib.concatMap (s: s.firewallPortRanges) (servicesByNode nodeName);
   in
     map (o: {inherit (o) from to;}) (builtins.filter (o: o.proto == proto && o.scope == scope) openings);
 
@@ -156,26 +186,25 @@ in {
     };
 
     backups.jobs = lib.listToAttrs (
-      map (service:
-        lib.nameValuePair service.name {
-          paths = service.backupSet;
-          volume = service.volume.mountpoint;
-          pauseUnits = service.backupPauseUnits or [];
+      map (s:
+        lib.nameValuePair s.name {
+          paths = s.backupSet;
+          volume = s.volume.mountpoint;
+          pauseUnits = s.backupPauseUnits;
         })
-      (builtins.filter (service: service ? backupSet && (service.volume or {}) ? hcloudVolumeId)
-        (validatedLegionNodes.${config.networking.hostName}.services or []))
+      (builtins.filter (s: s.backupSet != [] && s.volume != null)
+        (servicesByNode config.networking.hostName))
     );
 
     # A service contributes no mount until the operator fills in volume.hcloudVolumeId; nofail keeps a missing Volume from blocking boot (mountGuard keeps the service off the unmounted dir).
     fileSystems = lib.listToAttrs (
-      map (service:
-        lib.nameValuePair service.volume.mountpoint {
-          device = "/dev/disk/by-id/scsi-0HC_Volume_${service.volume.hcloudVolumeId}";
+      map (s:
+        lib.nameValuePair s.volume.mountpoint {
+          device = "/dev/disk/by-id/scsi-0HC_Volume_${s.volume.hcloudVolumeId}";
           fsType = "ext4";
           options = ["nofail" "x-systemd.device-timeout=10s"];
         })
-      (builtins.filter (service: (service.volume or {}) ? hcloudVolumeId)
-        (validatedLegionNodes.${config.networking.hostName}.services or []))
+      (builtins.filter (s: s.volume != null) (servicesByNode config.networking.hostName))
     );
 
     users = {
@@ -263,47 +292,7 @@ in {
             };
           }
         ]
-        ++ lib.optional (node.edge or false) modules.edge
-        ++ lib.optional (node.edge or false) modules.crowdsec
-        ++ lib.optional
-        (lib.any (service: service.name == "anubis") node.services)
-        modules.anubis
-        ++ lib.optional
-        (lib.any (service: service.name == "netbird-server") node.services)
-        modules.netbird-server
-        ++ lib.optional
-        (lib.any (service: service.name == "netbird-proxy") node.services)
-        modules.netbird-proxy
-        ++ lib.optional
-        (lib.any (service: service.name == "pocket-id") node.services)
-        modules.pocket-id
-        ++ lib.optional
-        (lib.any (service: service.name == "garret") node.services)
-        modules.garret
-        ++ lib.optional
-        (lib.any (service: service.name == "actual-budget") node.services)
-        modules.actual-budget
-        ++ lib.optional
-        (lib.any (service: service.name == "hath") node.services)
-        modules.hath
-        ++ lib.optional
-        (lib.any (service: service.name == "blocky") node.services)
-        modules.blocky
-        ++ lib.optional
-        (lib.any (service: service.name == "glance") node.services)
-        modules.glance
-        ++ lib.optional
-        (lib.any (service: service.name == "tinyauth") node.services)
-        modules.tinyauth
-        ++ lib.optional
-        (lib.any (service: service.name == "gatus") node.services)
-        modules.gatus
-        ++ lib.optional
-        (lib.any (service: service.name == "monitoring") node.services)
-        modules.monitoring
-        ++ lib.optional
-        (lib.any (service: service.name == "backup-tunnel") node.services)
-        modules.backup-tunnel-responder;
+        ++ map (m: modules.${m}) (moduleNamesFor name);
     };
   in
     builtins.mapAttrs mkLegionSystem validatedLegionNodes;
