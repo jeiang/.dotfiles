@@ -1,14 +1,14 @@
 {
   inputs,
   lib,
-  moduleLocation,
   ...
 }: {
   imports = [inputs.nix-darwin.flakeModules.default];
 
   options = {
     flake = inputs.flake-parts.lib.mkSubmoduleOptions {
-      diskoConfigurations = inputs.nixpkgs.lib.mkOption {
+      diskoConfigurations = lib.mkOption {
+        type = lib.types.lazyAttrsOf lib.types.raw;
         default = {};
       };
       deploy = lib.mkOption {
@@ -19,19 +19,10 @@
         };
         default = {};
       };
-      # Neither flake-parts core nor nix-darwin declares darwinModules, and flake.lib has no declared option either; without these, a second module setting either hits flake-parts' freeform "defined multiple times" error.
+      # flake-parts core declares neither flake.lib nor a merge for it; without this, a second module setting flake.lib.<key> hits flake-parts' freeform "defined multiple times" error.
       lib = lib.mkOption {
         type = lib.types.lazyAttrsOf lib.types.raw;
         default = {};
-      };
-      darwinModules = lib.mkOption {
-        type = lib.types.lazyAttrsOf lib.types.deferredModule;
-        default = {};
-        apply = lib.mapAttrs (k: v: {
-          _class = "darwin";
-          _file = "${toString moduleLocation}#darwinModules.${k}";
-          imports = [v];
-        });
       };
     };
   };

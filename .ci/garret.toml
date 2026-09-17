@@ -7,6 +7,6 @@ puller_endpoint = "https://cache.jeiang.dev"
 issuer = "https://token.actions.githubusercontent.com"
 client_id = "github-actions"
 # Must match the `audience` on the github-actions issuer in
-# modules/nixos/garret/default.nix; the Pusher rejects a token minted for
+# modules/garret/default.nix; the Pusher rejects a token minted for
 # anything else.
 audience = "https://cache-push.jeiang.dev/"

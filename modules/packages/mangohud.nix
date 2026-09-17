@@ -1,4 +1,8 @@
-{inputs, ...}: {
+{
+  self,
+  inputs,
+  ...
+}: {
   perSystem = {
     pkgs,
     lib,
@@ -18,7 +22,7 @@
             font_size=24
             text_color=FFFFFF
             position=top-left
-            pci_dev=0:03:00.0
+            pci_dev=${self.lib.artemisDgpuPci.short}
             table_columns=3
             gpu_text=GPU
             gpu_stats

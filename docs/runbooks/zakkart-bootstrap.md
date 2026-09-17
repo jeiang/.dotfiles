@@ -45,7 +45,7 @@ cd ~/Projects/cornn-flaek
 upstream nix-darwin flake; the system config still comes from `--flake
 .#zakkart`, i.e. this repo.
 
-The substituters in `modules/darwin/nix.nix` only take effect once
+The substituters in `modules/nix.nix` only take effect once
 activation has written `/etc/nix/nix.custom.conf`, so pass them explicitly
 or this first build compiles everything from source:
 
@@ -58,7 +58,7 @@ sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake .#zakkart \
 This installs Homebrew (via nix-homebrew) and its taps/casks/brews/App Store
 apps — including the NetBird desktop client cask, which installs its own
 system daemon on first run — sets the login shell, and every
-other piece in `modules/darwin/`.
+other darwin feature module.
 
 Subsequent switches need no flags; the previous activation's config is
 already in `/etc/nix/nix.custom.conf`:
@@ -70,7 +70,7 @@ nh darwin switch .
 Don't reach for `brew trust` by hand. Homebrew >= 6.0 requires unofficial
 taps to be trusted before their formulae/casks load, and the generated
 Brewfile already declares `trusted: true` for every tap
-(`modules/darwin/homebrew.nix`) — all pinned flake inputs, so it trusts
+(`modules/homebrew.nix`) — all pinned flake inputs, so it trusts
 exactly the revisions in `flake.lock`. The `cleanup = "zap"` pass resets
 Homebrew's trust file to the Brewfile on every activation anyway.
 
@@ -90,7 +90,7 @@ socket exists.
 ## 7. Wallpaper rotation
 
 Activation symlinks `~/Pictures/Wallpapers` to the recolored wallpaper set
-(`modules/darwin/preferences.nix`). The rotation itself is a macOS setting
+(`modules/macos-defaults.nix`). The rotation itself is a macOS setting
 nothing scriptable reaches, so set it once by hand:
 
 System Settings > Wallpaper > Add Photo (the "+" under the wallpaper
@@ -106,7 +106,7 @@ switch are in [`wallpaper.md`](wallpaper.md).
 ```sh
 dscl . -read /Users/aidanp UserShell   # should end in .../bin/fish (the wrapped environment package)
 echo $SSH_AUTH_SOCK                     # .../Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock
-brew list --cask                        # matches modules/darwin/homebrew.nix's `casks`
+brew list --cask                        # matches modules/homebrew.nix's `casks`
 brew list --formula                     # matches `brews`
 mas list                                # matches `masApps`
 ```

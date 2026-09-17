@@ -39,7 +39,7 @@ sops-create path:
 
 # Preview dns/dnsconfig.js against live Cloudflare; read-only — the push happens in CI on merge to main
 dns-preview *args:
-  CLOUDFLARE_API_TOKEN=$(sops -d --extract '["caddy"]["cloudflare-dns-token"]' modules/nixos/edge/secrets.yaml) dnscontrol preview --config dns/dnsconfig.js --creds dns/creds.json {{args}}
+  CLOUDFLARE_API_TOKEN=$(sops -d --extract '["caddy"]["cloudflare-dns-token"]' modules/edge/secrets.yaml) dnscontrol preview --config dns/dnsconfig.js --creds dns/creds.json {{args}}
 
 disko-format system sudo="sudo":
   {{sudo}} disko -f .#{{system}} --mode destroy,format,mount
@@ -51,10 +51,8 @@ migrate-persist flake="." sudo="sudo":
 install system sudo="sudo":
   {{sudo}} nixos-install --flake .#{{system}}
 
-# Run after bumping the netbird-tap input and switching. `brew upgrade --cask` alone leaves the `netbird` formula (the daemon
-# binary) behind, and a formula-only upgrade swaps /opt/homebrew/bin/netbird under the running launchd job without restarting it.
-# The cask's installer.sh boots the old job out and its `netbird service start` can leave the plist unloaded, so re-bootstrap it
-# (the plist has RunAtLoad=false, hence the kickstart).
+# A formula-only brew upgrade swaps the daemon binary without restarting the
+# running launchd job, so kickstart re-bootstraps it after the upgrade.
 
 # Upgrade the NetBird brew formula and cask, then restart the launchd job
 netbird-update:
@@ -74,8 +72,7 @@ deploy-legion *args:
 legion-run *command:
   @for node in $(nix eval --raw '.#lib.legionNodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrNames nodes)'); do ssh "${node#legion-}.jeiang.dev" -- {{command}}; done
 
-# Recolor new images from assets/wallpapers/ into assets/wallpapers-kanabox/. Files already there are left alone, so a photo
-# kept in its original colors is just a copy; delete the recolored outputs before re-running after a palette change.
+# Delete assets/wallpapers-kanabox/ outputs before re-running after a palette change; existing files are left alone.
 
 # Recolor new wallpapers from assets/wallpapers/ into assets/wallpapers-kanabox/
 wallpaper:

@@ -10,7 +10,7 @@ operator's sudo password, so use `ssh -t`.
   created outside this flake with an application key scoped to it.
 - One repository per service:
   `s3:https://s3.eu-central-1.s4.mega.io/legion-restic-backups/<node>/<service>`.
-- Secrets in `modules/nixos/backups/secrets.yaml`: `restic/password` (one
+- Secrets in `modules/backups/secrets.yaml`: `restic/password` (one
   repository password for all services) and `restic/s4-env` (an
   `AWS_ACCESS_KEY_ID=` line and an `AWS_SECRET_ACCESS_KEY=` line).
 - Each node has a `restic-<service>` wrapper that already sets the
@@ -80,7 +80,7 @@ The daily `restic-backups-<service>` run only backs up; it keeps every
 snapshot. A separate weekly `restic-maintenance-<service>` timer runs
 `restic forget --prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6`
 followed by `restic check --read-data-subset=5%`, both defined in
-`modules/nixos/backups/default.nix`. Snapshots outside that policy are gone
+`modules/backups/default.nix`. Snapshots outside that policy are gone
 once a maintenance run has pruned them.
 
 garret is not restored with restic; see

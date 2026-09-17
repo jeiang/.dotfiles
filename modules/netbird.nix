@@ -1,0 +1,47 @@
+{self, ...}: {
+  nixos.modules = {
+    base = {
+      config,
+      pkgs,
+      ...
+    }: {
+      services.netbird = {
+        enable = true;
+        package = self.packages.${pkgs.stdenv.hostPlatform.system}.netbird;
+        useRoutingFeatures = "both";
+        clients.default.config = let
+          urlConfig = {
+            Scheme = "https";
+            Opaque = "";
+            User = null;
+            Host = "netbird.jeiang.dev:443";
+            Path = "";
+            RawPath = "";
+            OmitHost = false;
+            ForceQuery = false;
+            RawQuery = "";
+            Fragment = "";
+            RawFragment = "";
+          };
+        in {
+          ManagementURL = urlConfig;
+          AdminUrl = urlConfig;
+          # Off so mesh :22 reaches the real sshd: netbird's embedded SSH
+          # server has a crippled PATH/env that breaks deploy-rs remote builds.
+          ServerSSHAllowed = false;
+        };
+
+        clients.default.login = {
+          enable = true;
+          setupKeyFile = config.sops.secrets."netbird/setup-key".path;
+        };
+      };
+
+      networking.firewall.trustedInterfaces = [
+        config.services.netbird.clients.default.interface
+      ];
+    };
+
+    artemis.persistence.directories = ["/var/lib/netbird"];
+  };
+}

@@ -4,7 +4,7 @@
   # understand from this `schemas` output; stock Nix/Lix has a hardcoded
   # output list instead and prints "unknown" for anything else, ignoring
   # this output entirely -- so it is purely additive. The upstream set
-  # already covers darwinConfigurations/darwinModules; the two
+  # already covers darwinConfigurations/darwinModules; the three
   # repo-specific outputs below get schemas modeled on upstream's
   # nixosConfigurations one.
   flake.schemas =
@@ -31,6 +31,17 @@
         inventory = output:
           inputs.flake-schemas.lib.mkChildren (
             builtins.mapAttrs (_: _: {what = "disko disk layout";}) output
+          );
+      };
+      lib = {
+        version = 1;
+        doc = ''
+          The `lib` flake output holds values shared between modules; see
+          the individual `modules/*.nix` files for what each key holds.
+        '';
+        inventory = output:
+          inputs.flake-schemas.lib.mkChildren (
+            builtins.mapAttrs (_: _: {what = "library value";}) output
           );
       };
     };
