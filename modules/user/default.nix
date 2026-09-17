@@ -9,7 +9,7 @@
   in {
     options.preferences.user.name = lib.mkOption {
       type = lib.types.str;
-      default = "aidanp";
+      default = self.lib.facts.userName;
     };
 
     config = {
@@ -58,7 +58,7 @@
   }: {
     options.preferences.user.name = lib.mkOption {
       type = lib.types.str;
-      default = "aidanp";
+      default = self.lib.facts.userName;
     };
 
     config = {

@@ -1,4 +1,4 @@
-_: {
+{self, ...}: {
   nixos.modules.artemis = {
     lib,
     pkgs,
@@ -56,7 +56,7 @@ _: {
         # Pin the discrete GPU's stable by-path render node --
         # /dev/dri/renderD12x numbering can swap between boots.
         encoder = "vaapi";
-        adapter_name = "/dev/dri/by-path/pci-0000:03:00.0-render";
+        adapter_name = "/dev/dri/by-path/pci-${self.lib.artemisDgpuPci.full}-render";
       };
       applications.apps = [
         {

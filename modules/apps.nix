@@ -37,8 +37,6 @@
         btop
         claude-code
         defaultbrowser
-        erdtree
-        fd
         # withWhisper off: whisper-cpp's CoreML backend fails to link on this pinned aarch64-darwin toolchain. doCheck off: ffmpeg's FATE suite is impractical for a CI build.
         ((ffmpeg-full.override {withWhisper = false;}).overrideAttrs (_: {doCheck = false;}))
         gallery-dl
@@ -56,7 +54,6 @@
         ouch
         pkgconf
         pnpm
-        ripgrep
         tokei
         unbound
         upx
@@ -66,7 +63,6 @@
       ++ [
         wrapped.git
         wrapped.difft
-        wrapped.helix
       ];
   };
 }

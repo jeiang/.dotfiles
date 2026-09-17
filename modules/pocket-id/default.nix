@@ -1,6 +1,7 @@
 {self, ...}: {
   nixos.modules.pocket-id = {
     config,
+    lib,
     pkgs,
     ...
   }: let
@@ -22,16 +23,15 @@
     };
 
     systemd.services.pocket-id =
+      lib.recursiveUpdate
       {
-        serviceConfig = {
-          MemoryMax = "256M";
-          # The module's tmpfiles rule for dataDir is not ordered after the
-          # Volume mount; re-assert ownership here since ExecStartPre
-          # inherits RequiresMountsFor (mountGuard). `+` runs it as root.
-          ExecStartPre = "+${pkgs.coreutils}/bin/install -d -o pocket-id -g pocket-id -m 0755 ${dataDir}";
-        };
+        serviceConfig.MemoryMax = "256M";
       }
-      // self.lib.mountGuard dataDir;
+      (self.lib.mountGuard dataDir {
+        inherit pkgs;
+        owner = "pocket-id";
+        mode = "0755";
+      });
 
     sops = {
       secrets = {

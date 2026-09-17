@@ -96,14 +96,6 @@ in {
       };
     };
 
-    # Refuses to start a stateful unit unless dataDir is mounted, so a missing Volume never initializes fresh state on the root disk.
-    lib.mountGuard = dataDir: {
-      unitConfig = {
-        RequiresMountsFor = [dataDir];
-        ConditionPathIsMountPoint = dataDir;
-      };
-    };
-
     deploy.nodes =
       builtins.mapAttrs (name: _: {
         hostname = nodeHostname name;
@@ -144,11 +136,6 @@ in {
     # Host DNS must never use Blocky-over-NetBird as primary resolver: netbird.jeiang.dev has to resolve via public DNS before the tunnel is up.
     sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
     services = {
-      netbird.clients.default.login = {
-        enable = true;
-        setupKeyFile = config.sops.secrets."netbird/setup-key".path;
-      };
-
       prometheus.exporters.node = {
         enable = true;
         enabledCollectors = ["systemd"];

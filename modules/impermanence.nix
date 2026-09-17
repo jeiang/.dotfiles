@@ -131,6 +131,8 @@
       (lib.mkIf cfg.enable {
         fileSystems."/persist".neededForBoot = true;
 
+        sops.age.sshKeyPaths = ["/persist/etc/ssh/ssh_host_ed25519_key"];
+
         # impermanence never migrates existing data: run `just migrate-persist`
         # on artemis before deploying a persistence.* change.
         environment.persistence = {

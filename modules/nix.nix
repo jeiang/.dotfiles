@@ -1,6 +1,7 @@
 {
   inputs,
   withSystem,
+  self,
   ...
 }: {
   perSystem = {system, ...}: {
@@ -43,22 +44,16 @@
         fallback = true;
 
         substituters = [
-          "https://cache.jeiang.dev"
+          self.lib.facts.cacheUrl
         ];
         trusted-public-keys = [
-          "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
+          self.lib.facts.cacheKey
         ];
         trusted-users = ["root"];
       };
     };
 
-    hjem.users.${config.preferences.user.name}.files.".config/nixpkgs/config.nix".text =
-      # nix
-      ''
-        {
-          allowUnfree = true;
-        }
-      '';
+    hjem.users.${config.preferences.user.name}.files.".config/nixpkgs/config.nix".text = self.lib.facts.allowUnfreeConfigNix;
   };
 
   # Determinate Nix forces nix.enable = false, so every nix.settings equivalent must go through determinateNix.customSettings.
@@ -79,23 +74,17 @@
 
         # extra-, not the bare keys: customSettings does no NixOS-style merging, so bare substituters/trusted-public-keys would replace Determinate's defaults and drop cache.nixos.org.
         extra-substituters = [
-          "https://cache.jeiang.dev"
+          self.lib.facts.cacheUrl
         ];
         extra-trusted-public-keys = [
-          "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
+          self.lib.facts.cacheKey
         ];
         # @admin, not @wheel: macOS's wheel group has no members besides root.
         extra-trusted-users = ["@admin"];
       };
     };
 
-    hjem.users.${config.preferences.user.name}.files.".config/nixpkgs/config.nix".text =
-      # nix
-      ''
-        {
-          allowUnfree = true;
-        }
-      '';
+    hjem.users.${config.preferences.user.name}.files.".config/nixpkgs/config.nix".text = self.lib.facts.allowUnfreeConfigNix;
   };
 
   nixos.modules.artemis = {
@@ -118,6 +107,11 @@
     nix.settings = {
       keep-derivations = true;
       keep-outputs = true;
+    };
+
+    persistence = {
+      data.directories = [".local/share/direnv" ".local/share/devenv"];
+      cache.directories = [".cache/devenv" ".cache/direnv" ".cache/nix-direnv"];
     };
   };
 }

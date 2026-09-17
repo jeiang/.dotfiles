@@ -14,6 +14,6 @@
       {
         serviceConfig.MemoryMax = "320M";
       }
-      // self.lib.mountGuard dataDir;
+      // self.lib.mountGuard dataDir {};
   };
 }

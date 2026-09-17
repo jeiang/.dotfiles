@@ -58,7 +58,6 @@ in {
         "/var/lib/nixos"
         "/etc/NetworkManager/system-connections"
         "/var/lib/NetworkManager"
-        "/var/lib/netbird"
         # Persistent=true timers' last-trigger stamps, for catch-up after a reboot.
         "/var/lib/systemd/timers"
       ];
@@ -72,7 +71,6 @@ in {
         "Music"
         "Projects"
         "Games"
-        ".local/share/Steam"
         ".renpy"
         ".local/share/Trash"
         {
@@ -80,42 +78,16 @@ in {
           mode = "0700";
         }
         {
-          directory = ".gnupg";
-          mode = "0700";
-        }
-        {
-          directory = ".password-store";
-          mode = "0700";
-        }
-        {
           directory = ".claude";
           mode = "0700";
         }
         ".local/share/fish"
-        ".local/share/direnv"
-        ".local/share/devenv"
         ".local/share/zoxide"
         ".config/fish"
-        ".config/gopass"
-        {
-          directory = ".config/hypr-rdp";
-          mode = "0700";
-        }
-        ".config/heroic"
-        ".config/PrismLauncher"
-        ".local/share/heroic"
-        ".local/share/PrismLauncher"
-        ".local/share/rivalsmodmanager"
       ];
       data.files = [".claude.json"];
       cache.directories = [
         ".cache/claude-cli-nodejs"
-        ".cache/devenv"
-        ".cache/direnv"
-        ".cache/nix-direnv"
-        ".cache/heroic"
-        ".cache/PrismLauncher"
-        ".cache/protontricks"
         # Mesa's default (multi-file, no MESA_DISK_CACHE_DATABASE) shader cache dir.
         ".cache/mesa_shader_cache"
         ".local/state/nix"
@@ -192,16 +164,12 @@ in {
     };
 
     sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
-    services.netbird.clients.default.login = {
-      enable = true;
-      setupKeyFile = config.sops.secrets."netbird/setup-key".path;
-    };
 
     # gopass autosync push key; the public half must be registered as a write-access deploy key on github.com:jeiang/pass.
     sops.secrets."gopass/github-ssh-key" = {
       sopsFile = ./secrets.yaml;
-      owner = "aidanp";
-      path = "/home/aidanp/.ssh/id_ed25519";
+      owner = config.preferences.user.name;
+      path = "${config.users.users.${config.preferences.user.name}.home}/.ssh/id_ed25519";
       mode = "0600";
     };
     # Pinned so the first unattended push never stalls on an interactive known-hosts prompt.
@@ -225,8 +193,6 @@ in {
 
       hypr-rdp = {
         enable = true;
-        user = "aidanp";
-        username = "aidanp";
         sopsFile = ./secrets.yaml;
         settings = {
           bind = "0.0.0.0:3389";

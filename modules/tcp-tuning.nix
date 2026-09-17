@@ -12,4 +12,13 @@
       };
     };
   };
+
+  # macOS caps TCP autotuning at 4 MB per socket. sysctl writes are not
+  # persistent: this reapplies on every switch, and a reboot reverts it
+  # until the next one.
+  darwin.modules.base = {
+    system.activationScripts.postActivation.text = ''
+      sysctl -w net.inet.tcp.autosndbufmax=16777216 net.inet.tcp.autorcvbufmax=16777216
+    '';
+  };
 }

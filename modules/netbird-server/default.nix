@@ -99,6 +99,7 @@
         # mountGuard: never silently initialize a fresh sqlite store on the
         # root disk when the Volume is missing or late.
         netbird-server =
+          lib.recursiveUpdate
           {
             description = "NetBird unified management/signal server";
             after = ["network-online.target"];
@@ -106,10 +107,6 @@
             wantedBy = ["multi-user.target"];
             serviceConfig = {
               ExecStart = "${lib.getExe serverPkg} --config ${config.sops.templates."netbird-server-config.yaml".path}";
-              # An ExecStartPre, NOT tmpfiles: tmpfiles-setup is not ordered
-              # after the Volume mount, so a first-mount activation would
-              # have its work hidden; `+` runs it as root despite User=.
-              ExecStartPre = "+${pkgs.coreutils}/bin/install -d -o netbird -g netbird -m 0750 ${dataDir}";
               Restart = "on-failure";
               RestartSec = 5;
               User = "netbird";
@@ -118,7 +115,11 @@
               MemoryMax = "320M";
             };
           }
-          // self.lib.mountGuard dataDir;
+          (self.lib.mountGuard dataDir {
+            inherit pkgs;
+            owner = "netbird";
+            mode = "0750";
+          });
 
         netbird-relay = {
           description = "NetBird relay + STUN server";

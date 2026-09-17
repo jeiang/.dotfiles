@@ -5,6 +5,7 @@
 }: {
   nixos.modules.garret = {
     config,
+    lib,
     pkgs,
     ...
   }: let
@@ -112,26 +113,14 @@
     # The Volume mount is `nofail`, so without the guard a late or missing
     # Volume silently initializes a fresh, empty index on the root disk.
     systemd.services = let
-      # ExecStartPre, not tmpfiles: tmpfiles-setup is not ordered after the Volume mount. `+` runs it as root.
-      ensureDataDir = "+${pkgs.coreutils}/bin/install -d -o garret -g garret -m 0750 ${dataDir}";
+      guard = self.lib.mountGuard dataDir {
+        inherit pkgs;
+        owner = "garret";
+        mode = "0750";
+      };
     in {
-      garret-pusher =
-        {
-          serviceConfig = {
-            MemoryMax = "896M";
-            ExecStartPre = ensureDataDir;
-          };
-        }
-        // self.lib.mountGuard dataDir;
-
-      garret-puller =
-        {
-          serviceConfig = {
-            MemoryMax = "192M";
-            ExecStartPre = ensureDataDir;
-          };
-        }
-        // self.lib.mountGuard dataDir;
+      garret-pusher = lib.recursiveUpdate {serviceConfig.MemoryMax = "896M";} guard;
+      garret-puller = lib.recursiveUpdate {serviceConfig.MemoryMax = "192M";} guard;
     };
 
     sops = {

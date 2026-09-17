@@ -7,7 +7,8 @@
 
   options = {
     flake = inputs.flake-parts.lib.mkSubmoduleOptions {
-      diskoConfigurations = inputs.nixpkgs.lib.mkOption {
+      diskoConfigurations = lib.mkOption {
+        type = lib.types.lazyAttrsOf lib.types.deferredModule;
         default = {};
       };
       deploy = lib.mkOption {

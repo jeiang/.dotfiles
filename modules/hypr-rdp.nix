@@ -36,6 +36,7 @@
 
       user = mkOption {
         type = types.str;
+        default = config.preferences.user.name;
         description = ''
           Session user to run as. The unit is defined for every user (NixOS
           has no per-user systemd.user surface), so ConditionUser gates it
@@ -45,6 +46,7 @@
 
       username = mkOption {
         type = types.str;
+        default = config.preferences.user.name;
         description = "RDP username clients authenticate with (NLA).";
       };
 
@@ -84,6 +86,13 @@
       ];
 
       environment.systemPackages = [cfg.package];
+
+      persistence.data.directories = [
+        {
+          directory = ".config/hypr-rdp";
+          mode = "0700";
+        }
+      ];
 
       # Whole config.toml as a sops template: hypr-rdp takes the password
       # only from `-p` (visible in ps) or the config file.
