@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "agent-skills": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1789522187,
+        "narHash": "sha256-LQrZ8g4u6VgiQCf+p8E5WtT11sHwA6c73GHNRn+XeNE=",
+        "owner": "jeiang",
+        "repo": "agent-skills",
+        "rev": "cb807e851d8f7e6665d3959a1b5650d1c07af81e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "agent-skills",
+        "type": "github"
+      }
+    },
     "aquamarine": {
       "inputs": {
         "hyprutils": [
@@ -1430,6 +1446,7 @@
     },
     "root": {
       "inputs": {
+        "agent-skills": "agent-skills",
         "bill-splitter": "bill-splitter",
         "can1357-tap": "can1357-tap",
         "character-randomizer": "character-randomizer",
