@@ -109,6 +109,13 @@ behavior for its own sake.
   removing a service that owns an impermanence bind mount cannot switch
   live: deploy with `--boot`, then reboot. Kernel and initrd changes also
   need `--boot` and a reboot.
+- artemis boots a new generation with 2 tries. `boot-health.service`
+  blesses it once sshd is active and NetBird reports its management server
+  connected, within 5 minutes; otherwise the host reboots, and the second
+  failure falls back to the previous generation. After a reboot, confirm
+  `readlink /run/current-system` is the deployed closure. A redeploy of the
+  same closure reuses the spent entry: to retry it, the operator renames
+  `/boot/loader/entries/nixos-<hash>+0-2.conf` to `nixos-<hash>+2.conf`.
 
 ### artemis persistence
 
@@ -118,22 +125,10 @@ behavior for its own sake.
 - Before deploying any change to `persistence.*` (an added entry, or an
   entry moved between system, data, and cache), run
   `just migrate-persist <checkout>` on artemis as root from a checkout of
-  the new revision. Only then deploy with `--boot` and reboot: switching
-  first bind-mounts an empty `/persist` path over any new entry, so running
-  the script after leaves nothing on the live path to copy.
+  the new revision, then deploy with `--boot` and reboot. After the reboot
+  the old data is only in `old_roots`.
 - A persisted path is not backed up. A backup set is an explicit allowlist,
   and every path in it must also be a `persistence.*` path.
-- Boot counting (2 tries) is on for artemis. After `deploy --boot` and the
-  reboot, confirm that artemis runs the new generation: `readlink
-  /run/current-system` must equal the deployed toplevel, and `bootctl list`
-  must not mark the new entry as bad or `+0-N`. If boot-health cannot reach
-  NetBird management and sshd within 5 minutes on both tries, artemis falls
-  back to the previous generation by design, including during a NetBird
-  management outage. A redeploy of the same closure does not reset the
-  counter, because the entry file name is kept. To retry the same
-  generation, run this as root on artemis: `mv
-  /boot/loader/entries/nixos-<hash>+0-2.conf
-  /boot/loader/entries/nixos-<hash>+2.conf`, then reboot.
 
 ### Secrets
 

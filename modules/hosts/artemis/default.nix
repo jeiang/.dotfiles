@@ -154,10 +154,10 @@
           "amdgpu.gpu_recovery=1"
           # Raphael iGPU's PSP rejects SETUP_TMR (0x80000306) on ~25% of boots, killing the amdgpu probe and (on 7.1.6) deadlocking udev; stubbing the display function (19:00.0 only) removes the trigger.
           "pci-stub.ids=1002:164e"
-          # A wedged amdgpu (or any other hung task) doesn't stop PID 1 petting the watchdog, so panic on a hang and let the panic (and the armed hardware watchdog) reboot the box.
+          # A hung task does not stop PID 1 from feeding the watchdog; panic so the box reboots and spends its boot try.
           "panic=10"
           "hung_task_panic=1"
-          # Without this, initrd reaching emergency.target (a failed rollback-root, missing /persist) just waits at sulogin forever instead of spending the boot-counting try.
+          # Initrd emergency mode panics instead of waiting at sulogin.
           "boot.panic_on_fail"
         ];
         # facter also loads amdgpu in the initrd; ship pci-stub there too so it can win the race (the softdep below orders modprobe everywhere else).
@@ -247,7 +247,7 @@
           sopsFile = ./secrets.yaml;
           settings = {
             bind = "0.0.0.0:3389";
-            # No `output` on purpose: a pinned DP-1 fails startup once the powered-down display's EDID vanishes; hypr-rdp manages its own headless output.
+            # No `output`: hypr-rdp manages its own headless output.
             # `auto` would quietly fall back to software H.264 if the VA-API driver ever failed to load.
             h264_backend = "vaapi";
           };

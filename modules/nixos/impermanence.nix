@@ -24,9 +24,7 @@
           mv "/btrfs_tmp/${cfg.nukeRoot.subvolume}" "/btrfs_tmp/old_roots/$this_boot"
       fi
 
-      # Recreate root before pruning, and whenever it's missing: a failed
-      # prune below, or a failed create on a previous boot, must never leave
-      # this host with no root subvolume to mount.
+      # Create root before pruning, so a failed prune never leaves no root to mount.
       if [[ ! -e /btrfs_tmp/${cfg.nukeRoot.subvolume} ]]; then
           btrfs subvolume create "/btrfs_tmp/${cfg.nukeRoot.subvolume}"
       fi
@@ -39,9 +37,7 @@
           btrfs subvolume delete "$1"
       }
 
-      # old_roots entries are named by rollback time, not aged by mtime: a
-      # btrfs rename doesn't update the moved subvolume's mtime, so it kept
-      # the previous boot's age instead of its own.
+      # Age by name: a moved subvolume keeps the previous boot's mtime.
       cutoff=$(date --date="-${toString cfg.nukeRoot.maxAge} days" +%Y-%m-%dT%H%M%S)
       for i in /btrfs_tmp/old_roots/*; do
           [[ -e "$i" ]] || continue
@@ -64,10 +60,8 @@
       (lib.mkIf cfg.enable {
         fileSystems."/persist".neededForBoot = true;
 
-        # impermanence only bind-mounts; it never migrates existing data, and
-        # activating a new entry bind-mounts an empty /persist dir over the
-        # live one immediately. Run `just migrate-persist` on artemis BEFORE
-        # switching to a persistence.* change, not after.
+        # impermanence never migrates existing data: run `just migrate-persist`
+        # on artemis before deploying a persistence.* change.
         environment.persistence = {
           "/persist" = {
             inherit (cfg) directories files;
