@@ -5,19 +5,20 @@
 
 set -euo pipefail
 
-flake="${1:-/etc/nixos}"
+flake=$(cd "${1:-/etc/nixos}" && pwd -P)
 attr="nixosConfigurations.artemis.config"
 
-# root running nix eval on a user-owned checkout trips git's "dubious ownership" check; scope safe.directory to this path only.
-export GIT_CONFIG_COUNT=1
-export GIT_CONFIG_KEY_0=safe.directory
-export GIT_CONFIG_VALUE_0="$(cd "$flake" && pwd -P)"
+# Nix refuses a git checkout owned by another user, so evaluate as the checkout's owner.
+owner=$(stat -c %U "$flake")
+nix_eval() {
+  runuser -u "$owner" -- nix eval --impure "$@"
+}
 
-user=$(nix eval --impure --raw "${flake}#${attr}.preferences.user.name")
+user=$(nix_eval --raw "${flake}#${attr}.preferences.user.name")
 home="/home/${user}"
 
 paths() {
-  nix eval --impure --json "${flake}#${attr}.persistence.$1" \
+  nix_eval --json "${flake}#${attr}.persistence.$1" \
     --apply 'builtins.map (e: if builtins.isString e then e else e.directory or e.file)' |
     jq -r '.[]'
 }
