@@ -1,14 +1,14 @@
-{self, ...}: {
-  # Shared with every NixOS host and zakkart; a role name lets Legion and
-  # artemis each keep their own git variant and ouch build.
+{self, ...}: let
+  basePackages = pkgs: [
+    self.packages.${pkgs.stdenv.hostPlatform.system}.helix
+    pkgs.erdtree
+    pkgs.fd
+    pkgs.ripgrep
+  ];
+in {
   nixos.modules = {
     base = {pkgs, ...}: {
-      environment.systemPackages = with pkgs; [
-        self.packages.${pkgs.stdenv.hostPlatform.system}.helix
-        erdtree
-        fd
-        ripgrep
-      ];
+      environment.systemPackages = basePackages pkgs;
     };
 
     legion = {pkgs, ...}: {
@@ -62,11 +62,6 @@
   };
 
   darwin.modules.base = {pkgs, ...}: {
-    environment.systemPackages = with pkgs; [
-      self.packages.${pkgs.stdenv.hostPlatform.system}.helix
-      erdtree
-      fd
-      ripgrep
-    ];
+    environment.systemPackages = basePackages pkgs;
   };
 }

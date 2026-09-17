@@ -1,5 +1,4 @@
 {self, ...}: {
-  # dGPU PCI address, shared with sunshine.nix and packages/mangohud.nix.
   flake.lib.artemisDgpuPci = {
     full = "0000:03:00.0";
     # MangoHud's own pci_dev format drops the domain's leading zeros.

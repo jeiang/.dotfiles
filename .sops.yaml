@@ -15,7 +15,7 @@ creation_rules:
     - age:
       - *user_aidanp
 
-  # modules/nixos/shared/default.nix -- every host.
+  # modules/user/default.nix -- every host.
   - path_regex: modules/user/secrets\.yaml$
     key_groups:
     - age:
@@ -33,7 +33,7 @@ creation_rules:
       - *user_aidanp
       - *server_artemis
 
-  # modules/nixos/backup-tunnel/default.nix -- both tunnel endpoints.
+  # modules/backup-tunnel/default.nix -- both tunnel endpoints.
   - path_regex: modules/backup-tunnel/secrets\.yaml$
     key_groups:
     - age:
@@ -51,7 +51,7 @@ creation_rules:
       - *server_legion_node3
       - *server_legion_node4
 
-  # modules/nixos/backups/default.nix -- every host with a Backup Set (not
+  # modules/backups/default.nix -- every host with a Backup Set (not
   # the edge node, which runs no backup job).
   - path_regex: modules/backups/secrets\.yaml$
     key_groups:
@@ -62,15 +62,15 @@ creation_rules:
       - *server_legion_node3
       - *server_legion_node4
 
-  # modules/nixos/edge/default.nix.
+  # modules/edge/default.nix and modules/tinyauth.nix.
   - path_regex: modules/edge/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
       - *server_legion_node1
 
-  # modules/nixos/crowdsec/default.nix (edge engine) and
-  # modules/nixos/netbird-server/proxy.nix (proxy bouncer client).
+  # modules/crowdsec/default.nix (edge engine) and
+  # modules/netbird-server/proxy.nix (proxy bouncer client).
   - path_regex: modules/crowdsec/secrets\.yaml$
     key_groups:
     - age:
@@ -78,35 +78,35 @@ creation_rules:
       - *server_legion_node1
       - *server_legion_node2
 
-  # modules/nixos/netbird-server/default.nix.
+  # modules/netbird-server/default.nix.
   - path_regex: modules/netbird-server/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
       - *server_legion_node2
 
-  # modules/nixos/netbird-server/proxy.nix.
+  # modules/netbird-server/proxy.nix.
   - path_regex: modules/netbird-server/secrets\.proxy\.yaml$
     key_groups:
     - age:
       - *user_aidanp
       - *server_legion_node2
 
-  # modules/nixos/pocket-id/default.nix.
+  # modules/pocket-id/default.nix.
   - path_regex: modules/pocket-id/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
       - *server_legion_node2
 
-  # modules/nixos/monitoring/default.nix.
+  # modules/monitoring/default.nix.
   - path_regex: modules/monitoring/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
       - *server_legion_node3
 
-  # modules/nixos/garret/default.nix.
+  # modules/garret/default.nix.
   - path_regex: modules/garret/secrets\.yaml$
     key_groups:
     - age:

@@ -42,7 +42,7 @@
       }
     ]
   },
-  "description": "Per-service board for the edge Caddy reverse proxy (job=\"caddy\", scraped at 172.17.0.1:2020). Metric names verified against caddy v2.11.4 sources. Datasource is the fixed provisioned uid \"victoriametrics\" (modules/nixos/monitoring/default.nix), as in fleet-overview.json.",
+  "description": "Per-service board for the edge Caddy reverse proxy (job=\"caddy\", scraped at 172.17.0.1:2020). Metric names verified against caddy v2.11.4 sources. Datasource is the fixed provisioned uid \"victoriametrics\" (modules/monitoring/default.nix), as in fleet-overview.json.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -796,7 +796,7 @@
             "type": "victoriametrics-logs-datasource",
             "uid": "victorialogs"
           },
-          "description": "Access-log request counts bucketed by HTTP status class (2xx/3xx/4xx/5xx), sourced from Caddy's per-site `log` output rather than caddy.json's Prometheus metrics (modules/nixos/edge/default.nix enables per-site access logging; Requests by status code above already covers the metrics view). Prefiltered on the literal `\"handled request\"` access-log message before unpack_json so the JSON decode only runs on access records, not runtime log lines; unpack_json then flattens the record so `status` is a plain numeric field, and `math floor(status / 100) as class` buckets it into 2/3/4/5. `floor()` confirmed supported by the pinned victorialogs package (nixpkgs services.victorialogs.package, 1.52.0 here; the function shipped in victorialogs v0.17.0). Uses the plugin's 'Range' query type (/select/logsql/stats_query_range), the same queryType logs.json's Log volume panel uses.",
+          "description": "Access-log request counts bucketed by HTTP status class (2xx/3xx/4xx/5xx), sourced from Caddy's per-site `log` output rather than caddy.json's Prometheus metrics (modules/edge/default.nix enables per-site access logging; Requests by status code above already covers the metrics view). Prefiltered on the literal `\"handled request\"` access-log message before unpack_json so the JSON decode only runs on access records, not runtime log lines; unpack_json then flattens the record so `status` is a plain numeric field, and `math floor(status / 100) as class` buckets it into 2/3/4/5. `floor()` confirmed supported by the pinned victorialogs package (nixpkgs services.victorialogs.package, 1.52.0 here; the function shipped in victorialogs v0.17.0). Uses the plugin's 'Range' query type (/select/logsql/stats_query_range), the same queryType logs.json's Log volume panel uses.",
           "gridPos": {
             "x": 0,
             "y": 37,

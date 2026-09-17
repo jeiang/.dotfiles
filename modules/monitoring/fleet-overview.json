@@ -48,7 +48,7 @@
       }
     ]
   },
-  "description": "Fleet landing board for the Legion nodes. Health is derived from the raw signals (node_* metrics, up, node_systemd_unit_state, probe_success) rather than an ALERTS series on purpose: vmalert in modules/nixos/monitoring/default.nix has no remoteWrite, so it does not persist an ALERTS metric into VictoriaMetrics. Adding remoteWrite is deliberately out of scope. Datasource is referenced by the stable uid 'victoriametrics' set on the provisioned VictoriaMetrics datasource in that same module.",
+  "description": "Fleet landing board for the Legion nodes. Health is derived from the raw signals (node_* metrics, up, node_systemd_unit_state, probe_success) rather than an ALERTS series on purpose: vmalert in modules/monitoring/default.nix has no remoteWrite, so it does not persist an ALERTS metric into VictoriaMetrics. Adding remoteWrite is deliberately out of scope. Datasource is referenced by the stable uid 'victoriametrics' set on the provisioned VictoriaMetrics datasource in that same module.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
