@@ -1,5 +1,11 @@
 {self, ...}: {
-  flake.nixosModules.gaming = {pkgs, ...}: {
+  flake.nixosModules.gaming = {
+    config,
+    pkgs,
+    ...
+  }: {
+    users.users.${config.preferences.user.name}.extraGroups = ["gamemode"];
+
     environment.systemPackages = with pkgs; [
       self.packages.${pkgs.stdenv.hostPlatform.system}.mangohud
       (prismlauncher.override {
@@ -30,7 +36,8 @@
           # Warning: GPU optimisations have the potential to damage hardware
           gpu = {
             apply_gpu_optimisations = "accept-responsibility";
-            gpu_device = 0;
+            # The iGPU's display function is pci-stubbed, so the dGPU is card1, not card0.
+            gpu_device = 1;
             amd_performance_level = "high";
           };
         };
@@ -39,7 +46,6 @@
         enable = true;
         extest.enable = true;
         protontricks.enable = true;
-        gamescopeSession.enable = true;
         extraCompatPackages = with pkgs; [
           proton-ge-bin
         ];

@@ -109,6 +109,13 @@ behavior for its own sake.
   removing a service that owns an impermanence bind mount cannot switch
   live: deploy with `--boot`, then reboot. Kernel and initrd changes also
   need `--boot` and a reboot.
+- artemis boots a new generation with 2 tries. `boot-health.service`
+  blesses it once sshd is active and NetBird reports its management server
+  connected, within 5 minutes; otherwise the host reboots, and the second
+  failure falls back to the previous generation. After a reboot, confirm
+  `readlink /run/current-system` is the deployed closure. A redeploy of the
+  same closure reuses the spent entry: to retry it, the operator renames
+  `/boot/loader/entries/nixos-<hash>+0-2.conf` to `nixos-<hash>+2.conf`.
 
 ### artemis persistence
 
@@ -118,7 +125,8 @@ behavior for its own sake.
 - Before deploying any change to `persistence.*` (an added entry, or an
   entry moved between system, data, and cache), run
   `just migrate-persist <checkout>` on artemis as root from a checkout of
-  the new revision, then deploy, then reboot.
+  the new revision, then deploy with `--boot` and reboot. After the reboot
+  the old data is only in `old_roots`.
 - A persisted path is not backed up. A backup set is an explicit allowlist,
   and every path in it must also be a `persistence.*` path.
 

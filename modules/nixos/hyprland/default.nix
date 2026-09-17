@@ -14,10 +14,7 @@
     selfpkgs = self.packages.${pkgs.stdenv.hostPlatform.system};
     terminal = lib.getExe selfpkgs.ghostty;
   in {
-    security.pam.services.hyprlock = {};
-
     programs = {
-      hyprlock.enable = true;
       hyprland = let
         hyprpkgs = inputs.hyprland.packages.${pkgs.stdenv.hostPlatform.system};
       in {
@@ -66,7 +63,6 @@
     };
 
     hjem.users.${user}.files = {
-      ".face".source = ../../../assets/face.png;
       ".config/hypr/hyprland.lua".source = ./hyprland.lua;
       # hyprpaper 0.8 silently ignores the old preload/wallpaper pair; an
       # empty `monitor` matches every output. A directory `path` rotates
@@ -108,11 +104,9 @@
           vars.terminal = "${terminal}"
           vars.fileManager = "${lib.getExe' pkgs.kdePackages.dolphin "dolphin"}"
           vars.launcher = "${lib.getExe pkgs.fuzzel}"
-          vars.portal = "${lib.getExe config.programs.hyprland.portalPackage}"
-          vars.pluginManager = "${lib.getExe' config.programs.hyprland.package "hyprpm"}"
           vars.shutdown = "${lib.getExe pkgs.hyprshutdown}"
           vars.wpctl = "${lib.getExe' pkgs.wireplumber "wpctl"}"
-          vars.playerctl = "${lib.getExe' pkgs.wireplumber "playerctl"}"
+          vars.playerctl = "${lib.getExe pkgs.playerctl}"
           vars.screenshot = "${lib.getExe' screenshot "screenshot"}"
           return vars
         '';

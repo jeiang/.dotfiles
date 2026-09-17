@@ -1,22 +1,9 @@
 {
-  flake.nixosModules.artemisHardware = {pkgs, ...}: {
+  flake.nixosModules.artemisHardware = _: {
     hardware.facter.reportPath = ./facter.json;
-    services.udev.packages = let
-      name = "52-gpu-symlink.rules";
-      gpu-rules = pkgs.writeText name ''
-        KERNEL=="card*", KERNELS=="0000:03:00.0", SUBSYSTEM=="drm", SUBSYSTEMS=="pci", SYMLINK+="dri/egpu"
-        KERNEL=="card*", KERNELS=="0000:19:00.0", SUBSYSTEM=="drm", SUBSYSTEMS=="pci", SYMLINK+="dri/igpu"
-      '';
-    in [
-      (pkgs.stdenv.mkDerivation {
-        inherit name;
-        phases = ["installPhase"];
-
-        installPhase = ''
-          mkdir -p $out/lib/udev/rules.d
-          cp ${gpu-rules} $out/lib/udev/rules.d/${name}
-        '';
-      })
-    ];
+    # by-PCI-address symlink for the dGPU; card* numbering is not boot-stable.
+    services.udev.extraRules = ''
+      KERNEL=="card*", KERNELS=="0000:03:00.0", SUBSYSTEM=="drm", SUBSYSTEMS=="pci", SYMLINK+="dri/egpu"
+    '';
   };
 }

@@ -66,7 +66,7 @@
         default = {};
         example = {
           bind = "0.0.0.0:3389";
-          output = "DP-1";
+          output = "HDMI-A-1";
         };
         description = ''
           Non-secret config.toml contents. `username` and `password` are

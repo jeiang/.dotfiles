@@ -18,7 +18,7 @@ _: {
         exit 0
       fi
       if [ "$1" = reset ]; then
-        mode=preferred
+        mode=1920x1080@60
       elif [ -n "''${SUNSHINE_CLIENT_WIDTH:-}" ] && [ -n "''${SUNSHINE_CLIENT_HEIGHT:-}" ]; then
         mode="''${SUNSHINE_CLIENT_WIDTH}x''${SUNSHINE_CLIENT_HEIGHT}@''${SUNSHINE_CLIENT_FPS:-60}"
       else

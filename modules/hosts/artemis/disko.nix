@@ -13,6 +13,11 @@
       "discard=async"
     ];
     btrfsRootMount = "/mnt/root";
+    # by-id survives NVMe kernel-name churn across boots; serials are from facter.json.
+    nvmeById = serial: "/dev/disk/by-id/nvme-SHPP41-2000GM_${serial}";
+    nvme0Serial = "ASCBN54621070BS4Z";
+    nvme1Serial = "ASC7N440910607A5K";
+    nvme3Serial = "ASC7N440910607A6A";
   in {
     imports = [
       inputs.disko.nixosModules.disko
@@ -25,7 +30,8 @@
         device = "/dev/disk/by-label/Mumei";
         neededForBoot = false;
         fsType = "ntfs-3g";
-        options = ["rw" "uid=1000"];
+        # This drive isn't always attached; don't let a missing HDD drop an unattended boot to emergency mode.
+        options = ["rw" "uid=1000" "nofail" "x-systemd.device-timeout=10s"];
       };
       # for bees
       "${btrfsRootMount}" = {
@@ -66,7 +72,7 @@
       disk = {
         nvme0 = {
           type = "disk";
-          device = "/dev/nvme0n1";
+          device = nvmeById nvme0Serial;
           content = {
             type = "gpt";
             partitions = {
@@ -79,7 +85,7 @@
                   format = "vfat";
                   mountpoint = "/boot";
                   mountOptions = [
-                    "umask=0022"
+                    "umask=0077"
                     "iocharset=utf8"
                     "rw"
                   ];
@@ -93,7 +99,7 @@
         };
         nvme1 = {
           type = "disk";
-          device = "/dev/nvme1n1";
+          device = nvmeById nvme1Serial;
           content = {
             type = "gpt";
             partitions = {
@@ -105,7 +111,7 @@
         };
         nvme3 = {
           type = "disk";
-          device = "/dev/nvme3n1";
+          device = nvmeById nvme3Serial;
           content = {
             type = "gpt";
             partitions = {
@@ -118,9 +124,9 @@
                     "-f"
                     "-m raid0"
                     "-d raid0"
-                    "/dev/nvme0n1p2"
-                    "/dev/nvme1n1p1"
-                    "/dev/nvme3n1p1"
+                    "${nvmeById nvme0Serial}-part2"
+                    "${nvmeById nvme1Serial}-part1"
+                    "${nvmeById nvme3Serial}-part1"
                   ];
                   subvolumes = {
                     "/rootfs" = {

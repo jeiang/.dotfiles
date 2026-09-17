@@ -17,25 +17,38 @@
     rollbackScript = ''
       mkdir /btrfs_tmp
       mount -o subvolid=5 ${cfg.nukeRoot.device} /btrfs_tmp
+      mkdir -p /btrfs_tmp/old_roots
+
+      this_boot=$(date +%Y-%m-%dT%H%M%S)
       if [[ -e /btrfs_tmp/${cfg.nukeRoot.subvolume} ]]; then
-          mkdir -p /btrfs_tmp/old_roots
-          timestamp=$(date --date="@$(stat -c %Y /btrfs_tmp/${cfg.nukeRoot.subvolume})" "+%Y-%m-%-d_%H:%M:%S")
-          mv "/btrfs_tmp/${cfg.nukeRoot.subvolume}" "/btrfs_tmp/old_roots/$timestamp"
+          mv "/btrfs_tmp/${cfg.nukeRoot.subvolume}" "/btrfs_tmp/old_roots/$this_boot"
+      fi
+
+      # Create root before pruning, so a failed prune never leaves no root to mount.
+      if [[ ! -e /btrfs_tmp/${cfg.nukeRoot.subvolume} ]]; then
+          btrfs subvolume create "/btrfs_tmp/${cfg.nukeRoot.subvolume}"
       fi
 
       delete_subvolume_recursively() {
-          IFS=$'\n'
+          local IFS=$'\n' i
           for i in $(btrfs subvolume list -o "$1" | cut -f 9- -d ' '); do
               delete_subvolume_recursively "/btrfs_tmp/$i"
           done
           btrfs subvolume delete "$1"
       }
 
-      for i in $(find /btrfs_tmp/old_roots/ -maxdepth 1 -mtime +${toString cfg.nukeRoot.maxAge}); do
-          delete_subvolume_recursively "$i"
+      # Age by name: a moved subvolume keeps the previous boot's mtime.
+      cutoff=$(date --date="-${toString cfg.nukeRoot.maxAge} days" +%Y-%m-%dT%H%M%S)
+      for i in /btrfs_tmp/old_roots/*; do
+          [[ -e "$i" ]] || continue
+          name=$(basename "$i")
+          [[ "$name" == "$this_boot" ]] && continue
+          if [[ "$name" < "$cutoff" ]]; then
+              # best-effort: a failed delete must never block boot
+              delete_subvolume_recursively "$i" || echo "rollback-root: failed to prune $i" >&2
+          fi
       done
 
-      btrfs subvolume create "/btrfs_tmp/${cfg.nukeRoot.subvolume}"
       umount /btrfs_tmp
     '';
   in {
@@ -47,8 +60,8 @@
       (lib.mkIf cfg.enable {
         fileSystems."/persist".neededForBoot = true;
 
-        # impermanence only bind-mounts; it never migrates existing data. Run
-        # `just migrate-persist` on artemis before rebooting after changes.
+        # impermanence never migrates existing data: run `just migrate-persist`
+        # on artemis before deploying a persistence.* change.
         environment.persistence = {
           "/persist" = {
             inherit (cfg) directories files;
@@ -68,8 +81,7 @@
 
       (lib.mkIf (cfg.enable && cfg.nukeRoot.enable && config.boot.initrd.systemd.enable) {
         boot.initrd.systemd = {
-          # findutils: `find` is not in the default systemd-initrd tool set
-          initrdBin = [pkgs.btrfs-progs pkgs.findutils];
+          initrdBin = [pkgs.btrfs-progs];
           services.rollback-root = {
             description = "Roll back btrfs root subvolume to an empty subvolume";
             unitConfig.DefaultDependencies = false;

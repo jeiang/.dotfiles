@@ -80,7 +80,7 @@ So any switch that changes the directory's store hash, which a palette
 change or any photo change does, leaves the folder entry pointing at a path
 that no longer exists once the old generation is collected. After such a
 switch, remove the folder entry in System Settings > Wallpaper and redo
-step 8 of [`zakkart-bootstrap.md`](zakkart-bootstrap.md).
+step 7 of [`zakkart-bootstrap.md`](zakkart-bootstrap.md).
 
 Spaces are not kept in lockstep. The store holds one all-Spaces entry, but
 WallpaperAgent picks and rotates per Space, so a Space can show a different

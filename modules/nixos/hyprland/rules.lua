@@ -18,15 +18,3 @@ hl.window_rule({
 
 	no_focus = true,
 })
-hl.window_rule({
-	name = "mpv-opaque",
-	match = { class = "^(mpv)$" },
-
-	opacity = 1.0,
-})
-hl.window_rule({
-	name = "bitwarden-floating",
-	match = { title = ".*Extension: \\(Bitwarden Password Manager\\).*" },
-
-	float = true,
-})

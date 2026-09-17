@@ -157,7 +157,7 @@ _: {
             # disk; add-if-absent left a rotated key unregistered.
             registerBouncer = name: keyPath: ''
               ${cscli} bouncers delete ${lib.escapeShellArg name} || true
-              ${cscli} bouncers add ${lib.escapeShellArg name} --key "$(cat ${lib.escapeShellArg keyPath})"
+              ${cscli} bouncers add ${lib.escapeShellArg name} --key "$(cat ${lib.escapeShellArg keyPath})" > /dev/null
             '';
           in ''
             set -euo pipefail

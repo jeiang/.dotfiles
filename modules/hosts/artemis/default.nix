@@ -39,6 +39,7 @@
         self.nixosModules.sops
         self.nixosModules.artemisHardware
         self.nixosModules.doas
+        self.nixosModules.artemisBootHealth
         self.nixosModules.desktop
         self.nixosModules.netbird
         self.nixosModules.speedtest
@@ -74,8 +75,9 @@
           "/var/lib/nixos"
           "/etc/NetworkManager/system-connections"
           "/var/lib/NetworkManager"
-          "/var/lib/bluetooth"
           "/var/lib/netbird"
+          # Persistent=true timers' last-trigger stamps, for catch-up after a reboot.
+          "/var/lib/systemd/timers"
         ];
 
         data.directories = [
@@ -103,14 +105,6 @@
             mode = "0700";
           }
           {
-            directory = ".kube";
-            mode = "0700";
-          }
-          {
-            directory = ".local/share/keyrings";
-            mode = "0700";
-          }
-          {
             directory = ".claude";
             mode = "0700";
           }
@@ -118,9 +112,12 @@
           ".local/share/direnv"
           ".local/share/devenv"
           ".local/share/zoxide"
-          ".krew"
           ".config/fish"
           ".config/gopass"
+          {
+            directory = ".config/hypr-rdp";
+            mode = "0700";
+          }
           ".config/heroic"
           ".config/PrismLauncher"
           ".local/share/heroic"
@@ -136,44 +133,38 @@
           ".cache/heroic"
           ".cache/PrismLauncher"
           ".cache/protontricks"
+          # Mesa's default (multi-file, no MESA_DISK_CACHE_DATABASE) shader cache dir.
+          ".cache/mesa_shader_cache"
           ".local/state/nix"
         ];
       };
 
       boot = {
-        loader.systemd-boot.enable = true;
-        loader.systemd-boot.consoleMode = "max";
-        supportedFilesystems = ["ntfs"];
-        tmp.cleanOnBoot = true;
-        plymouth = {
+        loader.systemd-boot = {
           enable = true;
-          theme = "black_hud";
-          themePackages = with pkgs; [
-            (adi1090x-plymouth-themes.override {
-              selected_themes = ["black_hud"];
-            })
-          ];
+          consoleMode = "max";
+          bootCounting = {
+            enable = true;
+            tries = 2;
+          };
         };
-        consoleLogLevel = 3;
-        initrd.verbose = false;
+        supportedFilesystems = ["ntfs"];
         kernelParams = [
-          "quiet"
-          "udev.log_level=3"
-          "systemd.show_status=auto"
           # This host streams unattended: let amdgpu attempt an engine reset instead of leaving the GPU wedged until reboot.
           "amdgpu.gpu_recovery=1"
           # Raphael iGPU's PSP rejects SETUP_TMR (0x80000306) on ~25% of boots, killing the amdgpu probe and (on 7.1.6) deadlocking udev; stubbing the display function (19:00.0 only) removes the trigger.
           "pci-stub.ids=1002:164e"
+          # A hung task does not stop PID 1 from feeding the watchdog; panic so the box reboots and spends its boot try.
+          "panic=10"
+          "hung_task_panic=1"
+          # Initrd emergency mode panics instead of waiting at sulogin.
+          "boot.panic_on_fail"
         ];
-        # pci-stub must be in the initrd (amdgpu loads there for plymouth); this entry ships the .ko, the softdep below orders it.
-        initrd.kernelModules = ["pci-stub"];
+        # facter also loads amdgpu in the initrd; ship pci-stub there too so it can win the race (the softdep below orders modprobe everywhere else).
+        initrd.kernelModules = ["pci-stub" "sp5100_tco"];
         # amdgpu reaches the initrd via two paths and only one respects list order; the softdep makes every modprobe pull pci-stub first.
         extraModprobeConfig = "softdep amdgpu pre: pci-stub";
-        # A D-state amdgpu wedge doesn't stop PID 1 petting the hardware watchdog, so panic on hung tasks and let the panic reboot the box.
-        kernel.sysctl = {
-          "kernel.hung_task_panic" = 1;
-          "kernel.panic" = 10;
-        };
+        initrd.systemd.settings.Manager.RuntimeWatchdogSec = "30s";
         kernelPackages = let
           helpers = pkgs.callPackage "${inputs.nix-cachyos-kernel.outPath}/helpers.nix" {};
         in
@@ -191,10 +182,16 @@
       networking = {
         hostName = "artemis";
         networkmanager.enable = true;
+        # No modem hardware; NetworkManager's default pulls this in anyway.
+        modemmanager.enable = false;
+        # facter marks the detected NICs useDHCP, which also enables dhcpcd; NetworkManager already handles DHCP for them.
+        dhcpcd.enable = false;
         nftables.enable = true;
         # nixpkgs#415213: applying the WoL policy is flaky -- verify with `ethtool enp16s0 | grep Wake-on` after deploys.
         interfaces.enp16s0.wakeOnLan.enable = true;
       };
+      # facter detects the board's Bluetooth controller and defaults this on; nothing pairs to it.
+      hardware.bluetooth.enable = false;
       users.users.${config.preferences.user.name}.extraGroups = ["networkmanager"];
 
       nix.settings.trusted-users = ["@wheel"];
@@ -240,6 +237,9 @@
         # The HomeKit Wake-on-LAN Switch resolves artemis.local over mDNS before pinging it.
         avahi.enable = true;
 
+        # No screen reader on a headless box; the graphical-desktop default pulls this in.
+        speechd.enable = false;
+
         hypr-rdp = {
           enable = true;
           user = "aidanp";
@@ -247,7 +247,7 @@
           sopsFile = ./secrets.yaml;
           settings = {
             bind = "0.0.0.0:3389";
-            # No `output` on purpose: a pinned DP-1 fails startup once the powered-down display's EDID vanishes; hypr-rdp manages its own headless output.
+            # No `output`: hypr-rdp manages its own headless output.
             # `auto` would quietly fall back to software H.264 if the VA-API driver ever failed to load.
             h264_backend = "vaapi";
           };

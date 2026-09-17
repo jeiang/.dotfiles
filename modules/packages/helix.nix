@@ -64,25 +64,25 @@
           "constant.character.escape" = "surimiOrange";
           "constant.numeric" = "sakuraPink";
           constructor = "carpYellow";
-          "diagnositc.error" = {
+          "diagnostic.error" = {
             underline = {
               color = "peachRed";
               style = "curl";
             };
           };
-          "diagnositc.hint" = {
+          "diagnostic.hint" = {
             underline = {
               color = "springBlue";
               style = "dotted";
             };
           };
-          "diagnositc.info" = {
+          "diagnostic.info" = {
             underline = {
               color = "crystalBlue";
               style = "dotted";
             };
           };
-          "diagnositc.warning" = {
+          "diagnostic.warning" = {
             underline = {
               color = "carpYellow";
               style = "curl";
@@ -141,8 +141,8 @@
           };
           "markup.heading.marker" = "fujiGray";
           "markup.italic" = {modifiers = ["italic"];};
-          "markup.link.label" = "waveAqua";
-          "markup.link.text" = "waveAqua";
+          "markup.link.label" = "waveAqua2";
+          "markup.link.text" = "waveAqua2";
           "markup.link.url" = {
             fg = "waveBlue2";
             modifiers = ["italic"];
@@ -254,191 +254,6 @@
 
           palette = {
             inherit (self.lib.palette.kanaboxDarkHard) sumiInk0 sumiInk1 sumiInk1_5;
-          };
-        };
-        suru = {
-          attribute = "purple";
-          comment = "grey";
-          constant = "purple";
-          "constant.character.escape" = "yellow";
-          "constant.numeric" = "purple";
-          constructor = "turquoise";
-          "diagnostic.error" = {
-            underline = {
-              color = "red";
-              style = "curl";
-            };
-          };
-          "diagnostic.hint" = {
-            underline = {
-              color = "turquoise";
-              style = "curl";
-            };
-          };
-          "diagnostic.info" = {
-            underline = {
-              color = "violet";
-              style = "curl";
-            };
-          };
-          "diagnostic.warning" = {
-            underline = {
-              color = "yellow";
-              style = "curl";
-            };
-          };
-          "diff.delta" = "yellow";
-          "diff.minus" = "red";
-          "diff.plus" = "violet";
-          error = {fg = "red";};
-          function = "violet";
-          "function.builtin" = "turquoise";
-          "function.macro" = "purple";
-          hint = {fg = "turquoise";};
-          info = {fg = "violet";};
-          keyword = "red";
-          "keyword.storage.modifier" = "yellow";
-          label = "yellow";
-          "markup.bold" = {modifiers = ["bold"];};
-          "markup.heading.1" = {
-            fg = "red";
-            modifiers = ["bold"];
-          };
-          "markup.heading.2" = {
-            fg = "yellow";
-            modifiers = ["bold"];
-          };
-          "markup.heading.3" = {
-            fg = "green";
-            modifiers = ["bold"];
-          };
-          "markup.heading.4" = {
-            fg = "violet";
-            modifiers = ["bold"];
-          };
-          "markup.heading.5" = {
-            fg = "turquoise";
-            modifiers = ["bold"];
-          };
-          "markup.heading.6" = {
-            fg = "fg";
-            modifiers = ["bold"];
-          };
-          "markup.heading.marker" = "grey";
-          "markup.italic" = {modifiers = ["italic"];};
-          "markup.link.text" = "purple";
-          "markup.link.url" = {
-            fg = "turquoise";
-            modifiers = ["underlined"];
-          };
-          "markup.list" = "red";
-          "markup.quote" = "grey";
-          "markup.raw" = "violet";
-          "markup.strikethrough" = {modifiers = ["crossed_out"];};
-          module = "turquoise";
-          namespace = "turquoise";
-          operator = "yellow";
-          palette = {
-            bg0 = "#242424";
-            bg1 = "#333333";
-            bg2 = "#363636";
-            bg3 = "#3b3b3b";
-            bg4 = "#555555";
-            bg5 = "#4d4d4d";
-            black = "#181818";
-            fg = "#e3dfd5";
-            green = "#46a926";
-            grey = "#7b858e";
-            grey_dim = "#5e5e5e";
-            purple = "#8f76e4";
-            red = "#f34f17";
-            turquoise = "#2daaaa";
-            violet = "#d85eca";
-            yellow = "#fda463";
-          };
-          punctuation = "grey";
-          "punctuation.bracket" = "fg";
-          "punctuation.delimiter" = "grey";
-          special = "yellow";
-          string = "green";
-          tag = "green";
-          type = "turquoise";
-          "ui.background" = {bg = "bg0";};
-          "ui.cursor" = {modifiers = ["reversed"];};
-          "ui.cursor.insert" = {
-            bg = "grey";
-            fg = "black";
-          };
-          "ui.cursor.match" = {
-            bg = "yellow";
-            fg = "yellow";
-          };
-          "ui.cursor.select" = {
-            bg = "turquoise";
-            fg = "bg0";
-          };
-          "ui.cursorline.primary" = {bg = "bg1";};
-          "ui.help" = {
-            bg = "bg1";
-            fg = "fg";
-          };
-          "ui.linenr" = "grey";
-          "ui.linenr.selected" = "fg";
-          "ui.menu" = {
-            bg = "bg2";
-            fg = "fg";
-          };
-          "ui.menu.selected" = {
-            bg = "violet";
-            fg = "bg0";
-          };
-          "ui.popup" = {
-            bg = "bg2";
-            fg = "grey";
-          };
-          "ui.selection" = {bg = "bg5";};
-          "ui.selection.primary" = {bg = "bg4";};
-          "ui.statusline" = {
-            bg = "bg3";
-            fg = "fg";
-          };
-          "ui.statusline.inactive" = {
-            bg = "bg1";
-            fg = "grey";
-          };
-          "ui.text" = "fg";
-          "ui.text.focus" = "violet";
-          "ui.virtual.ruler" = {bg = "grey_dim";};
-          "ui.virtual.whitespace" = {fg = "grey_dim";};
-          "ui.window" = {
-            bg = "bg0";
-            fg = "grey";
-          };
-          variable = "fg";
-          "variable.builtin" = "yellow";
-          "variable.other.member" = "fg";
-          "variable.parameter" = "fg";
-          warning = {fg = "yellow";};
-        };
-        suru-dark-hard = {
-          inherits = "suru";
-          palette = {
-            black = "#080808";
-            bg0 = "#141414";
-            bg1 = "#222222";
-            bg2 = "#262626";
-            bg3 = "#2b2b2b";
-            bg4 = "#555555";
-            bg5 = "#454545";
-            fg = "#e3dfd5";
-            red = "#f32417";
-            yellow = "#edb433";
-            green = "#46a926";
-            violet = "#d85eca";
-            turquoise = "#2daaaa";
-            purple = "#9f76e4";
-            grey = "#7b858e";
-            grey_dim = "#4e4e4e";
           };
         };
       };

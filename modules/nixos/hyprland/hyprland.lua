@@ -4,8 +4,9 @@ require("animations")
 require("keybinds")
 
 hl.monitor({
-	output = "DP-1",
-	mode = "preferred",
+	-- EDID dummy plug; the board won't POST without a display attached
+	output = "HDMI-A-1",
+	mode = "1920x1080@60",
 	position = "0x0",
 	scale = "1",
 })
@@ -28,7 +29,9 @@ hl.config({
 	},
 })
 hl.permission({
-	binary = vars.portal,
+	-- loose regex: the portal binary is wrapped to libexec/.xdg-desktop-portal-hyprland-wrapped,
+	-- and its versioned store path has a literal "+" that breaks an exact RE2 match
+	binary = ".*xdg-desktop-portal-hyprland.*",
 	type = "screencopy",
 	mode = "allow",
 })
@@ -56,12 +59,6 @@ hl.permission({
 	type = "screencopy",
 	mode = "allow",
 })
-hl.permission({
-	binary = vars.pluginManager,
-	type = "plugin",
-	mode = "allow",
-})
-
 hl.config({
 	ecosystem = {
 		no_update_news = true,

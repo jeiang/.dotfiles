@@ -11,7 +11,7 @@ end
 
 bind("T", hl.dsp.exec_cmd("uwsm app -- " .. vars.terminal))
 bind("E", hl.dsp.exec_cmd("uwsm app -- " .. vars.fileManager))
-bind("Space", hl.dsp.exec_cmd(vars.launcher))
+hl.bind("CTRL + Space", hl.dsp.exec_cmd(vars.launcher))
 bind("SHIFT + S", hl.dsp.exec_cmd(vars.screenshot))
 
 bind("Q", hl.dsp.window.close())
@@ -30,16 +30,8 @@ hl.bind(
 	hl.dsp.exec_cmd(vars.wpctl .. " set-volume @DEFAULT_AUDIO_SINK@ 5%-"),
 	{ locked = true, repeating = true }
 )
-hl.bind(
-	"XF86AudioMute",
-	hl.dsp.exec_cmd(vars.wpctl .. " set-mute @DEFAULT_AUDIO_SINK@ toggle"),
-	{ locked = true, repeating = true }
-)
-hl.bind(
-	"XF86AudioMicMute",
-	hl.dsp.exec_cmd(vars.wpctl .. " set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),
-	{ locked = true, repeating = true }
-)
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd(vars.wpctl .. " set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true })
+hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd(vars.wpctl .. " set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true })
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd(vars.playerctl .. " next"), { locked = true })
 hl.bind("XF86AudioPause", hl.dsp.exec_cmd(vars.playerctl .. " play-pause"), { locked = true })
 hl.bind("XF86AudioPlay", hl.dsp.exec_cmd(vars.playerctl .. " play-pause"), { locked = true })
@@ -71,7 +63,7 @@ bind("period", hl.dsp.focus({ workspace = "e+1" }))
 bind("comma", hl.dsp.focus({ workspace = "e-1" }))
 
 bind("mouse:273", hl.dsp.window.resize(), { mouse = true })
-bind("R", hl.dsp.submap("resize"))
+bind("Z", hl.dsp.submap("resize"))
 local resize_binds = {
 	{ keys = { "left", "H" }, x = -10, y = 0 },
 	{ keys = { "right", "R" }, x = 10, y = 0 },
