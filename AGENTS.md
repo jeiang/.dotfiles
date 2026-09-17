@@ -118,7 +118,9 @@ behavior for its own sake.
 - Before deploying any change to `persistence.*` (an added entry, or an
   entry moved between system, data, and cache), run
   `just migrate-persist <checkout>` on artemis as root from a checkout of
-  the new revision, then deploy, then reboot.
+  the new revision. Only then deploy with `--boot` and reboot: switching
+  first bind-mounts an empty `/persist` path over any new entry, so running
+  the script after leaves nothing on the live path to copy.
 - A persisted path is not backed up. A backup set is an explicit allowlist,
   and every path in it must also be a `persistence.*` path.
 

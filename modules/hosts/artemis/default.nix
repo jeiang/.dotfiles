@@ -77,6 +77,8 @@
           "/var/lib/NetworkManager"
           "/var/lib/bluetooth"
           "/var/lib/netbird"
+          # Persistent=true timers' last-trigger stamps, for catch-up after a reboot.
+          "/var/lib/systemd/timers"
         ];
 
         data.directories = [
@@ -104,14 +106,6 @@
             mode = "0700";
           }
           {
-            directory = ".kube";
-            mode = "0700";
-          }
-          {
-            directory = ".local/share/keyrings";
-            mode = "0700";
-          }
-          {
             directory = ".claude";
             mode = "0700";
           }
@@ -119,9 +113,12 @@
           ".local/share/direnv"
           ".local/share/devenv"
           ".local/share/zoxide"
-          ".krew"
           ".config/fish"
           ".config/gopass"
+          {
+            directory = ".config/hypr-rdp";
+            mode = "0700";
+          }
           ".config/heroic"
           ".config/PrismLauncher"
           ".local/share/heroic"
@@ -137,6 +134,8 @@
           ".cache/heroic"
           ".cache/PrismLauncher"
           ".cache/protontricks"
+          # Mesa's default (multi-file, no MESA_DISK_CACHE_DATABASE) shader cache dir.
+          ".cache/mesa_shader_cache"
           ".local/state/nix"
         ];
       };
