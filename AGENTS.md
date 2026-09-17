@@ -123,6 +123,17 @@ behavior for its own sake.
   the script after leaves nothing on the live path to copy.
 - A persisted path is not backed up. A backup set is an explicit allowlist,
   and every path in it must also be a `persistence.*` path.
+- Boot counting (2 tries) is on for artemis. After `deploy --boot` and the
+  reboot, confirm that artemis runs the new generation: `readlink
+  /run/current-system` must equal the deployed toplevel, and `bootctl list`
+  must not mark the new entry as bad or `+0-N`. If boot-health cannot reach
+  NetBird management and sshd within 5 minutes on both tries, artemis falls
+  back to the previous generation by design, including during a NetBird
+  management outage. A redeploy of the same closure does not reset the
+  counter, because the entry file name is kept. To retry the same
+  generation, run this as root on artemis: `mv
+  /boot/loader/entries/nixos-<hash>+0-2.conf
+  /boot/loader/entries/nixos-<hash>+2.conf`, then reboot.
 
 ### Secrets
 

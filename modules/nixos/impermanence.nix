@@ -32,7 +32,7 @@
       fi
 
       delete_subvolume_recursively() {
-          IFS=$'\n'
+          local IFS=$'\n' i
           for i in $(btrfs subvolume list -o "$1" | cut -f 9- -d ' '); do
               delete_subvolume_recursively "/btrfs_tmp/$i"
           done
@@ -48,7 +48,7 @@
           name=$(basename "$i")
           [[ "$name" == "$this_boot" ]] && continue
           if [[ "$name" < "$cutoff" ]]; then
-              # best-effort: a stuck delete must never block boot
+              # best-effort: a failed delete must never block boot
               delete_subvolume_recursively "$i" || echo "rollback-root: failed to prune $i" >&2
           fi
       done

@@ -35,20 +35,28 @@ data_files=$(paths data.files)
 cache_dirs=$(paths cache.directories)
 cache_files=$(paths cache.files)
 
+# Set by sync_dir when a directory looks like it may have lost data to an early switch;
+# checked at the end so one suspect directory doesn't stop the sections after it.
+warned=0
+
 sync_dir() {
   local src="$1" dst="$2"
   if [[ ! -e "$src" ]]; then
     echo "skip (missing): $src"
     return
   fi
-  # A non-empty bind mount is just the steady state (safe to re-sync onto itself); an
-  # empty one means a switch already bind-mounted $dst here before this script ran,
-  # and $src's earlier contents are gone from the live path, not just unsynced.
+  # A non-empty bind mount is just the steady state (safe to re-sync onto itself). An
+  # empty one is ambiguous: it's either a directory that never had anything (also steady
+  # state, e.g. an unused Trash), or a switch already bind-mounted $dst here before this
+  # script ran, in which case $src's earlier contents are gone from the live path, not
+  # just unsynced. Warn either way instead of aborting the rest of the run.
   if mountpoint -q "$src" && [[ "$src" -ef "$dst" ]] && [[ -z "$(ls -A "$src" 2>/dev/null)" ]]; then
-    echo "ERROR: $src is an empty bind mount from $dst (a switch ran before this script did)." >&2
-    echo "       Boot the previous generation to recover its contents, or restore them by" >&2
-    echo "       hand from the old rootfs under /old_roots, then re-run this script first." >&2
-    return 1
+    echo "WARN: $src is an empty bind mount from $dst. If it should hold data, a switch" >&2
+    echo "      likely ran before this script did -- boot the previous generation to" >&2
+    echo "      recover its contents, or restore them by hand from the old rootfs under" >&2
+    echo "      /old_roots, then re-run this script." >&2
+    warned=1
+    return
   fi
   local dst_parent
   dst_parent="$(dirname "$dst")"
@@ -114,3 +122,11 @@ echo "Done. Review any 'skip (missing)' lines above — those are fine if the"
 echo "path genuinely doesn't exist yet. Re-run this before switching to any"
 echo "further persistence.* change: nukeRoot wipes anything on / that wasn't"
 echo "copied into /persist first."
+
+if [[ "$warned" == 1 ]]; then
+  echo
+  echo "WARNING: see the WARN lines above -- one or more directories were empty" >&2
+  echo "bind mounts already pointing at /persist. Confirm they should be empty" >&2
+  echo "before deploying." >&2
+  exit 1
+fi

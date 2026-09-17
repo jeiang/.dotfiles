@@ -157,6 +157,8 @@
           # A wedged amdgpu (or any other hung task) doesn't stop PID 1 petting the watchdog, so panic on a hang and let the panic (and the armed hardware watchdog) reboot the box.
           "panic=10"
           "hung_task_panic=1"
+          # Without this, initrd reaching emergency.target (a failed rollback-root, missing /persist) just waits at sulogin forever instead of spending the boot-counting try.
+          "boot.panic_on_fail"
         ];
         # facter also loads amdgpu in the initrd; ship pci-stub there too so it can win the race (the softdep below orders modprobe everywhere else).
         initrd.kernelModules = ["pci-stub" "sp5100_tco"];
