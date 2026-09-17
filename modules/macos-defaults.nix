@@ -14,7 +14,7 @@ _: {
     # writes the current Space, and WallpaperAgent resets the whole store when
     # its undocumented Index.plist is edited. The folder just has to sit at a
     # stable path, so the store directory is symlinked into ~/Pictures.
-    wallpapers = ../../assets/wallpapers-kanabox;
+    wallpapers = ../assets/wallpapers-kanabox;
     defaultbrowser = lib.getExe pkgs.defaultbrowser;
   in {
     system = {

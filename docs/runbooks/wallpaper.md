@@ -7,8 +7,8 @@ Review [`AGENTS.md`](../../AGENTS.md) before running any command here.
 | --- | --- |
 | `assets/wallpapers/` | pristine photos, the only thing you edit by hand |
 | `assets/wallpapers-kanabox/` | what both hosts read; recolored or copied originals |
-| `modules/nixos/hyprland/default.nix` | artemis: hyprpaper reads the directory, 30 min, random |
-| `modules/darwin/preferences.nix` | zakkart: symlinks `~/Pictures/Wallpapers` to the directory |
+| `modules/hyprland/default.nix` | artemis: hyprpaper reads the directory, 30 min, random |
+| `modules/macos-defaults.nix` | zakkart: symlinks `~/Pictures/Wallpapers` to the directory |
 
 `just wallpaper` recolors every image in `assets/wallpapers/` whose name is
 missing from `assets/wallpapers-kanabox/`. Names already present are left

@@ -65,7 +65,7 @@ Pusher is running.
 | Backfill signatures after adding a key | `garret-admin resign` |
 
 Quota is 250 GiB with eviction between the 0.95 and 0.85 watermarks
-(`modules/nixos/garret/default.nix`).
+(`modules/garret/default.nix`).
 
 ### Key rotation
 
@@ -81,10 +81,10 @@ nix run github:jeiang/garret#garret-admin -- key show ./key
 ```
 
 `signingKeyFiles` is a list precisely so a rotation can overlap: add the new
-key to `modules/nixos/garret/secrets.yaml` alongside the old, deploy, run
+key to `modules/garret/secrets.yaml` alongside the old, deploy, run
 `garret-admin resign` to backfill signatures, add the new public key to every
-consumer's `trusted-public-keys` (`modules/nixos/nix.nix`,
-`modules/darwin/nix.nix`, `.github/workflows/ci.yml`, `zakkart-bootstrap.md`), and only
+consumer's `trusted-public-keys` (`modules/nix.nix`,
+`.github/workflows/ci.yml`, `zakkart-bootstrap.md`), and only
 then drop the old one from both places.
 
 ### Recovering a lost or corrupt index

@@ -113,7 +113,7 @@
       enable = lib.mkEnableOption ''
         the Anubis proof-of-work gate in front of the static content site
         blocks only (jeiang.dev apex, aidanpinard.co, pinard.co.tt,
-        noelejoshua.com). Enabled by modules/nixos/anubis.nix, which is
+        noelejoshua.com). Enabled by modules/anubis.nix, which is
         imported only for the inventory node placing `anubis`
       '';
 
@@ -123,7 +123,7 @@
         description = ''
           Loopback port of the internal Caddy listener that serves the
           protected static roots, and which the Anubis instance proxies
-          to as its TARGET. Read by modules/nixos/anubis.nix, so it is a
+          to as its TARGET. Read by modules/anubis.nix, so it is a
           real cross-module boundary rather than a one-off constant.
 
           Must not collide with Caddy's admin API (127.0.0.1:2019) or the
@@ -136,7 +136,7 @@
     options.edge.crowdsec.enable =
       lib.mkEnableOption ''
         the CrowdSec bouncer HTTP + AppSec handlers on the edge, and (shared
-        switch, modules/nixos/crowdsec/default.nix) the CrowdSec engine
+        switch, modules/crowdsec/default.nix) the CrowdSec engine
         itself. On by default; the sops secrets it and the Caddy wiring need
         (caddy/crowdsec-lapi-url, caddy/crowdsec-lapi-key,
         crowdsec/bouncer-netbird-proxy-key,

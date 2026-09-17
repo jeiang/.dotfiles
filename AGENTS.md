@@ -63,9 +63,13 @@ behavior for its own sake.
   host secrets. Legion placement is data in
   `modules/hosts/legion/_service-inventory.nix`; files with a `_` prefix are
   not imported by import-tree.
-- `modules/nixos/`, `modules/darwin/`: feature modules. A secret shard sits
-  beside its consumer as `secrets.yaml`; a second shard in the same
-  directory is `secrets.<consumer>.yaml` (`netbird-server/secrets.proxy.yaml`).
+- `modules/<feature>.nix`, or `modules/<feature>/` when the feature has
+  sibling files (a secrets shard, Lua, JSON, a shell script): one
+  flake-parts module per feature, declaring `nixos.modules.<name>` and/or
+  `darwin.modules.<name>` for every configuration class it applies to. A
+  secret shard sits beside its consumer as `secrets.yaml`; a second shard in
+  the same directory is `secrets.<consumer>.yaml`
+  (`netbird-server/secrets.proxy.yaml`).
 - `modules/configurations.nix`: the dendritic plumbing. A feature module
   declares itself under `nixos.modules.<name>` / `darwin.modules.<name>`; a
   host declares itself under `nixos.configurations.<host>` /
@@ -146,8 +150,8 @@ behavior for its own sake.
   only after a recipient change in `.sops.yaml`.
 - A rotated secret reaches a running process only through that secret's
   `restartUnits`.
-- `modules/nixos/sops/secrets.admin.yaml` is the admin's own stash. No
-  module consumes it.
+- `modules/sops/secrets.admin.yaml` is the admin's own stash. No module
+  consumes it.
 
 ## Decisions that constrain changes
 

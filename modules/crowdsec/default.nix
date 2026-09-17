@@ -8,7 +8,7 @@ _: {
     cfg = config.edge.crowdsec;
     sopsFile = ./secrets.yaml;
 
-    # modules/nixos/edge/default.nix hardcodes appsec_url
+    # modules/edge/default.nix hardcodes appsec_url
     # http://127.0.0.1:7422, so 7422 is not a free choice here.
     lapiPort = 8080;
     appsecPort = 7422;
@@ -134,7 +134,7 @@ _: {
       # No declarative bouncer option exists upstream, so known bouncer keys
       # are registered idempotently below. The edge-caddy key is the same
       # value Caddy sends as CROWDSEC_LAPI_KEY; the other two are consumed by
-      # legion-node2 (modules/nixos/netbird-server/proxy.nix).
+      # legion-node2 (modules/netbird-server/proxy.nix).
       sops.secrets."crowdsec/bouncer-netbird-proxy-key" = {
         inherit sopsFile;
         restartUnits = ["crowdsec-bouncers.service"];
