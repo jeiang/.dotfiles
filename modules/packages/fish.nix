@@ -30,6 +30,8 @@
           set -gx DIRENV_CONFIG /etc/direnv
         ''}
         status is-interactive; and begin
+          # gpg's curses pinentry needs the terminal; NixOS only exports this through programs.fish, which this fish does not use.
+          set -gx GPG_TTY (tty)
           source ${donefish}
           zoxide init fish --cmd cd | source
           fzf --fish | source
