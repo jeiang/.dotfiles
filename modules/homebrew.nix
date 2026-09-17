@@ -1,5 +1,5 @@
 {inputs, ...}: {
-  darwin.modules.homebrew = {config, ...}: {
+  darwin.modules.base = {config, ...}: {
     imports = [inputs.nix-homebrew.darwinModules.nix-homebrew];
 
     nix-homebrew = {

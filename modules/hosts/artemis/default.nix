@@ -17,9 +17,11 @@ in {
     };
   };
 
-  nixos.configurations.artemis.module = modules.artemisConfiguration;
+  nixos.configurations.artemis.module = {
+    imports = [modules.base modules.artemis];
+  };
 
-  nixos.modules.artemisConfiguration = {
+  nixos.modules.artemis = {
     config,
     pkgs,
     ...
@@ -33,24 +35,6 @@ in {
     };
   in {
     imports = [
-      modules.base
-      modules.sharedConfiguration
-      modules.sops
-      modules.artemisHardware
-      modules.doas
-      modules.artemisBootHealth
-      modules.desktop
-      modules.netbird
-      modules.speedtest
-      modules.tcp-tuning
-      modules.gaming
-      modules.sunshine
-      modules.backupTunnel
-      modules.impermanence
-      modules.hypr-rdp
-      modules.toolboxArtemis
-      modules.nixArtemisExtras
-
       self.diskoConfigurations.artemis
     ];
 

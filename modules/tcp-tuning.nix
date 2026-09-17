@@ -3,7 +3,7 @@
   # cubic treats every drop as congestion and takes seconds to regrow at
   # that RTT, and the 4 MB default send buffer caps one stream near
   # 400 Mbps. fq_codel stays as the qdisc; BBR paces internally.
-  nixos.modules.tcp-tuning = {
+  nixos.modules.base = {
     boot = {
       kernelModules = ["tcp_bbr"];
       kernel.sysctl = {

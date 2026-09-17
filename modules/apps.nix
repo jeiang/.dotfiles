@@ -1,5 +1,5 @@
 {self, ...}: {
-  darwin.modules.apps = {
+  darwin.modules.base = {
     config,
     pkgs,
     ...

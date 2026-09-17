@@ -1,5 +1,5 @@
 {inputs, ...}: {
-  nixos.modules.impermanence = {
+  nixos.modules.artemis = {
     config,
     lib,
     pkgs,
@@ -8,6 +8,13 @@
   }: let
     cfg = config.persistence;
     user = config.preferences.user.name;
+    persistenceEntryType = lib.types.either lib.types.str (lib.types.attrsOf lib.types.anything);
+    persistenceListOption = description:
+      lib.mkOption {
+        type = lib.types.listOf persistenceEntryType;
+        default = [];
+        description = "${description} Entries may be strings or impermanence-compatible attribute sets.";
+      };
 
     rootDeviceUnit = "${utils.escapeSystemdPath cfg.nukeRoot.device}.device";
 
@@ -56,71 +63,6 @@
       inputs.impermanence.nixosModules.impermanence
     ];
 
-    config = lib.mkMerge [
-      (lib.mkIf cfg.enable {
-        fileSystems."/persist".neededForBoot = true;
-
-        # impermanence never migrates existing data: run `just migrate-persist`
-        # on artemis before deploying a persistence.* change.
-        environment.persistence = {
-          "/persist" = {
-            inherit (cfg) directories files;
-          };
-
-          "/persist/data".users.${user} = {
-            directories = cfg.data.directories;
-            files = cfg.data.files;
-          };
-
-          "/persist/cache".users.${user} = {
-            directories = cfg.cache.directories;
-            files = cfg.cache.files;
-          };
-        };
-      })
-
-      (lib.mkIf (cfg.enable && cfg.nukeRoot.enable && config.boot.initrd.systemd.enable) {
-        boot.initrd.systemd = {
-          initrdBin = [pkgs.btrfs-progs];
-          services.rollback-root = {
-            description = "Roll back btrfs root subvolume to an empty subvolume";
-            unitConfig.DefaultDependencies = false;
-            serviceConfig.Type = "oneshot";
-            requiredBy = ["initrd.target"];
-            before = ["sysroot.mount"];
-            requires = [rootDeviceUnit];
-            after = [
-              rootDeviceUnit
-              # let hibernation resume consume the pre-rollback root first
-              "local-fs-pre.target"
-            ];
-            script = rollbackScript;
-          };
-        };
-      })
-
-      # postResumeCommands keeps the resume-before-rollback ordering in the
-      # classic initrd.
-      (lib.mkIf (cfg.enable && cfg.nukeRoot.enable && !config.boot.initrd.systemd.enable) {
-        boot.initrd.postResumeCommands = lib.mkAfter rollbackScript;
-      })
-    ];
-  };
-
-  nixos.modules.base = {
-    config,
-    lib,
-    ...
-  }: let
-    cfg = config.persistence;
-    persistenceEntryType = lib.types.either lib.types.str (lib.types.attrsOf lib.types.anything);
-    persistenceListOption = description:
-      lib.mkOption {
-        type = lib.types.listOf persistenceEntryType;
-        default = [];
-        description = "${description} Entries may be strings or impermanence-compatible attribute sets.";
-      };
-  in {
     options.persistence = {
       enable = lib.mkEnableOption "persistent storage mounts";
 
@@ -168,19 +110,71 @@
       cache.files = persistenceListOption "User cache files to persist under `/persist/cache`.";
     };
 
-    config.assertions = [
+    config = lib.mkMerge [
       {
-        assertion = !cfg.nukeRoot.enable || cfg.enable;
-        message = "persistence.nukeRoot.enable requires persistence.enable";
+        assertions = [
+          {
+            assertion = !cfg.nukeRoot.enable || cfg.enable;
+            message = "persistence.nukeRoot.enable requires persistence.enable";
+          }
+          {
+            assertion = !cfg.nukeRoot.enable || cfg.nukeRoot.device != "";
+            message = "persistence.nukeRoot.device must be set when root rollback is enabled";
+          }
+          {
+            assertion = !cfg.nukeRoot.enable || cfg.nukeRoot.subvolume != "";
+            message = "persistence.nukeRoot.subvolume must be set when root rollback is enabled";
+          }
+        ];
       }
-      {
-        assertion = !cfg.nukeRoot.enable || cfg.nukeRoot.device != "";
-        message = "persistence.nukeRoot.device must be set when root rollback is enabled";
-      }
-      {
-        assertion = !cfg.nukeRoot.enable || cfg.nukeRoot.subvolume != "";
-        message = "persistence.nukeRoot.subvolume must be set when root rollback is enabled";
-      }
+
+      (lib.mkIf cfg.enable {
+        fileSystems."/persist".neededForBoot = true;
+
+        # impermanence never migrates existing data: run `just migrate-persist`
+        # on artemis before deploying a persistence.* change.
+        environment.persistence = {
+          "/persist" = {
+            inherit (cfg) directories files;
+          };
+
+          "/persist/data".users.${user} = {
+            directories = cfg.data.directories;
+            files = cfg.data.files;
+          };
+
+          "/persist/cache".users.${user} = {
+            directories = cfg.cache.directories;
+            files = cfg.cache.files;
+          };
+        };
+      })
+
+      (lib.mkIf (cfg.enable && cfg.nukeRoot.enable && config.boot.initrd.systemd.enable) {
+        boot.initrd.systemd = {
+          initrdBin = [pkgs.btrfs-progs];
+          services.rollback-root = {
+            description = "Roll back btrfs root subvolume to an empty subvolume";
+            unitConfig.DefaultDependencies = false;
+            serviceConfig.Type = "oneshot";
+            requiredBy = ["initrd.target"];
+            before = ["sysroot.mount"];
+            requires = [rootDeviceUnit];
+            after = [
+              rootDeviceUnit
+              # let hibernation resume consume the pre-rollback root first
+              "local-fs-pre.target"
+            ];
+            script = rollbackScript;
+          };
+        };
+      })
+
+      # postResumeCommands keeps the resume-before-rollback ordering in the
+      # classic initrd.
+      (lib.mkIf (cfg.enable && cfg.nukeRoot.enable && !config.boot.initrd.systemd.enable) {
+        boot.initrd.postResumeCommands = lib.mkAfter rollbackScript;
+      })
     ];
   };
 }

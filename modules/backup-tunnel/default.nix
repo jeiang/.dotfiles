@@ -4,7 +4,7 @@ _: let
   artemisPublicKey = "XWfbtRzMfHUrv1oJ0ULRKFTbSn8io1iLkwBcf7AgQwQ=";
   node1PublicKey = "ay1qHJCX2WQONRG5eTfh4fsIcTO6HOU8wdhSwHaJ+BM=";
 in {
-  nixos.modules.backupTunnel = {config, ...}: {
+  nixos.modules.artemis = {config, ...}: {
     sops.secrets."wireguard/artemis-private-key" = {
       sopsFile = ./secrets.yaml;
       restartUnits = ["wireguard-wg-backup.service"];
@@ -30,7 +30,7 @@ in {
     };
   };
 
-  nixos.modules.backupTunnelResponder = {config, ...}: {
+  nixos.modules.backup-tunnel-responder = {config, ...}: {
     sops.secrets."wireguard/node1-private-key" = {
       sopsFile = ./secrets.yaml;
       restartUnits = ["systemd-networkd.service"];

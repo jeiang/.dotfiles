@@ -1,5 +1,5 @@
 _: {
-  nixos.modules.backups = {
+  nixos.modules.legion = {
     config,
     lib,
     pkgs,

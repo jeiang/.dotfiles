@@ -1,6 +1,6 @@
 # What system.defaults can express faithfully lives there; the rest is scripted as idempotent user-context activation steps.
 _: {
-  darwin.modules.preferences = {
+  darwin.modules.base = {
     config,
     lib,
     pkgs,

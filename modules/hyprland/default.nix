@@ -3,7 +3,7 @@
   inputs,
   ...
 }: {
-  nixos.modules.hyprland = {
+  nixos.modules.artemis = {
     config,
     pkgs,
     lib,

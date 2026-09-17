@@ -1,17 +1,5 @@
-{
-  self,
-  config,
-  ...
-}: let
-  inherit (config.nixos) modules;
-in {
-  nixos.modules.desktop = {pkgs, ...}: {
-    imports = [
-      modules.gpg
-      modules.hyprland
-      modules.pipewire
-    ];
-
+{self, ...}: {
+  nixos.modules.artemis = {pkgs, ...}: {
     # Fix Dolphin file associations on non-Plasma desktop environments
     # https://github.com/NixOS/nixpkgs/issues/409986; copy just the menu file
     # so the system doesn't pull in the rest of plasma-workspace for it.

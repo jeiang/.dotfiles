@@ -1,5 +1,5 @@
 {self, ...}: {
-  nixos.modules.toolbox = {pkgs, ...}: {
+  nixos.modules.legion = {pkgs, ...}: {
     environment.systemPackages = with pkgs; [
       self.packages.${pkgs.stdenv.hostPlatform.system}.git-minimal
       self.packages.${pkgs.stdenv.hostPlatform.system}.helix
@@ -16,7 +16,7 @@
     ];
   };
 
-  nixos.modules.toolboxArtemis = {
+  nixos.modules.artemis = {
     pkgs,
     lib,
     ...

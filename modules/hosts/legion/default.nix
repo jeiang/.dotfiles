@@ -118,22 +118,13 @@ in {
       validatedLegionNodes;
   };
 
-  nixos.modules.legionConfiguration = {
+  nixos.modules.legion = {
     pkgs,
     config,
     lib,
     ...
   }: {
     imports = [
-      modules.base
-      modules.sharedConfiguration
-      modules.sops
-      modules.legionHardware
-      modules.backups
-      modules.netbird
-      modules.speedtest
-      modules.tcp-tuning
-      modules.toolbox
       self.diskoConfigurations.legion
     ];
 
@@ -275,7 +266,8 @@ in {
     mkLegionSystem = name: node: {
       module.imports =
         [
-          modules.legionConfiguration
+          modules.base
+          modules.legion
           {
             networking.hostName = name;
 
@@ -324,7 +316,7 @@ in {
         modules.monitoring
         ++ lib.optional
         (lib.any (service: service.name == "backup-tunnel") node.services)
-        modules.backupTunnelResponder;
+        modules.backup-tunnel-responder;
     };
   in
     builtins.mapAttrs mkLegionSystem validatedLegionNodes;

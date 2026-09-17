@@ -1,5 +1,5 @@
 _: {
-  nixos.modules.artemisBootHealth = {
+  nixos.modules.artemis = {
     config,
     lib,
     ...

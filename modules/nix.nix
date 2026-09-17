@@ -10,7 +10,7 @@
     };
   };
 
-  nixos.modules.nix = {config, ...}: {
+  nixos.modules.base = {config, ...}: {
     imports = [
       # Determinate keeps the stock nix.* options and renders them to /etc/nix/nix.custom.conf.
       inputs.determinate.nixosModules.default
@@ -62,7 +62,7 @@
   };
 
   # Determinate Nix forces nix.enable = false, so every nix.settings equivalent must go through determinateNix.customSettings.
-  darwin.modules.nix = {config, ...}: {
+  darwin.modules.base = {config, ...}: {
     imports = [inputs.determinate.darwinModules.default];
 
     nixpkgs.pkgs = withSystem config.nixpkgs.hostPlatform.system ({pkgs, ...}: pkgs);
@@ -98,7 +98,7 @@
       '';
   };
 
-  nixos.modules.nixArtemisExtras = {
+  nixos.modules.artemis = {
     imports = [
       inputs.nix-index-database.nixosModules.nix-index
     ];

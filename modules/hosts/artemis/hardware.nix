@@ -1,5 +1,5 @@
 {
-  nixos.modules.artemisHardware = _: {
+  nixos.modules.artemis = _: {
     hardware.facter.reportPath = ./facter.json;
     # by-PCI-address symlink for the dGPU; card* numbering is not boot-stable.
     services.udev.extraRules = ''

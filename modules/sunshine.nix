@@ -1,5 +1,5 @@
 _: {
-  nixos.modules.sunshine = {
+  nixos.modules.artemis = {
     lib,
     pkgs,
     ...

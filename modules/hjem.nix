@@ -1,5 +1,5 @@
 {inputs, ...}: {
-  nixos.modules.hjem = {config, ...}: let
+  nixos.modules.base = {config, ...}: let
     user = config.preferences.user.name;
   in {
     imports = [
@@ -19,7 +19,7 @@
     };
   };
 
-  darwin.modules.hjem = {config, ...}: let
+  darwin.modules.base = {config, ...}: let
     user = config.preferences.user.name;
   in {
     imports = [inputs.hjem.darwinModules.default];

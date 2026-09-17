@@ -1,5 +1,5 @@
 {
-  nixos.modules.doas = {pkgs, ...}: {
+  nixos.modules.artemis = {pkgs, ...}: {
     security = {
       sudo.enable = false;
       doas = {

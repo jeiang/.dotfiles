@@ -6,7 +6,7 @@
   # page cannot call these http listeners. iperf3 rides along for raw
   # numbers from headless hosts. Neither opens a firewall port: the
   # netbird interface is already trusted (modules/netbird.nix).
-  nixos.modules.speedtest = {
+  nixos.modules.base = {
     config,
     lib,
     ...

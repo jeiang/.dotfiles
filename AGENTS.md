@@ -70,6 +70,10 @@ behavior for its own sake.
   secret shard sits beside its consumer as `secrets.yaml`; a second shard in
   the same directory is `secrets.<consumer>.yaml`
   (`netbird-server/secrets.proxy.yaml`).
+- Lower-level module names are roles, not features: `nixos.modules.base` /
+  `darwin.modules.base` (every host of that class), `nixos.modules.artemis`,
+  `nixos.modules.legion`, and one kebab-case `nixos.modules.<service>` per
+  Legion service. Many feature files contribute to the same role.
 - `modules/configurations.nix`: the dendritic plumbing. A feature module
   declares itself under `nixos.modules.<name>` / `darwin.modules.<name>`; a
   host declares itself under `nixos.configurations.<host>` /

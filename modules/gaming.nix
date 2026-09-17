@@ -1,5 +1,5 @@
 {self, ...}: {
-  nixos.modules.gaming = {
+  nixos.modules.artemis = {
     config,
     pkgs,
     ...

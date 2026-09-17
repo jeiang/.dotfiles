@@ -1,5 +1,5 @@
 {self, ...}: {
-  nixos.modules.netbird = {
+  nixos.modules.base = {
     config,
     pkgs,
     ...

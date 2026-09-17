@@ -1,5 +1,5 @@
 {inputs, ...}: {
-  nixos.modules.sops = {...}: {
+  nixos.modules.base = {...}: {
     imports = [
       inputs.sops-nix.nixosModules.sops
     ];

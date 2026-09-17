@@ -1,5 +1,5 @@
 _: {
-  darwin.modules.system = {config, ...}: {
+  darwin.modules.base = {config, ...}: {
     security.pam.services.sudo_local.touchIdAuth = true;
 
     networking = {

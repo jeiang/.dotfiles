@@ -1,5 +1,5 @@
 {
-  nixos.modules.legionHardware = {lib, ...}: {
+  nixos.modules.legion = {lib, ...}: {
     hardware.facter.reportPath = ./facter.json;
 
     boot.loader.grub.devices = lib.mkForce ["/dev/sda"];
