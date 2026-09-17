@@ -4,19 +4,22 @@ _: {
     pkgs,
     ...
   }: let
-    # Best-effort switch to the Moonlight client's requested mode; never
-    # exits nonzero since a failing prep-cmd aborts the app launch. `hyprctl
-    # keyword` is dead in this Lua-configured build; use `hyprctl eval`.
+    # Best-effort: focus the streamed output and switch it to the Moonlight
+    # client's mode; never exits nonzero since a failing prep-cmd aborts the
+    # app launch. `hyprctl keyword` is dead in this Lua-configured build.
     stream-mode = pkgs.writeShellScriptBin "sunshine-stream-mode" ''
       if [ -z "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
         HYPRLAND_INSTANCE_SIGNATURE=$(ls "''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr" 2>/dev/null | head -1)
         export HYPRLAND_INSTANCE_SIGNATURE
       fi
-      output=$(hyprctl monitors | awk '/^Monitor/{print $2; exit}')
+      output=$(hyprctl monitors | awk '/^Monitor/ && $2 != "hypr-rdp" {print $2; exit}')
       if [ -z "$output" ]; then
         echo "sunshine-stream-mode: no active output found, skipping" >&2
         exit 0
       fi
+      # After an RDP session, focus and the cursor stay on hypr-rdp's headless output, which Sunshine does not capture.
+      hyprctl eval "hl.dispatch(hl.dsp.focus({ monitor = [[$output]] }))" \
+        || echo "sunshine-stream-mode: focusing $output failed" >&2
       if [ "$1" = reset ]; then
         mode=1920x1080@60
       elif [ -n "''${SUNSHINE_CLIENT_WIDTH:-}" ] && [ -n "''${SUNSHINE_CLIENT_HEIGHT:-}" ]; then
