@@ -9,10 +9,7 @@
       user = {
         name = "Aidan Pinard";
         email = "aidan@aidanpinard.co";
-      };
-      signing = {
-        key = "C48B088F4FFBBDF0";
-        signByDefault = true;
+        signingKey = "C48B088F4FFBBDF0";
       };
       init.defaultBranch = "main";
       push.autoSetupRemote = "true";

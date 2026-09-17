@@ -87,16 +87,7 @@ its SSH agent in Settings. The socket appears at:
 (`modules/packages/fish.nix`), so a fresh shell picks it up as soon as the
 socket exists.
 
-## 7. sops age key
-
-Place the operator's age private key at the path `modules/darwin/sops.nix`
-configures as `sops.age.keyFile`:
-
-```
-/var/lib/sops-nix/key.txt
-```
-
-## 8. Wallpaper rotation
+## 7. Wallpaper rotation
 
 Activation symlinks `~/Pictures/Wallpapers` to the recolored wallpaper set
 (`modules/darwin/preferences.nix`). The rotation itself is a macOS setting
@@ -110,7 +101,7 @@ Then, on that folder entry: rotation "Every 30 Minutes", Shuffle on, and
 Adding photos, palette changes, and what to do if rotation stops after a
 switch are in [`wallpaper.md`](wallpaper.md).
 
-## 9. Verify
+## 8. Verify
 
 ```sh
 dscl . -read /Users/aidanp UserShell   # should end in .../bin/fish (the wrapped environment package)

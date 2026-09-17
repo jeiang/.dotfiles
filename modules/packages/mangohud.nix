@@ -14,7 +14,6 @@
             legacy_layout=false
             background_alpha=0.6
             round_corners=0
-            background_alpha=0.6
             background_color=000000
             font_size=24
             text_color=FFFFFF
@@ -42,7 +41,6 @@
             cpu_color=2E97CB
             vram
             vram_color=AD64C1
-            vram_color=AD64C1
             ram
             ram_color=C26693
             fps
@@ -55,12 +53,10 @@
             fps_color_change
             fps_color=B22222,FDFD09,39F900
             fps_value=30,60
-            output_folder=/home/aidanp
             log_duration=30
             autostart_log=0
             log_interval=100
             toggle_logging=Shift_L+F2
-            blacklist=pamac-manager,lact,ghb,bitwig-studio,ptyxis,yumex
           '';
         };
       });

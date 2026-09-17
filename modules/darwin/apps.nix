@@ -48,12 +48,7 @@
         pinentry_mac
         go
         hcloud
-        kubernetes-helm
-        helm-ls
         imagemagick
-        kubectl
-        kyverno
-        mcfly
         megatools
         miniserve
         nmap

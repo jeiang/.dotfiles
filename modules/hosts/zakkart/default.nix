@@ -15,7 +15,6 @@
         self.darwinModules.base
         self.darwinModules.nix
         self.darwinModules.hjem
-        self.darwinModules.sops
         self.darwinModules.homebrew
         self.darwinModules.apps
         self.darwinModules.system
