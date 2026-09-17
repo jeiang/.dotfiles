@@ -293,7 +293,9 @@
                       }
                       {
                         title = "NetBird";
-                        url = "https://netbird.jeiang.dev";
+                        # "/" falls through to node1's static dashboard even
+                        # when netbird-server is down; this path proxies to node2.
+                        url = "https://netbird.jeiang.dev/oauth2/.well-known/openid-configuration";
                       }
                       {
                         title = "Nix cache";

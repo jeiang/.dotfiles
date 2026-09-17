@@ -101,8 +101,10 @@ behavior for its own sake.
 
 - Deploy only after the pull request is merged and CI has pushed the
   closures to garret, so targets substitute instead of building.
-- From the Mac: `just deploy <host> --skip-checks --remote-build`. Check
-  each node after its deploy; `just deploy-legion` does not replace that.
+- From the Mac: `just deploy <host> --skip-checks --remote-build`. The fleet
+  form is `just deploy-legion --remote-build`: it passes `--skip-checks`
+  itself, so do not pass it again. Check each node after its deploy; `just
+  deploy-legion` does not replace that.
 - deploy-rs magic rollback protects only a live switch. On artemis,
   removing a service that owns an impermanence bind mount cannot switch
   live: deploy with `--boot`, then reboot. Kernel and initrd changes also

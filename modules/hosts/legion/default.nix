@@ -41,6 +41,8 @@
     publicIPv4,
     publicIPv6,
   }: {
+    matchConfig.Name = "enp1s0";
+
     address = [
       "${publicIPv4}/32"
       "${publicIPv6}/64"
@@ -114,8 +116,22 @@ in {
         self.nixosModules.netbird
         self.nixosModules.speedtest
         self.nixosModules.tcp-tuning
+        self.nixosModules.toolbox
         self.diskoConfigurations.legion
       ];
+
+      # documentation.man.enable stays on: the toolbox keeps man pages, only the rest of the headless-server bulk goes.
+      documentation = {
+        nixos.enable = false;
+        doc.enable = false;
+        info.enable = false;
+      };
+      xdg = {
+        icons.enable = false;
+        sounds.enable = false;
+        mime.enable = false;
+      };
+      fonts.fontconfig.enable = false;
 
       # Host DNS must never use Blocky-over-NetBird as primary resolver: netbird.jeiang.dev has to resolve via public DNS before the tunnel is up.
       sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
@@ -129,8 +145,9 @@ in {
           enable = true;
           enabledCollectors = ["systemd"];
           # Explicit unit-include keeps node_systemd_unit_state cardinality bounded for the memory-constrained VictoriaMetrics; the default `.+` would emit hundreds of series.
+          # restic-backups-*/restic-maintenance-* cover both each unit and its timer, so node_systemd_timer_last_trigger_seconds is collected for the backup-freshness alert.
           extraFlags = [
-            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|glance|gatus|tinyauth)\\.service"
+            "--collector.systemd.unit-include=(caddy|crowdsec|crowdsec-firewall-bouncer|crowdsec-bouncers|anubis-content|garret-pusher|garret-puller|actual|blocky|pocket-id|hath|netbird|netbird-login|netbird-server|netbird-relay|netbird-proxy|grafana|victoriametrics|victorialogs|vmalert-default|alertmanager|systemd-journal-upload|glance|gatus|tinyauth|rivals-heroes-sync|prometheus-blackbox-exporter|librespeed|iperf3|acme-.*)\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)"
           ];
         };
 
@@ -147,6 +164,7 @@ in {
         map (service:
           lib.nameValuePair service.name {
             paths = service.backupSet;
+            volume = service.volume.mountpoint;
             pauseUnits = service.backupPauseUnits or [];
           })
         (builtins.filter (service: service ? backupSet && (service.volume or {}) ? hcloudVolumeId)
@@ -209,7 +227,6 @@ in {
 
         loader.grub.enable = true;
         tmp.cleanOnBoot = true;
-        supportedFilesystems = ["nfs"];
       };
 
       systemd.network.networks."20-hcloud-private" = {
@@ -225,10 +242,9 @@ in {
         ];
       };
 
-      # STUN (UDP 3478) and H@H (TCP 8888) are opened fleet-wide rather than pinned to their owning node.
       networking.firewall = {
-        allowedTCPPorts = firewallPortsFor config.networking.hostName "tcp" "public" ++ [8888];
-        allowedUDPPorts = firewallPortsFor config.networking.hostName "udp" "public" ++ [3478];
+        allowedTCPPorts = firewallPortsFor config.networking.hostName "tcp" "public";
+        allowedUDPPorts = firewallPortsFor config.networking.hostName "udp" "public";
         allowedTCPPortRanges = firewallPortRangesFor config.networking.hostName "tcp" "public";
         allowedUDPPortRanges = firewallPortRangesFor config.networking.hostName "udp" "public";
         trustedInterfaces = ["enp7s0"];

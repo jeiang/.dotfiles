@@ -7,11 +7,10 @@ _: {
           blockType = "nxDomain";
           clientGroupsBlock.default = ["ads"];
           denylists.ads = [
-            "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
             "https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews/hosts"
             "https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/gambling-only/hosts"
-            "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@37522026.188.69901/hosts/pro.plus.txt"
-            "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@37522026.188.69901/hosts/tif.txt"
+            "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@37522026.259.33134/hosts/pro.plus.txt"
+            "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@37522026.259.33134/hosts/tif.txt"
           ];
         };
         customDNS.mapping = {};

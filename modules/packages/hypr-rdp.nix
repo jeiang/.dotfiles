@@ -8,16 +8,16 @@
     packages = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
       hypr-rdp = pkgs.rustPlatform.buildRustPackage rec {
         pname = "hypr-rdp";
-        version = "0.1.5";
+        version = "0.1.6";
 
         src = pkgs.fetchFromGitHub {
           owner = "MuNeNICK";
           repo = "hypr-rdp";
           tag = "v${version}";
-          hash = "sha256-yrC8fITJofWJ2wpZMiaX06UVCMFI4GRg9pGyaTdosHg=";
+          hash = "sha256-9s5DeiKzmdbXMnGBmXOSxTdaAp7jBxyd7IgVLxZ717Q=";
         };
 
-        cargoHash = "sha256-fx2SA0xXlxDIBI/2EtvzW9LGK1pbAZevK0y/dJAw2vg=";
+        cargoHash = "sha256-J+VeMTisUF6mSUU1Dp/6YzHTgppAWQI2dbsmZMJRCRo=";
 
         # Hyprland 0.56 answers `keyword` with "unknown request" rather than the "non-legacy parsers" refusal hypr-rdp's fallback check matches, so startup died before listening; widen the check.
         postPatch = ''

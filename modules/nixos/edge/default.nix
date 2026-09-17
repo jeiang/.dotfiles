@@ -150,6 +150,9 @@
       services.caddy = {
         enable = true;
         package = self.packages.${system}.caddy;
+        # CAA on the three zones only permits letsencrypt.org; pin here so
+        # Caddy's ZeroSSL fallback never hits the CA and fails automatic HTTPS.
+        acmeCA = "https://acme-v02.api.letsencrypt.org/directory";
 
         # CrowdSec's file acquisition tails this exact path; retention is
         # short since VictoriaLogs is the searchable archive.
@@ -213,10 +216,12 @@
           }
 
           ${lib.optionalString cfg.anubis.enable ''
-            # Ungated view of the protected static roots; loopback-only, so
-            # only Anubis on this node can reach it. The respond 404
-            # fallback guards the Host-preservation assumption.
+            # bind makes this loopback-only, so only Anubis on this node can
+            # reach it; the site address host alone would not restrict the
+            # listener. The respond 404 fallback guards the
+            # Host-preservation assumption.
             http://127.0.0.1:${toString cfg.anubis.originPort} {
+              bind 127.0.0.1
               @website host jeiang.dev aidanpinard.co pinard.co.tt
               handle @website {
                 root * ${website}
@@ -434,7 +439,10 @@
         }
         // lib.optionalAttrs cfg.crowdsec.enable {
           "caddy/crowdsec-lapi-url" = {inherit sopsFile;};
-          "caddy/crowdsec-lapi-key" = {inherit sopsFile;};
+          "caddy/crowdsec-lapi-key" = {
+            inherit sopsFile;
+            restartUnits = ["crowdsec-bouncers.service"];
+          };
         };
 
       sops.templates."caddy.env" = {

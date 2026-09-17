@@ -37,7 +37,6 @@
             "${dataDir}/log"
             "--temp-dir"
             "/tmp"
-            "--disable-ip-origin-check"
             "--enable-metrics"
           ];
           # tmpfiles is not ordered after the Volume mount; ExecStartPre

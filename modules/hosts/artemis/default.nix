@@ -48,6 +48,8 @@
         self.nixosModules.backupTunnel
         self.nixosModules.impermanence
         self.nixosModules.hypr-rdp
+        self.nixosModules.toolboxArtemis
+        self.nixosModules.nixArtemisExtras
 
         self.diskoConfigurations.artemis
       ];
@@ -193,6 +195,9 @@
         # nixpkgs#415213: applying the WoL policy is flaky -- verify with `ethtool enp16s0 | grep Wake-on` after deploys.
         interfaces.enp16s0.wakeOnLan.enable = true;
       };
+      users.users.${config.preferences.user.name}.extraGroups = ["networkmanager"];
+
+      nix.settings.trusted-users = ["@wheel"];
 
       # BIOS must also be set to "Restore AC Power Loss: Power On" -- firmware setting, not expressible here.
       systemd.settings.Manager = {
@@ -224,7 +229,13 @@
 
       # Grouped in one attrset: statix W20 fires on a third top-level `services.*` key.
       services = {
-        prometheus.exporters.node.enable = true;
+        prometheus.exporters.node = {
+          enable = true;
+          enabledCollectors = ["systemd"];
+          extraFlags = [
+            "--collector.systemd.unit-include=(netbird|netbird-login|greetd|wireguard-wg-backup|beesd@.*|sshd)\\.service"
+          ];
+        };
 
         # The HomeKit Wake-on-LAN Switch resolves artemis.local over mDNS before pinging it.
         avahi.enable = true;

@@ -6,8 +6,8 @@
     ...
   }: let
     donefish = pkgs.fetchurl {
-      url = "https://raw.githubusercontent.com/franciscolourenco/done/master/conf.d/done.fish";
-      sha512 = "sha512-RQYS4uV2/u+JmDM33jy6Zh0VPEfbb7Qd/qMBIhgZqTjDnY8ioISruVXAd7gMKrBWkLdlngJkfduyG9rcbUpa9w==";
+      url = "https://raw.githubusercontent.com/franciscolourenco/done/b86292a52a2b8f646ef8d25daa3cc01ccab60b62/conf.d/done.fish";
+      hash = "sha256-SqaOGBBJZlCd0L/W9zeEI+ISeB0GdNroX9OLHTDjA3I=";
     };
     fishConf =
       pkgs.writeText "fishy-fishy"
@@ -38,7 +38,7 @@
               enable_transience
           end
 
-          direnv hook fish | source
+          command -q direnv; and direnv hook fish | source
 
           alias eza 'eza --icons auto --git'
           alias l 'eza -alhF --smart-group'

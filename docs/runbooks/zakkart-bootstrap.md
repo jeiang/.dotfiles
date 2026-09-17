@@ -51,8 +51,8 @@ or this first build compiles everything from source:
 
 ```sh
 sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake .#zakkart \
-  --option extra-substituters "https://cache.jeiang.dev https://helix.cachix.org" \
-  --option extra-trusted-public-keys "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA= helix.cachix.org-1:ejp9KQpR1FBI2onstMQ34yogDm4OgU2ru6lIwPvuCVs="
+  --option extra-substituters "https://cache.jeiang.dev" \
+  --option extra-trusted-public-keys "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
 ```
 
 This installs Homebrew (via nix-homebrew) and its taps/casks/brews/App Store

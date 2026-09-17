@@ -31,6 +31,16 @@
           timeout = "5s";
           tcp.preferred_ip_protocol = "ip4";
         };
+        dns = {
+          prober = "dns";
+          timeout = "5s";
+          dns = {
+            query_name = "netbird.jeiang.dev";
+            query_type = "A";
+            valid_rcodes = ["NOERROR"];
+            preferred_ip_protocol = "ip4";
+          };
+        };
       };
     };
 
@@ -114,8 +124,6 @@
             ];
           }
           {
-            # Only populated once edge.crowdsec.enable is true -- until then
-            # this target legitimately reads down.
             job_name = "crowdsec";
             static_configs = [
               {
@@ -125,11 +133,21 @@
             ];
           }
           {
-            # The relay exposes no metrics endpoint, so none is scraped.
             job_name = "netbird-server";
             static_configs = [
               {
                 targets = ["${node2}:${toString ports.legion-node2.netbird-server-metrics}"];
+                labels.type = "netbird";
+              }
+            ];
+          }
+          {
+            # NB_METRICS_PORT is set on the relay to avoid colliding with
+            # netbird-server's own metrics listener on port 9090.
+            job_name = "netbird-relay";
+            static_configs = [
+              {
+                targets = ["${node2}:${toString ports.legion-node2.netbird-relay-metrics}"];
                 labels.type = "netbird";
               }
             ];
@@ -177,6 +195,15 @@
             ];
           }
           {
+            job_name = "gatus";
+            static_configs = [
+              {
+                targets = ["${node4}:${toString ports.legion-node4.gatus}"];
+                labels.type = "probe";
+              }
+            ];
+          }
+          {
             job_name = "blackbox-http";
             metrics_path = "/probe";
             params.module = ["http_2xx"];
@@ -196,12 +223,28 @@
                 };
               }
               {
-                # The Pusher's service port is fully token-gated, so its
-                # probe targets the metrics listener's /healthz instead.
+                # /ready reflects the DB connection, unlike the static
+                # /nix-cache-info response; the Pusher's service port is
+                # fully token-gated, so its probe targets the metrics
+                # listener's /healthz instead.
                 targets = [
-                  "http://${node4}:${toString ports.legion-node4.garret-puller}/nix-cache-info"
+                  "http://${node4}:${toString ports.legion-node4.garret-puller}/ready"
                   "http://${node4}:${toString ports.legion-node4.garret-pusher-metrics}/healthz"
                 ];
+                labels = {
+                  type = "probe";
+                  tier = "warning";
+                };
+              }
+              {
+                targets = ["http://${node2}:${toString ports.legion-node2.netbird-relay-health}/health"];
+                labels = {
+                  type = "probe";
+                  tier = "warning";
+                };
+              }
+              {
+                targets = ["http://${node2}:${toString ports.legion-node2.netbird-proxy-health}/healthz"];
                 labels = {
                   type = "probe";
                   tier = "warning";
@@ -235,6 +278,34 @@
                 labels = {
                   type = "probe";
                   tier = "critical";
+                };
+              }
+            ];
+            relabel_configs = [
+              {
+                source_labels = ["__address__"];
+                target_label = "__param_target";
+              }
+              {
+                source_labels = ["__param_target"];
+                target_label = "instance";
+              }
+              {
+                target_label = "__address__";
+                replacement = "127.0.0.1:${toString blackboxPort}";
+              }
+            ];
+          }
+          {
+            job_name = "blackbox-dns";
+            metrics_path = "/probe";
+            params.module = ["dns"];
+            static_configs = [
+              {
+                targets = ["${node2}:553"];
+                labels = {
+                  type = "probe";
+                  tier = "warning";
                 };
               }
             ];
@@ -384,6 +455,58 @@
                   description = "The {{ $labels.job }} probe for {{ $labels.instance }} has been failing for 5 minutes.";
                 };
               }
+              {
+                alert = "ResticBackupStale";
+                # node_systemd_timer_last_trigger_seconds is 0 for a timer
+                # that has never fired, which would otherwise satisfy > 36h
+                # for a newly added job until its first randomized run.
+                expr = ''(time() - node_systemd_timer_last_trigger_seconds{name=~"restic-backups-.*\\.timer"} > 36 * 3600) and node_systemd_timer_last_trigger_seconds{name=~"restic-backups-.*\\.timer"} > 0'';
+                for = "0m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "{{ $labels.name }} has not triggered in over 36h on {{ $labels.instance }}";
+                  description = "The restic backup timer {{ $labels.name }} on {{ $labels.instance }} last fired more than 36 hours ago.";
+                };
+              }
+              {
+                alert = "GatusEndpointDown";
+                expr = "gatus_results_endpoint_success == 0";
+                for = "10m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "Gatus endpoint {{ $labels.name }} failing";
+                  description = "The Gatus check {{ $labels.name }} ({{ $labels.group }}) has been failing for 10 minutes.";
+                };
+              }
+              {
+                alert = "GarretDegraded";
+                expr = "increase(garret_degraded_total[15m]) > 0";
+                for = "0m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "garret puller degraded on {{ $labels.instance }}";
+                  description = "garret_degraded_total increased on {{ $labels.instance }} in the last 15 minutes: a DB or presign read failed or timed out.";
+                };
+              }
+              {
+                alert = "GarretUploadsFailed";
+                expr = "increase(garret_uploads_failed_total[1h]) > 0";
+                for = "0m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "garret pusher upload failures on {{ $labels.instance }}";
+                  description = "garret_uploads_failed_total increased on {{ $labels.instance }} in the last hour.";
+                };
+              }
+              {
+                # Fires unconditionally so a dead vmalert, Alertmanager, or
+                # webhook shows up in healthchecks.io instead of going quiet.
+                alert = "Watchdog";
+                expr = "vector(1)";
+                for = "0m";
+                labels.severity = "none";
+                annotations.summary = "Alerting pipeline heartbeat";
+              }
             ];
           }
         ];
@@ -409,6 +532,16 @@
             group_wait = "30s";
             group_interval = "5m";
             repeat_interval = "12h";
+            routes = [
+              {
+                matchers = [''alertname = "Watchdog"''];
+                receiver = "healthchecks";
+                group_wait = "0s";
+                group_interval = "1m";
+                repeat_interval = "5m";
+                continue = false;
+              }
+            ];
           };
           receivers = [
             {
@@ -418,6 +551,17 @@
                   # envsubst-substituted from environmentFile at service
                   # start -- not Nix interpolation; no `${}` here.
                   webhook_url = "$DISCORD_WEBHOOK_URL";
+                }
+              ];
+            }
+            {
+              name = "healthchecks";
+              webhook_configs = [
+                {
+                  # envsubst-substituted from environmentFile at service
+                  # start -- not Nix interpolation; no `${}` here.
+                  url = "$HEALTHCHECKS_PING_URL";
+                  send_resolved = false;
                 }
               ];
             }
@@ -456,6 +600,7 @@
           restartUnits = ["grafana.service"];
         };
         "alertmanager/discord-webhook" = {inherit sopsFile;};
+        "alertmanager/healthchecks-ping-url" = {inherit sopsFile;};
       };
       templates = {
         "grafana.env" = {
@@ -465,7 +610,10 @@
         };
         "alertmanager.env" = {
           restartUnits = ["alertmanager.service"];
-          content = "DISCORD_WEBHOOK_URL=${config.sops.placeholder."alertmanager/discord-webhook"}\n";
+          content = ''
+            DISCORD_WEBHOOK_URL=${config.sops.placeholder."alertmanager/discord-webhook"}
+            HEALTHCHECKS_PING_URL=${config.sops.placeholder."alertmanager/healthchecks-ping-url"}
+          '';
         };
       };
     };

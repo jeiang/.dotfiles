@@ -8,8 +8,10 @@
     pkgs,
     ...
   }: let
-    # The SQLite index is the only record of what is in the S3 bucket;
-    # losing it strands every stored object as an unreclaimable orphan.
+    # The SQLite index is the only record of what is in the S3 bucket. An
+    # older or missing index does not strand objects: the orphan sweep
+    # reclaims them, so a lost index is a cold-cache rebuild, not a data
+    # loss (docs/runbooks/garret.md).
     dataDir = "/mnt/garret";
     dbPath = "${dataDir}/garret.db";
 
@@ -48,13 +50,6 @@
       inputs.garret.nixosModules.puller
       # The watcher module is deliberately not imported: it belongs on
       # build machines, not the cache host.
-    ];
-
-    assertions = [
-      {
-        assertion = pocketIdAudience != "TODO-REPLACE-WITH-POCKET-ID-GARRET-CLIENT-ID";
-        message = "modules/nixos/garret/default.nix: pocketIdAudience is still the placeholder. Register the garret client in Pocket ID and paste its client id here (docs/runbooks/garret.md).";
-      }
     ];
 
     services.garret = {

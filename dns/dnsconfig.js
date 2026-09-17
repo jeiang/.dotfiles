@@ -30,6 +30,10 @@ D("jeiang.dev", REG_NONE,
   A("*", NODE1_V4, CF_PROXY_ON),
   AAAA("*", NODE1_V6, CF_PROXY_ON),
 
+  CAA("@", "issue", "letsencrypt.org"),
+  CAA("@", "issuewild", "letsencrypt.org"),
+  CAA("@", "iodef", "mailto:aidan@aidanpinard.co"),
+
   // cache-push MUST stay grey-clouded: a push is one streaming PUT of a whole NAR and Cloudflare 413s bodies over 100 MB.
   A("cache", NODE1_V4, CF_PROXY_OFF),
   AAAA("cache", NODE1_V6, CF_PROXY_OFF),
@@ -75,13 +79,17 @@ D("aidanpinard.co", REG_NONE,
 
   A("@", NODE1_V4, CF_PROXY_ON, TTL(1)),
   AAAA("@", NODE1_V6, CF_PROXY_ON, TTL(1)),
-  CNAME("*", "aidanpinard.co.", CF_PROXY_ON, TTL(1)),
+
+  CAA("@", "issue", "letsencrypt.org"),
+  CAA("@", "issuewild", "letsencrypt.org"),
+  CAA("@", "iodef", "mailto:aidan@aidanpinard.co"),
 
   MX("@", 10, "mx01.mail.icloud.com."),
   MX("@", 10, "mx02.mail.icloud.com."),
   CNAME("sig1._domainkey", "sig1.dkim.aidanpinard.co.at.icloudmailadmin.com.", TTL(1)),
   TXT("@", "apple-domain=KtGOnEzA64COppD1"),
   TXT("@", "v=spf1 include:icloud.com ~all"),
+  TXT("_dmarc", "v=DMARC1; p=none"),
 
   TXT("_discord", "dh=8577d34f7a7252abc1cdaaf90b0db536220d1269")
 );
@@ -93,11 +101,15 @@ D("pinard.co.tt", REG_NONE,
 
   A("@", NODE1_V4, CF_PROXY_ON, TTL(1)),
   AAAA("@", NODE1_V6, CF_PROXY_ON, TTL(1)),
-  CNAME("*", "pinard.co.tt.", CF_PROXY_ON, TTL(1)),
+
+  CAA("@", "issue", "letsencrypt.org"),
+  CAA("@", "issuewild", "letsencrypt.org"),
+  CAA("@", "iodef", "mailto:aidan@aidanpinard.co"),
 
   MX("@", 10, "mx01.mail.icloud.com."),
   MX("@", 10, "mx02.mail.icloud.com."),
   CNAME("sig1._domainkey", "sig1.dkim.pinard.co.tt.at.icloudmailadmin.com.", TTL(1)),
   TXT("@", "apple-domain=IHmL11YHHwhfMYPl"),
-  TXT("@", "v=spf1 include:icloud.com ~all")
+  TXT("@", "v=spf1 include:icloud.com ~all"),
+  TXT("_dmarc", "v=DMARC1; p=none", TTL(3600))
 );

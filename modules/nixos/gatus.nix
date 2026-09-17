@@ -16,6 +16,10 @@
         # backup path.
         storage.type = "memory";
 
+        # Scraped by VictoriaMetrics so a failed check reaches Alertmanager;
+        # the dashboard alone never notifies anyone.
+        metrics = true;
+
         ui = {
           title = "Status | jeiang.dev";
           header = "jeiang.dev";
@@ -38,9 +42,12 @@
           (https "Pocket ID" "Services" "https://auth.jeiang.dev/healthz" ["[STATUS] == 204"])
           (ok "Grafana" "Services" "https://grafana.jeiang.dev/api/health")
           (ok "Actual Budget" "Services" "https://budget.jeiang.dev")
-          (ok "NetBird" "Services" "https://netbird.jeiang.dev")
+          # "/" falls through to the static dashboard on node1's edge Caddy
+          # even when netbird-server is down; this path proxies to node2.
+          (ok "NetBird" "Services" "https://netbird.jeiang.dev/oauth2/.well-known/openid-configuration")
           # nix-cache-info is the first request every substituter client makes.
           (ok "Nix cache" "Services" "https://cache.jeiang.dev/nix-cache-info")
+          (ok "tinyauth" "Services" "https://tinyauth.jeiang.dev")
 
           # netbird-proxy has no stable unauthenticated HTTP response, so
           # plain TCP reachability.
@@ -52,15 +59,28 @@
             conditions = ["[CONNECTED] == true"];
           }
 
-          # The edge's wildcard cert covers every *.jeiang.dev hostname, so
-          # one certificate check on the apex covers all of them.
+          # cache.jeiang.dev is grey-clouded (DNS-only), so this reads
+          # Caddy's own *.jeiang.dev wildcard cert directly, not
+          # Cloudflare's edge cert as a proxied hostname would.
           {
             name = "TLS certificate";
             group = "Edge";
-            url = "https://jeiang.dev";
+            url = "https://cache.jeiang.dev/nix-cache-info";
             interval = "1h";
             conditions = [
               "[STATUS] == 200"
+              "[CERTIFICATE_EXPIRATION] > 240h"
+            ];
+          }
+          # proxy.jeiang.dev has its own security.acme cert, renewed
+          # separately from the edge wildcard.
+          {
+            name = "proxy.jeiang.dev certificate";
+            group = "Edge";
+            url = "tls://proxy.jeiang.dev:443";
+            interval = "1h";
+            conditions = [
+              "[CONNECTED] == true"
               "[CERTIFICATE_EXPIRATION] > 240h"
             ];
           }
