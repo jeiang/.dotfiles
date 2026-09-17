@@ -75,7 +75,6 @@
           "/var/lib/nixos"
           "/etc/NetworkManager/system-connections"
           "/var/lib/NetworkManager"
-          "/var/lib/bluetooth"
           "/var/lib/netbird"
           # Persistent=true timers' last-trigger stamps, for catch-up after a reboot.
           "/var/lib/systemd/timers"
@@ -181,12 +180,16 @@
       networking = {
         hostName = "artemis";
         networkmanager.enable = true;
+        # No modem hardware; NetworkManager's default pulls this in anyway.
+        modemmanager.enable = false;
         # facter marks the detected NICs useDHCP, which also enables dhcpcd; NetworkManager already handles DHCP for them.
         dhcpcd.enable = false;
         nftables.enable = true;
         # nixpkgs#415213: applying the WoL policy is flaky -- verify with `ethtool enp16s0 | grep Wake-on` after deploys.
         interfaces.enp16s0.wakeOnLan.enable = true;
       };
+      # facter detects the board's Bluetooth controller and defaults this on; nothing pairs to it.
+      hardware.bluetooth.enable = false;
       users.users.${config.preferences.user.name}.extraGroups = ["networkmanager"];
 
       nix.settings.trusted-users = ["@wheel"];
@@ -231,6 +234,9 @@
 
         # The HomeKit Wake-on-LAN Switch resolves artemis.local over mDNS before pinging it.
         avahi.enable = true;
+
+        # No screen reader on a headless box; the graphical-desktop default pulls this in.
+        speechd.enable = false;
 
         hypr-rdp = {
           enable = true;

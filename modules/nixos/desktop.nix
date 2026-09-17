@@ -6,13 +6,13 @@
       self.nixosModules.pipewire
     ];
 
-    services.passSecretService.enable = true;
-    services.passSecretService.package = pkgs.gopass;
-
     # Fix Dolphin file associations on non-Plasma desktop environments
-    # https://github.com/NixOS/nixpkgs/issues/409986
+    # https://github.com/NixOS/nixpkgs/issues/409986; copy just the menu file
+    # so the system doesn't pull in the rest of plasma-workspace for it.
     environment = {
-      etc."xdg/menus/applications.menu".source = "${pkgs.kdePackages.plasma-workspace}/etc/xdg/menus/plasma-applications.menu";
+      etc."xdg/menus/applications.menu".source = pkgs.runCommand "plasma-applications.menu" {} ''
+        cp ${pkgs.kdePackages.plasma-workspace}/etc/xdg/menus/plasma-applications.menu $out
+      '';
       systemPackages = with pkgs; [
         btop-rocm
         self.packages.${pkgs.stdenv.hostPlatform.system}.ghostty
@@ -28,7 +28,7 @@
     fonts.fontconfig.defaultFonts = {
       serif = ["UbuntuSans Nerd Font"];
       sansSerif = ["UbuntuSans Nerd Font"];
-      monospace = ["mononoki"];
+      monospace = ["Mononoki Nerd Font Mono"];
     };
 
     fonts.packages = with pkgs; [
@@ -58,16 +58,6 @@
       LC_TIME = "en_US.UTF-8";
     };
 
-    security.polkit.enable = true;
-
-    hardware = {
-      enableAllFirmware = true;
-      bluetooth.enable = true;
-      bluetooth.powerOnBoot = true;
-    };
-
-    xdg.portal.config.common = {
-      "org.freedesktop.appearance.color-scheme" = "2"; # 0 = no preference, 1 = prefer dark, 2 = prefer light
-    };
+    hardware.enableAllFirmware = true;
   };
 }

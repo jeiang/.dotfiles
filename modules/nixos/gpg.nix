@@ -2,7 +2,8 @@
   flake.nixosModules.gpg = {pkgs, ...}: {
     programs.gnupg.agent = {
       enable = true;
-      pinentryPackage = pkgs.pinentry-qt;
+      # Headless host: SSH gpg/gopass prompts must not try a Wayland dialog.
+      pinentryPackage = pkgs.pinentry-curses;
     };
   };
 }
