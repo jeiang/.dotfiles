@@ -54,6 +54,10 @@
       url = "github:netbirdio/homebrew-tap";
       flake = false;
     };
+    agent-skills = {
+      url = "github:jeiang/agent-skills";
+      flake = false;
+    };
     wrapper-modules.url = "github:BirdeeHub/nix-wrapper-modules";
     wrapper-modules.inputs.nixpkgs.follows = "nixpkgs";
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";

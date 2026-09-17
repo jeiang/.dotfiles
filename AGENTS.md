@@ -212,6 +212,12 @@ behavior for its own sake.
   admin UI after a fresh install.
 - NetBird peer IPs in `modules/netbird-peers.nix` change when a peer
   enrolls again.
+- Agent skills, subagents, and instructions come from the pinned
+  `agent-skills` input, installed by hjem on artemis and zakkart. Skills and
+  subagents are one symlink per entry, because both clients keep their own
+  entries in those directories. `CLAUDE.md` and `AGENTS.md` are copies:
+  Claude Code ignores a symlinked user `CLAUDE.md`. Changes land by bumping
+  the input, not by editing the installed files.
 
 ## CI
 
