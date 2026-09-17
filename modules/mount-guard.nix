@@ -1,9 +1,6 @@
 {lib, ...}: {
-  # Refuses to start a stateful unit unless dataDir is mounted, so a missing
-  # Volume never initializes fresh state on the root disk. The optional
-  # {pkgs, owner, mode} also emits the ExecStartPre that reasserts ownership,
-  # since tmpfiles is not ordered after a late Volume mount and ExecStartPre
-  # inherits RequiresMountsFor; `+` runs it as root despite User=.
+  # Refuses to start a stateful unit unless dataDir is mounted. With owner, it also reasserts
+  # ownership in ExecStartPre, because tmpfiles runs before a late Volume mount.
   flake.lib.mountGuard = dataDir: {
     pkgs ? null,
     owner ? null,

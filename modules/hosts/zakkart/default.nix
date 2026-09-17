@@ -7,7 +7,6 @@ in {
     networking = {
       hostName = "zakkart";
       computerName = "zakkart";
-      # localHostName defaults to hostName already.
     };
 
     nixpkgs.hostPlatform = "aarch64-darwin";

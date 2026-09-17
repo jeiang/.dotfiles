@@ -63,23 +63,16 @@ behavior for its own sake.
   host secrets. Legion placement is data in
   `modules/hosts/legion/_service-inventory.nix`; files with a `_` prefix are
   not imported by import-tree.
-- `modules/<feature>.nix`, or `modules/<feature>/` when the feature has
-  sibling files (a secrets shard, Lua, JSON, a shell script): one
-  flake-parts module per feature, declaring `nixos.modules.<name>` and/or
-  `darwin.modules.<name>` for every configuration class it applies to. A
-  secret shard sits beside its consumer as `secrets.yaml`; a second shard in
-  the same directory is `secrets.<consumer>.yaml`
-  (`netbird-server/secrets.proxy.yaml`).
-- Lower-level module names are roles, not features: `nixos.modules.base` /
-  `darwin.modules.base` (every host of that class), `nixos.modules.artemis`,
+- `modules/<feature>.nix`, or `modules/<feature>/` when it has sibling
+  files (secrets shard, Lua, JSON, script): one flake-parts module that
+  implements the feature for every class it applies to. A secret shard sits
+  beside its consumer as `secrets.yaml`; a second shard in the same
+  directory is `secrets.<consumer>.yaml` (`netbird-server/secrets.proxy.yaml`).
+- Features contribute to roles, not their own names: `nixos.modules.base` /
+  `darwin.modules.base` (every host of the class), `nixos.modules.artemis`,
   `nixos.modules.legion`, and one kebab-case `nixos.modules.<service>` per
-  Legion service. Many feature files contribute to the same role.
-- `modules/configurations.nix`: the dendritic plumbing. A feature module
-  declares itself under `nixos.modules.<name>` / `darwin.modules.<name>`; a
-  host declares itself under `nixos.configurations.<host>` /
-  `darwin.configurations.<host>` with a `module` importing the pieces it
-  needs, which builds `flake.nixosConfigurations.<host>` /
-  `flake.darwinConfigurations.<host>`.
+  Legion service. Hosts are `nixos.configurations.<host>.module` /
+  `darwin.configurations.<host>.module` (`modules/configurations.nix`).
 - `modules/packages/`: packages and wrapped programs.
 - `dns/dnsconfig.js`: public DNS.
 - `docs/runbooks/`: procedures that recur.
