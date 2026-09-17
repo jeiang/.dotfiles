@@ -39,6 +39,7 @@
         self.nixosModules.sops
         self.nixosModules.artemisHardware
         self.nixosModules.doas
+        self.nixosModules.artemisBootHealth
         self.nixosModules.desktop
         self.nixosModules.netbird
         self.nixosModules.speedtest
@@ -141,39 +142,29 @@
       };
 
       boot = {
-        loader.systemd-boot.enable = true;
-        loader.systemd-boot.consoleMode = "max";
-        supportedFilesystems = ["ntfs"];
-        tmp.cleanOnBoot = true;
-        plymouth = {
+        loader.systemd-boot = {
           enable = true;
-          theme = "black_hud";
-          themePackages = with pkgs; [
-            (adi1090x-plymouth-themes.override {
-              selected_themes = ["black_hud"];
-            })
-          ];
+          consoleMode = "max";
+          bootCounting = {
+            enable = true;
+            tries = 2;
+          };
         };
-        consoleLogLevel = 3;
-        initrd.verbose = false;
+        supportedFilesystems = ["ntfs"];
         kernelParams = [
-          "quiet"
-          "udev.log_level=3"
-          "systemd.show_status=auto"
           # This host streams unattended: let amdgpu attempt an engine reset instead of leaving the GPU wedged until reboot.
           "amdgpu.gpu_recovery=1"
           # Raphael iGPU's PSP rejects SETUP_TMR (0x80000306) on ~25% of boots, killing the amdgpu probe and (on 7.1.6) deadlocking udev; stubbing the display function (19:00.0 only) removes the trigger.
           "pci-stub.ids=1002:164e"
+          # A wedged amdgpu (or any other hung task) doesn't stop PID 1 petting the watchdog, so panic on a hang and let the panic (and the armed hardware watchdog) reboot the box.
+          "panic=10"
+          "hung_task_panic=1"
         ];
-        # pci-stub must be in the initrd (amdgpu loads there for plymouth); this entry ships the .ko, the softdep below orders it.
-        initrd.kernelModules = ["pci-stub"];
+        # facter also loads amdgpu in the initrd; ship pci-stub there too so it can win the race (the softdep below orders modprobe everywhere else).
+        initrd.kernelModules = ["pci-stub" "sp5100_tco"];
         # amdgpu reaches the initrd via two paths and only one respects list order; the softdep makes every modprobe pull pci-stub first.
         extraModprobeConfig = "softdep amdgpu pre: pci-stub";
-        # A D-state amdgpu wedge doesn't stop PID 1 petting the hardware watchdog, so panic on hung tasks and let the panic reboot the box.
-        kernel.sysctl = {
-          "kernel.hung_task_panic" = 1;
-          "kernel.panic" = 10;
-        };
+        initrd.systemd.settings.Manager.RuntimeWatchdogSec = "30s";
         kernelPackages = let
           helpers = pkgs.callPackage "${inputs.nix-cachyos-kernel.outPath}/helpers.nix" {};
         in
@@ -191,6 +182,8 @@
       networking = {
         hostName = "artemis";
         networkmanager.enable = true;
+        # facter marks the detected NICs useDHCP, which also enables dhcpcd; NetworkManager already handles DHCP for them.
+        dhcpcd.enable = false;
         nftables.enable = true;
         # nixpkgs#415213: applying the WoL policy is flaky -- verify with `ethtool enp16s0 | grep Wake-on` after deploys.
         interfaces.enp16s0.wakeOnLan.enable = true;
