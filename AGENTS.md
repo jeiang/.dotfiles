@@ -222,11 +222,15 @@ behavior for its own sake.
 - NetBird peer IPs in `modules/netbird-peers.nix` change when a peer
   enrolls again.
 - Agent skills, subagents, and instructions come from the pinned
-  `agent-skills` input, installed by hjem on artemis and zakkart. Skills and
+  `agent-skills` flake, installed by hjem on artemis and zakkart. The
+  `<harness>-personal` package holds the tree, and `lib.entries` names its
+  entries, so nothing here parses that repository's layout. Skills and
   subagents are one symlink per entry, because both clients keep their own
-  entries in those directories. `CLAUDE.md` and `AGENTS.md` are copies:
-  Claude Code ignores a symlinked user `CLAUDE.md`. Changes land by bumping
-  the input, not by editing the installed files.
+  entries in those directories, and the names must come from `lib.entries`:
+  reading them from the built package is import-from-derivation, which breaks
+  evaluating one host from the other's system. `CLAUDE.md` and `AGENTS.md` are
+  copies: Claude Code ignores a symlinked user `CLAUDE.md`. Changes land by
+  bumping the input, not by editing the installed files.
 
 ## CI
 

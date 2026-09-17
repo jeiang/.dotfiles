@@ -1,13 +1,17 @@
 {
   "nodes": {
     "agent-skills": {
-      "flake": false,
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
       "locked": {
-        "lastModified": 1789522187,
-        "narHash": "sha256-LQrZ8g4u6VgiQCf+p8E5WtT11sHwA6c73GHNRn+XeNE=",
+        "lastModified": 1789687276,
+        "narHash": "sha256-ATsIfG0biYCsJ8wvANhMz+6CbA+/AnBO9SXHs+2K1nc=",
         "owner": "jeiang",
         "repo": "agent-skills",
-        "rev": "cb807e851d8f7e6665d3959a1b5650d1c07af81e",
+        "rev": "86a4506a0f9c6db9424f4d851e1ad8dd78b11a3e",
         "type": "github"
       },
       "original": {
