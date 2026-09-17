@@ -34,7 +34,7 @@
 
     # Replaces the servers_list.js librespeed bakes for the mesh page: a
     # https page cannot call the http mesh listeners, so the public page
-    # lists only itself. Same entry shape the nixpkgs module generates.
+    # lists only itself.
     speedtestServersList = pkgs.writeTextDir "servers_list.js" ''
       function get_servers() {
         return ${builtins.toJSON [

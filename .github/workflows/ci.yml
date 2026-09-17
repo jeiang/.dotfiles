@@ -21,7 +21,7 @@ env:
   GARRET_SUBSTITUTER: https://cache.jeiang.dev
   GARRET_PUBLIC_KEY: "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
 
-  # Raised from Nix's defaults: a warm-cache leg is substituter round-trips, not CPU.
+  # High: a warm-cache leg is substituter round-trips, not CPU.
   MAX_SUBSTITUTION_JOBS: "32"
   HTTP_CONNECTIONS: "64"
 

@@ -1,8 +1,7 @@
 {
-  # Peers are ~85 ms apart (home <-> Hetzner) and the path drops packets:
-  # cubic treats every drop as congestion and takes seconds to regrow at
-  # that RTT, and the 4 MB default send buffer caps one stream near
-  # 400 Mbps. fq_codel stays as the qdisc; BBR paces internally.
+  # cubic treats every drop as congestion and regrows slowly across the
+  # high-latency home<->Hetzner path, capping one stream well under link
+  # speed. fq_codel stays as the qdisc; BBR paces internally.
   nixos.modules.base = {
     boot = {
       kernelModules = ["tcp_bbr"];

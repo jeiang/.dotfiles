@@ -107,7 +107,7 @@ in {
       kernelParams = [
         # This host streams unattended: let amdgpu attempt an engine reset instead of leaving the GPU wedged until reboot.
         "amdgpu.gpu_recovery=1"
-        # Raphael iGPU's PSP rejects SETUP_TMR (0x80000306) on ~25% of boots, killing the amdgpu probe and (on 7.1.6) deadlocking udev; stubbing the display function (19:00.0 only) removes the trigger.
+        # Raphael iGPU's PSP rejects SETUP_TMR (0x80000306) on some boots, killing the amdgpu probe and deadlocking udev; stubbing the display function (19:00.0 only) removes the trigger.
         "pci-stub.ids=1002:164e"
         # A hung task does not stop PID 1 from feeding the watchdog; panic so the box reboots and spends its boot try.
         "panic=10"

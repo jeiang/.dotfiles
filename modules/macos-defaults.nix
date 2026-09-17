@@ -8,12 +8,10 @@ _: {
   }: let
     userArg = lib.escapeShellArg config.preferences.user.name;
     asUser = cmd: ''launchctl asuser "$(id -u -- ${userArg})" sudo --user=${userArg} -- ${cmd}'';
-    # Rotation is macOS' own folder wallpaper (Settings > Wallpaper, set once by
-    # hand: docs/runbooks/zakkart-bootstrap.md). Nothing scriptable does it:
-    # System Events' rotation properties fail with -10000, `set picture` only
-    # writes the current Space, and WallpaperAgent resets the whole store when
-    # its undocumented Index.plist is edited. The folder just has to sit at a
-    # stable path, so the store directory is symlinked into ~/Pictures.
+    # Rotation is macOS' own folder wallpaper (Settings > Wallpaper, set once
+    # by hand: docs/runbooks/zakkart-bootstrap.md); nothing scriptable
+    # reaches it, so this just keeps the store directory at a stable path by
+    # symlinking it into ~/Pictures.
     wallpapers = ../assets/wallpapers-kanabox;
     defaultbrowser = lib.getExe pkgs.defaultbrowser;
   in {
