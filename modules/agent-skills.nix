@@ -15,7 +15,12 @@
 
   namesOf = kind: dir: builtins.attrNames (lib.filterAttrs (_: t: t == kind) (builtins.readDir dir));
 
-  skills = namesOf "directory" "${src}/shared";
+  # install.sh takes every directory holding a SKILL.md from these roots.
+  skillRoots = harnessName: builtins.filter builtins.pathExists ["${src}/shared" "${src}/generic" "${src}/${harnessName}"];
+  skillsFor = harnessName:
+    lib.concatMap
+    (dir: map (name: lib.nameValuePair name "${dir}/${name}") (builtins.filter (name: builtins.pathExists "${dir}/${name}/SKILL.md") (namesOf "directory" dir)))
+    (skillRoots harnessName);
   agentsFor = harness:
     lib.concatMap
     (dir: map (name: lib.nameValuePair name "${dir}/${name}") (namesOf "regular" dir))
@@ -32,7 +37,7 @@
       "${root}/skills".type = "directory";
       "${root}/agents".type = "directory";
     }
-    // lib.listToAttrs (map (name: lib.nameValuePair "${root}/skills/${name}" {source = "${src}/shared/${name}";}) skills)
+    // lib.listToAttrs (map (s: lib.nameValuePair "${root}/skills/${s.name}" {source = s.value;}) (skillsFor harnessName))
     // lib.listToAttrs (map (a: lib.nameValuePair "${root}/agents/${a.name}" {source = a.value;}) (agentsFor harnessName));
 
   files = pkgs:
