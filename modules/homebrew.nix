@@ -17,7 +17,6 @@
       taps = {
         "homebrew/homebrew-core" = inputs.homebrew-core;
         "homebrew/homebrew-cask" = inputs.homebrew-cask;
-        "can1357/homebrew-tap" = inputs.can1357-tap;
         "k06a/homebrew-tap" = inputs.k06a-tap;
         "netbirdio/homebrew-tap" = inputs.netbird-tap;
       };
@@ -57,7 +56,6 @@
       ];
 
       brews = [
-        "can1357/tap/omp"
         "k06a/tap/macpow"
         "mole"
         "displayplacer"

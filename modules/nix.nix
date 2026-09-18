@@ -3,7 +3,10 @@
   withSystem,
   self,
   ...
-}: {
+}: let
+  llmAgentsCacheUrl = "https://cache.numtide.com";
+  llmAgentsCacheKey = "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=";
+in {
   perSystem = {system, ...}: {
     _module.args.pkgs = import inputs.nixpkgs {
       inherit system;
@@ -45,9 +48,11 @@
 
         substituters = [
           self.lib.facts.cacheUrl
+          llmAgentsCacheUrl
         ];
         trusted-public-keys = [
           self.lib.facts.cacheKey
+          llmAgentsCacheKey
         ];
         trusted-users = ["root"];
       };
@@ -75,9 +80,11 @@
         # extra-, not the bare keys: customSettings does no NixOS-style merging, so bare substituters/trusted-public-keys would replace Determinate's defaults and drop cache.nixos.org.
         extra-substituters = [
           self.lib.facts.cacheUrl
+          llmAgentsCacheUrl
         ];
         extra-trusted-public-keys = [
           self.lib.facts.cacheKey
+          llmAgentsCacheKey
         ];
         # @admin, not @wheel: macOS's wheel group has no members besides root.
         extra-trusted-users = ["@admin"];
