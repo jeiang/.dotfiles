@@ -34,11 +34,26 @@ in {
 
       restic=${lib.getExe pkgs.restic}
 
-      # First deploy: restic-backups-atuin initializes the repository.
-      if ! "$restic" cat config >/dev/null 2>&1; then
-        echo "atuin-restore: no repository yet, starting with an empty history"
-        exit 0
-      fi
+      # Exit code 10 is restic's "repository does not exist", the first
+      # deploy, where restic-backups-atuin initializes it. Any other
+      # failure is S4 being unreachable: starting empty there would push an
+      # empty history over the real one at the next hourly snapshot.
+      set +e
+      "$restic" cat config >/dev/null 2>&1
+      status=$?
+      set -e
+
+      case "$status" in
+        0) ;;
+        10)
+          echo "atuin-restore: no repository yet, starting with an empty history"
+          exit 0
+          ;;
+        *)
+          echo "atuin-restore: cannot reach the repository (restic exit $status)" >&2
+          exit 1
+          ;;
+      esac
 
       if [ "$("$restic" snapshots --latest 1 --json)" = "[]" ]; then
         echo "atuin-restore: repository holds no snapshot, starting with an empty history"
