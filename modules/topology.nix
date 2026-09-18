@@ -33,12 +33,23 @@ in {
       inherit (config.lib.topology) mkConnection mkDevice mkInternet;
     in {
       networks = {
-        netbird.name = "NetBird mesh";
+        netbird = {
+          name = "NetBird mesh";
+          cidrv4 = self.lib.netbirdMeshCidrv4;
+          cidrv6 = self.lib.netbirdMeshCidrv6;
+        };
         hetzner-private = {
           name = "Hetzner private network";
           cidrv4 = self.lib.hetznerPrivateCidr;
         };
-        home.name = "Home LAN";
+        artemis-lan = {
+          name = "artemis home LAN";
+          cidrv4 = "192.168.100.0/24";
+        };
+        zakkart-lan = {
+          name = "zakkart home LAN";
+          cidrv4 = "192.168.108.0/24";
+        };
         wg-backup.name = "WireGuard backup tunnel";
       };
 
@@ -52,7 +63,7 @@ in {
 
           artemis.interfaces =
             {
-              enp16s0.network = "home";
+              enp16s0.network = "artemis-lan";
             }
             // lib.recursiveUpdate (mkBackupTunnelInterface "artemis") {
               wg-backup.physicalConnections = [(mkConnection "legion-node1" "wg-backup")];
@@ -63,10 +74,13 @@ in {
           # nix-topology has no darwin module, so zakkart cannot self-describe.
           zakkart = mkDevice "zakkart" {
             info = "MacBook";
-            interfaces.wt0 = {
-              network = "netbird";
-              virtual = true;
-              type = "wireguard";
+            interfaces = {
+              en0.network = "zakkart-lan";
+              wt0 = {
+                network = "netbird";
+                virtual = true;
+                type = "wireguard";
+              };
             };
           };
         }
