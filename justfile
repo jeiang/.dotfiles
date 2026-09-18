@@ -119,3 +119,25 @@ legion-run *command:
 # Recolor new wallpapers from assets/wallpapers/ into assets/wallpapers-kanabox/
 wallpaper:
   @for f in assets/wallpapers/*.jpg assets/wallpapers/*.png; do [ -e "$f" ] || continue; [ -e "assets/wallpapers-kanabox/$(basename "$f")" ] && continue; nix run nixpkgs#lutgen -- apply -o "assets/wallpapers-kanabox/$(basename "$f")" "$f" -- $(nix eval --raw '.#lib.palette.kanaboxDarkHard' --apply 'p: builtins.concatStringsSep " " (map (c: builtins.substring 1 6 c) (builtins.attrValues p))'); done
+
+# Register the ~/.omp/agent/mcp.json servers with Claude Code, in user scope
+mcp-register-claude:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  for s in $(jq -r '.mcpServers | keys[]' ~/.omp/agent/mcp.json); do
+    claude mcp remove --scope user "$s" >/dev/null 2>&1 || true
+    claude mcp add-json --scope user "$s" "$(jq -c ".mcpServers.$s" ~/.omp/agent/mcp.json)"
+  done
+
+# Register the ~/.omp/agent/mcp.json servers with Codex
+mcp-register-codex:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  for s in $(jq -r '.mcpServers | keys[]' ~/.omp/agent/mcp.json); do
+    codex mcp remove "$s" >/dev/null 2>&1 || true
+    mapfile -t args < <(jq -r ".mcpServers.$s.args[]? // empty" ~/.omp/agent/mcp.json)
+    codex mcp add "$s" -- "$(jq -r ".mcpServers.$s.command" ~/.omp/agent/mcp.json)" "${args[@]}"
+  done
+
+# Register the ~/.omp/agent/mcp.json servers with Claude Code and Codex
+mcp-register: mcp-register-claude mcp-register-codex
