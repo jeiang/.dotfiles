@@ -60,14 +60,17 @@ in {
           type = lib.types.listOf lib.types.str;
           description = ''
             Explicit allowlist of paths to back up, inside the service's
-            Volume mountpoint.
+            Volume mountpoint when it has one.
           '';
         };
         volume = lib.mkOption {
-          type = lib.types.str;
+          type = lib.types.nullOr lib.types.str;
+          default = null;
           description = ''
             Mountpoint of the Volume the job's paths live on. Guards the
-            backup against running while the Volume is not mounted.
+            backup against running while the Volume is not mounted. Null
+            for a service that keeps its state on the root disk, where the
+            repository is the only copy of it.
           '';
         };
         pauseUnits = lib.mkOption {
@@ -118,7 +121,7 @@ in {
           pruneOpts = [];
           extraBackupArgs = ["--retry-lock" "2h"];
           backupPrepareCommand =
-            ''
+            lib.optionalString (job.volume != null) ''
               ${pkgs.util-linux}/bin/mountpoint -q ${job.volume} || { echo "restic-backups-${name}: ${job.volume} is not mounted, refusing to back up an empty directory" >&2; exit 1; }
             ''
             + lib.optionalString (job.pauseUnits != []) ''
@@ -133,7 +136,7 @@ in {
       systemd.services =
         lib.mapAttrs' (name: job:
           lib.nameValuePair "restic-backups-${name}" {
-            unitConfig.RequiresMountsFor = [job.volume];
+            unitConfig.RequiresMountsFor = lib.optional (job.volume != null) job.volume;
           })
         cfg.jobs
         // lib.mapAttrs' (name: _job:

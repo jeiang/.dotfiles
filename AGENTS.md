@@ -169,10 +169,15 @@ behavior for its own sake.
   rules are for audit, not containment. Removing that trust needs a
   signed-closure delivery design.
 - Hetzner servers, Volumes, and Cloud Firewalls are provisioned outside the
-  flake. A stateful Legion service keeps its state on a Volume and uses
+  flake. A Volume is for state that cannot suffer loss if the server fails.
+  A stateful Legion service that keeps such state uses a Volume and
   `mountGuard`, so a missing Volume never initializes fresh state on the
-  root disk. Exactly one node owns each stateful service; moving it is an
-  explicit Volume and state migration, not a placement edit alone.
+  root disk. State that can tolerate losing the interval since its last
+  backup instead lives on the root disk with a `backupSet` restic job as
+  its whole durability story; atuin on `legion-node4` is the first such
+  service. Exactly one node owns each stateful service; moving it is an
+  explicit Volume (or backup) and state migration, not a placement edit
+  alone.
 - Legion host firewalls are on. A `legion.services.<name>` entry's
   `scope = "private"` is documentation: `enp7s0` and the NetBird interface
   are trusted interfaces. A public opening also needs its own Hetzner Cloud

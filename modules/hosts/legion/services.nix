@@ -133,17 +133,14 @@ in {
       named = lib.mapAttrsToList (name: s: s // {inherit name;}) services;
       edgeEntries = builtins.filter (s: s.edge) named;
       publicHostnames = lib.concatMap (s: s.publicHostnames) named;
-      statefulWithoutVolume = builtins.filter (s: s.stateful && s.volume == null) named;
+      statefulWithoutDurability = builtins.filter (s: s.stateful && s.volume == null && s.backupSet == []) named;
       backupSetViolations =
         builtins.filter (
           s:
             s.backupSet
             != []
-            && (
-              s.volume
-              == null
-              || lib.any (path: !(lib.hasPrefix s.volume.mountpoint path)) s.backupSet
-            )
+            && s.volume != null
+            && lib.any (path: !(lib.hasPrefix s.volume.mountpoint path)) s.backupSet
         )
         named;
     in
@@ -151,9 +148,9 @@ in {
       "legion.services must declare exactly one edge service: ${builtins.concatStringsSep ", " (map (s: s.name) edgeEntries)}";
       assert lib.assertMsg (builtins.length publicHostnames == builtins.length (lib.unique publicHostnames))
       "legion.services must not reuse a public hostname across services: ${builtins.concatStringsSep ", " publicHostnames}";
-      assert lib.assertMsg (statefulWithoutVolume == [])
-      "Every stateful legion.services entry must declare a Volume: ${builtins.concatStringsSep ", " (map (s: s.name) statefulWithoutVolume)}";
+      assert lib.assertMsg (statefulWithoutDurability == [])
+      "Every stateful legion.services entry must declare a Volume or a backupSet: ${builtins.concatStringsSep ", " (map (s: s.name) statefulWithoutDurability)}";
       assert lib.assertMsg (backupSetViolations == [])
-      "Every legion.services backupSet path must be a subset of its Volume mountpoint: ${builtins.concatStringsSep ", " (map (s: s.name) backupSetViolations)}"; services;
+      "Every legion.services backupSet path of a service with a Volume must be a subset of its mountpoint: ${builtins.concatStringsSep ", " (map (s: s.name) backupSetViolations)}"; services;
   };
 }
