@@ -242,6 +242,11 @@ behavior for its own sake.
   evaluating one host from the other's system. `CLAUDE.md` and `AGENTS.md` are
   copies: Claude Code ignores a symlinked user `CLAUDE.md`. Changes land by
   bumping the input, not by editing the installed files.
+- `modules/mcp/` renders one MCP server list, and only omp gets it as a file
+  (`~/.omp/agent/mcp.json`). Claude Code keeps user-scope servers in
+  `~/.claude.json` and Codex in `~/.codex/config.toml`, both of which those
+  clients rewrite, so the operator registers the servers there by hand.
+  Grafana is reached over the mesh, never through the edge.
 - The agent CLIs come from the `llm-agents` input, which tracks upstream
   releases faster than nixpkgs. Its `nixpkgs` deliberately does not follow
   ours: `cache.numtide.com` only serves builds made against its own pin, so
