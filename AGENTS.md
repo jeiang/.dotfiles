@@ -242,6 +242,10 @@ behavior for its own sake.
   evaluating one host from the other's system. `CLAUDE.md` and `AGENTS.md` are
   copies: Claude Code ignores a symlinked user `CLAUDE.md`. Changes land by
   bumping the input, not by editing the installed files.
+- The agent CLIs come from the `llm-agents` input, which tracks upstream
+  releases faster than nixpkgs. Its `nixpkgs` deliberately does not follow
+  ours: `cache.numtide.com` only serves builds made against its own pin, so
+  a `follows` would rebuild every agent from source.
 - `claude` on artemis and zakkart is the wrapped package from
   `modules/claude-code/`. The wrapper exports `TYPESAFE_API_KEY` from the
   sops secret at launch, so the key is never in the store and the desktop

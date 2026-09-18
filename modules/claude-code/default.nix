@@ -22,7 +22,7 @@ in {
   perSystem = {pkgs, ...}: {
     packages.claude-code = inputs.wrapper-modules.lib.wrapPackage (_: {
       inherit pkgs;
-      package = pkgs.claude-code;
+      package = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code;
       # Read at launch so the key never enters the store; absent before the first activation that installs it.
       runShell = [''[ -r ${apiKeyPath} ] && export TYPESAFE_API_KEY="$(cat ${apiKeyPath})"''];
     });
