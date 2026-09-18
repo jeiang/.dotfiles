@@ -110,6 +110,8 @@ behavior for its own sake.
 
 - Deploy only after the pull request is merged and CI has pushed the
   closures to garret, so targets substitute instead of building.
+- zakkart activates itself: `just nh darwin switch`. Give the operator that
+  command, not `darwin-rebuild`.
 - From the Mac: `just deploy <host> --skip-checks --remote-build`. The fleet
   form is `just deploy-legion --remote-build`: it passes `--skip-checks`
   itself, so do not pass it again. Check each node after its deploy; `just
@@ -146,9 +148,10 @@ behavior for its own sake.
 
 ### Secrets
 
-- sops-nix. One shard per consuming module, encrypted to the admin key and
-  exactly the hosts that run the consumer. `.sops.yaml` has one rule per
-  shard, anchored on the full path. There is no `defaultSopsFile`, so a
+- sops-nix on every host, zakkart included. One shard per consuming module,
+  encrypted to the admin key and exactly the hosts that run the consumer. A
+  host's recipient is its ed25519 host key through `ssh-to-age`. `.sops.yaml`
+  has one rule per shard, anchored on the full path. There is no `defaultSopsFile`, so a
   secret without a shard fails evaluation.
 - `just sops-edit` adds or changes values. `just sops-updatekeys` is needed
   only after a recipient change in `.sops.yaml`.
@@ -231,6 +234,11 @@ behavior for its own sake.
   evaluating one host from the other's system. `CLAUDE.md` and `AGENTS.md` are
   copies: Claude Code ignores a symlinked user `CLAUDE.md`. Changes land by
   bumping the input, not by editing the installed files.
+- `claude` on artemis and zakkart is the wrapped package from
+  `modules/claude-code/`. The wrapper exports `TYPESAFE_API_KEY` from the
+  sops secret at launch, so the key is never in the store and the desktop
+  app does not get it. The token only reaches the TypeSafe API; rotate it
+  with `just sops-edit` and a switch.
 
 ## CI
 
