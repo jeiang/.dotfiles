@@ -9,7 +9,7 @@
       # rewrites it whenever a session changes a setting. PI_CONFIG_FILES
       # rather than --config, which only the launch, acp and models commands take.
       settings = (pkgs.formats.yaml {}).generate "omp-config.yml" {
-        tools.approvalMode = "always-ask";
+        tools.approvalMode = "write";
       };
     in
       inputs.wrapper-modules.lib.wrapPackage (_: {
