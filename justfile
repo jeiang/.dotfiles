@@ -84,7 +84,21 @@ deploy-legion *args:
   exit "$failed"
 
 legion-run *command:
-  @for node in $(nix eval --raw '.#lib.legionNodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrNames nodes)'); do ssh "${node#legion-}.jeiang.dev" -- {{command}}; done
+  #!/usr/bin/env bash
+  set -euo pipefail
+  summary=""
+  failed=0
+  for node in $(nix eval --raw '.#lib.legionNodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrNames nodes)'); do
+    if ssh "${node#legion-}.jeiang.dev" -- {{command}}; then
+      summary+="  $node ok"$'\n'
+    else
+      summary+="  $node FAILED"$'\n'
+      failed=1
+    fi
+  done
+  echo "legion-run summary:"
+  printf '%s' "$summary"
+  exit "$failed"
 
 # Delete assets/wallpapers-kanabox/ outputs before re-running after a palette change; existing files are left alone.
 
