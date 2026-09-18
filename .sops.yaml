@@ -42,6 +42,14 @@ creation_rules:
       - *server_artemis
       - *server_zakkart
 
+  # modules/mcp/default.nix -- the hosts that run the MCP clients.
+  - path_regex: modules/mcp/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *server_artemis
+      - *server_zakkart
+
   # modules/backup-tunnel/default.nix -- both tunnel endpoints.
   - path_regex: modules/backup-tunnel/secrets\.yaml$
     key_groups:

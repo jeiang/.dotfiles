@@ -1133,6 +1133,26 @@
         "type": "github"
       }
     },
+    "mcp-servers-nix": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1789745816,
+        "narHash": "sha256-a1U66FYAnHPwvSi/W3lzY8DQDOxX0n7dCG1rv6OzxPw=",
+        "owner": "natsukium",
+        "repo": "mcp-servers-nix",
+        "rev": "04b177c3ce9f88f0ba929ca407acebbaa4e3e7a6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "natsukium",
+        "repo": "mcp-servers-nix",
+        "type": "github"
+      }
+    },
     "netbird-tap": {
       "flake": false,
       "locked": {
@@ -1601,6 +1621,7 @@
         "k06a-tap": "k06a-tap",
         "llm-agents": "llm-agents",
         "markdown-table-live-editor": "markdown-table-live-editor",
+        "mcp-servers-nix": "mcp-servers-nix",
         "netbird-tap": "netbird-tap",
         "nix-cachyos-kernel": "nix-cachyos-kernel",
         "nix-darwin": "nix-darwin",
