@@ -38,7 +38,8 @@
 
   files = pkgs:
     harness pkgs ".claude" "claude"
-    // harness pkgs ".codex" "codex";
+    // harness pkgs ".codex" "codex"
+    // harness pkgs ".omp/agent" "omp";
 in {
   nixos.modules.artemis = {
     config,
