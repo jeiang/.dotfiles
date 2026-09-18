@@ -27,6 +27,16 @@
         function fish_greeting
           ${lib.optionalString (!pkgs.stdenv.hostPlatform.isDarwin) "nitch"}
         end
+
+        # Upstream's cd-on-exit wrapper; yazi only writes the directory, the shell has to follow it.
+        function y
+          set tmp (mktemp -t "yazi-cwd.XXXXXX")
+          command yazi $argv --cwd-file="$tmp"
+          if read -z cwd < "$tmp"; and [ "$cwd" != "$PWD" ]; and test -d "$cwd"
+              builtin cd -- "$cwd"
+          end
+          command rm -f -- "$tmp"
+        end
         ${lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
 
           # The sandboxed Mac App Store Bitwarden puts its SSH agent socket under the container path, not ~/.bitwarden-ssh-agent.sock.

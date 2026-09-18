@@ -1,0 +1,29 @@
+[[mgr.prepend_keymap]]
+on   = "l"
+run  = "plugin smart-enter"
+desc = "Enter directory or open file"
+
+[[mgr.prepend_keymap]]
+on   = "p"
+run  = "plugin smart-paste"
+desc = "Context-aware paste"
+
+[[mgr.prepend_keymap]]
+on   = "/"
+run  = "plugin smart-filter"
+desc = "Smart filter"
+
+[[mgr.prepend_keymap]]
+on   = ["g", "e"]
+run  = "arrow bot"
+desc = "Go to the bottom"
+
+[[mgr.prepend_keymap]]
+on   = "T"
+run  = "shell -- trash %s"
+desc = "Trash the selection"
+
+[[mgr.prepend_keymap]]
+on   = "C"
+run  = "plugin ouch"
+desc = "Compress with ouch"
