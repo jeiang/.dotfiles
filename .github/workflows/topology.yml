@@ -1,0 +1,41 @@
+name: Topology
+
+on:
+  schedule:
+    # Weekly re-render.
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+        with:
+          extra_nix_config: |
+            extra-substituters = https://cache.jeiang.dev
+            extra-trusted-public-keys = cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA=
+
+      - name: Render topology
+        run: |
+          out=$(nix build --no-link --print-out-paths ".#topology.x86_64-linux.config.output")
+          rm -f docs/topology/*.svg
+          install -m 644 "$out"/*.svg docs/topology/
+
+      - name: Open pull request if the diagrams changed
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          commit-message: "docs: regenerate topology diagrams"
+          title: "docs: regenerate topology diagrams"
+          body: Weekly re-render of `docs/topology/` from the host configurations.
+          branch: ci/topology
+          delete-branch: true
+          add-paths: docs/topology/*.svg

@@ -33,6 +33,18 @@
             builtins.mapAttrs (_: _: {what = "disko disk layout";}) output
           );
       };
+      topology = {
+        version = 1;
+        doc = ''
+          The `topology` flake output holds the nix-topology evaluation for
+          each system; `just topology` builds `.config.output` and copies
+          the rendered diagrams into `docs/topology/`.
+        '';
+        inventory = output:
+          inputs.flake-schemas.lib.mkChildren (
+            builtins.mapAttrs (_: _: {what = "fleet topology";}) output
+          );
+      };
       lib = {
         version = 1;
         doc = ''

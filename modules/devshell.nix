@@ -35,6 +35,7 @@
             fzf
             just
             nh
+            nix-fast-build
             sops
             ssh-to-age
             watchexec
