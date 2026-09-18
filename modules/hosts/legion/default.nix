@@ -177,7 +177,7 @@ in {
         settings.Upload.URL = "http://${legionNodes.legion-node3.privateIPv4}:${toString legionServices.monitoring.ports.victoria-logs}/insert/journald";
       };
 
-      journald.extraConfig = "SystemMaxUse=1G";
+      journald.settings.Journal.SystemMaxUse = "1G";
     };
 
     backups.jobs = lib.listToAttrs (
