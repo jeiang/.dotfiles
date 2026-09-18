@@ -15,6 +15,16 @@ check extraArgs="":
 fast-check extraArgs="":
   nix-fast-build --flake '.#checks' --skip-cached --no-nom {{extraArgs}}
 
+# Re-render docs/topology/ from the host configurations; commit the result
+topology:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  system=$(nix eval --impure --raw --expr builtins.currentSystem)
+  out=$(nix build --no-link --print-out-paths ".#topology.$system.config.output")
+  mkdir -p docs/topology
+  rm -f docs/topology/*.svg
+  install -m 644 "$out"/*.svg docs/topology/
+
 clean-deploy system address *args:
   #!/usr/bin/env bash
   set -euo pipefail
