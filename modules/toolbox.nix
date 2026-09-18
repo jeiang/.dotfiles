@@ -9,6 +9,8 @@ in {
   nixos.modules = {
     base = {pkgs, ...}: {
       environment.systemPackages = basePackages pkgs;
+      # trippy needs cap_net_raw for its raw-socket tracing; the module wraps `trip` with it.
+      programs.trippy.enable = true;
     };
 
     legion = {pkgs, ...}: {
@@ -41,7 +43,10 @@ in {
         devenv
         duf
         file
+        gh
+        gh-dash
         hyperfine
+        lazygit
         libtree
         (ouch.override {enableUnfree = true;})
         parallel
@@ -56,12 +61,22 @@ in {
           '';
         })
         tokei
+        watchexec
         xh
       ];
     };
   };
 
   darwin.modules.base = {pkgs, ...}: {
-    environment.systemPackages = basePackages pkgs;
+    environment.systemPackages =
+      basePackages pkgs
+      ++ (with pkgs; [
+        age-plugin-yubikey
+        gh-dash
+        lazygit
+        # trippy needs root on darwin; there is no security.wrappers equivalent, so `trip` is run with sudo.
+        trippy
+        watchexec
+      ]);
   };
 }
