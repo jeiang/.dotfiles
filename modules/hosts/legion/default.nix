@@ -30,6 +30,7 @@
     "pocket-id"
     "garret"
     "actual-budget"
+    "atuin"
     "hath"
     "blocky"
     "glance"
