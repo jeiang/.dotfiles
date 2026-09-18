@@ -28,6 +28,7 @@
             self'.packages.helix
             self'.packages.git
             inputs.deploy-rs.packages.${pkgs.stdenv.hostPlatform.system}.default
+            inputs.nix-fast-build.packages.${pkgs.stdenv.hostPlatform.system}.default
             disko
             dnscontrol
             fd

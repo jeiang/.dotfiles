@@ -9,6 +9,8 @@
     devenv.inputs.nixpkgs.follows = "nixpkgs";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
+    nix-fast-build.url = "github:Mic92/nix-fast-build";
+    nix-fast-build.inputs.nixpkgs.follows = "nixpkgs";
 
     # Determinate's `nix flake show` reads the schemas output; lib-only flake with no nixpkgs input to follow.
     flake-schemas.url = "github:DeterminateSystems/flake-schemas";

@@ -11,6 +11,10 @@ fmt:
 check extraArgs="":
   nix flake check --impure --keep-going {{extraArgs}}
 
+# Same checks as `just check`, built in parallel; skips what the substituters already have
+fast-check extraArgs="":
+  nix-fast-build --flake '.#checks' --skip-cached --no-nom {{extraArgs}}
+
 clean-deploy system address *args:
   #!/usr/bin/env bash
   set -euo pipefail
