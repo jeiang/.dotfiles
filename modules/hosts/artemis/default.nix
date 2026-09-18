@@ -126,8 +126,6 @@ in {
         helpers.kernelModuleLLVMOverride (pkgs.linuxKernel.packagesFor kernel);
       blacklistedKernelModules = ["algif_aead"];
     };
-    environment.systemPackages = [pkgs.claude-code];
-
     environment.variables = {
       AMD_VULKAN_ICD = "RADV";
       MESA_SHADER_CACHE_MAX_SIZE = "12G";
