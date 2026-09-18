@@ -1,6 +1,7 @@
 {self, ...}: let
   basePackages = pkgs: [
     self.packages.${pkgs.stdenv.hostPlatform.system}.helix
+    self.packages.${pkgs.stdenv.hostPlatform.system}.zellij
     pkgs.erdtree
     pkgs.fd
     pkgs.ripgrep

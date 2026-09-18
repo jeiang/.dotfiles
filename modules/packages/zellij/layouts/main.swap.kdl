@@ -1,0 +1,23 @@
+swap_tiled_layout name="vertical" {
+    tab max_panes=5 {
+        pane split_direction="vertical" {
+            pane
+            pane { children; }
+        }
+    }
+}
+
+swap_tiled_layout name="horizontal" {
+    tab max_panes=5 {
+        pane split_direction="horizontal" {
+            pane
+            pane { children; }
+        }
+    }
+}
+
+swap_tiled_layout name="stacked" {
+    tab min_panes=4 {
+        pane stacked=true { children; }
+    }
+}
