@@ -237,5 +237,12 @@ behavior for its own sake.
 - `ci.yml` evaluates `checks.x86_64-linux`, builds each check in a matrix
   job, and pushes the results to garret on `main`. zakkart builds on a macOS
   runner. `all-checks` is the only required status.
+- Only a `main` run pushes to garret. A change that rebuilds the artemis
+  kernel must therefore be built on artemis and pushed to garret before the
+  branch is pushed, or every PR run compiles the full-LTO kernel on a shared
+  runner against its job time limit. deploy-rs installs
+  `deploy.nodes.<host>.profiles.system.path`, not the toplevel, so push that
+  too: it carries `activate-rs`, and when a rustc bump drops it from the
+  cache, `--remote-build` makes each target compile deploy-rs itself.
 - `dns.yml` previews DNS changes on pull requests, pushes them on merge, and
   runs a weekly drift check.
