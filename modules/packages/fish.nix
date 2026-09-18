@@ -9,6 +9,10 @@
       url = "https://raw.githubusercontent.com/franciscolourenco/done/b86292a52a2b8f646ef8d25daa3cc01ccab60b62/conf.d/done.fish";
       hash = "sha256-SqaOGBBJZlCd0L/W9zeEI+ISeB0GdNroX9OLHTDjA3I=";
     };
+    # Client-only: no sync server exists yet, so sync stays off rather than relying on never running `atuin login`.
+    atuinConfig = pkgs.writeTextDir "config.toml" ''
+      auto_sync = false
+    '';
     fishConf =
       pkgs.writeText "fishy-fishy"
       # fish
@@ -32,9 +36,11 @@
         status is-interactive; and begin
           # gpg's curses pinentry needs the terminal; NixOS only exports this through programs.fish, which this fish does not use.
           set -gx GPG_TTY (tty)
+          set -gx ATUIN_CONFIG_DIR ${atuinConfig}
           source ${donefish}
           zoxide init fish --cmd cd | source
           fzf --fish | source
+          atuin init fish | source
           if test "$TERM" != dumb
               starship init fish | source
               enable_transience
@@ -61,6 +67,7 @@
         runtimePkgs = with pkgs;
           [
             self'.packages.starship
+            atuin
             eza
             fzf
             jq

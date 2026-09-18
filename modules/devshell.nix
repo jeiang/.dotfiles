@@ -28,6 +28,7 @@
             self'.packages.helix
             self'.packages.git
             inputs.deploy-rs.packages.${pkgs.stdenv.hostPlatform.system}.default
+            age-plugin-yubikey
             disko
             dnscontrol
             fd
@@ -36,6 +37,7 @@
             nh
             sops
             ssh-to-age
+            watchexec
           ]
           ++ lib.optionals pkgs.stdenv.isLinux [
             # hyprland
