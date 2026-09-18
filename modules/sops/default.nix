@@ -9,4 +9,11 @@
       age.sshKeyPaths = ["/etc/ssh/ssh_host_ed25519_key"];
     };
   };
+
+  # No age.sshKeyPaths here: the darwin module hardcodes the host key default.
+  darwin.modules.base = {...}: {
+    imports = [
+      inputs.sops-nix.darwinModules.sops
+    ];
+  };
 }
