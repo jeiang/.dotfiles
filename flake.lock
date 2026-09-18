@@ -143,11 +143,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789396554,
-        "narHash": "sha256-iCY5dZfJ/eqV0ipWRaU0kqUcxzrGIvFW31pBcQV3JDE=",
+        "lastModified": 1789701614,
+        "narHash": "sha256-8WY/Y6utABaZrxtR6bUw4UKdOk1v0yYxfDbfVKqv6Ps=",
         "owner": "jeiang",
         "repo": "character-randomizer",
-        "rev": "4bf2beeb1fdafba0bbf5faa48b8f2ffe7b2db3bd",
+        "rev": "6fecbded19c646bef256b60fa8b3dec24989d171",
         "type": "github"
       },
       "original": {
