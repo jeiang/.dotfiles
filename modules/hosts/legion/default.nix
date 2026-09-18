@@ -184,10 +184,13 @@ in {
       map (s:
         lib.nameValuePair s.name {
           paths = s.backupSet;
-          volume = s.volume.mountpoint;
+          volume =
+            if s.volume == null
+            then null
+            else s.volume.mountpoint;
           pauseUnits = map (u: "${u}.service") s.units;
         })
-      (builtins.filter (s: s.backupSet != [] && s.volume != null)
+      (builtins.filter (s: s.backupSet != [])
         (servicesByNode config.networking.hostName))
     );
 
