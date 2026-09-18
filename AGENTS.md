@@ -146,10 +146,12 @@ behavior for its own sake.
 
 ### Secrets
 
-- sops-nix. One shard per consuming module, encrypted to the admin key and
-  exactly the hosts that run the consumer. `.sops.yaml` has one rule per
-  shard, anchored on the full path. There is no `defaultSopsFile`, so a
-  secret without a shard fails evaluation.
+- sops-nix on every host, zakkart included. One shard per consuming module,
+  encrypted to the admin key and exactly the hosts that run the consumer.
+  A host's recipient is its `/etc/ssh/ssh_host_ed25519_key` through
+  `ssh-to-age`. `.sops.yaml` has one rule per shard, anchored on the full
+  path. There is no `defaultSopsFile`, so a secret without a shard fails
+  evaluation.
 - `just sops-edit` adds or changes values. `just sops-updatekeys` is needed
   only after a recipient change in `.sops.yaml`.
 - A rotated secret reaches a running process only through that secret's
@@ -231,7 +233,6 @@ behavior for its own sake.
   evaluating one host from the other's system. `CLAUDE.md` and `AGENTS.md` are
   copies: Claude Code ignores a symlinked user `CLAUDE.md`. Changes land by
   bumping the input, not by editing the installed files.
-
 ## CI
 
 - `ci.yml` evaluates `checks.x86_64-linux`, builds each check in a matrix
