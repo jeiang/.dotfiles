@@ -302,6 +302,22 @@
         "type": "github"
       }
     },
+    "fast-jev-compaction": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1789684158,
+        "narHash": "sha256-kXQNHq2EczxOA87+gFgin8cNflWT7ohoc3qMYwOsNn0=",
+        "owner": "tamaratran",
+        "repo": "fast-jev-compaction",
+        "rev": "e3f262a7f4d42bd8dd32ced30d26176f7cb545b0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tamaratran",
+        "repo": "fast-jev-compaction",
+        "type": "github"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -1458,6 +1474,7 @@
         "determinate": "determinate",
         "devenv": "devenv",
         "disko": "disko",
+        "fast-jev-compaction": "fast-jev-compaction",
         "flake-parts": "flake-parts_3",
         "flake-schemas": "flake-schemas",
         "garret": "garret",

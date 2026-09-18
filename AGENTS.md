@@ -233,6 +233,20 @@ behavior for its own sake.
   evaluating one host from the other's system. `CLAUDE.md` and `AGENTS.md` are
   copies: Claude Code ignores a symlinked user `CLAUDE.md`. Changes land by
   bumping the input, not by editing the installed files.
+- Claude Code reads `TYPESAFE_API_KEY` and `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS`
+  from a managed settings file that sops-nix renders from
+  `modules/claude-code/secrets.yaml` (`/Library/Application
+  Support/ClaudeCode/managed-settings.json` on zakkart,
+  `/etc/claude-code/managed-settings.json` on artemis). It is the only
+  settings source the desktop app and the CLI both read that Nix can own:
+  desktop-app sessions do not inherit the login shell. The file is owned by
+  the user because Claude Code refuses to start when it cannot read a
+  managed settings file. `fast-jev-compaction` is a skills-directory plugin
+  linked into `~/.claude/skills`, never a marketplace install, so its input
+  pin is the installed version. Function hooks are early access in Claude
+  Code; the plugin falls back to built-in compaction when they, the key, or
+  Jev are unavailable.
+
 ## CI
 
 - `ci.yml` evaluates `checks.x86_64-linux`, builds each check in a matrix

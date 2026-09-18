@@ -56,6 +56,11 @@
     };
     agent-skills.url = "github:jeiang/agent-skills";
     agent-skills.inputs.nixpkgs.follows = "nixpkgs";
+    # A Claude Code plugin, loaded in place from ~/.claude/skills; not a flake.
+    fast-jev-compaction = {
+      url = "github:tamaratran/fast-jev-compaction";
+      flake = false;
+    };
     wrapper-modules.url = "github:BirdeeHub/nix-wrapper-modules";
     wrapper-modules.inputs.nixpkgs.follows = "nixpkgs";
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
