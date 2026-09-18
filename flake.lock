@@ -154,22 +154,6 @@
         "type": "github"
       }
     },
-    "can1357-tap": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1788980791,
-        "narHash": "sha256-5UMbCDL1B7g13zbS8YGNxhm3KOVpTt0baw9W8TaWLew=",
-        "owner": "can1357",
-        "repo": "homebrew-tap",
-        "rev": "5037c207111723a864900d1bd14f36f937349be3",
-        "type": "github"
-      },
-      "original": {
-        "owner": "can1357",
-        "repo": "homebrew-tap",
-        "type": "github"
-      }
-    },
     "character-randomizer": {
       "inputs": {
         "nixpkgs": [
@@ -1599,7 +1583,6 @@
       "inputs": {
         "agent-skills": "agent-skills",
         "bill-splitter": "bill-splitter",
-        "can1357-tap": "can1357-tap",
         "character-randomizer": "character-randomizer",
         "deploy-rs": "deploy-rs",
         "determinate": "determinate",

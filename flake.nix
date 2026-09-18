@@ -44,10 +44,6 @@
       url = "github:Homebrew/homebrew-cask";
       flake = false;
     };
-    can1357-tap = {
-      url = "github:can1357/homebrew-tap";
-      flake = false;
-    };
     k06a-tap = {
       url = "github:k06a/homebrew-tap";
       flake = false;

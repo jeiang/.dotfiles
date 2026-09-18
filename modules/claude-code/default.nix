@@ -4,8 +4,8 @@
   ...
 }: let
   sopsFile = ./secrets.yaml;
-  apiKey = "typesafe/api-key";
-  apiKeyPath = "/run/secrets/${apiKey}";
+  apiKey = self.lib.facts.typesafeApiKey;
+  apiKeyPath = self.lib.facts.typesafeApiKeyPath;
 
   claudeCode = {
     config,
