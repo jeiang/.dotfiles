@@ -43,6 +43,8 @@ in {
         devenv
         duf
         file
+        gh
+        gh-dash
         hyperfine
         lazygit
         libtree
