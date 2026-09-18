@@ -27,6 +27,16 @@
         function fish_greeting
           ${lib.optionalString (!pkgs.stdenv.hostPlatform.isDarwin) "nitch"}
         end
+
+        # Upstream's cd-on-exit wrapper; yazi only writes the directory, the shell has to follow it.
+        function y
+          set tmp (mktemp -t "yazi-cwd.XXXXXX")
+          command yazi $argv --cwd-file="$tmp"
+          if read -z cwd < "$tmp"; and [ "$cwd" != "$PWD" ]; and test -d "$cwd"
+              builtin cd -- "$cwd"
+          end
+          command rm -f -- "$tmp"
+        end
         ${lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
 
           # The sandboxed Mac App Store Bitwarden puts its SSH agent socket under the container path, not ~/.bitwarden-ssh-agent.sock.
@@ -54,6 +64,11 @@
           end
 
           command -q direnv; and direnv hook fish | source
+
+          # Legion sets ZELLIJ_AUTO_ATTACH; SSH_TTY is unset for the pty-less `ssh host cmd` deploy-rs and automation use.
+          if set -q ZELLIJ_AUTO_ATTACH; and set -q SSH_TTY; and not set -q ZELLIJ
+              zellij attach --create (hostname -s)
+          end
 
           alias eza 'eza --icons auto --git'
           alias l 'eza -alhF --smart-group'

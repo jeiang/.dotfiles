@@ -1,0 +1,14 @@
+layout {
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:compact-bar"
+        }
+        children
+    }
+    tab name="pr" {
+        pane split_direction="vertical" {
+            pane command="gh-dash" size="55%"
+            pane
+        }
+    }
+}

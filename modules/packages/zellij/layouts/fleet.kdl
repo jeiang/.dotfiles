@@ -1,0 +1,28 @@
+layout {
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:compact-bar"
+        }
+        children
+    }
+    tab name="node1" {
+        pane command="ssh" {
+            args "node1.jeiang.dev"
+        }
+    }
+    tab name="node2" {
+        pane command="ssh" {
+            args "node2.jeiang.dev"
+        }
+    }
+    tab name="node3" {
+        pane command="ssh" {
+            args "node3.jeiang.dev"
+        }
+    }
+    tab name="node4" {
+        pane command="ssh" {
+            args "node4.jeiang.dev"
+        }
+    }
+}
