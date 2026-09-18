@@ -1,4 +1,9 @@
-{inputs, ...}: {
+{
+  inputs,
+  self,
+  config,
+  ...
+}: {
   perSystem = {
     pkgs,
     lib,
@@ -9,9 +14,11 @@
       url = "https://raw.githubusercontent.com/franciscolourenco/done/b86292a52a2b8f646ef8d25daa3cc01ccab60b62/conf.d/done.fish";
       hash = "sha256-SqaOGBBJZlCd0L/W9zeEI+ISeB0GdNroX9OLHTDjA3I=";
     };
-    # Client-only: no sync server exists yet, so sync stays off rather than relying on never running `atuin login`.
+    # The sync server is mesh-only (modules/atuin.nix), so a host off NetBird
+    # just keeps its local history until it is back on.
     atuinConfig = pkgs.writeTextDir "config.toml" ''
-      auto_sync = false
+      auto_sync = true
+      sync_address = "http://${self.lib.netbirdPeers.legion-node4}:${toString config.legion.services.atuin.ports.app}"
     '';
     fishConf =
       pkgs.writeText "fishy-fishy"
