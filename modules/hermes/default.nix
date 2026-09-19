@@ -8,6 +8,9 @@
   hermesWebhookPort = 8644;
   kbRepo = "jeiang/knowledge-base";
   legionNodeNames = builtins.attrNames self.lib.legionNodes;
+  # Not a secret: it's the CalDAV/CardDAV/IMAP display identity, shared by
+  # the himalaya and vdirsyncer config below.
+  icloudAppleId = "aidan@aidanpinard.co";
 in {
   # Public half of the hermes/ssh-key secret below; modules/hermes-ops.nix's
   # authorizedKeys references this instead of a second hardcoded copy.
@@ -43,6 +46,9 @@ in {
     );
 
     kbExportDir = "${cfg.workingDirectory}/knowledge-base-export";
+
+    configDir = "${cfg.stateDir}/.config";
+    himalayaConfigDir = "${configDir}/himalaya";
   in {
     imports = [inputs.hermes-agent.nixosModules.default];
 
@@ -108,7 +114,7 @@ in {
       hermesHomeFiles."SOUL.md" = ./SOUL.md;
       documents."SERVERS.md" = ./SERVERS.md;
 
-      extraPackages = [pkgs.gh pkgs.openssh pkgs.sqlite];
+      extraPackages = [pkgs.gh pkgs.openssh pkgs.sqlite pkgs.himalaya];
     };
 
     sops.secrets = {
@@ -134,6 +140,29 @@ in {
           install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${sshDir}
           install -m 0600 -o ${cfg.user} -g ${cfg.group} ${config.sops.secrets."hermes/ssh-key".path} ${sshDir}/id_ed25519
           install -m 0600 -o ${cfg.user} -g ${cfg.group} ${sshConfig} ${sshDir}/config
+
+          # Rendered here, not pkgs.writeText: backend.login needs the
+          # sops-managed ICLOUD_MAIL_USERNAME. iCloud IMAP auth takes the
+          # bare short name, not the Apple ID that email/CalDAV/CardDAV use.
+          # No message.send.* backend: sending is mechanically unavailable,
+          # not just a SOUL.md rule.
+          _icloud_mail_user=$(grep '^ICLOUD_MAIL_USERNAME=' "${config.sops.secrets."hermes/env".path}" | cut -d= -f2-)
+          install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${himalayaConfigDir}
+          cat > ${himalayaConfigDir}/config.toml <<EOF
+          [accounts.icloud]
+          default = true
+          email = "${icloudAppleId}"
+          display-name = "Aidan Pinard"
+          backend.type = "imap"
+          backend.host = "imap.mail.me.com"
+          backend.port = 993
+          backend.encryption.type = "tls"
+          backend.login = "$_icloud_mail_user"
+          backend.auth.type = "password"
+          backend.auth.cmd = "printenv ICLOUD_APP_PASSWORD"
+          EOF
+          chown ${cfg.user}:${cfg.group} ${himalayaConfigDir}/config.toml
+          chmod 0600 ${himalayaConfigDir}/config.toml
         '';
 
         hermes-kb-export = {
