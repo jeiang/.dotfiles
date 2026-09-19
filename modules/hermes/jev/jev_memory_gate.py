@@ -11,9 +11,6 @@ A Jev/network failure prints the empty/allow response, never blocking the
 write -- see jev_common.call_jev's fail-open contract. Non-gated tool calls
 (reads, 'remove', anything but memory/fact_store) fall through untouched."""
 
-import json
-import logging
-import os
 import sys
 
 logging.basicConfig(level=logging.INFO, stream=sys.stderr, format="jev-memory-gate: %(message)s")

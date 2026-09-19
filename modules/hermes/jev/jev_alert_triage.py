@@ -13,9 +13,6 @@ needs (TYPESAFE_API_KEY, WEBHOOK_SECRET, JEV_ALERT_TOKEN) come from Hermes'
 own env blob via LoadCredential, since a DynamicUser has no other way to read
 a file sops-nix restricts to the hermes user."""
 
-import json
-import logging
-import os
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 

@@ -13,9 +13,6 @@ CLI is believed to use; only "envelope list --output json", "message read", and
 quick check against the installed himalaya version once the account exists.
 """
 
-import json
-import logging
-import os
 import sqlite3
 import subprocess
 

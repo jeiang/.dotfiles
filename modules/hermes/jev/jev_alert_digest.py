@@ -3,8 +3,6 @@ alerts jev_alert_triage.py set aside overnight as one Telegram message via the
 Hermes webhook, then clears the file. Fails open: if delivery fails the file
 is left in place for tomorrow's run rather than losing the entries."""
 
-import json
-import os
 
 load_credential_env("hermes-env")
 

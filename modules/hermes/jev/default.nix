@@ -12,11 +12,14 @@
   # it is not deliver_only.
   jevAlertPageRoute = "jev-alert-page";
 
+  # Two blank lines between common's last def and the per-script body, so
+  # flake8's E305 (blank lines after a function/class) doesn't fire at the
+  # concatenation seam.
   common = builtins.readFile ./jev_common.py;
-  mailTriageSrc = common + "\n" + builtins.readFile ./jev_mail_triage.py;
-  alertTriageSrc = common + "\n" + builtins.readFile ./jev_alert_triage.py;
-  alertDigestSrc = common + "\n" + builtins.readFile ./jev_alert_digest.py;
-  memoryGateSrc = common + "\n" + builtins.readFile ./jev_memory_gate.py;
+  mailTriageSrc = common + "\n\n" + builtins.readFile ./jev_mail_triage.py;
+  alertTriageSrc = common + "\n\n" + builtins.readFile ./jev_alert_triage.py;
+  alertDigestSrc = common + "\n\n" + builtins.readFile ./jev_alert_digest.py;
+  memoryGateSrc = common + "\n\n" + builtins.readFile ./jev_memory_gate.py;
 in {
   flake.lib.jevAlertPort = jevAlertPort;
 
@@ -33,10 +36,16 @@ in {
     # exported there, so the path is redefined here from the same stateDir.
     himalayaConfigFile = "${hermesCfg.stateDir}/.config/himalaya/config.toml";
 
-    mailTriage = pkgs.writers.writePython3Bin "jev-mail-triage" {} mailTriageSrc;
-    alertTriage = pkgs.writers.writePython3Bin "jev-alert-triage" {} alertTriageSrc;
-    alertDigest = pkgs.writers.writePython3Bin "jev-alert-digest" {} alertDigestSrc;
-    memoryGate = pkgs.writers.writePython3Bin "jev-memory-gate" {} memoryGateSrc;
+    # flakeIgnore silences flake8 E501 (the scripts' long lines -- webhook
+    # payload literals, error strings -- read better unwrapped than reflowed)
+    # and E402: each script's own imports land after jev_common.py's
+    # function defs at the concatenation seam, which pycodestyle reads as a
+    # late import even though it is the true top of that script's own code.
+    pyWriterArgs = {flakeIgnore = ["E501" "E402"];};
+    mailTriage = pkgs.writers.writePython3Bin "jev-mail-triage" pyWriterArgs mailTriageSrc;
+    alertTriage = pkgs.writers.writePython3Bin "jev-alert-triage" pyWriterArgs alertTriageSrc;
+    alertDigest = pkgs.writers.writePython3Bin "jev-alert-digest" pyWriterArgs alertDigestSrc;
+    memoryGate = pkgs.writers.writePython3Bin "jev-memory-gate" pyWriterArgs memoryGateSrc;
 
     # serviceConfig shared by both alert-triage units; STATE_DIRECTORY and
     # CREDENTIALS_DIRECTORY are set automatically by systemd from
