@@ -269,6 +269,9 @@ behavior for its own sake.
   store; `llm-server-fetch.service` downloads and checksums them onto disk.
 - `just llm-stop` and `just llm-start` are the manual counterpart of the
   gamemode hooks that free the dGPU for a game.
+- Jev (TypeSafe System One) judgments run in code in front of Hermes --
+  systemd services and a shell hook (`modules/hermes/jev/`) -- never as a
+  tool the agent itself chooses.
 
 ## CI
 
