@@ -37,9 +37,15 @@ in {
 
     # serviceConfig shared by both alert-triage units; STATE_DIRECTORY and
     # CREDENTIALS_DIRECTORY are set automatically by systemd from
-    # StateDirectory/LoadCredential.
+    # StateDirectory/LoadCredential. User/Group pin the DynamicUser identity
+    # so both units resolve to the same UID: without it each unit's dynamic
+    # user is derived from its own unit name, and systemd re-chowns the
+    # shared StateDirectory to whichever unit started most recently, breaking
+    # the other unit's access to digest.jsonl.
     alertServiceConfig = {
       DynamicUser = true;
+      User = "jev-alert-triage";
+      Group = "jev-alert-triage";
       LoadCredential = ["hermes-env:${envFile}"];
       StateDirectory = "jev-alert-triage";
       NoNewPrivileges = true;
