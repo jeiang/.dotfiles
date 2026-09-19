@@ -31,6 +31,7 @@
             self'.packages.helix
             self'.packages.git
             inputs.deploy-rs.packages.${pkgs.stdenv.hostPlatform.system}.default
+            age-plugin-se
             age-plugin-yubikey
             disko
             dnscontrol

@@ -73,6 +73,7 @@ in {
     environment.systemPackages =
       basePackages pkgs
       ++ (with pkgs; [
+        age-plugin-se
         age-plugin-yubikey
         gh-dash
         lazygit
