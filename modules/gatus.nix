@@ -22,6 +22,11 @@ in {
     };
 
     ok = name: group: url: https name group url ["[STATUS] == 200"];
+
+    # A body assertion beside status: an empty 200 slipped past status-only
+    # checks on 2026-09-18 and nothing alerted.
+    page = name: group: url: needle:
+      https name group url ["[STATUS] == 200" "[BODY] == pat(*${needle}*)"];
   in {
     services.gatus = {
       enable = true;
@@ -45,10 +50,10 @@ in {
         };
 
         endpoints = [
-          (ok "Website" "Web" "https://jeiang.dev")
-          (ok "aidanpinard.co" "Web" "https://aidanpinard.co")
-          (ok "pinard.co.tt" "Web" "https://pinard.co.tt")
-          (ok "Portfolio" "Web" "https://noelejoshua.com")
+          (page "Website" "Web" "https://jeiang.dev" "Aidan Pinard - Home")
+          (page "aidanpinard.co" "Web" "https://aidanpinard.co" "Aidan Pinard - Home")
+          (page "pinard.co.tt" "Web" "https://pinard.co.tt" "Aidan Pinard - Home")
+          (page "Portfolio" "Web" "https://noelejoshua.com" "Joshua Noel")
           (ok "Bill Splitter" "Web" "https://bill-split.jeiang.dev")
           (ok "Rivals Randomizer" "Web" "https://rivals.jeiang.dev")
           (ok "Markdown Table Editor" "Web" "https://mdtable.jeiang.dev")
