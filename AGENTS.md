@@ -5,7 +5,7 @@ machine must run.
 
 | Host | Kind | Role |
 | --- | --- | --- |
-| `artemis` | NixOS | Headless gaming and streaming box at home. Impermanent btrfs root. Reached over NetBird with Sunshine/Moonlight and hypr-rdp. |
+| `artemis` | NixOS | Headless gaming and streaming box at home. Impermanent btrfs root. Reached over NetBird with Sunshine/Moonlight and hypr-rdp. Also hosts the Hermes assistant and its local model server. |
 | `zakkart` | nix-darwin | The operator's MacBook. |
 | `legion-node1`..`legion-node4` | NixOS | Hetzner Cloud service nodes. `legion-node1` is the Caddy edge. |
 
