@@ -60,6 +60,8 @@ in {
         "/var/lib/NetworkManager"
         # Persistent=true timers' last-trigger stamps, for catch-up after a reboot.
         "/var/lib/systemd/timers"
+        "/var/lib/hermes"
+        "/var/cache/bonsai-models"
       ];
 
       data.directories = [
