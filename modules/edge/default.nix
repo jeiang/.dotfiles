@@ -245,10 +245,11 @@ in {
 
           ${lib.optionalString anubisHere ''
             # bind makes this loopback-only, so only Anubis on this node can
-            # reach it; the site address host alone would not restrict the
-            # listener. The respond 404 fallback guards the
-            # Host-preservation assumption.
-            http://127.0.0.1:${toString cfg.anubis.originPort} {
+            # reach it. The address has no host: an IP host here would add
+            # an implicit matcher for it, but Anubis forwards the original
+            # Host header (e.g. jeiang.dev), so no site would match. The
+            # respond 404 fallback guards the Host-preservation assumption.
+            http://:${toString cfg.anubis.originPort} {
               bind 127.0.0.1
               @website host jeiang.dev aidanpinard.co pinard.co.tt
               handle @website {
