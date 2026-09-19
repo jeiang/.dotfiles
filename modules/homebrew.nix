@@ -32,7 +32,7 @@
 
       onActivation = {
         autoUpdate = false;
-        upgrade = false;
+        upgrade = true;
         cleanup = "zap";
       };
 
@@ -51,7 +51,7 @@
         "qview"
         "handbrake-app"
         "notion-calendar"
-        # The .app manages its own daemon/tunnel (a nix-managed daemon around the netbird CLI would fight it); the cask never auto-updates -- bump the netbird-tap input, switch, then `just netbird-update` (upgrades formula + cask and restarts the daemon).
+        # The .app manages its own daemon/tunnel (a nix-managed daemon around the netbird CLI would fight it). A switch upgrades the cask but leaves the running daemon on the old build -- bump the netbird-tap input, switch, then `just netbird-update`.
         "netbirdio/tap/netbird-ui"
       ];
 
