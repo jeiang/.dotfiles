@@ -12,6 +12,9 @@
   llmCpuMoeLayers = 22;
 in {
   flake.lib.llmServerPort = llmPort;
+  # llama-server reports this as the model id on /v1/models with no --alias set;
+  # a single-model server ignores whatever "model" a client requests anyway.
+  flake.lib.llmServerModelId = llmWeightsFile;
 
   nixos.modules.artemis = {
     lib,
