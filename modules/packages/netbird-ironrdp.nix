@@ -5,7 +5,7 @@
     ...
   }: let
     # The dashboard's browser RDP client needs /ironrdp-pkg/{ironrdp_web.js,ironrdp_web_bg.wasm}, which only the dashboard's release CI downloads -- nixpkgs' netbird-dashboard ships without them.
-    # v0.0.2 is the tag that CI pins for netbird-dashboard 2.90.9; re-check the workflow when that version moves.
+    # v0.0.2 is the tag that CI pins for netbird-dashboard 2.92.0; re-check the workflow when that version moves.
     version = "0.0.2";
 
     asset = {
