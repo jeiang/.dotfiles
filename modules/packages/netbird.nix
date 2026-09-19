@@ -6,14 +6,14 @@
   }: let
     # Pinned ahead of nixpkgs; one shared override for every component built from the netbird monorepo.
     pin = _: rec {
-      version = "0.78.2";
+      version = "0.79.0";
       src = pkgs.fetchFromGitHub {
         owner = "netbirdio";
         repo = "netbird";
         tag = "v${version}";
-        hash = "sha256-VDYwuo7qMq01QrbV422yd/KAZhnqP9ymrqrgJbDqMGg=";
+        hash = "sha256-Bi83uh8VKvFGUY+AxP34VCXYxpZI1C/oOa6eHmKXpDw=";
       };
-      vendorHash = "sha256-qbcc/j8tCTnUrX9jhxKFMudnNVKa4Xah+76aBOFS0AQ=";
+      vendorHash = "sha256-+JwuUz8msyoiPUTz8cH3vn9DrvLp6gaM2NqFuTOcRdg=";
     };
   in {
     packages =
