@@ -65,6 +65,18 @@ migrate-persist flake="." sudo="sudo":
 install system sudo="sudo":
   {{sudo}} nixos-install --flake .#{{system}}
 
+# Free artemis's dGPU for a game; the gamemode hooks do this automatically
+llm-stop:
+  ssh artemis.jeiang.vpn doas systemctl stop llm-server.service
+
+# Start the artemis model server again after a manual llm-stop
+llm-start:
+  ssh artemis.jeiang.vpn doas systemctl start llm-server.service
+
+# Show the artemis model server unit and, when rocm-smi is there, its VRAM use
+llm-status:
+  ssh artemis.jeiang.vpn 'systemctl status llm-server.service --no-pager -n 5; command -v rocm-smi >/dev/null && rocm-smi --showmeminfo vram; true'
+
 # A formula-only brew upgrade swaps the daemon binary without restarting the
 # running launchd job, so kickstart re-bootstraps it after the upgrade.
 

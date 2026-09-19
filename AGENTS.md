@@ -262,6 +262,13 @@ behavior for its own sake.
   operator-executed, no sudo rule, Hermes only prints the command; tier 3 is
   never granted. Tier 2 is to be upgraded to Telegram approval gating later,
   not left operator-executed indefinitely.
+- The Hermes model server (`modules/llm-server`) runs Qwen3.6-35B-A3B
+  (UD-Q4_K_XL) with the MoE experts of the first layers on the CPU, because
+  the weights exceed the dGPU, and with thinking disabled.
+- The weights live under the persisted cache directory and never in the Nix
+  store; `llm-server-fetch.service` downloads and checksums them onto disk.
+- `just llm-stop` and `just llm-start` are the manual counterpart of the
+  gamemode hooks that free the dGPU for a game.
 
 ## CI
 
