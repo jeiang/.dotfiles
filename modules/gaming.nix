@@ -40,6 +40,14 @@
             gpu_device = 1;
             amd_performance_level = "high";
           };
+          # The model server (modules/llm-server) and a game both want the
+          # whole dGPU; gamemoded runs this as the operator, so it rides
+          # wheel's passwordless doas (modules/doas.nix) rather than needing
+          # a doas rule of its own.
+          custom = {
+            start = "doas systemctl stop llm-server.service";
+            end = "doas systemctl start llm-server.service";
+          };
         };
       };
       steam = {
