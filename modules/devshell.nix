@@ -22,6 +22,9 @@
     devenv.shells = {
       default = {
         name = "system";
+        # age-plugin-yubikey panics on a NotWellFormed locale when LANG/LC_ALL
+        # are empty or "C" (e.g. a fresh macOS shell), which breaks sops.
+        env.LANG = "en_US.UTF-8";
         packages = with pkgs;
           [
             config.treefmt.build.wrapper
