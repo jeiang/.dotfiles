@@ -256,6 +256,12 @@ behavior for its own sake.
   sops secret at launch, so the key is never in the store and the desktop
   app does not get it. The token only reaches the TypeSafe API; rotate it
   with `just sops-edit` and a switch.
+- hermes-ops tiers on Legion (`modules/hermes-ops.nix`): tier 0 is
+  `journalctl`/read access via `systemd-journal` group membership; tier 1 is
+  the mechanical `systemctl start`/`restart` sudoers allowlist; tier 2 is
+  operator-executed, no sudo rule, Hermes only prints the command; tier 3 is
+  never granted. Tier 2 is to be upgraded to Telegram approval gating later,
+  not left operator-executed indefinitely.
 
 ## CI
 

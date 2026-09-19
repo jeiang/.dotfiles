@@ -20,6 +20,26 @@
   legionServices = config.legion.services;
   servicesByNode = nodeName: builtins.filter (s: s.node == nodeName) (lib.mapAttrsToList (name: s: s // {inherit name;}) legionServices);
 
+  # AGENTS.md hermes-ops tiers: every unit of these whole services is tier 1
+  # (restart allowlist); prometheus-blackbox-exporter is tier 1 too, but
+  # rides inside the otherwise tier-2 monitoring service, so it is picked
+  # out by unit name instead.
+  hermesOpsTier1Services = ["gatus" "glance" "garret" "hath" "crowdsec"];
+  hermesOpsTier1Units = ["prometheus-blackbox-exporter"];
+  hermesOpsNodeExporterUnit = "prometheus-node-exporter";
+
+  hermesOpsTiers =
+    lib.mapAttrs (
+      name: _: let
+        services = servicesByNode name;
+        wholeServiceUnits = lib.concatMap (s: s.units) (builtins.filter (s: builtins.elem s.name hermesOpsTier1Services) services);
+        pickedUnits = lib.concatMap (s: builtins.filter (u: builtins.elem u hermesOpsTier1Units) s.units) services;
+        resticBackupUnits = map (s: "restic-backups-${s.name}") (builtins.filter (s: s.backupSet != [] && s.volume != null) services);
+      in
+        [hermesOpsNodeExporterUnit] ++ wholeServiceUnits ++ pickedUnits ++ resticBackupUnits
+    )
+    validatedLegionNodes;
+
   # Fixed import order keeps the built unit text stable; unlisted services sort last.
   legionModuleOrder = [
     "edge"
@@ -289,6 +309,8 @@ in {
             systemd.network.networks."10-wan" = mkWan {
               inherit (node) publicIPv4 publicIPv6;
             };
+
+            hermesOps.tier1Units = hermesOpsTiers.${name};
           }
         ]
         ++ map (m: modules.${m}) (moduleNamesFor name);
