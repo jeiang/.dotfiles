@@ -9,6 +9,11 @@
   kbRepo = "jeiang/knowledge-base";
   legionNodeNames = builtins.attrNames self.lib.legionNodes;
 in {
+  # Public half of the hermes/ssh-key secret below; modules/hermes-ops.nix's
+  # authorizedKeys references this instead of a second hardcoded copy.
+  # Placeholder until the operator mints the real ed25519 keypair.
+  flake.lib.hermesOpsPublicKey = "ssh-ed25519 REPLACE_ME hermes-ops";
+
   nixos.modules.artemis = {
     config,
     lib,
