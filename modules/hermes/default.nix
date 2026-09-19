@@ -8,6 +8,9 @@
   hermesWebhookPort = 8644;
   kbRepo = "jeiang/knowledge-base";
   legionNodeNames = builtins.attrNames self.lib.legionNodes;
+  # Not a secret: it's the CalDAV/CardDAV/IMAP display identity, shared by
+  # the himalaya and vdirsyncer config below.
+  icloudAppleId = "aidan@aidanpinard.co";
 in {
   # Public half of the hermes/ssh-key secret below; modules/hermes-ops.nix's
   # authorizedKeys references this instead of a second hardcoded copy.
@@ -43,6 +46,68 @@ in {
     );
 
     kbExportDir = "${cfg.workingDirectory}/knowledge-base-export";
+
+    configDir = "${cfg.stateDir}/.config";
+    himalayaConfigDir = "${configDir}/himalaya";
+
+    calendarDir = "${cfg.stateDir}/.vdirsyncer/calendars";
+    contactsDir = "${cfg.stateDir}/.vdirsyncer/contacts";
+    vdirsyncerStatusDir = "${cfg.stateDir}/.vdirsyncer/status";
+    khalConfigDir = "${configDir}/khal";
+    khardConfigDir = "${configDir}/khard";
+
+    vdirsyncerConfig = pkgs.writeText "hermes-vdirsyncer-config" ''
+      [general]
+      status_path = "${vdirsyncerStatusDir}"
+
+      [pair icloud_calendar]
+      a = "icloud_calendar_local"
+      b = "icloud_calendar_remote"
+      collections = ["from b"]
+
+      [storage icloud_calendar_local]
+      type = "filesystem"
+      path = "${calendarDir}"
+      fileext = ".ics"
+
+      [storage icloud_calendar_remote]
+      type = "caldav"
+      url = "https://caldav.icloud.com/"
+      username = "${icloudAppleId}"
+      password.fetch = ["command", "printenv", "ICLOUD_APP_PASSWORD"]
+      item_types = ["VEVENT"]
+
+      [pair icloud_contacts]
+      a = "icloud_contacts_local"
+      b = "icloud_contacts_remote"
+      collections = ["from b"]
+
+      [storage icloud_contacts_local]
+      type = "filesystem"
+      path = "${contactsDir}"
+      fileext = ".vcf"
+
+      [storage icloud_contacts_remote]
+      type = "carddav"
+      url = "https://contacts.icloud.com/"
+      username = "${icloudAppleId}"
+      password.fetch = ["command", "printenv", "ICLOUD_APP_PASSWORD"]
+      read_only = true
+    '';
+
+    khalConfig = pkgs.writeText "hermes-khal-config" ''
+      [calendars]
+      [[icloud]]
+      path = ${calendarDir}/*
+      type = discover
+    '';
+
+    khardConfig = pkgs.writeText "hermes-khard-config" ''
+      [addressbooks]
+      [[icloud]]
+      path = ${contactsDir}/*
+      type = discover
+    '';
   in {
     imports = [inputs.hermes-agent.nixosModules.default];
 
@@ -108,7 +173,7 @@ in {
       hermesHomeFiles."SOUL.md" = ./SOUL.md;
       documents."SERVERS.md" = ./SERVERS.md;
 
-      extraPackages = [pkgs.gh pkgs.openssh pkgs.sqlite];
+      extraPackages = [pkgs.gh pkgs.openssh pkgs.sqlite pkgs.himalaya pkgs.vdirsyncer pkgs.khal pkgs.khard];
     };
 
     sops.secrets = {
@@ -134,6 +199,37 @@ in {
           install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${sshDir}
           install -m 0600 -o ${cfg.user} -g ${cfg.group} ${config.sops.secrets."hermes/ssh-key".path} ${sshDir}/id_ed25519
           install -m 0600 -o ${cfg.user} -g ${cfg.group} ${sshConfig} ${sshDir}/config
+
+          # Rendered here, not pkgs.writeText: backend.login needs the
+          # sops-managed ICLOUD_MAIL_USERNAME. iCloud IMAP auth takes the
+          # bare short name, not the Apple ID that email/CalDAV/CardDAV use.
+          # No message.send.* backend: sending is mechanically unavailable,
+          # not just a SOUL.md rule.
+          _icloud_mail_user=$(grep '^ICLOUD_MAIL_USERNAME=' "${config.sops.secrets."hermes/env".path}" | cut -d= -f2-)
+          install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${himalayaConfigDir}
+          cat > ${himalayaConfigDir}/config.toml <<EOF
+          [accounts.icloud]
+          default = true
+          email = "${icloudAppleId}"
+          display-name = "Aidan Pinard"
+          backend.type = "imap"
+          backend.host = "imap.mail.me.com"
+          backend.port = 993
+          backend.encryption.type = "tls"
+          backend.login = "$_icloud_mail_user"
+          backend.auth.type = "password"
+          backend.auth.cmd = "printenv ICLOUD_APP_PASSWORD"
+          EOF
+          chown ${cfg.user}:${cfg.group} ${himalayaConfigDir}/config.toml
+          chmod 0600 ${himalayaConfigDir}/config.toml
+
+          # khal has no config-path env var, only $HOME/.config/khal/config.
+          install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${khalConfigDir}
+          install -m 0640 -o ${cfg.user} -g ${cfg.group} ${khalConfig} ${khalConfigDir}/config
+
+          # khard reads only $XDG_CONFIG_HOME/khard/khard.conf.
+          install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${khardConfigDir}
+          install -m 0640 -o ${cfg.user} -g ${cfg.group} ${khardConfig} ${khardConfigDir}/khard.conf
         '';
 
         hermes-kb-export = {
@@ -196,14 +292,49 @@ in {
             fi
           '';
         };
+
+        hermes-vdirsyncer-sync = {
+          description = "Sync Hermes' iCloud calendar and contacts via vdirsyncer";
+          after = ["network-online.target"];
+          wants = ["network-online.target"];
+          path = [pkgs.vdirsyncer];
+          serviceConfig = {
+            Type = "oneshot";
+            User = cfg.user;
+            Group = cfg.group;
+            EnvironmentFile = config.sops.secrets."hermes/env".path;
+            Environment = "VDIRSYNCER_CONFIG=${vdirsyncerConfig}";
+          };
+          script = ''
+            set -euo pipefail
+
+            install -d -m 0700 "${calendarDir}" "${contactsDir}" "${vdirsyncerStatusDir}"
+
+            # discover prompts on stdin for each new remote collection and has
+            # no --yes flag; a bounded y-feed (not `yes |`, which would
+            # SIGPIPE under pipefail) keeps it non-interactive.
+            printf 'y\n%.0s' $(seq 1 100) | vdirsyncer discover
+            vdirsyncer sync
+          '';
+        };
       };
 
-      timers.hermes-kb-export = {
-        wantedBy = ["timers.target"];
-        timerConfig = {
-          OnCalendar = "weekly";
-          RandomizedDelaySec = "2h";
-          Persistent = true;
+      timers = {
+        hermes-kb-export = {
+          wantedBy = ["timers.target"];
+          timerConfig = {
+            OnCalendar = "weekly";
+            RandomizedDelaySec = "2h";
+            Persistent = true;
+          };
+        };
+
+        hermes-vdirsyncer-sync = {
+          wantedBy = ["timers.target"];
+          timerConfig = {
+            OnActiveSec = "1m";
+            OnUnitActiveSec = "15m";
+          };
         };
       };
     };
