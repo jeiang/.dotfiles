@@ -29,6 +29,9 @@ in {
     hermesCfg = config.services.hermes-agent;
     webhook = hermesCfg.settings.platforms.webhook.extra;
     envFile = config.sops.secrets."hermes/env".path;
+    # Matches modules/hermes/default.nix's himalayaConfigDir/config.toml; not
+    # exported there, so the path is redefined here from the same stateDir.
+    himalayaConfigFile = "${hermesCfg.stateDir}/.config/himalaya/config.toml";
 
     mailTriage = pkgs.writers.writePython3Bin "jev-mail-triage" {} mailTriageSrc;
     alertTriage = pkgs.writers.writePython3Bin "jev-alert-triage" {} alertTriageSrc;
@@ -65,6 +68,19 @@ in {
       "HERMES_WEBHOOK_ROUTE_ALERT_PAGE=${jevAlertPageRoute}"
     ];
   in {
+    # jev-mail-triage, jev-alert-triage and jev-alert-digest all read
+    # hermes/env too; this list merges with modules/hermes/default.nix's
+    # ["hermes-agent.service"] so a rotation restarts every reader.
+    sops.secrets."hermes/env".restartUnits = [
+      "jev-mail-triage.service"
+      "jev-alert-triage.service"
+      "jev-alert-digest.service"
+    ];
+
+    # digest.jsonl in jev-alert-triage's StateDirectory must survive a
+    # reboot on artemis's impermanent root.
+    persistence.directories = ["/var/lib/jev-alert-triage"];
+
     # Jev's judgments run in front of Hermes as plain systemd services and a
     # hook script, never as a tool the model itself chooses (AGENTS.md).
     services.hermes-agent.settings = {
@@ -113,6 +129,9 @@ in {
             PrivateTmp = true;
             ReadWritePaths = [hermesCfg.stateDir];
           };
+          # Skipped (not failed) until himalaya is configured, so the timer
+          # stays quiet rather than firing every 15 minutes against nothing.
+          unitConfig.ConditionPathExists = himalayaConfigFile;
         };
 
         jev-alert-triage = {
