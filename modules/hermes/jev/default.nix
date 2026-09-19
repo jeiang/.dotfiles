@@ -16,6 +16,7 @@
   mailTriageSrc = common + "\n" + builtins.readFile ./jev_mail_triage.py;
   alertTriageSrc = common + "\n" + builtins.readFile ./jev_alert_triage.py;
   alertDigestSrc = common + "\n" + builtins.readFile ./jev_alert_digest.py;
+  memoryGateSrc = common + "\n" + builtins.readFile ./jev_memory_gate.py;
 in {
   flake.lib.jevAlertPort = jevAlertPort;
 
@@ -32,6 +33,7 @@ in {
     mailTriage = pkgs.writers.writePython3Bin "jev-mail-triage" {} mailTriageSrc;
     alertTriage = pkgs.writers.writePython3Bin "jev-alert-triage" {} alertTriageSrc;
     alertDigest = pkgs.writers.writePython3Bin "jev-alert-digest" {} alertDigestSrc;
+    memoryGate = pkgs.writers.writePython3Bin "jev-memory-gate" {} memoryGateSrc;
 
     # serviceConfig shared by both alert-triage units; STATE_DIRECTORY and
     # CREDENTIALS_DIRECTORY are set automatically by systemd from
@@ -57,17 +59,27 @@ in {
       "HERMES_WEBHOOK_ROUTE_ALERT_PAGE=${jevAlertPageRoute}"
     ];
   in {
-    # Jev's judgments run in front of Hermes as plain systemd services, never
-    # as a tool the model itself chooses (AGENTS.md).
-    services.hermes-agent.settings.platforms.webhook.extra.routes = {
-      "${jevDigestRoute}" = {
-        deliver_only = true;
-        deliver = "telegram";
-        prompt = "{digest}";
-      };
-      "${jevAlertPageRoute}" = {
-        deliver = "telegram";
-        prompt = "{prompt}";
+    # Jev's judgments run in front of Hermes as plain systemd services and a
+    # hook script, never as a tool the model itself chooses (AGENTS.md).
+    services.hermes-agent.settings = {
+      hooks_auto_accept = true; # non-interactive service account; nothing to prompt.
+      hooks.pre_tool_call = [
+        {
+          matcher = "memory|fact_store";
+          command = lib.getExe memoryGate;
+          timeout = 20;
+        }
+      ];
+      platforms.webhook.extra.routes = {
+        "${jevDigestRoute}" = {
+          deliver_only = true;
+          deliver = "telegram";
+          prompt = "{digest}";
+        };
+        "${jevAlertPageRoute}" = {
+          deliver = "telegram";
+          prompt = "{prompt}";
+        };
       };
     };
 
