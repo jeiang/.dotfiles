@@ -1,5 +1,7 @@
 keys:
   - &user_aidanp age1yy2uxasknys578edlnepcxug2j37ntep0tudfv9nr7qqx6d9ws3sack68y
+  - &user_aidanp_yubikey_a age1yubikey1q2kwazjvk2nahlsjmkqya7mng9x3lj7qjl3pzrdwyh76nfjy5tx9yh28r5k
+  - &user_aidanp_yubikey_b age1yubikey1qtdc4zk5vh49smwk40q4229mqxaywuz7qwutwfm7pww6z9zxjpa2utzw4aw
   - &server_artemis age1fm8meecmpus97y9ra9gjdk08g8njran6fv4jxnr0zegpfd89a9esayj39c
   - &server_legion_node1 age1fexn9r8huh294w3hmyst605fndjagyg7e3s23aqfedlqrqnn24rq5lvgr7
   - &server_legion_node2 age1f9t7ktuy3hny3lju3692mqx35mrc0wrfrl8mtelyeecc4lydcu0snxtm23
@@ -15,12 +17,16 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
 
   # modules/user/default.nix -- every host.
   - path_regex: modules/user/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_artemis
       - *server_legion_node1
       - *server_legion_node2
@@ -32,6 +38,8 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_artemis
 
   # modules/claude-code/default.nix -- the hosts that run Claude Code.
@@ -39,6 +47,8 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_artemis
       - *server_zakkart
 
@@ -47,6 +57,8 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_artemis
       - *server_zakkart
 
@@ -55,6 +67,8 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_artemis
       - *server_legion_node1
 
@@ -63,6 +77,8 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_legion_node1
       - *server_legion_node2
       - *server_legion_node3
@@ -75,6 +91,8 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_legion_node2
       - *server_legion_node4
 
@@ -83,6 +101,8 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_artemis
 
   # modules/edge/default.nix and modules/tinyauth.nix.
@@ -90,6 +110,8 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_legion_node1
 
   # modules/crowdsec/default.nix (edge engine) and
@@ -98,6 +120,8 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_legion_node1
       - *server_legion_node2
 
@@ -106,6 +130,8 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_legion_node2
 
   # modules/netbird-server/proxy.nix.
@@ -113,6 +139,8 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_legion_node2
 
   # modules/pocket-id/default.nix.
@@ -120,6 +148,8 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_legion_node2
 
   # modules/monitoring/default.nix.
@@ -127,6 +157,8 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_legion_node3
 
   # modules/garret/default.nix.
@@ -134,4 +166,6 @@ creation_rules:
     key_groups:
     - age:
       - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
       - *server_legion_node4
