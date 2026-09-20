@@ -36,6 +36,9 @@ in {
       '';
     };
   in {
+    # The model server and a game both want the whole dGPU.
+    gaming.pauseUnits = ["llm-server.service"];
+
     users.groups.llm = {};
     users.users.llm = {
       isSystemUser = true;
