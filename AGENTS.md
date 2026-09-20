@@ -5,7 +5,7 @@ machine must run.
 
 | Host | Kind | Role |
 | --- | --- | --- |
-| `artemis` | NixOS | Headless gaming and streaming box at home. Impermanent btrfs root. Reached over NetBird with Sunshine/Moonlight and hypr-rdp. |
+| `artemis` | NixOS | Headless gaming and streaming box at home. Impermanent btrfs root. Reached over NetBird with Sunshine/Moonlight and hypr-rdp. Also hosts the Hermes assistant and its local model server. |
 | `zakkart` | nix-darwin | The operator's MacBook. |
 | `legion-node1`..`legion-node4` | NixOS | Hetzner Cloud service nodes. `legion-node1` is the Caddy edge. |
 
@@ -269,6 +269,9 @@ behavior for its own sake.
   store; `llm-server-fetch.service` downloads and checksums them onto disk.
 - `just llm-stop` and `just llm-start` are the manual counterpart of the
   gamemode hooks that free the dGPU for a game.
+- Jev (TypeSafe System One) judgments run in code in front of Hermes --
+  systemd services and a shell hook (`modules/hermes/jev/`) -- never as a
+  tool the agent itself chooses.
 
 ## CI
 

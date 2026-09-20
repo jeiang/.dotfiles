@@ -43,10 +43,10 @@ in {
           shell = pkgs.bashInteractive;
           extraGroups = ["systemd-journal"];
           openssh.authorizedKeys.keys = [
-            # Placeholder: operator generates a real ed25519 keypair and
-            # replaces this line; the private half lives in the Hermes
-            # secrets shard from the later Hermes PR, never in git.
-            ''from="${self.lib.netbirdPeers.artemis}",no-agent-forwarding,no-X11-forwarding ssh-ed25519 REPLACE_ME hermes-ops''
+            # The public half of modules/hermes's hermes/ssh-key secret;
+            # self.lib.hermesOpsPublicKey is a placeholder until the
+            # operator mints the real keypair.
+            ''from="${self.lib.netbirdPeers.artemis}",no-agent-forwarding,no-X11-forwarding ${self.lib.hermesOpsPublicKey}''
           ];
         };
       };
