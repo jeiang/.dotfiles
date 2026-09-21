@@ -69,11 +69,14 @@
           esac
         done
 
+        # On unified memory, loading each model only while it runs leaves room
+        # for an untiled VAE decode; auto-fit keeps all of them resident.
         exec sd-cli \
           --diffusion-model "$dir/${weights.diffusion.name}" \
           --vae "$dir/${weights.vae.name}" \
           --llm "$dir/${weights.llm.name}" \
           "''${mode[@]}" \
+          --params-backend disk --diffusion-fa \
           --cfg-scale 6.0 --sampling-method euler \
           "$@"
       '';
