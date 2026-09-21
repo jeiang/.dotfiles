@@ -33,11 +33,6 @@
       mountpoint = lib.mkOption {type = lib.types.str;};
       sizeGiB = lib.mkOption {type = lib.types.ints.positive;};
       hcloudVolumeId = lib.mkOption {type = lib.types.str;};
-      fsType = lib.mkOption {
-        type = lib.types.str;
-        default = "ext4";
-        description = "Filesystem type of this Volume; picks its filesystem-label length limit.";
-      };
     };
   };
 
@@ -148,25 +143,8 @@ in {
             && lib.any (path: !(lib.hasPrefix s.volume.mountpoint path)) s.backupSet
         )
         named;
-      volumeEntries = builtins.filter (s: s.volume != null) named;
-      # A Volume's filesystem label is its service name: legion.services keys are already
-      # unique, and short enough to fit every fsType's limit below.
-      fsLabelLimit = {
-        ext4 = 16;
-        xfs = 12;
-      };
-      labelTooLong =
-        builtins.filter (
-          s:
-            builtins.stringLength s.name
-            > (fsLabelLimit.${s.volume.fsType} or (throw "legion.services.${s.name}.volume.fsType \"${s.volume.fsType}\" has no known filesystem-label length limit"))
-        )
-        volumeEntries;
-      labelNames = map (s: s.name) volumeEntries;
-      # disko's mkfs calls for the legion root disk (modules/hosts/legion/disko.nix) pass no
-      # -L, so no filesystem label exists yet to collide with.
-      diskoReservedLabels = [];
-      reservedLabelCollisions = builtins.filter (s: builtins.elem s.name diskoReservedLabels) volumeEntries;
+      # The Volume filesystem label is its service name (see modules/hosts/legion/default.nix); ext4 labels cap at 16 bytes.
+      labelTooLong = builtins.filter (s: s.volume != null && builtins.stringLength s.name > 16) named;
     in
       assert lib.assertMsg (builtins.length edgeEntries == 1)
       "legion.services must declare exactly one edge service: ${builtins.concatStringsSep ", " (map (s: s.name) edgeEntries)}";
@@ -177,10 +155,6 @@ in {
       assert lib.assertMsg (backupSetViolations == [])
       "Every legion.services backupSet path of a service with a Volume must be a subset of its mountpoint: ${builtins.concatStringsSep ", " (map (s: s.name) backupSetViolations)}";
       assert lib.assertMsg (labelTooLong == [])
-      "legion.services Volume filesystem label (its service name) exceeds its volume.fsType's label limit: ${builtins.concatStringsSep ", " (map (s: s.name) labelTooLong)}";
-      assert lib.assertMsg (builtins.length labelNames == builtins.length (lib.unique labelNames))
-      "legion.services Volume filesystem labels must be unique: ${builtins.concatStringsSep ", " labelNames}";
-      assert lib.assertMsg (reservedLabelCollisions == [])
-      "legion.services Volume filesystem label must not collide with a disko-reserved label: ${builtins.concatStringsSep ", " (map (s: s.name) reservedLabelCollisions)}"; services;
+      "legion.services entry name exceeds ext4's 16-byte label limit, so its Volume could not be labeled and would never mount: ${builtins.concatStringsSep ", " (map (s: s.name) labelTooLong)}"; services;
   };
 }
