@@ -242,6 +242,7 @@ def file_message(conn, envelope, uid, message_id, decision, folders):
     dest = folder if confident else FALLBACK_FOLDER
     if himalaya("message", "move", "--from", INBOX, "--to", dest, uid) is None:
         return
+    logging.info("%s filed to %s", message_id, dest)
     if confident:
         bump_folder_history(conn, domain, dest)
     conn.execute("UPDATE decisions SET moved = 1 WHERE message_id = ?", (message_id,))
