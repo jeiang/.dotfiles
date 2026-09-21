@@ -12,26 +12,7 @@
       (lib.mkIf (system == "x86_64-linux") (
         lib.mapAttrs' (name: nixosConfig: lib.nameValuePair "toplevel-${name}" nixosConfig.config.system.build.toplevel) self.nixosConfigurations
         // {
-          statix = pkgs.runCommand "statix-check" {nativeBuildInputs = [pkgs.statix];} ''
-            statix check ${self}
-            touch $out
-          '';
-
-          legion-nodes-json = pkgs.runCommand "legion-nodes-json-check" {} ''
-            diff -u ${self}/dns/nodes.json ${pkgs.writeText "nodes.json" self.lib.legionNodesJson} \
-              || { echo "dns/nodes.json is stale; regenerate it with: just dns-nodes" >&2; exit 1; }
-            touch $out
-          '';
-
-          # Exercises modules/netbird-invariants/check.sh's invariant logic
-          # against fixtures (modules/netbird-invariants/tests/fixtures),
-          # standing in for the live NetBird API call it can't make in the
-          # build sandbox: a fake `curl` fed by NETBIRD_TEST_DIR, and the
-          # flake's own expected JSON in place of `nix eval`. Every
-          # invariant category failing alone, several failing together in
-          # one run (the #225 lesson: don't let the first failure hide the
-          # rest), and the fail-closed paths (401, 500, non-JSON body,
-          # unreachable server, missing token).
+          # Runs modules/netbird-invariants/check.sh against fixtures with a fake curl; the build sandbox has no network.
           netbird-invariants = let
             fakeCurl = pkgs.writeShellScriptBin "curl" (builtins.readFile "${self}/modules/netbird-invariants/tests/fake-curl.sh");
             fixtures = "${self}/modules/netbird-invariants/tests/fixtures";
@@ -95,6 +76,17 @@
               [ "$fail" -eq 0 ] || exit 1
               touch $out
             '';
+
+          statix = pkgs.runCommand "statix-check" {nativeBuildInputs = [pkgs.statix];} ''
+            statix check ${self}
+            touch $out
+          '';
+
+          legion-nodes-json = pkgs.runCommand "legion-nodes-json-check" {} ''
+            diff -u ${self}/dns/nodes.json ${pkgs.writeText "nodes.json" self.lib.legionNodesJson} \
+              || { echo "dns/nodes.json is stale; regenerate it with: just dns-nodes" >&2; exit 1; }
+            touch $out
+          '';
         }
       ))
       # Only the toplevel: garret push sends its whole closure, which already holds every darwin package zakkart installs.

@@ -302,6 +302,3 @@ behavior for its own sake.
   cache, `--remote-build` makes each target compile deploy-rs itself.
 - `dns.yml` previews DNS changes on pull requests, pushes them on merge, and
   runs a weekly drift check.
-- `netbird.yml` runs `modules/netbird-invariants/check.sh` weekly and on
-  `workflow_dispatch`, never on pull requests, since it needs an
-  Auditor-role NetBird token (`NETBIRD_READ_TOKEN`).
