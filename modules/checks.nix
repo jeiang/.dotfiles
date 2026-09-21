@@ -16,6 +16,12 @@
             statix check ${self}
             touch $out
           '';
+
+          legion-nodes-json = pkgs.runCommand "legion-nodes-json-check" {} ''
+            diff -u ${self}/dns/nodes.json ${pkgs.writeText "nodes.json" self.lib.legionNodesJson} \
+              || { echo "dns/nodes.json is stale; regenerate it with: just dns-nodes" >&2; exit 1; }
+            touch $out
+          '';
         }
       ))
       # Only the toplevel: garret push sends its whole closure, which already holds every darwin package zakkart installs.

@@ -143,6 +143,9 @@ in {
       };
     };
 
+    # dns/dnsconfig.js reads this through require(); `just dns-nodes` rewrites the committed dns/nodes.json.
+    lib.legionNodesJson = builtins.toJSON (lib.mapAttrs (_: node: {inherit (node) publicIPv4 publicIPv6;}) validatedLegionNodes) + "\n";
+
     deploy.nodes =
       builtins.mapAttrs (name: _: {
         hostname = nodeHostname name;
