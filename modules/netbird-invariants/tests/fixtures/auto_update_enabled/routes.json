@@ -1,0 +1,14 @@
+[
+  {
+    "id": "route-legion-node2",
+    "network_type": "IPv4",
+    "description": "Legion Cluster",
+    "network_id": "Legion Cluster",
+    "enabled": true,
+    "network": "172.17.0.2/32",
+    "metric": 9999,
+    "masquerade": false,
+    "groups": ["group-legion-routers"],
+    "keep_route": false
+  }
+]

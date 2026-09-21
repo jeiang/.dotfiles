@@ -1,0 +1,52 @@
+[
+  {
+    "id": "ns-primary",
+    "name": "Blocky Primary",
+    "description": "Primary resolver for all domains",
+    "nameservers": [
+      {
+        "ip": "172.17.0.2",
+        "ns_type": "udp",
+        "port": 80
+      },
+      {
+        "ip": "9.9.9.9",
+        "ns_type": "udp",
+        "port": 53
+      }
+    ],
+    "enabled": true,
+    "groups": [
+      "group-all"
+    ],
+    "primary": true,
+    "domains": [],
+    "search_domains_enabled": false
+  },
+  {
+    "id": "ns-quad9",
+    "name": "Quad9 jeiang.dev",
+    "description": "Public wildcard failover",
+    "nameservers": [
+      {
+        "ip": "9.9.9.9",
+        "ns_type": "udp",
+        "port": 53
+      },
+      {
+        "ip": "149.112.112.112",
+        "ns_type": "udp",
+        "port": 53
+      }
+    ],
+    "enabled": true,
+    "groups": [
+      "group-all"
+    ],
+    "primary": false,
+    "domains": [
+      "jeiang.dev"
+    ],
+    "search_domains_enabled": false
+  }
+]

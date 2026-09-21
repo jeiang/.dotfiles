@@ -193,6 +193,15 @@ behavior for its own sake.
   `legion-node1`. The host opens TCP/UDP 40000-45000 for ad hoc services,
   and `legion` allows that range on every node, so a port in it is public
   on any node whose host firewall opens it.
+- `modules/netbird-invariants/` is a read-only check (never PUT/POST/DELETE)
+  of the self-hosted NetBird management API: the Quad9 `jeiang.dev` group's
+  `search_domains_enabled` stays off, the primary DNS group is Blocky on
+  `legion-node2` failing over to Quad9, the node2 `/32` route is enabled,
+  client auto-update is disabled, and every reverse-proxy service's CrowdSec
+  mode is `enforce`. `just netbird-invariants` runs it locally with
+  `NETBIRD_API_TOKEN`; `.github/workflows/netbird.yml` runs it weekly with
+  an Auditor-role token (`NETBIRD_READ_TOKEN`), since that role is
+  genuinely read-only across the whole management API.
 - Blackbox probes target private backend addresses, never public URLs.
   Probes through the edge would get the prober banned by CrowdSec.
 - Anubis gates only the static content sites. Never put it in front of a
@@ -293,3 +302,6 @@ behavior for its own sake.
   cache, `--remote-build` makes each target compile deploy-rs itself.
 - `dns.yml` previews DNS changes on pull requests, pushes them on merge, and
   runs a weekly drift check.
+- `netbird.yml` runs `modules/netbird-invariants/check.sh` weekly and on
+  `workflow_dispatch`, never on pull requests, since it needs an
+  Auditor-role NetBird token (`NETBIRD_READ_TOKEN`).

@@ -1,0 +1,24 @@
+[
+  {
+    "id": "acc-jeiang",
+    "domain": "jeiang.dev",
+    "domain_category": "private",
+    "created_at": "2023-05-05T09:00:35.477782Z",
+    "created_by": "owner",
+    "onboarding": {
+      "signup_form_pending": false,
+      "onboarding_flow_pending": false
+    },
+    "settings": {
+      "peer_login_expiration_enabled": true,
+      "peer_login_expiration": 43200,
+      "peer_inactivity_expiration_enabled": true,
+      "peer_inactivity_expiration": 43200,
+      "regular_users_view_blocked": true,
+      "peer_expose_enabled": false,
+      "peer_expose_groups": [],
+      "auto_update_version": "latest",
+      "auto_update_always": false
+    }
+  }
+]
