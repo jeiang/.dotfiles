@@ -19,7 +19,7 @@ in {
       name = "legion-hath";
       mountpoint = dataDir;
       hcloudVolumeId = "106251745";
-      sizeGiB = 40;
+      sizeGiB = 30;
     };
     backupSet = ["${dataDir}/data" "${dataDir}/cache"];
   };
