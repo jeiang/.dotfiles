@@ -12,9 +12,7 @@
   # the himalaya and vdirsyncer config below.
   icloudAppleId = "aidan@aidanpinard.co";
 in {
-  # Public half of the hermes/ssh-key secret below; modules/hermes-ops.nix's
-  # authorizedKeys references this instead of a second hardcoded copy.
-  # Placeholder until the operator mints the real ed25519 keypair.
+  # Public half of the hermes/ssh-key secret below.
   flake.lib.hermesOpsPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICMV+ek2SZ1bRHNHs6/CKpS6p+xaRR6FW69eXDGwH3pr hermes-ops";
 
   nixos.modules.artemis = {

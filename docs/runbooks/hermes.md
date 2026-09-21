@@ -55,7 +55,7 @@ nix shell nixpkgs#openssh -c ssh-keygen -t ed25519 -N "" -f /tmp/hermes-ops-key 
 
 - Private half: `just sops-edit modules/hermes/secrets.yaml`, set
   `hermes.ssh-key` to the file's contents.
-- Public half: replace `REPLACE_ME` in `flake.lib.hermesOpsPublicKey`
+- Public half: replace the value of `flake.lib.hermesOpsPublicKey`
   (`modules/hermes/default.nix`) with it. `modules/hermes-ops.nix` reads that
   one literal for every Legion node's `hermes-ops` `authorized_keys`, so this
   is the only place to edit.
@@ -216,8 +216,8 @@ its next unrelated restart. The oneshot units (`jev-mail-triage`,
   (the value itself won't print, but a stale `ActiveEnterTimestamp` on one
   unit relative to the last `sops-edit` is the tell).
 - **hermes-ops SSH refused** — check, in order: the public half of
-  `hermes/ssh-key` is actually in `flake.lib.hermesOpsPublicKey` (not still
-  `REPLACE_ME`); the `from=` restriction on each node's `authorized_keys`
+  `hermes/ssh-key` is actually the value in `flake.lib.hermesOpsPublicKey`;
+  the `from=` restriction on each node's `authorized_keys`
   entry matches artemis's *current* NetBird peer address
   (`self.lib.netbirdPeers.artemis` — a re-enrolled peer changes this, and
   every Legion node needs the redeploy); and that Legion uses `sudo`, not

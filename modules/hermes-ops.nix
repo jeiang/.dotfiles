@@ -1,4 +1,9 @@
-{self, ...}: let
+{
+  self,
+  lib,
+  config,
+  ...
+}: let
   systemctlPath = "/run/current-system/sw/bin/systemctl";
 
   # sudoers matches the invoked command line literally, arguments included --
@@ -8,6 +13,24 @@
     command = "${systemctlPath} ${verb} ${unit}.service";
     options = ["NOPASSWD"];
   };
+
+  servicesByNode = nodeName: builtins.filter (s: s.node == nodeName) (lib.mapAttrsToList (name: s: s // {inherit name;}) config.legion.services);
+
+  # AGENTS.md hermes-ops tiers: every unit of these whole services is tier 1
+  # (restart allowlist); prometheus-blackbox-exporter is tier 1 too, but
+  # rides inside the otherwise tier-2 monitoring service, so it is picked
+  # out by unit name instead.
+  tier1Services = ["gatus" "glance" "garret" "hath" "crowdsec"];
+  tier1PickedUnits = ["prometheus-blackbox-exporter"];
+  nodeExporterUnit = "prometheus-node-exporter";
+
+  tier1UnitsFor = nodeName: let
+    services = servicesByNode nodeName;
+    wholeServiceUnits = lib.concatMap (s: s.units) (builtins.filter (s: builtins.elem s.name tier1Services) services);
+    pickedUnits = lib.concatMap (s: builtins.filter (u: builtins.elem u tier1PickedUnits) s.units) services;
+    resticBackupUnits = map (s: "restic-backups-${s.name}") (builtins.filter (s: s.backupSet != [] && s.volume != null) services);
+  in
+    [nodeExporterUnit] ++ wholeServiceUnits ++ pickedUnits ++ resticBackupUnits;
 in {
   nixos.modules.legion = {
     config,
@@ -15,48 +38,31 @@ in {
     pkgs,
     ...
   }: let
-    cfg = config.hermesOps;
-
     startRestartCommands =
       lib.concatMap (unit: [(mkSystemctlCommand "start" unit) (mkSystemctlCommand "restart" unit)])
-      cfg.tier1Units;
+      (tier1UnitsFor config.networking.hostName);
   in {
-    options.hermesOps.tier1Units = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [];
-      description = ''
-        This node's tier-1 (restart allowlist, no confirmation) systemd unit
-        basenames (AGENTS.md hermes-ops tiers). Set per node by
-        modules/hosts/legion/default.nix, not by hand elsewhere.
-      '';
-    };
-
-    config = {
-      users = {
-        groups.hermes-ops = {};
-        users.hermes-ops = {
-          isSystemUser = true;
-          group = "hermes-ops";
-          home = "/var/empty";
-          createHome = false;
-          hashedPassword = "!";
-          shell = pkgs.bashInteractive;
-          extraGroups = ["systemd-journal"];
-          openssh.authorizedKeys.keys = [
-            # The public half of modules/hermes's hermes/ssh-key secret;
-            # self.lib.hermesOpsPublicKey is a placeholder until the
-            # operator mints the real keypair.
-            ''from="${self.lib.netbirdPeers.artemis}",no-agent-forwarding,no-X11-forwarding ${self.lib.hermesOpsPublicKey}''
-          ];
-        };
+    users = {
+      groups.hermes-ops = {};
+      users.hermes-ops = {
+        isSystemUser = true;
+        group = "hermes-ops";
+        home = "/var/empty";
+        createHome = false;
+        hashedPassword = "!";
+        shell = pkgs.bashInteractive;
+        extraGroups = ["systemd-journal"];
+        openssh.authorizedKeys.keys = [
+          ''from="${self.lib.netbirdPeers.artemis}",no-agent-forwarding,no-X11-forwarding ${self.lib.hermesOpsPublicKey}''
+        ];
       };
-
-      security.sudo.extraRules = [
-        {
-          users = ["hermes-ops"];
-          commands = startRestartCommands;
-        }
-      ];
     };
+
+    security.sudo.extraRules = [
+      {
+        users = ["hermes-ops"];
+        commands = startRestartCommands;
+      }
+    ];
   };
 }

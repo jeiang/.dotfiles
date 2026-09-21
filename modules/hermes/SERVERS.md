@@ -3,8 +3,8 @@
 > **This file is Nix-managed**, same as SOUL.md — installed fresh into your
 > working directory on every activation from `modules/hermes/SERVERS.md`.
 > Don't edit it in place; changes go through the `cornn-flaek` repo. The
-> unit lists below are a snapshot of `hermesOps.tier1Units`
-> (`modules/hosts/legion/default.nix`); when a Legion service changes,
+> unit lists below are a snapshot of the tier-1 allowlist
+> (`modules/hermes-ops.nix`); when a Legion service changes,
 > this file is regenerated from that source, not hand-edited independently.
 
 Reference for the Legion fleet you operate. SOUL.md has the tier policy
