@@ -1,0 +1,17 @@
+{
+  "id": 100,
+  "name": "legion",
+  "rules": [
+    {
+      "direction": "in",
+      "source_ips": ["0.0.0.0/0", "::/0"],
+      "destination_ips": [],
+      "protocol": "tcp",
+      "port": "23",
+      "description": "ssh"
+    }
+  ],
+  "applied_to": [
+    {"type": "server", "server": {"id": 1}}
+  ]
+}

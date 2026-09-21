@@ -10,20 +10,34 @@ if [ -z "${HCLOUD_TOKEN:-}" ] && ! hcloud context active >/dev/null 2>&1; then
   exit 1
 fi
 
-expected_json=$(nix eval --raw '.#lib.hcloudDriftExpectedJson')
+# HCLOUD_DRIFT_EXPECTED lets a fixture (modules/checks.nix's hcloud-drift
+# flake check, or a manual test) stand in for the flake evaluation.
+expected_json="${HCLOUD_DRIFT_EXPECTED:-$(nix eval --raw '.#lib.hcloudDriftExpectedJson')}"
 
 drift=0
 
-# Prints every line only one side has, labelled by which side. Reused for
-# rules, attachments and volumes: each is reduced to one JSON object per line
-# before diffing, so a missing/extra/changed entry is a single readable line.
+# Prints every line only one side has, labelled by which side, and keeps
+# going: all three categories below always run and report in the same
+# invocation. diff's exit 1 ("differs") is the expected drift signal, so
+# it's captured explicitly rather than left to trip `set -e`; diff exiting
+# >1 (a real diff failure) still aborts the script, fail-closed.
 diff_lines() {
   local label=$1 expected=$2 live=$3
-  if [ "$expected" != "$live" ]; then
+  local result status
+  result=$(diff <(printf '%s\n' "$expected") <(printf '%s\n' "$live") 2>&1) && status=0 || status=$?
+  case "$status" in
+  0) return 0 ;;
+  1)
     drift=1
     echo "== $label drift =="
-    diff <(echo "$expected") <(echo "$live") | sed -e 's/^</  expected only: /' -e 's/^>/  live only:     /' -e '/^---$/d'
-  fi
+    echo "$result" | sed -e 's/^</  expected only: /' -e 's/^>/  live only:     /' -e '/^---$/d'
+    ;;
+  *)
+    echo "error: diff failed comparing $label (exit $status)" >&2
+    echo "$result" >&2
+    exit "$status"
+    ;;
+  esac
 }
 
 fw_name=$(jq -r '.firewall.name' <<<"$expected_json")
@@ -31,9 +45,9 @@ live_fw=$(hcloud firewall describe "$fw_name" -o json)
 live_servers=$(hcloud server list -o json)
 server_name_by_id=$(jq -c '[.[] | {(.id | tostring): .name}] | add // {}' <<<"$live_servers")
 
-expected_rules=$(jq -S -c '.firewall.rules[]' <<<"$expected_json" | sort -u)
+expected_rules=$(jq -S -c '.firewall.rules[] | .sourceIps |= sort' <<<"$expected_json" | sort -u)
 # ICMP stays operator-managed (AGENTS.md); it must never fail this check.
-live_rules=$(jq -S -c '.rules[] | select(.protocol != "icmp") | {direction, protocol, port}' <<<"$live_fw" | sort -u)
+live_rules=$(jq -S -c '.rules[] | select(.protocol != "icmp") | {direction, protocol, port, sourceIps: (.source_ips | sort)}' <<<"$live_fw" | sort -u)
 diff_lines "firewall '$fw_name' rules" "$expected_rules" "$live_rules"
 
 expected_attachments=$(jq -S -c '.firewall.attachments[]' <<<"$expected_json" | sort -u)

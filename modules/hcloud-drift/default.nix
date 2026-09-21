@@ -8,6 +8,10 @@
 
   firewallOf = node: self.nixosConfigurations.${node}.config.networking.firewall;
 
+  # Every expected rule allows both address families; check.sh sorts this
+  # array on both sides so emission order here doesn't matter.
+  publicSourceIps = ["0.0.0.0/0" "::/0"];
+
   # Reads the merged per-node firewall, not legion.services: a node can open a
   # public port through another module (e.g. openssh's default openFirewall)
   # without a legion.services entry, and the live Cloud Firewall must still
@@ -19,6 +23,7 @@
         direction = "in";
         protocol = proto;
         port = toString port;
+        sourceIps = publicSourceIps;
       })
       ports;
     ranged = proto: ranges:
@@ -26,6 +31,7 @@
         direction = "in";
         protocol = proto;
         port = "${toString r.from}-${toString r.to}";
+        sourceIps = publicSourceIps;
       })
       ranges;
   in

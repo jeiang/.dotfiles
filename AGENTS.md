@@ -294,6 +294,7 @@ behavior for its own sake.
   cache, `--remote-build` makes each target compile deploy-rs itself.
 - `dns.yml` previews DNS changes on pull requests, pushes them on merge, and
   runs a weekly drift check.
-- `hcloud.yml` is read-only and advisory (not part of `all-checks`): it
-  previews `just hcloud-drift` on pull requests without failing the build,
-  and fails on push to `main`, weekly schedule, and `workflow_dispatch`.
+- `hcloud.yml` is read-only and advisory (not part of `all-checks`): it runs
+  `modules/hcloud-drift/check.sh` (what `just hcloud-drift` also runs) as a
+  non-blocking preview on pull requests, and fails on push to `main`, weekly
+  schedule, and `workflow_dispatch`.
