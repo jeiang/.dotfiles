@@ -64,9 +64,20 @@ run_check() {
 }
 
 dns_groups=$(api_get "/dns/nameservers")
-routes=$(api_get "/routes")
+networks=$(api_get "/networks")
 accounts=$(api_get "/accounts")
 services=$(api_get "/reverse-proxies/services")
+
+# Merges each network's full resources and routers (Networks feature; the
+# legacy /routes API has no entry for node2) into one array for run_check.
+networks_detail="[]"
+while IFS= read -r net_id; do
+  net=$(jq -c --arg id "$net_id" '.[] | select(.id == $id)' <<<"$networks")
+  resources=$(api_get "/networks/${net_id}/resources")
+  routers=$(api_get "/networks/${net_id}/routers")
+  networks_detail=$(jq -c --argjson net "$net" --argjson resources "$resources" --argjson routers "$routers" \
+    '. + [$net + {resources: $resources, routers: $routers}]' <<<"$networks_detail")
+done < <(jq -r '.[].id' <<<"$networks")
 
 run_check "quad9-search-domain" "$dns_groups" '
   [.[] | select((.domains // []) | index($expected.quad9Domain))] as $matches
@@ -102,13 +113,25 @@ run_check "primary-nameserver-group" "$dns_groups" '
     end
 '
 
-run_check "legion-node2-route" "$routes" '
-  [.[] | select(.network == $expected.routeNetwork)] as $matches
+run_check "legion-node2-network" "$networks_detail" '
+  ($expected.legionNode2Ip) as $ip
+  | [.[] | . as $net | ($net.resources // [])[]
+      | select((.address // "" | sub("/32$"; "")) == $ip)
+      | {net: $net, resource: .}] as $matches
   | if ($matches | length) == 0 then
-      "no route for \($expected.routeNetwork) found"
+      "no network resource matches \($ip)"
     else
-      ($matches[] | select(.enabled != true)
-        | "route \(.network_id // .id) for \($expected.routeNetwork) is disabled")
+      (
+        [$matches[] | select(.resource.enabled != true)
+          | "resource \(.resource.name // .resource.id) for \($ip) in network \(.net.name // .net.id) is disabled"]
+        + (
+            $matches
+            | map(select(.resource.enabled == true))
+            | unique_by(.net.id)
+            | map(select(((.net.routers // []) | any(.enabled == true)) | not))
+            | map("network \(.net.name // .net.id) has an enabled resource for \($ip) but no enabled router")
+          )
+      )[]
     end
 '
 

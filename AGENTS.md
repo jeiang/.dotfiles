@@ -196,9 +196,10 @@ behavior for its own sake.
 - `modules/netbird-invariants/` is a read-only check (never PUT/POST/DELETE)
   of the self-hosted NetBird management API: the Quad9 `jeiang.dev` group's
   `search_domains_enabled` stays off, the primary DNS group is Blocky on
-  `legion-node2` failing over to Quad9, the node2 `/32` route is enabled,
-  client auto-update is disabled, and every reverse-proxy service's CrowdSec
-  mode is `enforce`. `just netbird-invariants` runs it locally with
+  `legion-node2` failing over to Quad9, some Networks resource for node2 is
+  enabled behind an enabled router, client auto-update is disabled, and
+  every reverse-proxy service's CrowdSec mode is `enforce`.
+  `just netbird-invariants` runs it locally with
   `NETBIRD_API_TOKEN`; `.github/workflows/netbird.yml` runs it weekly with
   an Auditor-role token (`NETBIRD_READ_TOKEN`), since that role is
   genuinely read-only across the whole management API.

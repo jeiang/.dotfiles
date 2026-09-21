@@ -1,0 +1,11 @@
+[
+  {
+    "id": "res-legion-node2",
+    "type": "host",
+    "name": "legion-node2",
+    "description": "",
+    "address": "172.17.0.2",
+    "enabled": true,
+    "groups": ["group-legion-routers"]
+  }
+]

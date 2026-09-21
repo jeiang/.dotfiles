@@ -18,7 +18,8 @@
         port = 53;
       }
     ];
-    routeNetwork = "${node2.privateIPv4}/32";
+    # Bare IP: matched against a Networks resource address with or without /32.
+    legionNode2Ip = node2.privateIPv4;
     autoUpdateVersion = "disabled";
     crowdsecMode = "enforce";
   };
