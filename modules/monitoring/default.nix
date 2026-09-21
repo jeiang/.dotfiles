@@ -598,8 +598,7 @@ in {
               ];
               # Jev triages every alert before Hermes ever sees one (only
               # page_now reaches the webhook); modules/hermes/jev binds the
-              # listener to artemis's NetBird address, like the Hermes
-              # webhook itself.
+              # listener to artemis's NetBird address.
               webhook_configs = [
                 {
                   url = "http://${self.lib.netbirdPeers.artemis}:${toString self.lib.jevAlertPort}/alert";
