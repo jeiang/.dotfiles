@@ -50,6 +50,11 @@ in {
       restartUnits = ["systemd-networkd.service"];
     };
 
+    # networkd starts before sysinit.target and loads this key as a credential;
+    # without the key file it fails with 243/CREDENTIALS and the node boots
+    # with no network.
+    systemd.services.sops-install-secrets.before = ["systemd-networkd.service"];
+
     networking.wireguard.interfaces.wg-backup = {
       ips = ["10.100.0.1/30"];
       listenPort = wireguardPort;
