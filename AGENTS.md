@@ -160,6 +160,15 @@ behavior for its own sake.
   only after a recipient change in `.sops.yaml`.
 - A rotated secret reaches a running process only through that secret's
   `restartUnits`.
+- On NixOS, `sops-install-secrets.service` (`useSystemdActivation`)
+  installs the secrets before `sysinit.target`, not an activation script,
+  because NixOS is removing restarts requested from activation scripts. It
+  requests `restartUnits` with `systemctl --no-block try-restart`, so a
+  failed restart does not fail the deploy. A consumer that starts before
+  `sysinit.target` or reads a secret in an activation script needs its own
+  ordering or a start-time copy (node1's `systemd-networkd`, the Hermes
+  `.env`). Secrets with `neededForUsers` still install from an activation
+  script.
 - `modules/sops/secrets.admin.yaml` is the admin's own stash. No module
   consumes it.
 
