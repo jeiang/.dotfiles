@@ -85,6 +85,11 @@ llm-start:
 llm-status:
   ssh artemis.jeiang.vpn 'systemctl status llm-server.service --no-pager -n 5; command -v rocm-smi >/dev/null && rocm-smi --showmeminfo vram; true'
 
+# Generate an image with Qwen-Image 2.1 (sd-cli args, e.g. -p "..." -o out.png; add -r in.png to edit); the first run downloads 11 GB of weights to ~/.cache/qwen-image-2.1
+[no-cd, positional-arguments]
+qwen-image *args:
+  nix run {{justfile_directory()}}#qwen-image -- "$@"
+
 # A formula-only brew upgrade swaps the daemon binary without restarting the
 # running launchd job, so kickstart re-bootstraps it after the upgrade.
 
