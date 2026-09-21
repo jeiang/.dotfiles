@@ -42,11 +42,10 @@ in {
         TRUST_PROXY = true;
         UI_CONFIG_DISABLED = true;
         ALLOW_USER_SIGNUPS = "withToken";
-        # systemd's EnvironmentFile strips unquoted double quotes, which would break the JSON.
-        SIGNUP_DEFAULT_USER_GROUP_IDS = lib.escapeShellArg (builtins.toJSON [
+        SIGNUP_DEFAULT_USER_GROUP_IDS = builtins.toJSON [
           "88b3805f-275a-4f55-b3a9-d31d918d2ac3"
           "b652bdf8-f4c7-4c25-9552-7d93912fec40"
-        ]);
+        ];
         EMAIL_VERIFICATION_ENABLED = true;
         EMAIL_LOGIN_NOTIFICATION_ENABLED = true;
         EMAIL_ONE_TIME_ACCESS_AS_ADMIN_ENABLED = true;
