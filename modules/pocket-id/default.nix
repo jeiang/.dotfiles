@@ -40,9 +40,23 @@ in {
       settings = {
         APP_URL = "https://auth.jeiang.dev";
         TRUST_PROXY = true;
+        UI_CONFIG_DISABLED = true;
+        ALLOW_USER_SIGNUPS = "withToken";
+        SIGNUP_DEFAULT_USER_GROUP_IDS = builtins.toJSON [
+          "88b3805f-275a-4f55-b3a9-d31d918d2ac3"
+          "b652bdf8-f4c7-4c25-9552-7d93912fec40"
+        ];
+        EMAIL_VERIFICATION_ENABLED = true;
+        EMAIL_LOGIN_NOTIFICATION_ENABLED = true;
+        EMAIL_ONE_TIME_ACCESS_AS_ADMIN_ENABLED = true;
+        EMAIL_API_KEY_EXPIRATION_ENABLED = true;
+        SMTP_HOST = "smtp.mail.me.com";
+        SMTP_PORT = 587;
+        SMTP_TLS = "starttls";
+        SMTP_FROM = "noreply@jeiang.dev";
+        SMTP_USER = "jeiang";
       };
-      # SMTP is DB-backed and admin-UI configured in the pinned Pocket ID
-      # version; there is nothing to wire here.
+      credentials.SMTP_PASSWORD = config.sops.secrets."pocket-id/smtp-password".path;
       environmentFile = config.sops.templates."pocket-id.env".path;
     };
 
@@ -61,6 +75,10 @@ in {
       secrets = {
         "pocket-id/encryption-key" = {inherit sopsFile;};
         "pocket-id/static-api-key" = {inherit sopsFile;};
+        "pocket-id/smtp-password" = {
+          inherit sopsFile;
+          restartUnits = ["pocket-id.service"];
+        };
       };
       templates."pocket-id.env" = {
         owner = config.services.pocket-id.user;

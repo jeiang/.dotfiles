@@ -248,8 +248,10 @@ behavior for its own sake.
 - artemis's btrfs root is RAID0 across three NVMe drives for throughput. The
   loss of one drive loses the pool.
 - bees runs only from 03:00 to 09:00, because it stalls game I/O.
-- Pocket ID keeps its SMTP settings in its database. Enter them again in the
-  admin UI after a fresh install.
+- Pocket ID's application settings are declared in Nix under
+  `UI_CONFIG_DISABLED`, which ignores the database's copy and locks the admin
+  UI's settings page: an undeclared setting takes Pocket ID's default. The SMTP
+  password reaches it from sops through `services.pocket-id.credentials`.
 - NetBird peer IPs in `modules/netbird-peers.nix` change when a peer
   enrolls again.
 - Every zellij layout draws its bar with zjstatus, declared once as a plugin
