@@ -64,7 +64,8 @@ def himalaya_json(key, *args):
 
 
 def list_envelopes(mailbox):
-    return himalaya_json("envelopes", "envelope", "list", "--mailbox", mailbox, "--page-size", str(PAGE_SIZE)) or []
+    """None when the listing failed, [] when the mailbox is really empty."""
+    return himalaya_json("envelopes", "envelope", "list", "--mailbox", mailbox, "--page-size", str(PAGE_SIZE))
 
 
 def init_db(conn):
@@ -107,15 +108,27 @@ def sender_domain(address):
     return address.split("@")[-1].lower() if "@" in address else ""
 
 
-def seed_folder_history(conn, folders):
+def seed_folder_history(conn, folders, mailboxes_listed):
     """One-time seed from current folder contents (capped per folder), so the
-    very first triage run already has sender/folder history to reason from."""
+    very first triage run already has sender/folder history to reason from.
+    The seed counts as done only when the mailbox list and at least one folder
+    listing came back: a misconfigured himalaya lists nothing, and marking that
+    run seeded would leave the history permanently empty."""
     if conn.execute("SELECT 1 FROM meta WHERE key = 'seeded'").fetchone():
         return
+    seeded_any = False
     for folder in folders:
-        for envelope in list_envelopes(folder)[:SEED_CAP_PER_FOLDER]:
+        envelopes = list_envelopes(folder)
+        if envelopes is None:
+            continue
+        seeded_any = True
+        for envelope in envelopes[:SEED_CAP_PER_FOLDER]:
             domain = sender_domain(sender_address(envelope))
             bump_folder_history(conn, domain, folder)
+    if not (mailboxes_listed and seeded_any):
+        conn.rollback()  # all-or-nothing, so the retry cannot double-count a folder
+        logging.warning("folder history not seeded: himalaya listed nothing; retrying next run")
+        return
     conn.execute("INSERT OR REPLACE INTO meta (key, value) VALUES ('seeded', '1')")
     conn.commit()
 
@@ -253,12 +266,12 @@ def main():
     conn = sqlite3.connect(DB_PATH)
     init_db(conn)
 
-    mailboxes = himalaya_json("mailboxes", "mailbox", "list") or []
-    folders = [m.get("name") for m in mailboxes if isinstance(m, dict) and m.get("name")] or [INBOX]
-    seed_folder_history(conn, folders)
+    mailboxes = himalaya_json("mailboxes", "mailbox", "list")
+    folders = [m.get("name") for m in mailboxes or [] if isinstance(m, dict) and m.get("name")] or [INBOX]
+    seed_folder_history(conn, folders, mailboxes is not None)
 
     urgent_digest = []
-    for envelope in list_envelopes(INBOX):
+    for envelope in list_envelopes(INBOX) or []:
         try:
             line = process_envelope(conn, envelope, folders)
         except Exception:
