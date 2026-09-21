@@ -184,6 +184,10 @@ behavior for its own sake.
   the one Hetzner Cloud Firewall all four nodes share. It is attached by
   server ID, so a new node must be attached to it explicitly. Public ICMP
   stays blocked there; the operator opens it by hand when needed.
+  `just hcloud-drift` (`modules/hcloud-drift/`) proves live state matches
+  this: the expected rule set is the union of each node's merged
+  `networking.firewall`, not `legion.services` (a node can open a port
+  through another module), and it excludes ICMP.
 - `netbird-proxy` on `legion-node2` is public and terminates its own TLS
   (DNS-01 wildcard for `proxy.jeiang.dev`). CrowdSec IP reputation and an
   nftables bouncer protect it with decisions from the LAPI on
@@ -290,3 +294,6 @@ behavior for its own sake.
   cache, `--remote-build` makes each target compile deploy-rs itself.
 - `dns.yml` previews DNS changes on pull requests, pushes them on merge, and
   runs a weekly drift check.
+- `hcloud.yml` is read-only and advisory (not part of `all-checks`): it
+  previews `just hcloud-drift` on pull requests without failing the build,
+  and fails on push to `main`, weekly schedule, and `workflow_dispatch`.

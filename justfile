@@ -59,6 +59,10 @@ dns-nodes:
 dns-preview *args:
   CLOUDFLARE_API_TOKEN=$(sops -d --extract '["caddy"]["cloudflare-dns-token"]' modules/edge/secrets.yaml) dnscontrol preview --config dns/dnsconfig.js --creds dns/creds.json {{args}}
 
+# Compare live Hetzner Cloud firewall/Volume state to the flake; read-only, uses the operator's hcloud context
+hcloud-drift:
+  ./modules/hcloud-drift/check.sh
+
 disko-format system sudo="sudo":
   {{sudo}} disko -f .#{{system}} --mode destroy,format,mount
 
