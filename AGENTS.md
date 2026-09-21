@@ -177,7 +177,10 @@ behavior for its own sake.
   its whole durability story; atuin on `legion-node4` is the first such
   service. Exactly one node owns each stateful service; moving it is an
   explicit Volume (or backup) and state migration, not a placement edit
-  alone.
+  alone. Legion `fileSystems` entries for a Volume mount by ext4 label, not
+  by `hcloudVolumeId`: a new Volume must be formatted with its
+  `legion.services.<name>` key as that label (at most 16 bytes) before the
+  deploy that mounts it.
 - Legion host firewalls are on. A `legion.services.<name>` entry's
   `scope = "private"` is documentation: `enp7s0` and the NetBird interface
   are trusted interfaces. A public opening also needs a rule in `legion`,
