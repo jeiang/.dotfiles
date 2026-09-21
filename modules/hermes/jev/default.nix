@@ -49,15 +49,14 @@ in {
 
     # serviceConfig shared by both alert-triage units; STATE_DIRECTORY and
     # CREDENTIALS_DIRECTORY are set automatically by systemd from
-    # StateDirectory/LoadCredential. User/Group pin the DynamicUser identity
-    # so both units resolve to the same UID: without it each unit's dynamic
-    # user is derived from its own unit name, and systemd re-chowns the
-    # shared StateDirectory to whichever unit started most recently, breaking
-    # the other unit's access to digest.jsonl.
+    # StateDirectory/LoadCredential. A static user, not DynamicUser: the
+    # StateDirectory is an impermanence bind mount that already exists as
+    # root:root, and systemd refuses to hand a pre-existing mountpoint to a
+    # dynamic user. One identity for both units also keeps digest.jsonl
+    # readable by whichever of them did not write it.
     alertServiceConfig = {
-      DynamicUser = true;
-      User = "jev-alert-triage";
-      Group = "jev-alert-triage";
+      User = "jev";
+      Group = "jev";
       LoadCredential = ["hermes-env:${envFile}"];
       StateDirectory = "jev-alert-triage";
       NoNewPrivileges = true;
@@ -86,9 +85,23 @@ in {
       "jev-alert-digest.service"
     ];
 
+    users.users.jev = {
+      isSystemUser = true;
+      group = "jev";
+    };
+    users.groups.jev = {};
+
     # digest.jsonl in jev-alert-triage's StateDirectory must survive a
-    # reboot on artemis's impermanent root.
-    persistence.directories = ["/var/lib/jev-alert-triage"];
+    # reboot on artemis's impermanent root. impermanence applies the owner
+    # only when it first creates the source directory, so the entry has to
+    # name jev: a root-owned source is what systemd rejected.
+    persistence.directories = [
+      {
+        directory = "/var/lib/jev-alert-triage";
+        user = "jev";
+        group = "jev";
+      }
+    ];
 
     # Jev's judgments run in front of Hermes as plain systemd services and a
     # hook script, never as a tool the model itself chooses (AGENTS.md).

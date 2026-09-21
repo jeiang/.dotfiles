@@ -84,9 +84,9 @@ def post_hermes_webhook(host, port, route, secret, payload, timeout=10):
 
 def load_credential_env(name):
     """Parse KEY=VALUE lines from a systemd LoadCredential file into os.environ.
-    Lets a DynamicUser service read secrets from a file it has no permission
-    to open directly: PID 1 reads it as root via LoadCredential= and re-exposes
-    it under $CREDENTIALS_DIRECTORY, owned by this unit's own dynamic user."""
+    Lets a service read secrets from a file it has no permission to open
+    directly: PID 1 reads it as root via LoadCredential= and re-exposes it
+    under $CREDENTIALS_DIRECTORY, owned by this unit's own user."""
     directory = os.environ.get("CREDENTIALS_DIRECTORY")
     if not directory:
         return
