@@ -157,6 +157,14 @@ ssh artemis.jeiang.vpn journalctl -u jev-mail-triage.service -e
   command asks again. Deny, an unanswered prompt (`approvals.timeout`, 300s)
   and any Jev webhook or cron turn (`unattended_mode`/`cron_mode: deny`) all
   mean the command did not run.
+- **After deploying a tier change, confirm the gate loaded** — the Legion
+  sudoers rules permit every tier-2 command outright; the approval prompt is
+  the only thing in front of them, and it comes from a plugin that discovery
+  can skip (a plugin whose name has drifted from `plugins.enabled` is simply
+  not loaded, with a debug line and nothing else). `ssh artemis.jeiang.vpn
+  sudo -u hermes hermes plugins list` must show `hermes-ops-tier2` enabled;
+  `journalctl -u hermes-agent -g 'not in plugins.enabled'` shows it when it
+  is not.
 - **When a tier-2 command runs unasked** — `/yolo` in a Telegram session,
   and `approvals.mode: off`, bypass the approval layer for that session. The
   sudoers allowlist still bounds what can run; nothing outside tier 1 or
