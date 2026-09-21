@@ -237,11 +237,11 @@ in {
             install -m 0600 -o ${cfg.user} -g ${cfg.group} ${config.sops.secrets."hermes/ssh-key".path} ${sshDir}/id_ed25519
             install -m 0600 -o ${cfg.user} -g ${cfg.group} ${sshConfig} ${sshDir}/config
 
-            # Rendered here, not pkgs.writeText: backend.login needs the
-            # sops-managed ICLOUD_MAIL_USERNAME. iCloud IMAP auth takes the
+            # Rendered here, not pkgs.writeText: the IMAP username comes from
+            # the sops-managed ICLOUD_MAIL_USERNAME. iCloud IMAP auth takes the
             # bare short name, not the Apple ID that email/CalDAV/CardDAV use.
-            # No message.send.* backend: sending is mechanically unavailable,
-            # not just a SOUL.md rule.
+            # No smtp block: sending is mechanically unavailable, not just a
+            # SOUL.md rule.
             _icloud_mail_user=$(grep '^ICLOUD_MAIL_USERNAME=' "${config.sops.secrets."hermes/env".path}" | cut -d= -f2-)
             install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${himalayaConfigDir}
             cat > ${himalayaConfigDir}/config.toml <<EOF
@@ -249,13 +249,14 @@ in {
             default = true
             email = "${icloudAppleId}"
             display-name = "Aidan Pinard"
-            backend.type = "imap"
-            backend.host = "imap.mail.me.com"
-            backend.port = 993
-            backend.encryption.type = "tls"
-            backend.login = "$_icloud_mail_user"
-            backend.auth.type = "password"
-            backend.auth.cmd = "printenv ICLOUD_APP_PASSWORD"
+
+            [accounts.icloud.imap]
+            server = "imap.mail.me.com:993"
+            tls = {}
+
+            [accounts.icloud.imap.sasl.plain]
+            username = "$_icloud_mail_user"
+            password.cmd = "printenv ICLOUD_APP_PASSWORD"
             EOF
             chown ${cfg.user}:${cfg.group} ${himalayaConfigDir}/config.toml
             chmod 0600 ${himalayaConfigDir}/config.toml
