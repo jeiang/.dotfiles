@@ -215,12 +215,12 @@ in {
         (servicesByNode config.networking.hostName))
     );
 
-    # A service contributes no mount until the operator fills in volume.hcloudVolumeId; nofail keeps a missing Volume from blocking boot (mountGuard keeps the service off the unmounted dir).
+    # The device label is the service name, set on the Volume once by the operator; nofail keeps a missing or wrongly-labeled Volume from blocking boot, and mountGuard keeps the service off the unmounted dir either way.
     fileSystems = lib.listToAttrs (
       map (s:
         lib.nameValuePair s.volume.mountpoint {
-          device = "/dev/disk/by-id/scsi-0HC_Volume_${s.volume.hcloudVolumeId}";
-          fsType = "ext4";
+          device = "/dev/disk/by-label/${s.name}";
+          fsType = s.volume.fsType;
           options = ["nofail" "x-systemd.device-timeout=10s"];
         })
       (builtins.filter (s: s.volume != null) (servicesByNode config.networking.hostName))
