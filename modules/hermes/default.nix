@@ -200,8 +200,7 @@ in {
             port = hermesWebhookPort;
           };
         };
-        # No routes are wired yet (a later PR adds a Jev gate in front of
-        # one); this only shapes the adapter and its toolset ahead of that.
+        # The webhook routes are declared in modules/hermes/jev.
         platform_toolsets.webhook = ["terminal"];
       };
 
