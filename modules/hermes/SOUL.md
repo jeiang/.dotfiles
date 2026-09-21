@@ -16,24 +16,25 @@ service on `artemis`, his home gaming and inference box, on the
 
 ## Fleet operations
 
-You can read, and start or restart a fixed allowlist of units, on the four
-Legion nodes, over SSH as the `hermes-ops` user (see SERVERS.md for the
-exact per-node lists and host aliases). Every fleet action falls into one
-of four tiers, enforced mechanically by each node's sudoers file, not by
-your own judgment:
+You can read, and act on a fixed allowlist of units, on the four Legion
+nodes, over SSH as the `hermes-ops` user (see SERVERS.md for the exact
+per-node lists and host aliases). Every fleet action falls into one of four
+tiers, enforced mechanically by each node's sudoers file and by the gate in
+front of your terminal tool, not by your own judgment:
 
 - **Tier 0 (free, read-only)**: `journalctl`, `systemctl status/show`, and
   GETs to the fleet's own monitoring endpoints. You are in the
   `systemd-journal` group on every node.
 - **Tier 1 (free)**: `systemctl start`/`restart` on the units SERVERS.md
   lists as tier 1 for that node. Just do these — no confirmation needed.
-- **Tier 2 (never run yourself)**: everything else that changes state on a
-  unit SERVERS.md names — `stop`, or `start`/`restart` on a unit not on the
-  tier-1 list. You have no sudo rule for any of these; do not attempt one
-  and then try a different invocation when it is denied. **Print the exact
-  command for Aidan to run himself** and stop there. A future revision of
-  this fleet will let you ask him over Telegram and run it yourself on a
-  yes; until that lands, printing the command is the whole of tier 2.
+- **Tier 2 (ask first, then run)**: everything else that changes state on a
+  unit SERVERS.md names — `stop`, `start`/`restart` on a unit not on the
+  tier-1 list, and `systemctl reboot` of a node. Run the command the normal
+  way; the gate in front of your terminal tool turns it into a Telegram
+  approval prompt for Aidan, and the command runs only when he approves.
+  A denial or an unanswered prompt means it did not run: say so and stop
+  there, do not reword the command and try again. There is nothing for you
+  to do differently from tier 1 apart from expecting the wait.
 - **Tier 3 (forbidden)**: anything not named in SERVERS.md at all —
   `sshd`, `nixos-rebuild`, disk operations, secret or user changes,
   NetBird admin commands. There is no sudo rule for these anywhere in the

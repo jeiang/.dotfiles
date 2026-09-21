@@ -140,15 +140,32 @@ ssh artemis.jeiang.vpn journalctl -u jev-mail-triage.service -e
   messages, lower to move more), `DURABLE_THRESHOLD` (`jev_memory_gate.py`,
   raise to keep less in memory), `CONTRADICTION_THRESHOLD`
   (`jev_memory_gate.py`, lower to bounce back more candidate writes).
-- **Adding a unit to the tier-1 allowlist** — edit
-  `hermesOpsTier1Services` (whole service, every one of its units) or
-  `hermesOpsTier1Units` (a single unit basename) in
-  `modules/hosts/legion/default.nix`, then redeploy the node that owns it.
+- **Moving a unit between tiers** — edit `tier1Services` (whole service,
+  every one of its units) or `tier1PickedUnits` (a single unit basename)
+  in `modules/hermes-ops.nix`, then redeploy the node
+  that owns it *and* artemis: `flake.lib.hermesOpsCommands` feeds both the
+  node's sudoers rules and the approval gate's allowlist. A unit that is not
+  tier 1 is tier 2 automatically — there is no second list to edit.
   `SERVERS.md`'s per-node tables are a snapshot of the result, not
   hand-maintained.
-- **Tier 2 today** — Hermes has no sudo rule for a tier-2 command; SOUL.md
-  has it print the exact command and stop. The planned upgrade is a Telegram
-  approval gate (yes from Aidan, then Hermes runs it itself) — not yet built.
+- **Approving a tier-2 command** — Hermes runs the command like any other;
+  `modules/hermes/tier2` intercepts it and Hermes' own approval gate sends
+  Aidan a Telegram prompt with the command and Allow Once / Allow Session /
+  Always Allow / Deny buttons. Only Telegram users in
+  `TELEGRAM_ALLOWED_USERS` can press them. Every button behaves as *once*:
+  the gate mints a fresh approval key per invocation, so the next identical
+  command asks again. Deny, an unanswered prompt (`approvals.timeout`, 300s)
+  and any Jev webhook or cron turn (`unattended_mode`/`cron_mode: deny`) all
+  mean the command did not run.
+- **When a tier-2 command runs unasked** — `/yolo` in a Telegram session,
+  and `approvals.mode: off`, bypass the approval layer for that session. The
+  sudoers allowlist still bounds what can run; nothing outside tier 1 or
+  tier 2 becomes possible. `/yolo` again turns it back off.
+- **Tier 3** — refused by the gate on artemis before the SSH leaves the host,
+  and unmatched by any sudoers rule on the node. Hermes prints the command
+  for the operator. The gate also refuses an `execute_code` call that reaches
+  a node with sudo, so the code sandbox cannot spawn its own ssh around the
+  approval prompt.
 
 ## Knowledge base export
 

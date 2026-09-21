@@ -3,13 +3,13 @@
 > **This file is Nix-managed**, same as SOUL.md — installed fresh into your
 > working directory on every activation from `modules/hermes/SERVERS.md`.
 > Don't edit it in place; changes go through the `cornn-flaek` repo. The
-> unit lists below are a snapshot of `hermesOps.tier1Units`
-> (`modules/hosts/legion/default.nix`); when a Legion service changes,
+> unit lists below are a snapshot of `flake.lib.hermesOpsCommands`
+> (`modules/hermes-ops.nix`); when a Legion service changes,
 > this file is regenerated from that source, not hand-edited independently.
 
 Reference for the Legion fleet you operate. SOUL.md has the tier policy
-(when you may act versus when you print the command); this file has the
-mechanics and the per-node allowlists.
+(when you may act freely versus when Aidan is asked first); this file has
+the mechanics and the per-node allowlists.
 
 ## Fleet map
 
@@ -27,22 +27,25 @@ fleet SSH rides the mesh.
 ## Tier mechanics
 
 Tier 0 (`journalctl`, `systemctl status/show`) needs no sudo: you're in
-the `systemd-journal` group on every node. Tier 1 is a `systemctl
-start`/`restart` sudoers entry per (verb, unit) pair — no wildcards, so a
-unit not listed below has no rule and the command fails regardless of
-what you try. Every unit is tier 2 for `stop`; print the command, don't
-run it.
+the `systemd-journal` group on every node. Tier 1 and tier 2 are both a
+sudoers entry per (verb, unit) pair — no wildcards, so a unit not listed
+below has no rule and the command fails regardless of what you try. The
+difference is the gate in front of your terminal tool: a tier-1 command
+runs straight away, a tier-2 command becomes a Telegram approval prompt
+for Aidan and runs only on his approval. Every unit is tier 2 for `stop`,
+and `systemctl reboot` is tier 2 on every node.
 
-| Node | Tier 1 — start/restart free | Tier 2 — print, don't run |
+| Node | Tier 1 — start/restart free | Tier 2 — start/restart/stop on approval |
 |---|---|---|
 | legion-node1 | `crowdsec`, `crowdsec-bouncers`, `prometheus-node-exporter` | `caddy`, `rivals-heroes-sync`, `anubis-content`, `tinyauth` |
 | legion-node2 | `prometheus-node-exporter`, `restic-backups-netbird-server`, `restic-backups-pocket-id` | `netbird-server`, `netbird-relay`, `pocket-id`, `netbird-proxy`, `crowdsec-firewall-bouncer`, `blocky` |
 | legion-node3 | `prometheus-node-exporter`, `prometheus-blackbox-exporter` | `grafana`, `victoriametrics`, `victorialogs`, `vmalert-default`, `alertmanager` |
 | legion-node4 | `prometheus-node-exporter`, `garret-pusher`, `garret-puller`, `hath`, `glance`, `gatus`, `restic-backups-actual-budget`, `restic-backups-garret`, `restic-backups-hath` | `actual`, `atuin` |
 
-Anything not named in either column for a node — `sshd`, `netbird`
-itself, `nixos-rebuild`, disk or secret operations — is tier 3: no sudo
-rule exists anywhere in the fleet for it.
+A tier-1 unit is also tier 2 for `stop`. Anything not named in either
+column for a node — `sshd`, `netbird` itself, `nixos-rebuild`, disk or
+secret operations — is tier 3: the gate refuses it before it leaves this
+host, and no sudo rule exists anywhere in the fleet for it either.
 
 ## How to run a fleet command
 
@@ -58,6 +61,12 @@ The sudoers rule pins the absolute path
 `/run/current-system/sw/bin/systemctl`; a bare `sudo systemctl ...`
 resolves there via the invoking user's PATH on every node, so it's the
 form to reach for first.
+
+Run one command per call, in exactly that shape. The gate matches the
+whole remote command against the allowlist, so a pipeline, a second
+command after `&&`, or a wrapper around the `ssh` call is refused even
+when the part you meant is tier 1. A tier-2 call blocks while Aidan is
+asked; when it comes back refused or timed out, report that and stop.
 
 ## Logs and metrics
 

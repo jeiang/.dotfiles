@@ -259,12 +259,19 @@ behavior for its own sake.
   sops secret at launch, so the key is never in the store and the desktop
   app does not get it. The token only reaches the TypeSafe API; rotate it
   with `just sops-edit` and a switch.
-- hermes-ops tiers on Legion (`modules/hermes-ops.nix`): tier 0 is
-  `journalctl`/read access via `systemd-journal` group membership; tier 1 is
-  the mechanical `systemctl start`/`restart` sudoers allowlist; tier 2 is
-  operator-executed, no sudo rule, Hermes only prints the command; tier 3 is
-  never granted. Tier 2 is to be upgraded to Telegram approval gating later,
-  not left operator-executed indefinitely.
+- hermes-ops tiers on Legion: tier 0 is `journalctl`/read access via
+  `systemd-journal` group membership; tier 1 is the mechanical `systemctl
+  start`/`restart` allowlist; tier 2 is `stop`, `start`/`restart` of a
+  non-tier-1 unit, and `systemctl reboot`, and runs only after a Telegram
+  approval; tier 3 is never granted. `flake.lib.hermesOpsCommands`
+  (`modules/hermes-ops.nix`) is the one definition of both tiers: that
+  module renders each entry into a Legion sudoers rule, and the
+  plugin in `modules/hermes/tier2` matches Hermes' terminal command against
+  the same text, escalating a tier-2 match through the agent's own approval
+  gate and refusing everything else that reaches a node through sudo. A sudo
+  rule alone never authorizes a tier-2 command; deny, timeout and every
+  unattended surface mean it did not run. Moving a unit between tiers is a
+  redeploy of the node and of artemis.
 - The Hermes model server (`modules/llm-server`) runs Qwen3.6-35B-A3B
   (UD-Q4_K_XL) with the MoE experts of the first layers on the CPU, because
   the weights exceed the dGPU, and with thinking disabled.
