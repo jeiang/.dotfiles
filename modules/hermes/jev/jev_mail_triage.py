@@ -109,6 +109,11 @@ def init_db(conn):
     if stale:
         conn.executemany("DELETE FROM folder_history WHERE folder = ?", [(folder,) for folder in stale])
         logging.info("dropped seeded history for system mailboxes: %s", ", ".join(stale))
+    # A real judgment always has a bucket; a decision without one was recorded
+    # from an empty answer, so dropping it lets that message be judged again.
+    unjudged = conn.execute("DELETE FROM decisions WHERE bucket = ''").rowcount
+    if unjudged:
+        logging.info("dropped %d decisions recorded without a judgment", unjudged)
     conn.commit()
 
 

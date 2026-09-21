@@ -39,7 +39,7 @@ def call_jev(state, questions, timeout=20):
     for attempt in range(JEV_MAX_RETRIES + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return json.load(resp)
+                return json.load(resp)["answers"]
         except urllib.error.HTTPError as exc:
             if exc.code in (429, 529) and attempt < JEV_MAX_RETRIES:
                 time.sleep(delay)
