@@ -7,10 +7,9 @@ blocks mail: a per-message failure (himalaya or Jev) is logged and skipped, so
 one bad message can't stop the run, and an unjudged message is simply retried
 next timer tick (see jev_common.call_jev's fail-open contract).
 
-himalaya subcommand names/flags (flag add, message move) are the ones the real
-CLI is believed to use; only "envelope list --output json", "message read", and
-"folder list --output json" were given as verified in the assignment. Worth a
-quick check against the installed himalaya version once the account exists.
+The himalaya calls below target the v2 shared API: mailboxes (not folders),
+`-m/--mailbox`, `--json`, and JSON payloads wrapped in a single key
+("envelopes", "mailboxes").
 """
 
 import sqlite3
@@ -22,6 +21,9 @@ ACCOUNT = "icloud"
 INBOX = "INBOX"
 DEST_CONFIDENCE_THRESHOLD = 0.7  # set once; raise to move fewer messages, lower to move more.
 SEED_CAP_PER_FOLDER = 200
+# himalaya pages envelopes (25 per page by default); one page this size covers a
+# run's unseen mail and the per-folder seeding cap in a single call.
+PAGE_SIZE = SEED_CAP_PER_FOLDER
 
 HERMES_HOME = os.environ.get("HERMES_HOME") or os.path.join(os.environ.get("HOME", ""), ".hermes")
 DB_PATH = os.path.join(HERMES_HOME, "jev-mail.db")
@@ -43,15 +45,26 @@ def himalaya(*args):
     return result.stdout
 
 
-def himalaya_json(*args):
-    out = himalaya(*args, "--output", "json")
+def himalaya_json(key, *args):
+    """Run a himalaya command with --json and return the list under `key`
+    ("envelopes", "mailboxes"), or None when the command or the parse failed."""
+    out = himalaya(*args, "--json")
     if out is None:
         return None
     try:
-        return json.loads(out)
+        payload = json.loads(out)
     except json.JSONDecodeError:
         logging.warning("could not parse himalaya JSON for %s", args)
         return None
+    rows = payload.get(key) if isinstance(payload, dict) else None
+    if not isinstance(rows, list):
+        logging.warning("himalaya %s returned no %r list", args, key)
+        return None
+    return rows
+
+
+def list_envelopes(mailbox):
+    return himalaya_json("envelopes", "envelope", "list", "--mailbox", mailbox, "--page-size", str(PAGE_SIZE)) or []
 
 
 def init_db(conn):
@@ -84,8 +97,10 @@ def bump_folder_history(conn, sender_domain, folder, by=1):
 
 
 def sender_address(envelope):
-    frm = envelope.get("from") or {}
-    return frm.get("addr") or frm.get("address") or frm.get("email") or ""
+    for address in envelope.get("from") or []:
+        if isinstance(address, dict) and address.get("email"):
+            return address["email"]
+    return ""
 
 
 def sender_domain(address):
@@ -98,10 +113,7 @@ def seed_folder_history(conn, folders):
     if conn.execute("SELECT 1 FROM meta WHERE key = 'seeded'").fetchone():
         return
     for folder in folders:
-        envelopes = himalaya_json("envelope", "list", "--folder", folder) or []
-        if not isinstance(envelopes, list):
-            continue
-        for envelope in envelopes[:SEED_CAP_PER_FOLDER]:
+        for envelope in list_envelopes(folder)[:SEED_CAP_PER_FOLDER]:
             domain = sender_domain(sender_address(envelope))
             bump_folder_history(conn, domain, folder)
     conn.execute("INSERT OR REPLACE INTO meta (key, value) VALUES ('seeded', '1')")
@@ -122,9 +134,16 @@ def folder_counts(conn, domain):
     return {folder: count for folder, count in rows}
 
 
+def flag_name(flag):
+    """himalaya renders a flag as {"raw": "\\Seen", "iana": "seen"}; `iana` is
+    absent for a keyword outside the IANA registry."""
+    if isinstance(flag, dict):
+        return (flag.get("iana") or flag.get("raw") or "").lstrip("\\").lower()
+    return str(flag).lstrip("\\").lower()
+
+
 def is_unseen(envelope):
-    flags = envelope.get("flags") or []
-    return not any(str(flag).lower() == "seen" for flag in flags)
+    return not any(flag_name(flag) == "seen" for flag in envelope.get("flags") or [])
 
 
 def judge(state):
@@ -167,16 +186,20 @@ def judge(state):
 
 
 def process_envelope(conn, envelope, folders):
-    message_id = str(envelope.get("id") or envelope.get("Id") or "")
-    if not message_id or not is_unseen(envelope):
+    # `id` is the backend id (IMAP UID) every himalaya command takes; it is only
+    # unique within one mailbox and can be reused after an expunge, so the
+    # idempotency key is the RFC 5322 Message-ID when the backend surfaced it.
+    uid = str(envelope.get("id") or "")
+    message_id = envelope.get("message-id") or uid
+    if not uid or not is_unseen(envelope):
         return None
     if conn.execute("SELECT 1 FROM decisions WHERE message_id = ?", (message_id,)).fetchone():
         return None  # idempotent: already judged in a previous run
 
-    subject = envelope.get("subject") or envelope.get("Subject") or ""
+    subject = envelope.get("subject") or ""
     sender = sender_address(envelope)
     domain = sender_domain(sender)
-    snippet = (himalaya("message", "read", message_id, "--folder", INBOX) or "").strip()[:1000]
+    snippet = (himalaya("message", "read", uid, "--mailbox", INBOX) or "").strip()[:1000]
 
     state = {
         "subject": subject,
@@ -204,12 +227,12 @@ def process_envelope(conn, envelope, folders):
 
     urgent_line = None
     if bucket == "urgent":
-        himalaya("flag", "add", message_id, "Flagged", "--folder", INBOX)
+        himalaya("flag", "add", "--mailbox", INBOX, "--flag", "flagged", uid)
         urgent_line = f"- {subject} — {sender}"
 
     moved = 0
     if dest_confidence > DEST_CONFIDENCE_THRESHOLD and dest_folder and dest_folder != INBOX:
-        if himalaya("message", "move", message_id, dest_folder, "--folder", INBOX) is not None:
+        if himalaya("message", "move", "--from", INBOX, "--to", dest_folder, uid) is not None:
             bump_folder_history(conn, domain, dest_folder)
             moved = 1
 
@@ -230,17 +253,12 @@ def main():
     conn = sqlite3.connect(DB_PATH)
     init_db(conn)
 
-    folders_raw = himalaya_json("folder", "list") or []
-    folders = [f.get("name") or f.get("Name") for f in folders_raw if isinstance(f, dict)] if isinstance(folders_raw, list) else []
-    folders = [f for f in folders if f] or [INBOX]
+    mailboxes = himalaya_json("mailboxes", "mailbox", "list") or []
+    folders = [m.get("name") for m in mailboxes if isinstance(m, dict) and m.get("name")] or [INBOX]
     seed_folder_history(conn, folders)
 
-    envelopes = himalaya_json("envelope", "list", "--folder", INBOX) or []
-    if not isinstance(envelopes, list):
-        envelopes = []
-
     urgent_digest = []
-    for envelope in envelopes:
+    for envelope in list_envelopes(INBOX):
         try:
             line = process_envelope(conn, envelope, folders)
         except Exception:
