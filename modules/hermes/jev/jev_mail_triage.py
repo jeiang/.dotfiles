@@ -19,6 +19,13 @@ logging.basicConfig(level=logging.INFO, format="jev-mail: %(message)s")
 
 ACCOUNT = "icloud"
 INBOX = "INBOX"
+# iCloud's own system mailboxes plus the common equivalents. Their contents say
+# nothing about where a sender's mail belongs, and none of them is a triage
+# destination, so they stay out of the history and out of Jev's choices.
+SYSTEM_MAILBOXES = {
+    "sent messages", "sent", "deleted messages", "trash",
+    "junk", "junk mail", "spam", "drafts", "notes",
+}
 DEST_CONFIDENCE_THRESHOLD = 0.7  # set once; raise to move fewer messages, lower to move more.
 SEED_CAP_PER_FOLDER = 200
 # himalaya pages envelopes (25 per page by default); one page this size covers a
@@ -63,6 +70,11 @@ def himalaya_json(key, *args):
     return rows
 
 
+def is_system_mailbox(name):
+    """Match the last path segment, so an "INBOX/Drafts" style name is caught too."""
+    return name.rsplit("/", 1)[-1].strip().lower() in SYSTEM_MAILBOXES
+
+
 def list_envelopes(mailbox):
     """None when the listing failed, [] when the mailbox is really empty."""
     return himalaya_json("envelopes", "envelope", "list", "--mailbox", mailbox, "--page-size", str(PAGE_SIZE))
@@ -84,6 +96,16 @@ def init_db(conn):
         CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
         """
     )
+    # Heals a database seeded before system mailboxes were excluded; a no-op
+    # afterwards, because nothing writes those rows any more.
+    stale = [
+        folder
+        for (folder,) in conn.execute("SELECT DISTINCT folder FROM folder_history").fetchall()
+        if is_system_mailbox(folder or "")
+    ]
+    if stale:
+        conn.executemany("DELETE FROM folder_history WHERE folder = ?", [(folder,) for folder in stale])
+        logging.info("dropped seeded history for system mailboxes: %s", ", ".join(stale))
     conn.commit()
 
 
@@ -267,7 +289,8 @@ def main():
     init_db(conn)
 
     mailboxes = himalaya_json("mailboxes", "mailbox", "list")
-    folders = [m.get("name") for m in mailboxes or [] if isinstance(m, dict) and m.get("name")] or [INBOX]
+    names = [m.get("name") for m in mailboxes or [] if isinstance(m, dict) and m.get("name")]
+    folders = [name for name in names if not is_system_mailbox(name)] or [INBOX]
     seed_folder_history(conn, folders, mailboxes is not None)
 
     urgent_digest = []
