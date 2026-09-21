@@ -8,10 +8,10 @@ jev_alert_digest.py sends once a day; suppress is only journaled.
 
 Never blocks alerting: a Jev/network failure falls back to "digest" (still
 seen, just not paged) instead of dropping the alert (see
-jev_common.call_jev's fail-open contract). Runs as DynamicUser; the secrets it
+jev_common.call_jev's fail-open contract). Runs as the jev user; the secrets it
 needs (TYPESAFE_API_KEY, WEBHOOK_SECRET, JEV_ALERT_TOKEN) come from Hermes'
-own env blob via LoadCredential, since a DynamicUser has no other way to read
-a file sops-nix restricts to the hermes user."""
+own env blob via LoadCredential, which is how a non-hermes unit reads a file
+sops-nix restricts to the hermes user."""
 
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
