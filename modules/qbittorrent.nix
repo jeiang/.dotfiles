@@ -42,7 +42,9 @@ in {
 
       darkhttpd = {
         enable = true;
-        address = "all";
+        # The module always adds --ipv6, which makes darkhttpd parse --addr as
+        # an IPv6 literal; it clears IPV6_V6ONLY, so :: also takes IPv4.
+        address = "::";
         port = filesPort;
         rootDir = downloadDir;
       };
