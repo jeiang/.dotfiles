@@ -163,8 +163,10 @@ behavior for its own sake.
 - On NixOS, `sops-install-secrets.service` (`useSystemdActivation`)
   installs the secrets before `sysinit.target`, not an activation script,
   because NixOS is removing restarts requested from activation scripts. It
-  requests `restartUnits` with `systemctl --no-block try-restart`, so a
-  failed restart does not fail the deploy. A consumer that starts before
+  requests `restartUnits` with `systemctl --no-block try-restart`, outside
+  switch-to-configuration's own jobs: a consumer that has failed when the
+  switch ends still fails the deploy, but one that fails later does not,
+  and its restart is not listed in the deploy output. A consumer that starts before
   `sysinit.target` or reads a secret in an activation script needs its own
   ordering or a start-time copy (node1's `systemd-networkd`, the Hermes
   `.env`). Secrets with `neededForUsers` still install from an activation
