@@ -5,14 +5,16 @@
 var REG_NONE = NewRegistrar("none");
 var DSP_CLOUDFLARE = NewDnsProvider("cloudflare");
 
-var NODE1_V4 = "178.156.226.145";
-var NODE2_V4 = "178.156.201.35";
-var NODE3_V4 = "178.156.186.147";
-var NODE4_V4 = "178.156.191.180";
-var NODE1_V6 = "2a01:4ff:f0:6b8e::1";
-var NODE2_V6 = "2a01:4ff:f0:a1ff::1";
-var NODE3_V6 = "2a01:4ff:f0:c52a::1";
-var NODE4_V6 = "2a01:4ff:f0:ca96::1";
+// nodes.json is generated from flake.lib.legionNodes by `just dns-nodes`; the legion-nodes-json flake check fails while it is stale.
+var NODES = require("./nodes.json");
+var NODE1_V4 = NODES["legion-node1"].publicIPv4;
+var NODE2_V4 = NODES["legion-node2"].publicIPv4;
+var NODE3_V4 = NODES["legion-node3"].publicIPv4;
+var NODE4_V4 = NODES["legion-node4"].publicIPv4;
+var NODE1_V6 = NODES["legion-node1"].publicIPv6;
+var NODE2_V6 = NODES["legion-node2"].publicIPv6;
+var NODE3_V6 = NODES["legion-node3"].publicIPv6;
+var NODE4_V6 = NODES["legion-node4"].publicIPv6;
 
 // Caddy's DNS-01 issuer creates/deletes these TXT records at every renewal; a push racing a renewal must not delete a challenge mid-validation.
 var ACME = [

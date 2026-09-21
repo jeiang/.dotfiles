@@ -51,6 +51,10 @@ sops-edit:
 sops-create path:
   sops {{path}}
 
+# Regenerate dns/nodes.json from flake.lib.legionNodes; the legion-nodes-json check fails while it is stale
+dns-nodes:
+  nix eval --raw '.#lib.legionNodesJson' > dns/nodes.json
+
 # Preview dns/dnsconfig.js against live Cloudflare; read-only — the push happens in CI on merge to main
 dns-preview *args:
   CLOUDFLARE_API_TOKEN=$(sops -d --extract '["caddy"]["cloudflare-dns-token"]' modules/edge/secrets.yaml) dnscontrol preview --config dns/dnsconfig.js --creds dns/creds.json {{args}}
