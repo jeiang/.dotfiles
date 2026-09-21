@@ -6,6 +6,8 @@
 }: let
   llmAgentsCacheUrl = "https://cache.numtide.com";
   llmAgentsCacheKey = "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=";
+  devenvCacheUrl = "https://devenv.cachix.org";
+  devenvCacheKey = "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=";
 in {
   perSystem = {system, ...}: {
     _module.args.pkgs = import inputs.nixpkgs {
@@ -81,10 +83,12 @@ in {
         extra-substituters = [
           self.lib.facts.cacheUrl
           llmAgentsCacheUrl
+          devenvCacheUrl
         ];
         extra-trusted-public-keys = [
           self.lib.facts.cacheKey
           llmAgentsCacheKey
+          devenvCacheKey
         ];
         # @admin, not @wheel: macOS's wheel group has no members besides root.
         extra-trusted-users = ["@admin"];
@@ -110,8 +114,10 @@ in {
       nix-ld.enable = true;
     };
 
-    # for direnv GC roots
     nix.settings = {
+      substituters = [devenvCacheUrl];
+      trusted-public-keys = [devenvCacheKey];
+      # for direnv GC roots
       keep-derivations = true;
       keep-outputs = true;
     };
