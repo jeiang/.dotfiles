@@ -1,20 +1,28 @@
-{
+{self, ...}: let
+  cacheDir = "qwen-image-2.1";
+in {
+  nixos.modules.artemis.persistence.cache.directories = [".cache/${cacheDir}"];
+
   perSystem = {
     pkgs,
     lib,
     ...
   }: let
     # Pinned ahead of nixpkgs, whose release predates Qwen-Image 2.1 support.
-    stable-diffusion-cpp = pkgs.stable-diffusion-cpp.overrideAttrs (_: rec {
-      version = "master-889-c678dfe";
-      src = pkgs.fetchFromGitHub {
-        owner = "leejet";
-        repo = "stable-diffusion.cpp";
-        tag = version;
-        hash = "sha256-Jsh/Yn97Mvcrcztomjn4QAltuxckJBck0Up6xQcObPo=";
-        fetchSubmodules = true;
-      };
-    });
+    stable-diffusion-cpp =
+      (pkgs.stable-diffusion-cpp.override (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+        rocmSupport = true;
+        rocmGpuTargets = [self.lib.artemisDgpuTarget];
+      })).overrideAttrs (_: rec {
+        version = "master-889-c678dfe";
+        src = pkgs.fetchFromGitHub {
+          owner = "leejet";
+          repo = "stable-diffusion.cpp";
+          tag = version;
+          hash = "sha256-Jsh/Yn97Mvcrcztomjn4QAltuxckJBck0Up6xQcObPo=";
+          fetchSubmodules = true;
+        };
+      });
 
     hf = repo: rev: file: "https://huggingface.co/${repo}/resolve/${rev}/${file}";
     weights = {
@@ -44,7 +52,7 @@
       name = "qwen-image";
       runtimeInputs = [stable-diffusion-cpp pkgs.curl pkgs.coreutils];
       text = ''
-        dir="''${XDG_CACHE_HOME:-$HOME/.cache}/qwen-image-2.1"
+        dir="''${XDG_CACHE_HOME:-$HOME/.cache}/${cacheDir}"
         mkdir -p "$dir"
 
         fetch() {
@@ -69,8 +77,8 @@
           esac
         done
 
-        # On unified memory, loading each model only while it runs leaves room
-        # for an untiled VAE decode; auto-fit keeps all of them resident.
+        # Loading each model only while it runs leaves room for an untiled VAE
+        # decode; auto-fit keeps all of them resident.
         exec sd-cli \
           --diffusion-model "$dir/${weights.diffusion.name}" \
           --vae "$dir/${weights.vae.name}" \

@@ -5,7 +5,6 @@
   llmWeightsFile = "Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf";
   llmWeightsUrl = "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/resolve/main/${llmWeightsFile}";
   llmWeightsSha256 = "707a55a8a4397ecde44de0c499d3e68c1ad1d240d1da65826b4949d1043f4450";
-  llmGpuTarget = "gfx1201";
   # The 22 GB of weights do not fit the 16 GB dGPU: the MoE experts of this
   # many layers stay on the CPU, which is what leaves headroom for a 65536
   # token q4_0 KV cache.
@@ -23,7 +22,7 @@ in {
   }: let
     llmLlamaCpp = pkgs.llama-cpp.override {
       rocmSupport = true;
-      rocmGpuTargets = [llmGpuTarget];
+      rocmGpuTargets = [self.lib.artemisDgpuTarget];
     };
 
     llmFetch = pkgs.writeShellApplication {
