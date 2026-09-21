@@ -46,7 +46,7 @@
             ssh-to-age
             watchexec
           ]
-          ++ lib.optionals pkgs.stdenv.isLinux [
+          ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [
             # hyprland
             (
               inputs.wrapper-modules.lib.wrapPackage (_: {
