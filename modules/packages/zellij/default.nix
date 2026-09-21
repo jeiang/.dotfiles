@@ -53,6 +53,26 @@
           compact-bar location="zellij:compact-bar"
           strider location="zellij:strider"
           session-manager location="zellij:session-manager"
+          // The layouts reach zjstatus by this alias: layout_dir is a plain
+          // directory, so a layout cannot name a store path.
+          zjstatus location="file:${pkgs.zellijPlugins.zjstatus}" {
+              format_left "{mode}#[bg=${p.sumiInk1}] {tabs}"
+              format_right "#[fg=${p.crystalBlue},bg=${p.sumiInk1},bold]{session}#[fg=${p.fujiGray},bg=${p.sumiInk1}] {datetime}"
+              format_space "#[bg=${p.sumiInk1}]"
+              border_enabled "false"
+              hide_frame_for_single_pane "false"
+
+              mode_normal "#[fg=${p.sumiInk0},bg=${p.crystalBlue},bold] {name} "
+              mode_locked "#[fg=${p.sumiInk0},bg=${p.fujiGray},bold] {name} "
+              mode_default_to_mode "normal"
+
+              tab_normal "#[fg=${p.fujiGray},bg=${p.sumiInk1}] {index} {name} "
+              tab_active "#[fg=${p.carpYellow},bg=${p.sumiInk1_5},bold] {index} {name} "
+
+              datetime "#[fg=${p.fujiGray},bg=${p.sumiInk1}]{format} "
+              datetime_format "%a %d %b %H:%M"
+              datetime_timezone "${self.lib.facts.timeZone}"
+          }
       }
 
       ${builtins.readFile ./keybinds.kdl}
