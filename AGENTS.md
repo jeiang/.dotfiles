@@ -180,13 +180,16 @@ behavior for its own sake.
   alone.
 - Legion host firewalls are on. A `legion.services.<name>` entry's
   `scope = "private"` is documentation: `enp7s0` and the NetBird interface
-  are trusted interfaces. A public opening also needs its own Hetzner Cloud
-  Firewall rule.
+  are trusted interfaces. A public opening also needs a rule in `legion`,
+  the one Hetzner Cloud Firewall all four nodes share. It is attached by
+  server ID, so a new node must be attached to it explicitly. Public ICMP
+  stays blocked there; the operator opens it by hand when needed.
 - `netbird-proxy` on `legion-node2` is public and terminates its own TLS
   (DNS-01 wildcard for `proxy.jeiang.dev`). CrowdSec IP reputation and an
   nftables bouncer protect it with decisions from the LAPI on
-  `legion-node1`. The host opens TCP/UDP 40000-45000 for ad hoc services;
-  each service still needs its own Hetzner Cloud Firewall rule.
+  `legion-node1`. The host opens TCP/UDP 40000-45000 for ad hoc services,
+  and `legion` allows that range on every node, so a port in it is public
+  on any node whose host firewall opens it.
 - Blackbox probes target private backend addresses, never public URLs.
   Probes through the edge would get the prober banned by CrowdSec.
 - Anubis gates only the static content sites. Never put it in front of a
