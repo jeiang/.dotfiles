@@ -1,0 +1,17 @@
+{
+  "firewall": {
+    "name": "legion",
+    "attachments": ["legion-node1", "legion-node2"],
+    "rules": [
+      {
+        "direction": "in",
+        "protocol": "tcp",
+        "port": "22",
+        "sourceIps": ["0.0.0.0/0", "::/0"]
+      }
+    ]
+  },
+  "volumes": [
+    {"id": "1", "name": "legion-test", "sizeGiB": 10, "node": "legion-node1"}
+  ]
+}

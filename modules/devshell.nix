@@ -37,6 +37,8 @@
             dnscontrol
             fd
             fzf
+            hcloud
+            jq
             just
             nh
             nix-fast-build

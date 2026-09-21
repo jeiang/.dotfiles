@@ -1,0 +1,59 @@
+name: Hetzner Cloud Drift
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    # Weekly drift check.
+    - cron: "37 6 * * 1"
+  workflow_dispatch:
+
+# Read-only, so unlike dns.yml a superseded run can simply be cancelled.
+concurrency:
+  group: hcloud-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    # Fork PRs are excluded explicitly. GitHub already withholds secrets
+    # from them, so a fork run could only fail with an auth error — this
+    # just skips it instead of leaving a red herring on the PR.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+
+      - name: Require HCLOUD_READ_TOKEN
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_READ_TOKEN }}
+        run: |
+          if [ -z "$HCLOUD_TOKEN" ]; then
+            echo "::error::HCLOUD_READ_TOKEN secret is empty; create a read-only API token for the Legion project in the Hetzner Cloud console, then: gh secret set HCLOUD_READ_TOKEN --repo jeiang/.dotfiles" >&2
+            exit 1
+          fi
+
+      # A PR's declared state is not live yet, so a diff here is expected and
+      # must not redden the PR; non-blocking preview only.
+      - name: Preview
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_READ_TOKEN }}
+        run: nix shell --inputs-from . nixpkgs#hcloud nixpkgs#jq -c ./modules/hcloud-drift/check.sh
+
+      # Scheduled/manual/post-merge runs are the drift check: main is
+      # expected to already match live state, so any difference is real.
+      - name: Drift check
+        if: github.event_name != 'pull_request'
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_READ_TOKEN }}
+        run: nix shell --inputs-from . nixpkgs#hcloud nixpkgs#jq -c ./modules/hcloud-drift/check.sh
