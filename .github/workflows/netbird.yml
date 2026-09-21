@@ -1,0 +1,44 @@
+# NETBIRD_READ_TOKEN is an Auditor-role personal access token: read-only
+# across the whole management API, never a mutating call.
+name: NetBird Invariants
+
+on:
+  schedule:
+    # Weekly drift check.
+    - cron: "27 6 * * 1"
+  workflow_dispatch:
+
+# Read-only, so a superseded run can simply be cancelled.
+concurrency:
+  group: netbird-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  invariants:
+    # Fork PRs are excluded explicitly, for parity with the other read-only
+    # drift checks; this workflow never triggers on pull_request itself.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+
+      - name: Require NETBIRD_READ_TOKEN
+        env:
+          NETBIRD_API_TOKEN: ${{ secrets.NETBIRD_READ_TOKEN }}
+        run: |
+          if [ -z "$NETBIRD_API_TOKEN" ]; then
+            echo "::error::NETBIRD_READ_TOKEN secret is empty; mint an Auditor-role personal access token for a NetBird service user, then: gh secret set NETBIRD_READ_TOKEN --repo jeiang/.dotfiles" >&2
+            exit 1
+          fi
+
+      - name: Check invariants
+        env:
+          NETBIRD_API_TOKEN: ${{ secrets.NETBIRD_READ_TOKEN }}
+        run: nix shell --inputs-from . nixpkgs#jq nixpkgs#curl -c ./modules/netbird-invariants/check.sh

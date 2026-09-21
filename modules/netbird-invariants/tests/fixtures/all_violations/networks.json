@@ -1,0 +1,11 @@
+[
+  {
+    "id": "net-legion",
+    "name": "Legion Cluster",
+    "description": "",
+    "routers": ["rtr-legion"],
+    "resources": ["res-legion-node2"],
+    "routing_peers_count": 1,
+    "policies": []
+  }
+]

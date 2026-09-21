@@ -1,0 +1,9 @@
+[
+  {
+    "id": "rtr-legion",
+    "peer": "peer-legion-node2",
+    "metric": 9999,
+    "masquerade": false,
+    "enabled": false
+  }
+]

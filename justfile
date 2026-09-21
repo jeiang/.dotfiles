@@ -96,6 +96,10 @@ netbird-update:
   sudo launchctl kickstart -k system/netbird
   netbird status | grep -i version
 
+# Read-only check of the self-hosted NetBird control-plane against modules/netbird-invariants's expected invariants; needs NETBIRD_API_TOKEN (an Auditor-role PAT)
+netbird-invariants:
+  nix shell --inputs-from . nixpkgs#jq nixpkgs#curl -c ./modules/netbird-invariants/check.sh
+
 nh *args:
   NH_FLAKE={{justfile_directory()}} nh {{args}}
 

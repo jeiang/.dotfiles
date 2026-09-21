@@ -1,0 +1,32 @@
+[
+  {
+    "id": "svc-camera",
+    "name": "camera.proxy.jeiang.dev",
+    "domain": "camera.proxy.jeiang.dev",
+    "targets": [],
+    "enabled": true,
+    "auth": {},
+    "meta": {
+      "created_at": "2024-02-03T10:30:00Z",
+      "status": "active"
+    },
+    "access_restrictions": {
+      "crowdsec_mode": "enforce"
+    }
+  },
+  {
+    "id": "svc-grafana",
+    "name": "grafana.proxy.jeiang.dev",
+    "domain": "grafana.proxy.jeiang.dev",
+    "targets": [],
+    "enabled": true,
+    "auth": {},
+    "meta": {
+      "created_at": "2024-02-03T10:30:00Z",
+      "status": "active"
+    },
+    "access_restrictions": {
+      "crowdsec_mode": "observe"
+    }
+  }
+]
