@@ -68,8 +68,7 @@ networks=$(api_get "/networks")
 accounts=$(api_get "/accounts")
 services=$(api_get "/reverse-proxies/services")
 
-# Merges each network's full resources and routers (Networks feature; the
-# legacy /routes API has no entry for node2) into one array for run_check.
+# Merges each network's resources and routers into one array for run_check.
 networks_detail="[]"
 while IFS= read -r net_id; do
   net=$(jq -c --arg id "$net_id" '.[] | select(.id == $id)' <<<"$networks")
