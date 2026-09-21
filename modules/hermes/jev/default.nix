@@ -70,7 +70,6 @@ in {
       LockPersonality = true;
     };
     alertEnvironment = [
-      "HERMES_WEBHOOK_HOST=${webhook.host}"
       "HERMES_WEBHOOK_PORT=${toString webhook.port}"
       "HERMES_WEBHOOK_ROUTE_DIGEST=${jevDigestRoute}"
       "HERMES_WEBHOOK_ROUTE_ALERT_PAGE=${jevAlertPageRoute}"
@@ -140,7 +139,6 @@ in {
             Group = hermesCfg.group;
             EnvironmentFile = envFile;
             Environment = [
-              "HERMES_WEBHOOK_HOST=${webhook.host}"
               "HERMES_WEBHOOK_PORT=${toString webhook.port}"
               "HERMES_WEBHOOK_ROUTE_DIGEST=${jevDigestRoute}"
             ];

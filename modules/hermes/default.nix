@@ -3,8 +3,8 @@
   inputs,
   ...
 }: let
-  # Matches the upstream default; kept as a literal so the NetBird-bind and
-  # the WEBHOOK_ENABLED/WEBHOOK_PORT env story below stay in one place.
+  # Matches the upstream default; kept as a literal so the bind and the
+  # WEBHOOK_ENABLED/WEBHOOK_PORT env story below stay in one place.
   hermesWebhookPort = 8644;
   kbRepo = "jeiang/knowledge-base";
   legionNodeNames = builtins.attrNames self.lib.legionNodes;
@@ -193,7 +193,10 @@ in {
         platforms.webhook = {
           enabled = true;
           extra = {
-            host = self.lib.netbirdPeers.artemis;
+            # The mesh address appears only once NetBird is up, and the adapter
+            # binds once at start. No port is opened for it, so only the
+            # trusted NetBird interface and loopback reach it.
+            host = "0.0.0.0";
             port = hermesWebhookPort;
           };
         };
