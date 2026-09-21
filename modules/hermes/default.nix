@@ -34,21 +34,34 @@ in {
     # the initrd, before the impermanence bind mount of stateDir exists. Those
     # writes land on the root subvolume, get hidden by the mount, and are
     # nuked on the next boot, so the gateway starts with neither its settings
-    # nor its secrets. Re-running the module's own state script from preStart
-    # puts the same files on the mounted directory.
+    # nor its secrets. Re-running the module's own state script before the
+    # gateway starts puts the same files on the mounted directory.
+    #
+    # It has to run as root: on a live switch the activation script runs after
+    # the mount and leaves config.yaml root-owned, because mkStateScript writes
+    # that one file through its merge script and never chowns it. The script is
+    # therefore a "+" ExecStartPre, and it chowns config.yaml itself so the
+    # gateway, which rewrites the file at runtime, owns it.
     hermesCommon = import "${inputs.hermes-agent}/nix/moduleCommon.nix" {inherit lib;};
-    hermesStateScript = hermesCommon.mkStateScript {
-      inherit pkgs cfg hermesHome;
-      inherit (cfg) workingDirectory;
-      stateDirs = hermesCommon.stateSubdirs;
-      modes = {
-        config = "0640";
-        env = "0640";
-        managed = "0644";
-        auth = "0600";
-        document = "0640";
-      };
-    };
+    hermesStateScript = pkgs.writeShellScript "hermes-render-state" ''
+      set -e
+
+      ${hermesCommon.mkStateScript {
+        inherit pkgs cfg hermesHome;
+        inherit (cfg) workingDirectory;
+        owner = "${cfg.user}:${cfg.group}";
+        stateDirs = hermesCommon.stateSubdirs;
+        modes = {
+          config = "0640";
+          env = "0640";
+          managed = "0644";
+          auth = "0600";
+          document = "0640";
+        };
+      }}
+
+      chown ${cfg.user}:${cfg.group} ${hermesHome}/config.yaml
+    '';
 
     # artemis has no Hetzner private-network route to Legion; every hop is
     # over NetBird, so hermes-ops is reached at each peer's mesh address
@@ -216,44 +229,46 @@ in {
 
     systemd = {
       services = {
-        hermes-agent.preStart = lib.mkAfter ''
-          ${hermesStateScript}
+        hermes-agent = {
+          serviceConfig.ExecStartPre = lib.mkBefore ["+${hermesStateScript}"];
 
-          install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${sshDir}
-          install -m 0600 -o ${cfg.user} -g ${cfg.group} ${config.sops.secrets."hermes/ssh-key".path} ${sshDir}/id_ed25519
-          install -m 0600 -o ${cfg.user} -g ${cfg.group} ${sshConfig} ${sshDir}/config
+          preStart = lib.mkAfter ''
+            install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${sshDir}
+            install -m 0600 -o ${cfg.user} -g ${cfg.group} ${config.sops.secrets."hermes/ssh-key".path} ${sshDir}/id_ed25519
+            install -m 0600 -o ${cfg.user} -g ${cfg.group} ${sshConfig} ${sshDir}/config
 
-          # Rendered here, not pkgs.writeText: backend.login needs the
-          # sops-managed ICLOUD_MAIL_USERNAME. iCloud IMAP auth takes the
-          # bare short name, not the Apple ID that email/CalDAV/CardDAV use.
-          # No message.send.* backend: sending is mechanically unavailable,
-          # not just a SOUL.md rule.
-          _icloud_mail_user=$(grep '^ICLOUD_MAIL_USERNAME=' "${config.sops.secrets."hermes/env".path}" | cut -d= -f2-)
-          install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${himalayaConfigDir}
-          cat > ${himalayaConfigDir}/config.toml <<EOF
-          [accounts.icloud]
-          default = true
-          email = "${icloudAppleId}"
-          display-name = "Aidan Pinard"
-          backend.type = "imap"
-          backend.host = "imap.mail.me.com"
-          backend.port = 993
-          backend.encryption.type = "tls"
-          backend.login = "$_icloud_mail_user"
-          backend.auth.type = "password"
-          backend.auth.cmd = "printenv ICLOUD_APP_PASSWORD"
-          EOF
-          chown ${cfg.user}:${cfg.group} ${himalayaConfigDir}/config.toml
-          chmod 0600 ${himalayaConfigDir}/config.toml
+            # Rendered here, not pkgs.writeText: backend.login needs the
+            # sops-managed ICLOUD_MAIL_USERNAME. iCloud IMAP auth takes the
+            # bare short name, not the Apple ID that email/CalDAV/CardDAV use.
+            # No message.send.* backend: sending is mechanically unavailable,
+            # not just a SOUL.md rule.
+            _icloud_mail_user=$(grep '^ICLOUD_MAIL_USERNAME=' "${config.sops.secrets."hermes/env".path}" | cut -d= -f2-)
+            install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${himalayaConfigDir}
+            cat > ${himalayaConfigDir}/config.toml <<EOF
+            [accounts.icloud]
+            default = true
+            email = "${icloudAppleId}"
+            display-name = "Aidan Pinard"
+            backend.type = "imap"
+            backend.host = "imap.mail.me.com"
+            backend.port = 993
+            backend.encryption.type = "tls"
+            backend.login = "$_icloud_mail_user"
+            backend.auth.type = "password"
+            backend.auth.cmd = "printenv ICLOUD_APP_PASSWORD"
+            EOF
+            chown ${cfg.user}:${cfg.group} ${himalayaConfigDir}/config.toml
+            chmod 0600 ${himalayaConfigDir}/config.toml
 
-          # khal has no config-path env var, only $HOME/.config/khal/config.
-          install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${khalConfigDir}
-          install -m 0640 -o ${cfg.user} -g ${cfg.group} ${khalConfig} ${khalConfigDir}/config
+            # khal has no config-path env var, only $HOME/.config/khal/config.
+            install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${khalConfigDir}
+            install -m 0640 -o ${cfg.user} -g ${cfg.group} ${khalConfig} ${khalConfigDir}/config
 
-          # khard reads only $XDG_CONFIG_HOME/khard/khard.conf.
-          install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${khardConfigDir}
-          install -m 0640 -o ${cfg.user} -g ${cfg.group} ${khardConfig} ${khardConfigDir}/khard.conf
-        '';
+            # khard reads only $XDG_CONFIG_HOME/khard/khard.conf.
+            install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${khardConfigDir}
+            install -m 0640 -o ${cfg.user} -g ${cfg.group} ${khardConfig} ${khardConfigDir}/khard.conf
+          '';
+        };
 
         hermes-kb-export = {
           description = "Weekly one-way export of Hermes memory into the knowledge-base repo";
