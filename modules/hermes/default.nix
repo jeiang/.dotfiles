@@ -29,6 +29,27 @@ in {
     hermesHome = "${cfg.stateDir}/.hermes";
     sshDir = "${cfg.stateDir}/.ssh";
 
+    # Workaround: the upstream module installs config.yaml, .env and the
+    # documents from a system activation script, but artemis activates from
+    # the initrd, before the impermanence bind mount of stateDir exists. Those
+    # writes land on the root subvolume, get hidden by the mount, and are
+    # nuked on the next boot, so the gateway starts with neither its settings
+    # nor its secrets. Re-running the module's own state script from preStart
+    # puts the same files on the mounted directory.
+    hermesCommon = import "${inputs.hermes-agent}/nix/moduleCommon.nix" {inherit lib;};
+    hermesStateScript = hermesCommon.mkStateScript {
+      inherit pkgs cfg hermesHome;
+      inherit (cfg) workingDirectory;
+      stateDirs = hermesCommon.stateSubdirs;
+      modes = {
+        config = "0640";
+        env = "0640";
+        managed = "0644";
+        auth = "0600";
+        document = "0640";
+      };
+    };
+
     # artemis has no Hetzner private-network route to Legion; every hop is
     # over NetBird, so hermes-ops is reached at each peer's mesh address
     # (modules/netbird-peers.nix), not the 172.17.0.0/24 Hetzner IPs the
@@ -196,6 +217,8 @@ in {
     systemd = {
       services = {
         hermes-agent.preStart = lib.mkAfter ''
+          ${hermesStateScript}
+
           install -d -m 0700 -o ${cfg.user} -g ${cfg.group} ${sshDir}
           install -m 0600 -o ${cfg.user} -g ${cfg.group} ${config.sops.secrets."hermes/ssh-key".path} ${sshDir}/id_ed25519
           install -m 0600 -o ${cfg.user} -g ${cfg.group} ${sshConfig} ${sshDir}/config
