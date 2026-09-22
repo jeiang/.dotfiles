@@ -70,7 +70,7 @@ in {
           ripper
         ]
         # Shadows base's yazi: this one's T and d keys shell out to rip instead
-        # of yazi's built-in trash crate (modules/packages/yazi/keymap.artemis.toml).
+        # of yazi's built-in trash crate (modules/packages/yazi/keymap.rip.toml).
         ++ [(lib.hiPrio self.packages.${system}.yazi-artemis)];
 
       # rip's fish/zsh completions live under share/fish and share/zsh, which
@@ -85,7 +85,7 @@ in {
         };
       };
       systemd.user.services.rip-empty = {
-        description = "Permanently delete home-trash items older than 30 days";
+        description = "Permanently delete trashed items older than 30 days";
         serviceConfig = {
           Type = "oneshot";
           ExecStart = "${lib.getExe ripper} empty --older-than 30d -y";

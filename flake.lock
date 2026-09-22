@@ -1762,11 +1762,11 @@
         "nixpkgs": "nixpkgs_9"
       },
       "locked": {
-        "lastModified": 1790078088,
-        "narHash": "sha256-bh4e9lK52Bf9EsjsD4wyNCx/R5WKuQqjgrpKsu5UoX4=",
+        "lastModified": 1790081505,
+        "narHash": "sha256-Ac2f59gM9sHRT1VQPURYlRSkmwNgrGb98+oeozgV86o=",
         "owner": "jeiang",
         "repo": "ripper",
-        "rev": "e107b129d1c50b9478a9d5cc8ec2a776d5c007c1",
+        "rev": "6f9d1497596d2bcda8a1d792a6dc61b4a01aee5f",
         "type": "github"
       },
       "original": {

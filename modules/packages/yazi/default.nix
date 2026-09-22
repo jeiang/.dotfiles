@@ -132,7 +132,7 @@
       };
   in {
     packages.yazi = mkYazi ./keymap.toml;
-    # artemis-only: T and d shell out to rip instead of trash (keymap.artemis.toml).
-    packages.yazi-artemis = mkYazi ./keymap.artemis.toml;
+    # yazi runs the first binding for a key, so rip's d and T shadow the base T.
+    packages.yazi-artemis = mkYazi (pkgs.concatText "keymap.toml" [./keymap.rip.toml ./keymap.toml]);
   };
 }
