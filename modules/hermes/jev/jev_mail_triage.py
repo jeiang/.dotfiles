@@ -322,7 +322,8 @@ def main():
     folders = [name for name in names if not is_system_mailbox(name)] or [INBOX]
     seed_folder_history(conn, folders, mailboxes is not None)
 
-    destinations = [folder for folder in folders if folder != INBOX]
+    # himalaya lists the inbox as "Inbox"; IMAP matches the INBOX name case-insensitively.
+    destinations = [folder for folder in folders if folder.upper() != INBOX]
     if destinations:
         for envelope in list_envelopes(INBOX) or []:
             try:
