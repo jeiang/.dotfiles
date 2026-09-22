@@ -113,20 +113,26 @@
       require("full-border"):setup()
     '';
 
-    configHome = pkgs.runCommand "yazi-config" {} ''
-      mkdir -p $out/plugins
-      ln -s ${yaziToml} $out/yazi.toml
-      ln -s ${./keymap.toml} $out/keymap.toml
-      ln -s ${themeToml} $out/theme.toml
-      ln -s ${initLua} $out/init.lua
-      ${lib.concatMapStringsSep "\n" (plugin: "ln -s ${plugin} $out/plugins/${plugin.pname}") plugins}
-    '';
+    mkConfigHome = keymap:
+      pkgs.runCommand "yazi-config" {} ''
+        mkdir -p $out/plugins
+        ln -s ${yaziToml} $out/yazi.toml
+        ln -s ${keymap} $out/keymap.toml
+        ln -s ${themeToml} $out/theme.toml
+        ln -s ${initLua} $out/init.lua
+        ${lib.concatMapStringsSep "\n" (plugin: "ln -s ${plugin} $out/plugins/${plugin.pname}") plugins}
+      '';
+
+    mkYazi = keymap:
+      inputs.wrapper-modules.lib.wrapPackage {
+        inherit pkgs;
+        package = pkgs.yazi;
+        env.YAZI_CONFIG_HOME = "${mkConfigHome keymap}";
+        runtimePkgs = [pkgs.glow pkgs.ouch];
+      };
   in {
-    packages.yazi = inputs.wrapper-modules.lib.wrapPackage {
-      inherit pkgs;
-      package = pkgs.yazi;
-      env.YAZI_CONFIG_HOME = "${configHome}";
-      runtimePkgs = [pkgs.glow pkgs.ouch];
-    };
+    packages.yazi = mkYazi ./keymap.toml;
+    # artemis-only: T and d shell out to rip instead of trash (keymap.artemis.toml).
+    packages.yazi-artemis = mkYazi ./keymap.artemis.toml;
   };
 }
