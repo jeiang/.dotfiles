@@ -236,8 +236,8 @@ behavior for its own sake.
   puller gets shared-PoP bans. The signing key `cache.jeiang.dev-1` is named
   for the function, not the implementation.
 - garret accepts pushes from GitHub Actions OIDC tokens for
-  `refs/heads/main` of any repository owned by `jeiang`, and from a Pocket ID
-  client. There is no per-repository check.
+  `refs/heads/main` and `refs/tags/v*` (release tags) of any repository owned
+  by `jeiang`, and from a Pocket ID client. There is no per-repository check.
 - `dns/dnsconfig.js` is the source of truth for the Cloudflare zones. CI
   applies it on merge with full purge; only `_acme-challenge` TXT records
   are ignored. A dashboard edit is for emergencies and must be copied back

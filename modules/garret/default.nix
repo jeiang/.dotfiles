@@ -131,7 +131,7 @@ in {
             jwks_url = "https://token.actions.githubusercontent.com/.well-known/jwks";
             # Immutable owner id, not the name: names are renameable.
             github_owner_id = "31970261";
-            ref_patterns = ["refs/heads/main"];
+            ref_patterns = ["refs/heads/main" "refs/tags/v*"];
             allowed_groups = [];
           }
           # Exactly one issuer may set client_id (discovery advertises the
