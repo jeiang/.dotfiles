@@ -17,7 +17,7 @@ permissions:
 
 env:
   # Pulls are anonymous, so only pushes need credentials; those are minted
-  # per-job from GitHub OIDC (only refs/heads/main is granted push server-side).
+  # per-job from GitHub OIDC (only main and v* tags are granted push server-side).
   GARRET_SUBSTITUTER: https://cache.jeiang.dev
   GARRET_PUBLIC_KEY: "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
 
@@ -59,7 +59,7 @@ jobs:
     needs: discover
     permissions:
       contents: read
-      # Exchanged for a short-lived push token; the server only grants push to refs/heads/main.
+      # Exchanged for a short-lived push token; the server only grants push to main and v* tags.
       id-token: write
     strategy:
       fail-fast: false
