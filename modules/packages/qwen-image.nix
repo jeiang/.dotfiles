@@ -85,7 +85,7 @@ in {
           --llm "$dir/${weights.llm.name}" \
           "''${mode[@]}" \
           --params-backend disk --diffusion-fa \
-          --cfg-scale 6.0 --sampling-method euler \
+          --cfg-scale 1 --steps 40 --sampling-method euler \
           "$@"
       '';
     };
