@@ -311,6 +311,11 @@ behavior for its own sake.
 - Jev (TypeSafe System One) judgments run in code in front of Hermes --
   systemd services and a shell hook (`modules/hermes/jev/`) -- never as a
   tool the agent itself chooses.
+- Hermes is Nix-managed, so it refuses to save configuration at runtime: a
+  chat command such as `/sethome` lasts only until the gateway restarts. The
+  Telegram home channel, where the Jev webhook routes deliver, is
+  `TELEGRAM_HOME_CHANNEL` in the `hermes/env` secret, which keeps the chat ID
+  out of this public repository.
 
 ## CI
 
