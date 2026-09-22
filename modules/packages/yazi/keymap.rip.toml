@@ -1,0 +1,12 @@
+# rip replaces yazi's built-in trash (the trash crate creates .Trash-1000 at
+# bind-mount roots such as ~/Downloads, breaking the home-trash rule).
+[[mgr.prepend_keymap]]
+on   = "d"
+run  = "shell -- rip -- %s"
+desc = "Trash the selection"
+
+[[mgr.prepend_keymap]]
+on   = "T"
+run  = "shell -- rip -- %s"
+desc = "Trash the selection"
+

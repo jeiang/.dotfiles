@@ -1628,6 +1628,22 @@
         "type": "github"
       }
     },
+    "nixpkgs_9": {
+      "locked": {
+        "lastModified": 1789844176,
+        "narHash": "sha256-COQmpo4lFIzMgUjr3ntDpjH0NwrCnf7N0uhR+6WPGP8=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "79b35bf0bda5cd110f856aa5b5b2c5ba4460dbf5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "npm-lockfile-fix": {
       "inputs": {
         "nixpkgs": [
@@ -1741,6 +1757,24 @@
         "type": "github"
       }
     },
+    "ripper": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_9"
+      },
+      "locked": {
+        "lastModified": 1790081505,
+        "narHash": "sha256-Ac2f59gM9sHRT1VQPURYlRSkmwNgrGb98+oeozgV86o=",
+        "owner": "jeiang",
+        "repo": "ripper",
+        "rev": "6f9d1497596d2bcda8a1d792a6dc61b4a01aee5f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "ripper",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "agent-skills": "agent-skills",
@@ -1773,6 +1807,7 @@
         "nix-topology": "nix-topology",
         "nixpkgs": "nixpkgs_8",
         "portfolio": "portfolio",
+        "ripper": "ripper",
         "sops-nix": "sops-nix",
         "treefmt-nix": "treefmt-nix_3",
         "website": "website",

@@ -76,6 +76,8 @@
     markdown-table-live-editor.inputs.nixpkgs.follows = "nixpkgs";
     # Deliberately no follows: CI installs the garret client from this input's locked rev, and a different pin than garret's own cache seeding would force from-source rebuilds every run.
     garret.url = "github:jeiang/garret";
+    # Deliberately no follows: ripper's release CI pushes to garret against this input's own nixpkgs pin, and a different pin here would miss that cache and rebuild from source.
+    ripper.url = "github:jeiang/ripper";
     # Deliberately no follows: upstream's uv2nix Python environment is tested against its own pin; following ours would rebuild it on every nixpkgs bump.
     hermes-agent.url = "github:NousResearch/hermes-agent/v2026.9.14";
   };
