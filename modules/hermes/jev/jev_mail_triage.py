@@ -1,11 +1,13 @@
 """jev-mail-triage: every 15 minutes, keep only unread or flagged mail in the
 iCloud INBOX. Each INBOX message is judged once with Jev (bucket choice, "needs
-a reply today" noul, importance score, destination folder choice): urgent mail
-is flagged and goes into one Telegram digest per run. A later run moves a
-message that is read and not flagged to its judged folder, or to Misc when that
-choice was not confident, so unflagging an urgent message files it. An
-urgent line stays queued in jev-mail.db until Hermes accepts a digest that
-carries it, so a Hermes outage delays the digest instead of dropping it.
+a reply today" noul, importance score, destination folder choice). Only unread
+mail is escalated: an urgent unread message is flagged and goes into one
+Telegram digest per run, while mail the user has already read is never flagged
+and never raises an alert. A message that is read and not flagged moves to its
+judged folder, or to Misc when that choice was not confident, so unflagging an
+urgent message files it on the next run. An urgent line stays queued in
+jev-mail.db until Hermes accepts a digest that carries it, so a Hermes outage
+delays the digest instead of dropping it.
 Idempotent: a message already logged in jev-mail.db is never re-judged. Never
 blocks mail: a per-message failure (himalaya or Jev) is logged and skipped, so
 one bad message can't stop the run, and an unjudged message is simply retried
@@ -254,22 +256,9 @@ def file_message(conn, envelope, uid, message_id, decision, folders):
     conn.commit()
 
 
-def process_envelope(conn, envelope, folders):
-    # `id` is the backend id (IMAP UID) every himalaya command takes; it is only
-    # unique within one mailbox and can be reused after an expunge, so the
-    # idempotency key is the RFC 5322 Message-ID when the backend surfaced it.
-    uid = str(envelope.get("id") or "")
-    message_id = envelope.get("message-id") or uid
-    if not uid:
-        return
-    decision = conn.execute(
-        "SELECT sender_domain, folder, confidence FROM decisions WHERE message_id = ?", (message_id,)
-    ).fetchone()
-    if decision is not None:
-        file_message(conn, envelope, uid, message_id, decision, folders)
-        return
-    # A message is filed in a run after the one that judges it, so the listing
-    # already shows the flag an urgent judgment sets.
+def judge_message(conn, envelope, uid, message_id, folders):
+    """Judge one message and record the decision, returning it as
+    (sender_domain, folder, confidence), or None when Jev gave no judgment."""
     subject = envelope.get("subject") or ""
     sender = sender_address(envelope)
     domain = sender_domain(sender)
@@ -286,7 +275,7 @@ def process_envelope(conn, envelope, folders):
     answers = judge(state)
     if answers is None:
         logging.warning("no judgment for %s (%r); left in INBOX, will retry next run", message_id, subject)
-        return
+        return None
 
     bucket = answers.get("bucket", {}).get("choice", "")
     needs_reply = answers.get("needs_reply_today", {}).get("noul", 0.0)
@@ -300,7 +289,7 @@ def process_envelope(conn, envelope, folders):
     )
 
     urgent_line = None
-    if bucket == "urgent":
+    if bucket == "urgent" and not has_flag(envelope, "seen"):
         himalaya("flag", "add", "--mailbox", INBOX, "--flag", "flagged", uid)
         urgent_line = f"- {subject} — {sender}"
 
@@ -312,6 +301,24 @@ def process_envelope(conn, envelope, folders):
     if urgent_line:
         conn.execute("INSERT INTO urgent_pending (message_id, line) VALUES (?, ?)", (message_id, urgent_line))
     conn.commit()
+    return domain, dest_folder, dest_confidence
+
+
+def process_envelope(conn, envelope, folders):
+    # `id` is the backend id (IMAP UID) every himalaya command takes; it is only
+    # unique within one mailbox and can be reused after an expunge, so the
+    # idempotency key is the RFC 5322 Message-ID when the backend surfaced it.
+    uid = str(envelope.get("id") or "")
+    message_id = envelope.get("message-id") or uid
+    if not uid:
+        return
+    decision = conn.execute(
+        "SELECT sender_domain, folder, confidence FROM decisions WHERE message_id = ?", (message_id,)
+    ).fetchone()
+    if decision is None:
+        decision = judge_message(conn, envelope, uid, message_id, folders)
+    if decision is not None:
+        file_message(conn, envelope, uid, message_id, decision, folders)
 
 
 def main():
