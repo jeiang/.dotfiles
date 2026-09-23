@@ -117,6 +117,11 @@ def init_db(conn):
     unjudged = conn.execute("DELETE FROM decisions WHERE bucket = ''").rowcount
     if unjudged:
         logging.info("dropped %d decisions recorded without a judgment", unjudged)
+    # The inbox is no longer a destination choice, so a decision naming it
+    # would file its message to FALLBACK_FOLDER on a folder Jev never chose.
+    inboxed = conn.execute("DELETE FROM decisions WHERE upper(folder) = ?", (INBOX,)).rowcount
+    if inboxed:
+        logging.info("dropped %d decisions filed to the inbox itself", inboxed)
     conn.commit()
 
 
