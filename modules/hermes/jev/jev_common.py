@@ -18,6 +18,9 @@ import urllib.request
 JEV_API_URL = "https://api.typesafe.ai/v1/systemone"
 JEV_MODEL = "jev-latest"
 JEV_MAX_RETRIES = 3
+# Cloudflare fronts the API and answers urllib's default agent with 403 and its
+# own "error code: 1010", which never reaches the API at all.
+JEV_USER_AGENT = "jev-triage/1.0 (+https://github.com/jeiang/.dotfiles)"
 
 
 def call_jev(state, questions, timeout=20):
@@ -33,7 +36,11 @@ def call_jev(state, questions, timeout=20):
         JEV_API_URL,
         data=body,
         method="POST",
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+            "User-Agent": JEV_USER_AGENT,
+        },
     )
     delay = 1.0
     for attempt in range(JEV_MAX_RETRIES + 1):
