@@ -1,11 +1,13 @@
 """jev-mail-triage: every 15 minutes, keep only unread or flagged mail in the
 iCloud INBOX. Each INBOX message is judged once with Jev (bucket choice, "needs
-a reply today" noul, importance score, destination folder choice). Only unread
+a reply today" noul, importance score, destination folder walk). Only unread
 mail is escalated: an urgent unread message is flagged and goes into one
 Telegram digest per run, while mail the user has already read is never flagged
 and never raises an alert. A message that is read and not flagged moves to its
-judged folder, or to Misc when that choice was not confident, so unflagging an
-urgent message files it on the next run. An urgent line stays queued in
+judged folder, or to Misc when the walk did not resolve one, so unflagging an
+urgent message files it on the next run. The folder comes from a decision tree
+-- a category and its branch question, walked into a name by the mapping below
+-- so Jev never names a mailbox itself. An urgent line stays queued in
 jev-mail.db until Hermes accepts a digest that carries it, so a Hermes outage
 delays the digest instead of dropping it.
 Idempotent: a message already logged in jev-mail.db is never re-judged. Never
@@ -34,6 +36,23 @@ SYSTEM_MAILBOXES = {
 }
 DEST_CONFIDENCE_THRESHOLD = 0.45  # set once; raise to send more read mail to FALLBACK_FOLDER.
 FALLBACK_FOLDER = "Misc"
+BANK_TRANSACTION_THRESHOLD = 0.5
+# The destination is walked from Jev's answers, so folder names live here and
+# never in a judgment: a mailbox added to the account needs an entry below to
+# receive mail, and Jev can never name a folder that does not exist.
+CATEGORY_FOLDERS = {
+    "government": "Government",
+    "work": "Work",
+    "travel": "Travel",
+    "gaming": "Gaming",
+    "security_alert": "Alerts/Security",
+    "personal": "Personal",
+}
+BANK_FOLDERS = {"cibc": "CIBC", "fcb": "FCB", "republic": "Republic", "scotia": "Scotia"}
+NON_BANK_FINANCE_FOLDERS = {"investments": "Finance/Investments", "insurance": "Finance/Insurance"}
+PURCHASE_FOLDERS = {"paypal": "Purchases/PayPal", "utility_bill": "Purchases/Bills", "other": "Purchases"}
+TECH_FOLDERS = {"ai": "Dev/AI", "infra": "Dev/Infra", "github": "Dev/GitHub", "tools": "Dev/Tools"}
+EDUCATION_FOLDERS = {"uwi": "Education/UWI", "virtana": "Education/Virtana", "other": "Education"}
 SEED_CAP_PER_FOLDER = 200
 # himalaya pages envelopes (25 per page by default); one page this size covers a
 # run's INBOX and the per-folder seeding cap in a single call.
@@ -226,31 +245,123 @@ def judge(state):
                 "Critical: financial, security, health, or relationship consequence if missed.",
             ],
         },
-        "destination_folder": {
+        "category": {
             "type": "choice",
-            "instructions": (
-                "Which mail folder this message belongs in once it has been read, given "
-                "the sender's history in `folder_history` below."
-            ),
+            "instructions": "Which single category this email belongs to.",
             "criteria": {
-                folder: "Mail that fits no other folder." if folder == FALLBACK_FOLDER else ""
-                for folder in state["available_folders"]
+                "banking_finance": "From a bank, credit union, investment platform, insurer or PayPal.",
+                "government": "From a government body: a ministry, tax, immigration, licensing or a .gov address.",
+                "purchase": "An order, invoice, receipt, bill or payment notice from a merchant or utility.",
+                "tech": "Developer, AI, hosting, infrastructure or software tooling.",
+                "education": "From a university, school or course.",
+                "work": "From Aidan's employer, colleagues or clients, about his job.",
+                "travel": "Flights, hotels, bookings or trip itineraries.",
+                "gaming": "Games, game stores or gaming services.",
+                "security_alert": "About account security: a sign-in, password, verification code or breach notice.",
+                "personal": "From a person writing to Aidan himself, not an organization.",
+                "none": "Nothing above describes it.",
+            },
+        },
+        # Branch questions: every one is answered from the same state and cannot
+        # see the category answer, so each states its own premise and the walk
+        # below reads only the branch its category selected.
+        "bank_transaction": {
+            "type": "noul",
+            "instructions": (
+                "Assume this email is from a bank, credit union or other financial institution. "
+                "It reports a specific transaction: a card charge, transfer, deposit, withdrawal, "
+                "payment or balance alert, rather than a statement, offer or account notice."
+            ),
+        },
+        "institution": {
+            "type": "choice",
+            "instructions": "Assume this email is about money. Which institution it comes from or concerns.",
+            "criteria": {
+                "cibc": "CIBC, CIBC Caribbean or FirstCaribbean.",
+                "fcb": "First Citizens Bank.",
+                "republic": "Republic Bank.",
+                "scotia": "Scotiabank.",
+                "investments": "An investment, brokerage, pension or trading platform.",
+                "insurance": "An insurer or an insurance policy.",
+                "paypal": "PayPal.",
+                "other": "Some other financial institution, or none of these.",
+            },
+        },
+        "purchase_kind": {
+            "type": "choice",
+            "instructions": "Assume this email is about a purchase, invoice or bill. Which kind it is.",
+            "criteria": {
+                "paypal": "A PayPal payment, receipt or dispute notice.",
+                "utility_bill": "A bill or statement from a utility or telecom, such as Flow, Digicel or BL&P.",
+                "other": "Any other order, receipt, invoice or shipping notice.",
+            },
+        },
+        "tech_kind": {
+            "type": "choice",
+            "instructions": "Assume this email is about technology. Which area it belongs to.",
+            "criteria": {
+                "ai": "AI models, AI products or AI research.",
+                "infra": "Hosting, servers, domains, networking or cloud providers such as Hetzner, DigitalOcean or Cloudflare.",
+                "github": "GitHub: repositories, pull requests, issues, actions or releases.",
+                "tools": "Developer tools, libraries, editors or software releases.",
+            },
+        },
+        "education_kind": {
+            "type": "choice",
+            "instructions": "Assume this email is about education. Which institution it concerns.",
+            "criteria": {
+                "uwi": "The University of the West Indies.",
+                "virtana": "Virtana.",
+                "other": "Any other school, course or training provider.",
             },
         },
     }
     return call_jev(state, questions)
 
 
+def pick(answers, question):
+    """The chosen option when the judgment clears the confidence floor, else
+    None, so an unsure branch falls through to FALLBACK_FOLDER."""
+    answer = answers.get(question) or {}
+    if answer.get("confidence", 0.0) < DEST_CONFIDENCE_THRESHOLD:
+        return None
+    return answer.get("choice") or None
+
+
+def destination(answers):
+    """Walk the category and its branch into a folder name."""
+    category = pick(answers, "category")
+    if category in CATEGORY_FOLDERS:
+        return CATEGORY_FOLDERS[category]
+    if category == "banking_finance":
+        institution = pick(answers, "institution")
+        if institution == "paypal":
+            return PURCHASE_FOLDERS["paypal"]
+        bank = BANK_FOLDERS.get(institution)
+        if answers.get("bank_transaction", {}).get("noul", 0.0) >= BANK_TRANSACTION_THRESHOLD:
+            # Only the banks with an alert folder of their own; the rest fall through.
+            return f"Alerts/Banking/{bank}" if bank else FALLBACK_FOLDER
+        if bank:
+            return f"Finance/{bank}"
+        return NON_BANK_FINANCE_FOLDERS.get(institution, FALLBACK_FOLDER)
+    if category == "purchase":
+        return PURCHASE_FOLDERS.get(pick(answers, "purchase_kind"), FALLBACK_FOLDER)
+    if category == "tech":
+        return TECH_FOLDERS.get(pick(answers, "tech_kind"), FALLBACK_FOLDER)
+    if category == "education":
+        return EDUCATION_FOLDERS.get(pick(answers, "education_kind"), FALLBACK_FOLDER)
+    return FALLBACK_FOLDER
+
+
 def file_message(conn, envelope, uid, message_id, decision, folders):
     if not has_flag(envelope, "seen") or has_flag(envelope, "flagged"):
         return
-    domain, folder, confidence = decision
-    confident = confidence > DEST_CONFIDENCE_THRESHOLD and folder in folders
-    dest = folder if confident else FALLBACK_FOLDER
+    domain, folder = decision[0], decision[1]
+    dest = folder if folder in folders else FALLBACK_FOLDER
     if himalaya("message", "move", "--from", INBOX, "--to", dest, uid) is None:
         return
     logging.info("%s filed to %s", message_id, dest)
-    if confident:
+    if dest != FALLBACK_FOLDER:
         bump_folder_history(conn, domain, dest)
     conn.execute("UPDATE decisions SET moved = 1 WHERE message_id = ?", (message_id,))
     conn.commit()
@@ -270,7 +381,6 @@ def judge_message(conn, envelope, uid, message_id, folders):
         "snippet": snippet,
         "folder_history": folder_counts(conn, domain),
         "recent_subjects_from_sender": recent_subjects(conn, sender),
-        "available_folders": folders,
     }
     answers = judge(state)
     if answers is None:
@@ -280,12 +390,13 @@ def judge_message(conn, envelope, uid, message_id, folders):
     bucket = answers.get("bucket", {}).get("choice", "")
     needs_reply = answers.get("needs_reply_today", {}).get("noul", 0.0)
     importance = answers.get("importance", {}).get("score", 0.0)
-    dest = answers.get("destination_folder", {})
-    dest_folder, dest_confidence = dest.get("choice", ""), dest.get("confidence", 0.0)
+    category = answers.get("category", {})
+    dest_folder, dest_confidence = destination(answers), category.get("confidence", 0.0)
 
     logging.info(
-        "%s bucket=%s needs_reply=%.2f importance=%.2f dest=%s(%.2f)",
-        message_id, bucket, needs_reply, importance, dest_folder, dest_confidence,
+        "%s bucket=%s needs_reply=%.2f importance=%.2f category=%s(%.2f) dest=%s",
+        message_id, bucket, needs_reply, importance,
+        category.get("choice", ""), dest_confidence, dest_folder,
     )
 
     urgent_line = None
