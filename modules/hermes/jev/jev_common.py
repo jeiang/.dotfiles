@@ -45,7 +45,13 @@ def call_jev(state, questions, timeout=20):
                 time.sleep(delay)
                 delay *= 2
                 continue
-            logging.warning("Jev API call failed with HTTP %s", exc.code)
+            # The body carries the API's own explanation (bad key, exhausted
+            # credits, malformed question); the status alone does not.
+            try:
+                detail = exc.read().decode("utf-8", "replace").strip()[:500]
+            except Exception as read_exc:
+                detail = f"<body unreadable: {read_exc}>"
+            logging.warning("Jev API call failed with HTTP %s %s: %s", exc.code, exc.reason, detail)
             return None
         except Exception as exc:  # network error, timeout, bad JSON, ...
             logging.warning("Jev API call failed: %s", exc)
