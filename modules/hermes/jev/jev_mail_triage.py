@@ -32,7 +32,7 @@ SYSTEM_MAILBOXES = {
     "sent messages", "sent", "deleted messages", "trash",
     "junk", "junk mail", "spam", "drafts", "notes",
 }
-DEST_CONFIDENCE_THRESHOLD = 0.7  # set once; raise to send more read mail to FALLBACK_FOLDER.
+DEST_CONFIDENCE_THRESHOLD = 0.45  # set once; raise to send more read mail to FALLBACK_FOLDER.
 FALLBACK_FOLDER = "Misc"
 SEED_CAP_PER_FOLDER = 200
 # himalaya pages envelopes (25 per page by default); one page this size covers a
