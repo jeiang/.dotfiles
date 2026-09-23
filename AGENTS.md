@@ -311,6 +311,13 @@ behavior for its own sake.
 - Jev (TypeSafe System One) judgments run in code in front of Hermes --
   systemd services and a shell hook (`modules/hermes/jev/`) -- never as a
   tool the agent itself chooses.
+- Jev picks a mail folder by walking a decision tree in
+  `modules/hermes/jev/jev_mail_triage.py`: one category question plus the
+  branch questions, all asked in one request with their premises stated,
+  because answers in a request cannot see each other. Folder names live in
+  that script's mapping, never in a judgment, so a mailbox added to the
+  account receives nothing until it has an entry, and a branch that misses
+  the confidence floor falls through to `Misc`.
 - Hermes is Nix-managed, so it refuses to save configuration at runtime: a
   chat command such as `/sethome` lasts only until the gateway restarts. The
   Telegram home channel, where the Jev webhook routes deliver, is
