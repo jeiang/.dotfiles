@@ -2,7 +2,7 @@
 Alertmanager on legion-node3 posts to. Judges each firing alert with Jev
 (page_now / digest / suppress, a "restart-fixable" noul, and a blast-radius
 score) and only forwards page_now alerts to the Hermes webhook, with an
-investigate-and-report-only prompt -- the 27B agent investigates, it never
+investigate-and-report-only prompt -- the agent investigates, it never
 self-remediates from this route. digest items accumulate in a file that
 jev_alert_digest.py sends once a day; suppress is only journaled.
 
@@ -43,7 +43,7 @@ INVESTIGATE_PROMPT = """\
 A fleet alert fired via Alertmanager and Jev judged it worth paging now. Investigate before concluding anything -- don't just restate the payload.
 
 1. Read the alert below: unit/node, condition, since when.
-2. Investigate: VictoriaLogs first (SERVERS.md "Logs: VictoriaLogs"), `systemctl status`/journalctl as fallback, VictoriaMetrics if it's a resource/threshold alert.
+2. Investigate: VictoriaLogs first (SERVERS.md "Logs and metrics"), `systemctl status`/journalctl as fallback, VictoriaMetrics if it's a resource/threshold alert.
 3. Do NOT take any action from this turn -- no `systemctl restart`/`stop`, no `netbird expose`, no `sudo` command of any kind, not even a tier-1-safe one. This route is investigate-and-report only; it never self-remediates, regardless of how confident you are in a fix.
 4. End with a clear diagnosis for Aidan: what fired, what you found, and the specific action you'd recommend. This response IS the Telegram message he sees -- there's no separate step to send it. If he says go, the fix happens in the normal Telegram conversation, under the usual tier policy.
 
