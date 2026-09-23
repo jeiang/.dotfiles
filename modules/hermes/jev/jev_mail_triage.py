@@ -1,7 +1,9 @@
-"""jev-mail-triage: every 15 minutes, judge each unseen iCloud INBOX message with
-Jev (bucket choice, "needs a reply today" noul, importance score, destination
-folder choice) and act on the result -- flag urgent mail, move mail above a
-confidence floor, and send one Telegram digest of urgent items per run. An
+"""jev-mail-triage: every 15 minutes, keep only unread or flagged mail in the
+iCloud INBOX. Each INBOX message is judged once with Jev (bucket choice, "needs
+a reply today" noul, importance score, destination folder choice): urgent mail
+is flagged and goes into one Telegram digest per run. A later run moves a
+message that is read and not flagged to its judged folder, or to Misc when that
+choice was not confident, so unflagging an urgent message files it. An
 urgent line stays queued in jev-mail.db until Hermes accepts a digest that
 carries it, so a Hermes outage delays the digest instead of dropping it.
 Idempotent: a message already logged in jev-mail.db is never re-judged. Never
@@ -28,10 +30,11 @@ SYSTEM_MAILBOXES = {
     "sent messages", "sent", "deleted messages", "trash",
     "junk", "junk mail", "spam", "drafts", "notes",
 }
-DEST_CONFIDENCE_THRESHOLD = 0.7  # set once; raise to move fewer messages, lower to move more.
+DEST_CONFIDENCE_THRESHOLD = 0.7  # set once; raise to send more read mail to FALLBACK_FOLDER.
+FALLBACK_FOLDER = "Misc"
 SEED_CAP_PER_FOLDER = 200
 # himalaya pages envelopes (25 per page by default); one page this size covers a
-# run's unseen mail and the per-folder seeding cap in a single call.
+# run's INBOX and the per-folder seeding cap in a single call.
 PAGE_SIZE = SEED_CAP_PER_FOLDER
 
 HERMES_HOME = os.environ.get("HERMES_HOME") or os.path.join(os.environ.get("HOME", ""), ".hermes")
@@ -114,6 +117,11 @@ def init_db(conn):
     unjudged = conn.execute("DELETE FROM decisions WHERE bucket = ''").rowcount
     if unjudged:
         logging.info("dropped %d decisions recorded without a judgment", unjudged)
+    # The inbox is no longer a destination choice, so a decision naming it
+    # would file its message to FALLBACK_FOLDER on a folder Jev never chose.
+    inboxed = conn.execute("DELETE FROM decisions WHERE upper(folder) = ?", (INBOX,)).rowcount
+    if inboxed:
+        logging.info("dropped %d decisions filed to the inbox itself", inboxed)
     conn.commit()
 
 
@@ -185,8 +193,8 @@ def flag_name(flag):
     return str(flag).lstrip("\\").lower()
 
 
-def is_unseen(envelope):
-    return not any(flag_name(flag) == "seen" for flag in envelope.get("flags") or [])
+def has_flag(envelope, name):
+    return any(flag_name(flag) == name for flag in envelope.get("flags") or [])
 
 
 def judge(state):
@@ -219,13 +227,31 @@ def judge(state):
         "destination_folder": {
             "type": "choice",
             "instructions": (
-                "Which existing mail folder this message belongs in, given the sender's "
-                "history in `folder_history` below. Prefer INBOX when unsure."
+                "Which mail folder this message belongs in once it has been read, given "
+                "the sender's history in `folder_history` below."
             ),
-            "criteria": {folder: "" for folder in state["available_folders"]},
+            "criteria": {
+                folder: "Mail that fits no other folder." if folder == FALLBACK_FOLDER else ""
+                for folder in state["available_folders"]
+            },
         },
     }
     return call_jev(state, questions)
+
+
+def file_message(conn, envelope, uid, message_id, decision, folders):
+    if not has_flag(envelope, "seen") or has_flag(envelope, "flagged"):
+        return
+    domain, folder, confidence = decision
+    confident = confidence > DEST_CONFIDENCE_THRESHOLD and folder in folders
+    dest = folder if confident else FALLBACK_FOLDER
+    if himalaya("message", "move", "--from", INBOX, "--to", dest, uid) is None:
+        return
+    logging.info("%s filed to %s", message_id, dest)
+    if confident:
+        bump_folder_history(conn, domain, dest)
+    conn.execute("UPDATE decisions SET moved = 1 WHERE message_id = ?", (message_id,))
+    conn.commit()
 
 
 def process_envelope(conn, envelope, folders):
@@ -234,11 +260,16 @@ def process_envelope(conn, envelope, folders):
     # idempotency key is the RFC 5322 Message-ID when the backend surfaced it.
     uid = str(envelope.get("id") or "")
     message_id = envelope.get("message-id") or uid
-    if not uid or not is_unseen(envelope):
+    if not uid:
         return
-    if conn.execute("SELECT 1 FROM decisions WHERE message_id = ?", (message_id,)).fetchone():
-        return  # idempotent: already judged in a previous run
-
+    decision = conn.execute(
+        "SELECT sender_domain, folder, confidence FROM decisions WHERE message_id = ?", (message_id,)
+    ).fetchone()
+    if decision is not None:
+        file_message(conn, envelope, uid, message_id, decision, folders)
+        return
+    # A message is filed in a run after the one that judges it, so the listing
+    # already shows the flag an urgent judgment sets.
     subject = envelope.get("subject") or ""
     sender = sender_address(envelope)
     domain = sender_domain(sender)
@@ -261,7 +292,7 @@ def process_envelope(conn, envelope, folders):
     needs_reply = answers.get("needs_reply_today", {}).get("noul", 0.0)
     importance = answers.get("importance", {}).get("score", 0.0)
     dest = answers.get("destination_folder", {})
-    dest_folder, dest_confidence = dest.get("choice", INBOX), dest.get("confidence", 0.0)
+    dest_folder, dest_confidence = dest.get("choice", ""), dest.get("confidence", 0.0)
 
     logging.info(
         "%s bucket=%s needs_reply=%.2f importance=%.2f dest=%s(%.2f)",
@@ -273,16 +304,10 @@ def process_envelope(conn, envelope, folders):
         himalaya("flag", "add", "--mailbox", INBOX, "--flag", "flagged", uid)
         urgent_line = f"- {subject} — {sender}"
 
-    moved = 0
-    if dest_confidence > DEST_CONFIDENCE_THRESHOLD and dest_folder and dest_folder != INBOX:
-        if himalaya("message", "move", "--from", INBOX, "--to", dest_folder, uid) is not None:
-            bump_folder_history(conn, domain, dest_folder)
-            moved = 1
-
     conn.execute(
         "INSERT INTO decisions (message_id, sender, sender_domain, subject, bucket, needs_reply, "
-        "importance, folder, confidence, moved, ts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s','now'))",
-        (message_id, sender, domain, subject, bucket, needs_reply, importance, dest_folder, dest_confidence, moved),
+        "importance, folder, confidence, moved, ts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, strftime('%s','now'))",
+        (message_id, sender, domain, subject, bucket, needs_reply, importance, dest_folder, dest_confidence),
     )
     if urgent_line:
         conn.execute("INSERT INTO urgent_pending (message_id, line) VALUES (?, ?)", (message_id, urgent_line))
@@ -302,11 +327,16 @@ def main():
     folders = [name for name in names if not is_system_mailbox(name)] or [INBOX]
     seed_folder_history(conn, folders, mailboxes is not None)
 
-    for envelope in list_envelopes(INBOX) or []:
-        try:
-            process_envelope(conn, envelope, folders)
-        except Exception:
-            logging.exception("failed to triage one message; skipped, will retry next run")
+    # himalaya lists the inbox as "Inbox"; IMAP matches the INBOX name case-insensitively.
+    destinations = [folder for folder in folders if folder.upper() != INBOX]
+    if destinations:
+        for envelope in list_envelopes(INBOX) or []:
+            try:
+                process_envelope(conn, envelope, destinations)
+            except Exception:
+                logging.exception("failed to triage one message; skipped, will retry next run")
+    else:
+        logging.warning("no destination mailboxes listed; nothing judged or filed this run")
 
     pending = conn.execute("SELECT message_id, line FROM urgent_pending ORDER BY rowid").fetchall()
     if pending:
