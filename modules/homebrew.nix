@@ -42,6 +42,7 @@
         "microsoft-word"
         "microsoft-excel"
         "roblox"
+        "steam"
         "notion-calendar"
         # The .app manages its own daemon/tunnel (a nix-managed daemon around the netbird CLI would fight it). A switch upgrades the cask but leaves the running daemon on the old build -- bump the netbird-tap input, switch, then `just netbird-update`.
         "netbirdio/tap/netbird-ui"
