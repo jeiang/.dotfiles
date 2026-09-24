@@ -115,6 +115,7 @@ in {
                       (feed "Mitchell Hashimoto" "https://mitchellh.com/feed.xml")
                       (feed "NixOS Weekly" "https://weekly.nixos.org/feeds/all.rss.xml")
                       (feed "NixOS Announcements" "https://nixos.org/blog/announcements-rss.xml")
+                      (feed "FEX-Emu" "https://fex-emu.com/feed.xml")
                     ];
                   }
                   {
