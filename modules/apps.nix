@@ -28,7 +28,6 @@
         crossover
         discord
         iina
-        lulu
         moonlight-qt
         mos
         nomacs
@@ -37,7 +36,6 @@
         qbittorrent
         raycast
         telegram-desktop
-        thaw
         utm
         whatsapp-for-mac
         zed-editor
