@@ -7,7 +7,7 @@ command here.
 ## Topology
 
 - **artemis** runs both halves natively as systemd services: `llm-server.service`
-  (`modules/llm-server`, Qwen3.6-35B-A3B over ROCm, loopback `127.0.0.1:8080`)
+  (`modules/llm-server`, Qwen3.6-35B-A3B with MTP heads and its vision projector, over ROCm, loopback `127.0.0.1:8080`)
   and `hermes-agent.service` (`modules/hermes`, the upstream `hermes-agent`
   NixOS module), which talks to that model as its only provider. Jev
   (TypeSafe System One) runs in code in front of Hermes — `modules/hermes/jev/`
@@ -77,8 +77,8 @@ then deploy with `--boot` and reboot artemis (a live switch cannot adopt a
 new persisted bind mount). After that, and after Legion has the
 `hermes-ops` sudoers rules (`just deploy-legion --remote-build`), a normal
 `just deploy artemis --skip-checks --remote-build` brings both services up.
-First start of `llm-server-fetch.service` downloads and checksums ~22 GB of
-weights before `llm-server.service` can answer.
+First start of `llm-server-fetch.service` downloads and checksums ~23 GB of
+weights and the ~0.9 GB vision projector before `llm-server.service` can answer.
 
 ### 4. First checks
 
@@ -175,12 +175,13 @@ ssh artemis.jeiang.vpn doas restic-persist restore <snapshot-id> --target /tmp/r
 Stop `hermes-agent.service` and the `jev-*` units before copying the restore
 back over the live path, then start them again.
 
-**Re-download the model weights** — `llm-server-fetch.service` only runs
-while its target file is missing (`ConditionPathExists=!...`), so force a
-re-fetch by removing the file first:
+**Re-download the model weights** — `llm-server-fetch.service` runs only
+while one of its files is missing (`ConditionPathExists=|!...`), and it
+deletes every other `.gguf` in the directory after a fetch, so a model swap
+frees the old weights by itself. Force a re-fetch by removing a file first:
 
 ```sh
-ssh artemis.jeiang.vpn doas rm /var/cache/bonsai-models/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
+ssh artemis.jeiang.vpn doas rm /var/cache/bonsai-models/Qwen3.6-35B-A3B-MTP-UD-Q4_K_XL.gguf
 ssh artemis.jeiang.vpn doas systemctl start llm-server-fetch.service
 ssh artemis.jeiang.vpn doas systemctl restart llm-server.service
 ```
