@@ -1672,11 +1672,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787417094,
-        "narHash": "sha256-WTCocsHDDd56pmICtPzpgsrh8ZsP+C/n5VftObAvnJE=",
+        "lastModified": 1790284235,
+        "narHash": "sha256-utCdQ6SDg1SiufgEfbAQUwoYHUVm0x+2WgDinZzTHi0=",
         "owner": "joshua-noel",
         "repo": "portfolio",
-        "rev": "954278a52e203881e47db69918d442d2c60f53d0",
+        "rev": "cab4cc53575c5354b5e074021e10392212b08e42",
         "type": "github"
       },
       "original": {
