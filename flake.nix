@@ -79,7 +79,7 @@
     # Deliberately no follows: ripper's release CI pushes to garret against this input's own nixpkgs pin, and a different pin here would miss that cache and rebuild from source.
     ripper.url = "github:jeiang/ripper";
     # Deliberately no follows: upstream's uv2nix Python environment is tested against its own pin; following ours would rebuild it on every nixpkgs bump.
-    hermes-agent.url = "github:NousResearch/hermes-agent/v2026.9.14";
+    hermes-agent.url = "github:NousResearch/hermes-agent/v2026.9.24";
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);
