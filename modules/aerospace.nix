@@ -8,6 +8,14 @@
     # Upstream's default bindings, workspaces 1-9 only.
     services.aerospace = {
       enable = true;
+      # Ghostty's native tabs are separate windows to the macOS window API;
+      # Ghostty's documented workaround keeps a new tab from being retiled.
+      settings.on-window-detected = [
+        {
+          "if".app-id = "com.mitchellh.ghostty";
+          run = ["layout tiling"];
+        }
+      ];
       settings.mode = {
         main.binding =
           {
