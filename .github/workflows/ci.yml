@@ -101,7 +101,7 @@ jobs:
         run: |
           installables=()
           for attr in $CHECKS; do installables+=(".#checks.${SYSTEM}.${attr}"); done
-          nix build --keep-going --show-trace --no-link "${installables[@]}"
+          nix build --keep-going --show-trace --no-link --print-out-paths "${installables[@]}" >"$RUNNER_TEMP/garret-outputs"
 
       # Also after a failed build, so the next run substitutes what this one built.
       - name: Push to garret what the watcher has not
@@ -140,7 +140,7 @@ jobs:
         run: ./.ci/garret.sh watch
 
       - name: Build check
-        run: nix build --keep-going --show-trace --no-link ".#checks.aarch64-darwin.zakkart-system"
+        run: nix build --keep-going --show-trace --no-link --print-out-paths ".#checks.aarch64-darwin.zakkart-system" >"$RUNNER_TEMP/garret-outputs"
 
       - name: Push to garret what the watcher has not
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'

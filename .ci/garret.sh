@@ -10,6 +10,8 @@ socket=$tmp/garret.sock
 cursor=$tmp/garret-cursor
 log=$tmp/garret-watch.log
 pidfile=$tmp/garret-watch.pid
+# The job's build step writes its out paths here.
+outputs=$tmp/garret-outputs
 
 case ${1:-} in
 hook)
@@ -24,9 +26,12 @@ EOF
 watch)
   rev=$(jq -r '.nodes.garret.locked.rev' flake.lock)
   nix build --out-link "$tmp/garret" "github:jeiang/garret/${rev}#garret"
+  # Paths substituted from garret itself are skipped one by one; the drain's
+  # push of the job's outputs still marks their closures as pushed now.
   {
     cat .ci/garret.toml
-    printf '\n[watch]\ncursor_path = "%s"\nsocket_path = "%s"\n' "$cursor" "$socket"
+    printf '\n[watch]\ncursor_path = "%s"\nsocket_path = "%s"\nupstream_keys = ["cache.nixos.org-1", "%s"]\n' \
+      "$cursor" "$socket" "${GARRET_PUBLIC_KEY%%:*}"
   } >"$config"
   nohup "$client" --config "$config" watch-store >"$log" 2>&1 &
   echo $! >"$pidfile"
@@ -49,7 +54,13 @@ drain)
     done
     tail -n 100 "$log"
   fi
-  exec "$client" --config "$config" watch-store --drain
+  status=0
+  "$client" --config "$config" watch-store --drain || status=$?
+  if [ -s "$outputs" ]; then
+    # shellcheck disable=SC2046 # one store path per line
+    "$client" --config "$config" push $(cat "$outputs") || status=$?
+  fi
+  exit "$status"
   ;;
 *)
   echo "usage: $0 hook|watch|drain" >&2
