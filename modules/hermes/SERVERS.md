@@ -3,9 +3,8 @@
 > **This file is Nix-managed**, same as SOUL.md — installed fresh into your
 > working directory on every activation from `modules/hermes/SERVERS.md`.
 > Don't edit it in place; changes go through the `cornn-flaek` repo. The
-> unit lists below are a snapshot of the tier-1 allowlist
-> (`modules/hermes-ops.nix`); when a Legion service changes,
-> this file is regenerated from that source, not hand-edited independently.
+> unit lists below mirror the sudoers allowlist in `modules/hermes-ops.nix`;
+> if a command the table allows is denied, the sudoers file is the truth.
 
 Reference for the Legion fleet you operate. SOUL.md has the tier policy
 (when you may act versus when you print the command); this file has the
@@ -62,7 +61,8 @@ form to reach for first.
 ## Logs and metrics
 
 Query `legion-node3` directly rather than SSHing to the node that owns a
-unit — its journal collects every node's via `systemd-journal-upload`:
+unit — its journal collects every node's via `systemd-journal-upload`. Its
+mesh IP is the `HostName` of the `legion-node3` entry in `~/.ssh/config`:
 
 ```sh
 curl -s 'http://<legion-node3 mesh IP>:9428/select/logsql/query' \
