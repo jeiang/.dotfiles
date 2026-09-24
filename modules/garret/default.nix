@@ -161,9 +161,11 @@ in {
         enable = true;
         listen = "0.0.0.0:${toString pullerPort}";
         metricsListen = "${privateIPv4}:${toString pullerMetricsPort}";
-        # Shares the Pusher's bucket-write S3 key until a GetObject-only key
-        # is created for it.
-        inherit dbPath s3;
+        # Its own key, limited to GetObject on the bucket: the Puller only
+        # presigns GETs, so this public-facing process cannot write or
+        # delete cache objects.
+        inherit dbPath;
+        s3 = s3 // {credentialsFile = config.sops.templates."garret-puller-s3.env".path;};
         # narinfo and NAR routes stay anonymous; only the browse API is
         # gated.
         browseOidc = pocketIdIssuer;
@@ -205,6 +207,8 @@ in {
       secrets = {
         "garret/s3-access-key-id" = {inherit sopsFile;};
         "garret/s3-secret-access-key" = {inherit sopsFile;};
+        "garret/puller-s3-access-key-id" = {inherit sopsFile;};
+        "garret/puller-s3-secret-access-key" = {inherit sopsFile;};
         # Signing keys are read once at start-up; a secret-only deploy leaves the unit unchanged.
         "garret/signing-key" = {
           inherit sopsFile;
@@ -214,10 +218,17 @@ in {
       };
 
       templates."garret-s3.env" = {
-        restartUnits = ["garret-pusher.service" "garret-puller.service"];
+        restartUnits = ["garret-pusher.service"];
         content = ''
           AWS_ACCESS_KEY_ID=${config.sops.placeholder."garret/s3-access-key-id"}
           AWS_SECRET_ACCESS_KEY=${config.sops.placeholder."garret/s3-secret-access-key"}
+        '';
+      };
+      templates."garret-puller-s3.env" = {
+        restartUnits = ["garret-puller.service"];
+        content = ''
+          AWS_ACCESS_KEY_ID=${config.sops.placeholder."garret/puller-s3-access-key-id"}
+          AWS_SECRET_ACCESS_KEY=${config.sops.placeholder."garret/puller-s3-secret-access-key"}
         '';
       };
     };

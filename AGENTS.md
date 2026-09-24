@@ -242,8 +242,8 @@ behavior for its own sake.
   `refs/tags/v*` (release tags, which are unprotected, so `ref_protected`
   stays unset). A new pushing repository or workflow needs its entries in
   `modules/garret/default.nix` first.
-- garret's Puller runs as its own user but shares the Pusher's bucket-write
-  S3 key until a GetObject-only key exists. Its backup is an online
+- garret's Puller runs as its own user with its own GetObject-only S3 key
+  (`garret/puller-s3-*`); only the Pusher holds the bucket-write key. Its backup is an online
   `garret-admin backup` copy, so a backup never stops the cache.
 - `dns/dnsconfig.js` is the source of truth for the Cloudflare zones. CI
   applies it on merge with full purge; only `_acme-challenge` TXT records
