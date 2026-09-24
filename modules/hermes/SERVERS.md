@@ -3,11 +3,11 @@
 > **This file is Nix-managed**, same as SOUL.md — installed fresh into your
 > working directory on every activation from `modules/hermes/SERVERS.md`.
 > Don't edit it in place; changes go through the `cornn-flaek` repo. The
-> unit lists below mirror the sudoers allowlist in `modules/hermes-ops.nix`;
+> unit lists below mirror the sudoers allowlists in `modules/hermes-ops.nix`;
 > if a command the table allows is denied, the sudoers file is the truth.
 
 Reference for the Legion fleet you operate. SOUL.md has the tier policy
-(when you may act versus when you print the command); this file has the
+(when you may act versus when you ask for approval); this file has the
 mechanics and the per-node allowlists.
 
 ## Fleet map
@@ -29,10 +29,14 @@ Tier 0 (`journalctl`, `systemctl status/show`) needs no sudo: you're in
 the `systemd-journal` group on every node. Tier 1 is a `systemctl
 start`/`restart` sudoers entry per (verb, unit) pair — no wildcards, so a
 unit not listed below has no rule and the command fails regardless of
-what you try. Every unit is tier 2 for `stop`; print the command, don't
-run it.
+what you try.
 
-| Node | Tier 1 — start/restart free | Tier 2 — print, don't run |
+Tier 2 is `stop` on every tier-1 unit, and `start`, `stop` or `restart`
+on every unit in the tier-2 column. You never hold that capability: the
+`hermes-approver` service on this host does. Ask it with `hermes-tier2`
+(below); it runs the command only after Aidan approves it in Telegram.
+
+| Node | Tier 1 — start/restart free | Tier 2 — start/stop/restart after approval |
 |---|---|---|
 | legion-node1 | `crowdsec`, `crowdsec-bouncers`, `prometheus-node-exporter` | `caddy`, `rivals-heroes-sync`, `anubis-content`, `tinyauth` |
 | legion-node2 | `prometheus-node-exporter`, `restic-backups-netbird-server`, `restic-backups-pocket-id` | `netbird-server`, `netbird-relay`, `pocket-id`, `netbird-proxy`, `crowdsec-firewall-bouncer`, `blocky` |
@@ -40,8 +44,8 @@ run it.
 | legion-node4 | `prometheus-node-exporter`, `garret-pusher`, `garret-puller`, `hath`, `glance`, `gatus`, `restic-backups-actual-budget`, `restic-backups-garret`, `restic-backups-hath` | `actual`, `atuin` |
 
 Anything not named in either column for a node — `sshd`, `netbird`
-itself, `nixos-rebuild`, disk or secret operations — is tier 3: no sudo
-rule exists anywhere in the fleet for it.
+itself, the `acme-*` certificate units, `nixos-rebuild`, disk or secret
+operations — is tier 3: no sudo rule exists anywhere in the fleet for it.
 
 ## How to run a fleet command
 
@@ -57,6 +61,23 @@ The sudoers rule pins the absolute path
 `/run/current-system/sw/bin/systemctl`; a bare `sudo systemctl ...`
 resolves there via the invoking user's PATH on every node, so it's the
 form to reach for first.
+
+## How to request a tier-2 command
+
+```sh
+hermes-tier2 legion-node1 restart caddy "caddy returns 502 for every host since 09:14; journal shows ..."
+```
+
+Arguments are node, verb (`start`, `stop` or `restart`), unit (without
+`.service`), then the reason. Aidan sees the node, verb, unit and your
+reason, labeled as written by you, so make the reason the evidence he
+needs to decide. The command blocks until he answers or 2 minutes pass,
+then prints the remote output and exits with the remote `systemctl`
+status. A non-zero exit with no remote output means nothing ran: the
+request was denied, expired, not a tier-2 command, or the approver was
+busy or unavailable; the message on stderr says which. Run it in the
+foreground with the terminal's default timeout or longer, never in the
+background.
 
 ## Logs and metrics
 

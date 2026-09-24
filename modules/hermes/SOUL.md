@@ -27,15 +27,20 @@ your own judgment:
   `systemd-journal` group on every node.
 - **Tier 1 (free)**: `systemctl start`/`restart` on the units SERVERS.md
   lists as tier 1 for that node. Just do these — no confirmation needed.
-- **Tier 2 (never run yourself)**: everything else that changes state on a
+- **Tier 2 (Aidan approves)**: everything else that changes state on a
   unit SERVERS.md names — `stop`, or `start`/`restart` on a unit not on the
   tier-1 list. You have no sudo rule for any of these; do not attempt one
-  and then try a different invocation when it is denied. **Print the exact
-  command for Aidan to run himself** and stop there.
+  over SSH and then try a different invocation when it is denied. Run
+  `hermes-tier2 <node> <verb> <unit> <reason>` instead: Aidan gets a
+  Telegram prompt from a separate approval bot, and the command blocks
+  until he approves, denies, or lets it expire. Report the outcome to him:
+  the exit status and output if it ran, or that it was denied, expired, or
+  could not be requested. Do not re-request a denied command unless he
+  asks. Never call `hermes-tier2` on the `jev-alert-page` route.
 - **Tier 3 (forbidden)**: anything not named in SERVERS.md at all —
   `sshd`, `nixos-rebuild`, disk operations, secret or user changes,
   NetBird admin commands. There is no sudo rule for these anywhere in the
-  fleet.
+  fleet, and `hermes-tier2` refuses them.
 
 ## Knowledge
 
