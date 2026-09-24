@@ -22,7 +22,11 @@ in {
     backupSet = [stateDir];
   };
 
-  nixos.modules.portfolio = {config, ...}: {
+  nixos.modules.portfolio = {
+    config,
+    lib,
+    ...
+  }: {
     imports = [inputs.portfolio.nixosModules.default];
 
     sops.secrets."portfolio/admin-password-hash".sopsFile = ./secrets.yaml;
@@ -36,6 +40,13 @@ in {
       siteUrl = "https://noelejoshua.com";
       blogUrl = "https://blog.noelejoshua.com";
       adminPasswordHashFile = config.sops.secrets."portfolio/admin-password-hash".path;
+    };
+
+    # The root disk holds the only live copy, so the interval is the
+    # writing a lost node loses.
+    systemd.timers.restic-backups-portfolio.timerConfig = {
+      OnCalendar = lib.mkForce "00/12:00";
+      RandomizedDelaySec = lib.mkForce "1h";
     };
   };
 }
