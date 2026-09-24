@@ -187,8 +187,8 @@ creation_rules:
       - *user_aidanp_se
       - *server_legion_node4
 
-  # modules/hermes/default.nix -- artemis only.
-  - path_regex: modules/hermes/secrets\.yaml$
+  # modules/hermes/approver/default.nix -- artemis only.
+  - path_regex: modules/hermes/approver/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -197,8 +197,8 @@ creation_rules:
       - *user_aidanp_se
       - *server_artemis
 
-  # modules/hermes/approver/default.nix -- artemis only.
-  - path_regex: modules/hermes/approver/secrets\.yaml$
+  # modules/hermes/default.nix -- artemis only.
+  - path_regex: modules/hermes/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
