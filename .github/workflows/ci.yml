@@ -72,6 +72,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # Before Nix is installed, because nix.conf names the hook.
+      - name: Write garret's post-build hook
+        run: ./.ci/garret.sh hook
+
       # Baking the substituter into nix.conf here needs no client, login, or secrets: pulls are anonymous.
       - name: Install Nix
         uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
@@ -81,39 +85,30 @@ jobs:
             extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }}
             max-substitution-jobs = ${{ env.MAX_SUBSTITUTION_JOBS }}
             http-connections = ${{ env.HTTP_CONNECTIONS }}
+            post-build-hook = ${{ runner.temp }}/garret-hook
 
-      # print-out-paths can emit multiple lines, so use the GITHUB_OUTPUT
-      # delimiter form rather than a plain key=value line.
+      # Main pushes only, best-effort (continue-on-error) since a cache outage
+      # must never turn main red; statix/treefmt have nothing worth pushing.
+      - name: Start pushing to garret as paths are built
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.check != 'statix' && matrix.check != 'treefmt'
+        continue-on-error: true
+        run: ./.ci/garret.sh watch
+
       - name: Build check
-        id: build
         env:
           CHECKS: ${{ matrix.check }}
           SYSTEM: x86_64-linux
         run: |
           installables=()
           for attr in $CHECKS; do installables+=(".#checks.${SYSTEM}.${attr}"); done
-          paths=$(nix build --keep-going --show-trace --no-link --print-out-paths "${installables[@]}")
-          delimiter="$(openssl rand -hex 8)"
-          {
-            echo "paths<<$delimiter"
-            echo "$paths"
-            echo "$delimiter"
-          } >> "$GITHUB_OUTPUT"
+          nix build --keep-going --show-trace --no-link --print-out-paths "${installables[@]}" >"$RUNNER_TEMP/garret-outputs"
 
-      # Main pushes only; best-effort (continue-on-error plus the push script's
-      # soft-fail) since a cache outage must never turn main red. Also pushes
-      # the garret client's own path so later installs substitute instead of
-      # building it from source; statix/treefmt have nothing worth pushing.
-      - name: Push to garret
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.check != 'statix' && matrix.check != 'treefmt'
+      # Also after a failed build, so the next run substitutes what this one built.
+      - name: Push to garret what the watcher has not
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.check != 'statix' && matrix.check != 'treefmt'
         continue-on-error: true
-        env:
-          PATHS: ${{ steps.build.outputs.paths }}
-        run: |
-          garret_rev=$(jq -r '.nodes.garret.locked.rev' flake.lock)
-          nix profile install "github:jeiang/garret/${garret_rev}#garret"
-          client_path=$(nix build --no-link --print-out-paths "github:jeiang/garret/${garret_rev}#garret")
-          ./.ci/garret-push.sh $PATHS $client_path
+        timeout-minutes: 30
+        run: ./.ci/garret.sh drain
 
   # Not part of the discover/build matrix: darwin builds only the fixed
   # zakkart-system attribute, so a matrix would add nothing here.
@@ -126,6 +121,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Write garret's post-build hook
+        run: ./.ci/garret.sh hook
+
       - name: Install Nix
         uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
         with:
@@ -134,30 +132,21 @@ jobs:
             extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }}
             max-substitution-jobs = ${{ env.MAX_SUBSTITUTION_JOBS }}
             http-connections = ${{ env.HTTP_CONNECTIONS }}
+            post-build-hook = ${{ runner.temp }}/garret-hook
 
-      - name: Build check
-        id: build
-        run: |
-          paths=$(nix build --keep-going --show-trace --no-link --print-out-paths ".#checks.aarch64-darwin.zakkart-system")
-          delimiter="$(openssl rand -hex 8)"
-          {
-            echo "paths<<$delimiter"
-            echo "$paths"
-            echo "$delimiter"
-          } >> "$GITHUB_OUTPUT"
-
-      # Main pushes only; best-effort, and also pushes the garret client's own
-      # path so later installs substitute instead of building it from source.
-      - name: Push to garret
+      - name: Start pushing to garret as paths are built
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         continue-on-error: true
-        env:
-          PATHS: ${{ steps.build.outputs.paths }}
-        run: |
-          garret_rev=$(jq -r '.nodes.garret.locked.rev' flake.lock)
-          nix profile install "github:jeiang/garret/${garret_rev}#garret"
-          client_path=$(nix build --no-link --print-out-paths "github:jeiang/garret/${garret_rev}#garret")
-          ./.ci/garret-push.sh $PATHS $client_path
+        run: ./.ci/garret.sh watch
+
+      - name: Build check
+        run: nix build --keep-going --show-trace --no-link --print-out-paths ".#checks.aarch64-darwin.zakkart-system" >"$RUNNER_TEMP/garret-outputs"
+
+      - name: Push to garret what the watcher has not
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./.ci/garret.sh drain
 
   # Single stable required status context: `build` fans out into one context
   # per matrix leg, which branch protection can't require directly.

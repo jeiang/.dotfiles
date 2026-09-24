@@ -579,11 +579,11 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1786552041,
-        "narHash": "sha256-2/dpUVtp8IuEOQeID9E4j8P/AA7zNgCq48XgFtLpA3E=",
+        "lastModified": 1790215337,
+        "narHash": "sha256-ntLGIyzdCnszO1xT25PJyu9TvRGiVhaLkVcR7zAxktc=",
         "owner": "jeiang",
         "repo": "garret",
-        "rev": "541b395c74596207efe33cc85188f727563b13e2",
+        "rev": "c83cd2a79ea32427555cdd1eb1d255a3d2c0e7db",
         "type": "github"
       },
       "original": {

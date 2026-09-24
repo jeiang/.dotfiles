@@ -285,13 +285,13 @@
     },
     {
       "id": 6,
-      "title": "Since last eviction pass",
+      "title": "Since last GC success",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "victoriametrics"
       },
-      "description": "Age of garret_gc_last_success_timestamp. Reads `never` under normal operation and that is correct: the GC timer only sets this gauge when a pass actually evicts, which it does only once usage crosses the high watermark (garret-pusher/src/gc.rs `tick` returns early below it). Treat it as \"when did the quota last bite\", not as a GC liveness check -- for liveness watch the usage gauge, which every tick refreshes.",
+      "description": "Age of garret_gc_last_success_timestamp, which every successful GC tick sets, including a quota check that finds nothing to evict. It grows past the 5-minute tick interval only when GC has stopped running or is failing (see garret_gc_failures_total).",
       "gridPos": {
         "x": 14,
         "y": 1,
@@ -310,6 +310,14 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "orange",
+                "value": 900
+              },
+              {
+                "color": "red",
+                "value": 3600
               }
             ]
           },

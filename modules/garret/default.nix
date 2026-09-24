@@ -3,17 +3,23 @@
   inputs,
   ...
 }: let
-  # The SQLite index is the only record of what is in the S3 bucket. An
-  # older or missing index does not strand objects: the orphan sweep
-  # reclaims them, so a lost index is a cold-cache rebuild, not a data
-  # loss (docs/runbooks/garret.md).
+  # The SQLite index is the only record of what is in the S3 bucket.
   dataDir = "/mnt/garret";
+  # Written by the Pusher, which can create files only beside the database.
+  backupFile = "${dataDir}/backup.db";
+
+  watermarks = {
+    high = 0.95;
+    low = 0.85;
+  };
 
   pullerPort = 8081;
   pusherPort = 8082;
   pusherMetricsPort = 9091;
   pullerMetricsPort = 9092;
 in {
+  flake.lib.garretWatermarks = watermarks;
+
   legion.services.garret = {
     node = "legion-node4";
     module = "garret";
@@ -53,7 +59,7 @@ in {
       hcloudVolumeId = "106562809";
       sizeGiB = 10;
     };
-    backupSet = [dataDir];
+    backupSet = [backupFile];
   };
 
   nixos.modules.garret = {
@@ -63,6 +69,8 @@ in {
     ...
   }: let
     dbPath = "${dataDir}/garret.db";
+
+    garretAdmin = inputs.garret.packages.${pkgs.stdenv.hostPlatform.system}.garret-admin;
 
     privateIPv4 = self.lib.legionNodes.legion-node4.privateIPv4;
 
@@ -109,10 +117,7 @@ in {
         pullerEndpoint = "https://cache.jeiang.dev";
 
         quotaBytes = 268435456000;
-        watermarks = {
-          high = 0.95;
-          low = 0.85;
-        };
+        inherit watermarks;
 
         # maxInFlightBytes is the real memory bound (a process-wide
         # semaphore over part-sized buffers); partSize must stay at or
@@ -131,7 +136,17 @@ in {
             jwks_url = "https://token.actions.githubusercontent.com/.well-known/jwks";
             # Immutable owner id, not the name: names are renameable.
             github_owner_id = "31970261";
+            # Release tags are unprotected, so ref_protected stays unset.
             ref_patterns = ["refs/heads/main" "refs/tags/v*"];
+            # jeiang/.dotfiles, jeiang/garret, jeiang/ripper.
+            repository_ids = ["553667153" "1324491067" "1380302823"];
+            event_names = ["push" "workflow_dispatch"];
+            job_workflow_refs = [
+              "jeiang/.dotfiles/.github/workflows/ci.yml@refs/heads/main"
+              "jeiang/garret/.github/workflows/ci.yml@refs/heads/main"
+              "jeiang/garret/.github/workflows/ci.yml@refs/tags/v*"
+              "jeiang/ripper/.github/workflows/release.yml@refs/tags/v*"
+            ];
             allowed_groups = [];
           }
           # Exactly one issuer may set client_id (discovery advertises the
@@ -146,6 +161,8 @@ in {
         enable = true;
         listen = "0.0.0.0:${toString pullerPort}";
         metricsListen = "${privateIPv4}:${toString pullerMetricsPort}";
+        # Shares the Pusher's bucket-write S3 key until a GetObject-only key
+        # is created for it.
         inherit dbPath s3;
         # narinfo and NAR routes stay anonymous; only the browse API is
         # gated.
@@ -164,6 +181,24 @@ in {
     in {
       garret-pusher = lib.recursiveUpdate {serviceConfig.MemoryMax = "896M";} guard;
       garret-puller = lib.recursiveUpdate {serviceConfig.MemoryMax = "192M";} guard;
+      # Ordering only: a backup must never start a Pusher stopped for a restore.
+      restic-backups-garret.after = ["garret-pusher.service"];
+    };
+
+    environment.systemPackages = [garretAdmin];
+
+    # An online copy, so the backup never stops the cache. The Pusher never
+    # overwrites a file, hence the rm. A Pusher that has just started may not
+    # have bound its admin socket yet.
+    backups.jobs.garret = {
+      pauseUnits = [];
+      prepareCommand = let
+        socket = config.services.garret.pusher.adminSocketPath;
+      in ''
+        for _ in $(seq 30); do [ -S ${socket} ] && break; sleep 1; done
+        rm -f ${backupFile}
+        ${lib.getExe' garretAdmin "garret-admin"} --socket ${socket} backup ${backupFile}
+      '';
     };
 
     sops = {

@@ -235,9 +235,16 @@ behavior for its own sake.
   Cloudflare. Cloudflare rejects push bodies over 100 MB, and a proxied
   puller gets shared-PoP bans. The signing key `cache.jeiang.dev-1` is named
   for the function, not the implementation.
-- garret accepts pushes from GitHub Actions OIDC tokens for
-  `refs/heads/main` and `refs/tags/v*` (release tags) of any repository owned
-  by `jeiang`, and from a Pocket ID client. There is no per-repository check.
+- garret accepts pushes from a Pocket ID client and from GitHub Actions OIDC
+  tokens of the workflows in its `job_workflow_refs` (`ci.yml` of
+  `jeiang/.dotfiles` and `jeiang/garret`, ripper's `release.yml`), pinned by
+  repository id, on `push` and `workflow_dispatch`, for `refs/heads/main` and
+  `refs/tags/v*` (release tags, which are unprotected, so `ref_protected`
+  stays unset). A new pushing repository or workflow needs its entries in
+  `modules/garret/default.nix` first.
+- garret's Puller runs as its own user but shares the Pusher's bucket-write
+  S3 key until a GetObject-only key exists. Its backup is an online
+  `garret-admin backup` copy, so a backup never stops the cache.
 - `dns/dnsconfig.js` is the source of truth for the Cloudflare zones. CI
   applies it on merge with full purge; only `_acme-challenge` TXT records
   are ignored. A dashboard edit is for emergencies and must be copied back
@@ -326,9 +333,11 @@ behavior for its own sake.
 
 ## CI
 
-- `ci.yml` evaluates `checks.x86_64-linux`, builds each check in a matrix
-  job, and pushes the results to garret on `main`. zakkart builds on a macOS
-  runner. `all-checks` is the only required status.
+- `ci.yml` evaluates `checks.x86_64-linux` and builds each check in a matrix
+  job. On `main`, `.ci/garret.sh` pushes each path to garret as it is built,
+  and drains the rest even when the build fails; a garret failure never
+  fails the job. zakkart builds on a macOS runner. `all-checks` is the only
+  required status.
 - Only a `main` run pushes to garret. A change that rebuilds the artemis
   kernel must therefore be built on artemis and pushed to garret before the
   branch is pushed, or every PR run compiles the full-LTO kernel on a shared

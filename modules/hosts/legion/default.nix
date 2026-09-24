@@ -192,7 +192,7 @@ in {
             if s.volume == null
             then null
             else s.volume.mountpoint;
-          pauseUnits = map (u: "${u}.service") s.units;
+          pauseUnits = lib.mkDefault (map (u: "${u}.service") s.units);
         })
       (builtins.filter (s: s.backupSet != [])
         (servicesByNode config.networking.hostName))
