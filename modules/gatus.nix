@@ -54,6 +54,7 @@ in {
           (page "aidanpinard.co" "Web" "https://aidanpinard.co" "Aidan Pinard - Home")
           (page "pinard.co.tt" "Web" "https://pinard.co.tt" "Aidan Pinard - Home")
           (page "Portfolio" "Web" "https://noelejoshua.com" "Joshua Noel")
+          (page "Portfolio blog" "Web" "https://blog.noelejoshua.com" "Writing")
           (ok "Bill Splitter" "Web" "https://bill-split.jeiang.dev")
           (ok "Rivals Randomizer" "Web" "https://rivals.jeiang.dev")
           (ok "Markdown Table Editor" "Web" "https://mdtable.jeiang.dev")

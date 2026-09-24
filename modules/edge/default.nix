@@ -24,6 +24,7 @@ in {
       "grafana.jeiang.dev"
       "netbird.jeiang.dev"
       "noelejoshua.com"
+      "blog.noelejoshua.com"
       "bill-split.jeiang.dev"
       "rivals.jeiang.dev"
       "mdtable.jeiang.dev"
@@ -71,7 +72,7 @@ in {
     port = svc: key: toString legionServices.${svc}.ports.${key};
 
     website = inputs.website.packages.${system}.default;
-    portfolio = "${inputs.portfolio.packages.${system}.default}/dist";
+    portfolio = "${self.lib.legionNodes.${legionServices.portfolio.node}.privateIPv4}:${port "portfolio" "app"}";
     billSplitter = "${inputs.bill-splitter.packages.${system}.default}/dist";
     rivalsRandomizer = inputs.character-randomizer.packages.${system}.default;
     mdTableEditor = inputs.markdown-table-live-editor.packages.${system}.default;
@@ -117,13 +118,32 @@ in {
     # not as Anubis ALLOW rules: non-browser clients -- ACME HTTP-01
     # validation, crawler metadata, feed readers -- can never solve a
     # proof-of-work challenge.
-    mkContentSite = root:
+    serveRoot = root: ''
+      root * ${root}
+      file_server
+    '';
+
+    # The portfolio rate-limits logins on the last X-Forwarded-For hop, and
+    # Caddy appends the Cloudflare PoP (a trusted proxy) there; overwrite it
+    # with the resolved client address instead. Both callers are reached
+    # only over https, and the app trusts X-Forwarded-Proto https alone:
+    # without it every admin form POST fails Astro's origin check.
+    servePortfolio = clientIp: ''
+      reverse_proxy ${portfolio} {
+        header_up X-Forwarded-For ${clientIp}
+        header_up X-Forwarded-Proto https
+      }
+    '';
+
+    mkContentSite = {
+      serve,
+      unchallenged ? [],
+    }:
       if anubisHere
       then ''
-        @unchallenged path /.well-known/* /robots.txt /sitemap.xml /favicon.ico /feed.xml /rss.xml /atom.xml
+        @unchallenged path /.well-known/* /robots.txt /sitemap.xml /favicon.ico /feed.xml /rss.xml /atom.xml ${lib.concatStringsSep " " unchallenged}
         handle @unchallenged {
-          root * ${root}
-          file_server
+          ${serve}
         }
 
         handle {
@@ -134,10 +154,14 @@ in {
           }
         }
       ''
-      else ''
-        root * ${root}
-        file_server
-      '';
+      else serve;
+
+    portfolioSite = mkContentSite {
+      serve = servePortfolio "{client_ip}";
+      # The admin API is session-authenticated and throttled by the app;
+      # uploads are fetched by crawlers reading og:image.
+      unchallenged = ["/api/*" "/healthz" "/uploads/*"];
+    };
 
     # Caddy access logging is opt-in per site block: without a `log`
     # directive a site emits zero access records.
@@ -257,10 +281,12 @@ in {
                 file_server
               }
 
-              @portfolio host noelejoshua.com
+              # Anubis is the peer here, so the forwarded headers Caddy
+              # would derive describe it (plain http from loopback), not
+              # the visitor.
+              @portfolio host noelejoshua.com blog.noelejoshua.com
               handle @portfolio {
-                root * ${portfolio}
-                file_server
+                ${servePortfolio "{header.X-Real-Ip}"}
               }
 
               handle {
@@ -278,7 +304,7 @@ in {
 
             @apex host jeiang.dev
             handle @apex {
-              ${mkContentSite website}
+              ${mkContentSite {serve = serveRoot website;}}
             }
 
             handle {
@@ -290,20 +316,20 @@ in {
             ${logLine}${crowdsecLine}${appsecLine}tls {
               dns cloudflare {env.CLOUDFLARE_API_TOKEN}
             }
-            ${mkContentSite website}
+            ${mkContentSite {serve = serveRoot website;}}
           }
 
           pinard.co.tt {
             ${logLine}${crowdsecLine}${appsecLine}tls {
               dns cloudflare {env.CLOUDFLARE_API_TOKEN}
             }
-            ${mkContentSite website}
+            ${mkContentSite {serve = serveRoot website;}}
           }
 
-          # Not in Cloudflare DNS: renews via Caddy's standard automatic
-          # HTTPS (HTTP-01/TLS-ALPN-01) rather than DNS-01.
-          noelejoshua.com {
-            ${logLine}${crowdsecLine}${appsecLine}${mkContentSite portfolio}
+          # In its owner's Cloudflare account, proxied, so not in dns/: renews
+          # via HTTP-01 rather than DNS-01.
+          noelejoshua.com, blog.noelejoshua.com {
+            ${logLine}${crowdsecLine}${appsecLine}${portfolioSite}
           }
 
           # Every site block from here down is deliberately NOT behind the
