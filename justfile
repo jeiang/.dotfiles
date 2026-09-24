@@ -105,8 +105,11 @@ netbird-update:
 netbird-invariants:
   nix shell --inputs-from . nixpkgs#jq nixpkgs#curl -c ./modules/netbird-invariants/check.sh
 
+# nh runs elevated commands with HOME="" on macOS, so root's nix puts its Sentry
+# database in ./.cache of the working directory; / is read-only, so none is made.
+[doc('Run nh against this flake (e.g. just nh darwin switch)')]
 nh *args:
-  NH_FLAKE={{justfile_directory()}} nh {{args}}
+  cd / && NH_FLAKE={{justfile_directory()}} nh {{args}}
 
 # Passes --skip-checks itself; add only other deploy-rs flags (e.g. just deploy-legion --remote-build)
 deploy-legion *args:
