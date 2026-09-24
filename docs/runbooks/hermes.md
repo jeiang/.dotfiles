@@ -146,9 +146,64 @@ ssh artemis.jeiang.vpn journalctl -u jev-mail-triage.service -e
   `modules/hosts/legion/default.nix`, then redeploy the node that owns it.
   `SERVERS.md`'s per-node tables are a snapshot of the result, not
   hand-maintained.
-- **Tier 2 today** — Hermes has no sudo rule for a tier-2 command; SOUL.md
-  has it print the exact command and stop. The planned upgrade is a Telegram
-  approval gate (yes from Aidan, then Hermes runs it itself) — not yet built.
+- **Tier 2** — runs only through the approver below, never through a
+  `hermes-ops` sudo rule.
+
+## Tier-2 approver (hermes-approver)
+
+Tier-2 fleet commands (see `modules/hermes/SERVERS.md`) run only through
+`hermes-approver.service` on artemis. It holds the `hermes-t2` SSH key and
+asks Aidan in Telegram through a second bot. Hermes calls
+`hermes-tier2 <node> <verb> <unit> <reason>`, which blocks until Aidan
+approves or denies the request, or it expires after 2 minutes.
+
+### Setup
+
+1. In BotFather, create a second bot (not the Hermes bot: only one poller
+    can use a token). Open a DM with it and send `/start`, or it cannot
+    message you.
+2. `just sops-edit modules/hermes/approver/secrets.yaml` and fill
+    `hermes-approver/env`:
+
+    ```
+    APPROVER_TELEGRAM_BOT_TOKEN=<second bot token>
+    APPROVER_TELEGRAM_USER_ID=<numeric user id, as in TELEGRAM_ALLOWED_USERS>
+    ```
+
+3. Deploy Legion first, so `hermes-t2` and its sudoers exist:
+    `just deploy-legion --remote-build`, then check each node.
+4. Deploy artemis: `just deploy artemis --skip-checks --remote-build`.
+5. The unit is skipped while the env is empty, and a secret change only
+    try-restarts a running unit. After the first fill, start it once:
+    `ssh artemis.jeiang.vpn doas systemctl start hermes-approver.service`,
+    and check `journalctl -u hermes-approver.service` for
+    `listening on /run/hermes-approver/approver.sock`.
+
+### Operation
+
+- The message shows the node, `systemctl <verb> <unit>.service`, and
+  Hermes' reason, labeled as model-written. Approve only what you would run
+  yourself. Only your user ID's buttons count.
+- Unanswered requests expire after 120 s, to fit Hermes' 180 s terminal
+  timeout. One request is pending at a time; others are refused as busy.
+- The result (exit status and output) is posted to the same chat and
+  returned to Hermes.
+- Legion host keys are trust-on-first-use in
+  `/var/lib/hermes-approver/known_hosts`, which is not persisted, so they
+  are accepted again after each artemis boot.
+- Stopping `netbird-server`, `netbird-relay` or `blocky` on legion-node2
+  can cut the mesh path the approver itself uses.
+
+### Rotation
+
+- Bot token or user ID: `just sops-edit modules/hermes/approver/secrets.yaml`,
+  then deploy artemis; `restartUnits` restarts the approver. Revoke a leaked
+  token with BotFather `/revoke` first.
+- SSH key: generate a new ed25519 key, put the private half in
+  `hermes-approver/ssh-key` and the public half in
+  `flake.lib.hermesTier2PublicKey` (`modules/hermes/approver/default.nix`).
+  Deploy Legion first, then artemis; between the two deploys approved
+  commands fail with a public-key error.
 
 ## Knowledge base export
 
