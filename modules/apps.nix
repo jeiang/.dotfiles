@@ -1,10 +1,15 @@
-{self, ...}: {
+{
+  self,
+  inputs,
+  ...
+}: {
   darwin.modules.base = {
     config,
     pkgs,
     ...
   }: let
     wrapped = self.packages.${pkgs.stdenv.hostPlatform.system};
+    agents = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system};
   in {
     fonts.packages = [pkgs.nerd-fonts.mononoki];
 
@@ -20,21 +25,27 @@
 
     environment.systemPackages =
       (with pkgs; [
+        crossover
         discord
         iina
+        lulu
         moonlight-qt
         mos
+        nomacs
         notion-app
         obsidian
         qbittorrent
         raycast
         telegram-desktop
+        thaw
         utm
+        whatsapp-for-mac
         zed-editor
         wrapped.ghostty
 
         bat
         btop
+        caligula
         defaultbrowser
         # withWhisper off: whisper-cpp's CoreML backend fails to link on this pinned aarch64-darwin toolchain. doCheck off: ffmpeg's FATE suite is impractical for a CI build.
         ((ffmpeg-full.override {withWhisper = false;}).overrideAttrs (_: {doCheck = false;}))
@@ -47,6 +58,7 @@
         hcloud
         imagemagick
         megatools
+        mole-cleaner
         miniserve
         nmap
         nodejs
@@ -62,6 +74,8 @@
       ++ [
         wrapped.git
         wrapped.difft
+        agents.chatgpt
+        agents.claude-desktop
       ];
   };
 }

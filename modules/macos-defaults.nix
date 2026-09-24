@@ -25,6 +25,9 @@ _: {
           wvous-br-corner = 2;
           wvous-tr-corner = 12;
           show-recents = false;
+          # AeroSpace's recommendation: Mission Control groups windows by app,
+          # since its hidden windows would otherwise shrink to tiny previews.
+          expose-group-apps = true;
         };
 
         menuExtraClock = {
@@ -68,29 +71,6 @@ _: {
         if ! ${asUser defaultbrowser} | grep -q '^\* helium$'; then
           ${asUser "${defaultbrowser} helium"} \
             || echo >&2 "warning: failed to set default browser to Helium"
-        fi
-
-        # Display scaling never fails activation: no built-in screen is reported with the lid closed, and persistent screen ids shift with topology.
-        if [ -x /opt/homebrew/bin/displayplacer ]; then
-          displayList=$(${asUser "/opt/homebrew/bin/displayplacer list"} 2>/dev/null) || displayList=""
-          builtinId=$(echo "$displayList" | awk '
-            /Persistent screen id:/ { id = $NF }
-            /built in screen/ { print id; exit }
-          ')
-          if [ -z "$builtinId" ]; then
-            echo "zakkart preferences: no built-in screen reported or displayplacer list failed (lid closed? no WindowServer session?), skipping display scaling"
-          else
-            currentRes=$(echo "$displayList" | awk -v want="$builtinId" '
-              /Persistent screen id:/ { id = $NF }
-              id == want && /Resolution:/ { print $NF; exit }
-            ')
-            if [ "$currentRes" = "1800x1169" ]; then
-              echo "zakkart preferences: built-in display already at 1800x1169, skipping"
-            else
-              ${asUser "/opt/homebrew/bin/displayplacer \"id:$builtinId res:1800x1169 scaling:on degree:0\""} \
-                || echo >&2 "warning: failed to set built-in display resolution"
-            fi
-          fi
         fi
       '';
     };
