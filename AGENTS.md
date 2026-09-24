@@ -304,10 +304,13 @@ behavior for its own sake.
   with `just sops-edit` and a switch.
 - hermes-ops tiers on Legion (`modules/hermes-ops.nix`): tier 0 is
   `journalctl`/read access via `systemd-journal` group membership; tier 1 is
-  the mechanical `systemctl start`/`restart` sudoers allowlist; tier 2 is
-  operator-executed, no sudo rule, Hermes only prints the command; tier 3 is
-  never granted. Tier 2 is to be upgraded to Telegram approval gating later,
-  not left operator-executed indefinitely.
+  the mechanical `systemctl start`/`restart` sudoers allowlist; tier 2
+  (`stop` on tier-1 units, and `start`/`stop`/`restart` on the other literal
+  `legion.services` units) is sudoers for a separate `hermes-t2` user whose
+  key only `hermes-approver` on artemis holds (`modules/hermes/approver/`),
+  run after the operator approves each command in Telegram through a second
+  bot; tier 3 is never granted. Hermes only asks, through `hermes-tier2`;
+  its own built-in approvals are not a boundary.
 - The Hermes model server (`modules/llm-server`) runs Qwen3.6-35B-A3B
   (UD-Q4_K_XL) with the MoE experts of the first layers on the CPU, because
   the weights exceed the dGPU, and with thinking disabled.
