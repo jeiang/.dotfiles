@@ -1,6 +1,12 @@
-{inputs, ...}: let
+{
+  self,
+  inputs,
+  config,
+  ...
+}: let
   port = 4321;
   stateDir = "/var/lib/portfolio";
+  edge = self.lib.legionNodes.${config.legion.services.caddy.node}.privateIPv4;
 in {
   legion.services.portfolio = {
     # Off the edge node: legion-node1 has no restic credentials, and this is
@@ -37,6 +43,7 @@ in {
       # public interface.
       host = "0.0.0.0";
       inherit port stateDir;
+      trustedProxies = [edge];
       siteUrl = "https://noelejoshua.com";
       blogUrl = "https://blog.noelejoshua.com";
       adminPasswordHashFile = config.sops.secrets."portfolio/admin-password-hash".path;
