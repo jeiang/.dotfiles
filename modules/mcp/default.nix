@@ -40,6 +40,8 @@
     hjem.users.${config.preferences.user.name}.files.".omp/agent/mcp.json".source = servers pkgs;
   };
 in {
+  flake.lib.grafanaMeshUrl = grafanaUrl;
+
   nixos.modules.artemis = {
     config,
     pkgs,

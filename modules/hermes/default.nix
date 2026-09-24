@@ -140,6 +140,21 @@ in {
       path = ${contactsDir}/*
       type = discover
     '';
+
+    grafanaMcp = pkgs.writeShellScript "hermes-mcp-grafana" ''
+      GRAFANA_SERVICE_ACCOUNT_TOKEN=$(<${config.sops.secrets."hermes/grafana-token".path})
+      export GRAFANA_SERVICE_ACCOUNT_TOKEN
+      exec ${lib.getExe pkgs.mcp-grafana} -disable-write "$@"
+    '';
+
+    agentSkillNames = ["eli5" "grilling" "i-have-adhd" "research"];
+    agentSkillsTree = inputs.agent-skills.packages.${pkgs.stdenv.hostPlatform.system}.omp-personal;
+    agentSkills = assert lib.subtractLists inputs.agent-skills.lib.entries.omp.personal.skills agentSkillNames == [];
+      pkgs.linkFarm "hermes-agent-skills" (map (name: {
+          inherit name;
+          path = "${agentSkillsTree}/skills/${name}";
+        })
+        agentSkillNames);
   in {
     imports = [inputs.hermes-agent.nixosModules.default];
 
@@ -209,6 +224,8 @@ in {
 
         web = {
           backend = "brave-free";
+          # brave-free cannot extract; with no EXA_API_KEY this is Exa's keyless tier.
+          extract_backend = "exa";
           extract_char_limit = 8000;
         };
         stt.provider = "groq";
@@ -224,7 +241,7 @@ in {
           "computer_use"
         ];
 
-        skills.external_dirs = ["${kbExportDir}/skills"];
+        skills.external_dirs = ["${kbExportDir}/skills" "${agentSkills}"];
 
         platforms.webhook = {
           enabled = true;
@@ -238,6 +255,14 @@ in {
         };
         # The webhook routes are declared in modules/hermes/jev.
         platform_toolsets.webhook = ["terminal"];
+      };
+
+      mcpServers = {
+        nixos.command = lib.getExe pkgs.mcp-nixos;
+        grafana = {
+          command = "${grafanaMcp}";
+          env.GRAFANA_URL = self.lib.grafanaMeshUrl;
+        };
       };
 
       hermesHomeFiles."SOUL.md" = ./SOUL.md;
@@ -255,6 +280,13 @@ in {
         restartUnits = ["hermes-agent.service"];
       };
       "hermes/ssh-key" = {
+        inherit sopsFile;
+        owner = cfg.user;
+        inherit (cfg) group;
+        mode = "0400";
+        restartUnits = ["hermes-agent.service"];
+      };
+      "hermes/grafana-token" = {
         inherit sopsFile;
         owner = cfg.user;
         inherit (cfg) group;
