@@ -25,9 +25,6 @@ _: {
           wvous-br-corner = 2;
           wvous-tr-corner = 12;
           show-recents = false;
-          # AeroSpace's recommendation: Mission Control groups windows by app,
-          # since its hidden windows would otherwise shrink to tiny previews.
-          expose-group-apps = true;
         };
 
         menuExtraClock = {
