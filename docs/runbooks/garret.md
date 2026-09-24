@@ -212,7 +212,7 @@ closed until fsck has covered every restored row. See garret's
     ssh -t node4.jeiang.dev sudo nft delete table inet garret-restore
     ```
 
-    CI pushes fail until then; `.ci/garret-push.sh` only warns.
+    CI pushes fail until then; its push steps are best-effort.
 
 8. Re-apply any pins set or removed since the copy was taken, and delete
     the scratch directory.

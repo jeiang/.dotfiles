@@ -333,9 +333,11 @@ behavior for its own sake.
 
 ## CI
 
-- `ci.yml` evaluates `checks.x86_64-linux`, builds each check in a matrix
-  job, and pushes the results to garret on `main`. zakkart builds on a macOS
-  runner. `all-checks` is the only required status.
+- `ci.yml` evaluates `checks.x86_64-linux` and builds each check in a matrix
+  job. On `main`, `.ci/garret.sh` pushes each path to garret as it is built,
+  and drains the rest even when the build fails; a garret failure never
+  fails the job. zakkart builds on a macOS runner. `all-checks` is the only
+  required status.
 - Only a `main` run pushes to garret. A change that rebuilds the artemis
   kernel must therefore be built on artemis and pushed to garret before the
   branch is pushed, or every PR run compiles the full-LTO kernel on a shared
