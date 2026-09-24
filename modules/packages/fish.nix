@@ -78,6 +78,8 @@
           alias ls eza
           alias lt 'eza --tree'
           alias mv 'mv -i'
+          # rip (ripper) is only installed on artemis.
+          command -q rip; and alias trash rip
         end
       '';
   in {
