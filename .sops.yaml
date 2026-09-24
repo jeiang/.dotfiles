@@ -196,3 +196,13 @@ creation_rules:
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
       - *server_artemis
+
+  # modules/hermes/approver/default.nix -- artemis only.
+  - path_regex: modules/hermes/approver/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_artemis
