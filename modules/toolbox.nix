@@ -100,7 +100,10 @@ in {
       ++ (with pkgs; [
         age-plugin-se
         age-plugin-yubikey
+        # bandwhich needs root to capture on darwin, like trippy below.
+        bandwhich
         gh-dash
+        harlequin
         lazygit
         # trippy needs root on darwin; there is no security.wrappers equivalent, so `trip` is run with sudo.
         trippy
