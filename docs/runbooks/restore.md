@@ -125,6 +125,6 @@ followed by `restic check --read-data-subset=5%`, both defined in
 `modules/backups/default.nix`. Snapshots outside that policy are gone
 once a maintenance run has pruned them.
 
-garret is not restored with restic; see
-[`garret.md`](garret.md#recovering-a-lost-or-corrupt-index) for its cold-cache
-recovery procedure.
+garret's backup set is an online copy of its database, and restoring it over
+the live index takes more than the steps above; see
+[`garret.md`](garret.md#restoring-the-index).

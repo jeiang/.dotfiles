@@ -266,12 +266,12 @@ in {
                 };
               }
               {
-                # /ready reflects the DB connection, unlike the static
-                # /nix-cache-info response; the Pusher's service port is
-                # fully token-gated, so its probe targets the metrics
-                # listener's /healthz instead.
+                # /ready/deep reads a byte of a real NAR through a presigned
+                # URL, so revoked S3 credentials or an S4 outage fail it; the
+                # Pusher's service port is fully token-gated, so its probe
+                # targets the metrics listener's /healthz instead.
                 targets = [
-                  "http://${node4}:${toString garretPort.puller}/ready"
+                  "http://${node4}:${toString garretPort.puller}/ready/deep"
                   "http://${node4}:${toString garretPort.pusher-metrics}/healthz"
                 ];
                 labels = {
@@ -539,6 +539,70 @@ in {
                 annotations = {
                   summary = "garret pusher upload failures on {{ $labels.instance }}";
                   description = "garret_uploads_failed_total increased on {{ $labels.instance }} in the last hour.";
+                };
+              }
+              {
+                # GC evicts on its next tick once usage passes the high
+                # watermark, so staying above it means eviction is stuck.
+                alert = "GarretOverHighWatermark";
+                expr = "garret_gc_usage_bytes / garret_gc_quota_bytes > ${toString self.lib.garretWatermarks.high}";
+                for = "30m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "garret usage above the high watermark on {{ $labels.instance }}";
+                  description = "garret bucket usage on {{ $labels.instance }} has been at {{ $value | humanizePercentage }} of quota for 30 minutes without GC bringing it down.";
+                };
+              }
+              {
+                alert = "GarretGcCandidatesExhausted";
+                expr = "increase(garret_gc_candidates_exhausted_total[1h]) > 0";
+                for = "0m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "garret GC ran out of eviction candidates on {{ $labels.instance }}";
+                  description = "A GC pass on {{ $labels.instance }} stopped above the low watermark: everything left is referenced, pinned, or pushed in the last day. Raise the quota, unpin, or prune.";
+                };
+              }
+              {
+                alert = "GarretGcFailed";
+                expr = "increase(garret_gc_failures_total[1h]) > 0";
+                for = "0m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "garret GC {{ $labels.phase }} failed on {{ $labels.instance }}";
+                  description = "garret_gc_failures_total{phase=\"{{ $labels.phase }}\"} increased on {{ $labels.instance }} in the last hour.";
+                };
+              }
+              {
+                # The series only exists once the Pusher has accepted an
+                # upload since it started, hence the absent_over_time arm.
+                alert = "GarretNoUploads";
+                expr = ''sum(increase(garret_uploads_accepted_total{job="garret"}[7d])) == 0 or absent_over_time(garret_uploads_accepted_total{job="garret"}[7d])'';
+                for = "0m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "garret accepted no uploads in 7 days";
+                  description = "garret_uploads_accepted_total has not increased in 7 days: CI pushes are failing or being refused.";
+                };
+              }
+              {
+                alert = "GarretJwksRefreshFailed";
+                expr = "increase(garret_jwks_refresh_failures_total[1h]) > 0";
+                for = "0m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "garret could not refresh the JWKS of {{ $labels.issuer }}";
+                  description = "garret_jwks_refresh_failures_total{issuer=\"{{ $labels.issuer }}\"} increased on {{ $labels.instance }} in the last hour: tokens signed by a new key of that issuer are refused.";
+                };
+              }
+              {
+                alert = "GarretS3DeleteFailed";
+                expr = "increase(garret_s3_delete_failures_total[1h]) > 0";
+                for = "0m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "garret S3 deletes failing on {{ $labels.instance }}";
+                  description = "garret_s3_delete_failures_total increased on {{ $labels.instance }} in the last hour: the blobs are orphans until a later sweep deletes them.";
                 };
               }
               {

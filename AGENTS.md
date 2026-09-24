@@ -235,9 +235,16 @@ behavior for its own sake.
   Cloudflare. Cloudflare rejects push bodies over 100 MB, and a proxied
   puller gets shared-PoP bans. The signing key `cache.jeiang.dev-1` is named
   for the function, not the implementation.
-- garret accepts pushes from GitHub Actions OIDC tokens for
-  `refs/heads/main` and `refs/tags/v*` (release tags) of any repository owned
-  by `jeiang`, and from a Pocket ID client. There is no per-repository check.
+- garret accepts pushes from a Pocket ID client and from GitHub Actions OIDC
+  tokens of the workflows in its `job_workflow_refs` (`ci.yml` of
+  `jeiang/.dotfiles` and `jeiang/garret`, ripper's `release.yml`), pinned by
+  repository id, on `push` and `workflow_dispatch`, for `refs/heads/main` and
+  `refs/tags/v*` (release tags, which are unprotected, so `ref_protected`
+  stays unset). A new pushing repository or workflow needs its entries in
+  `modules/garret/default.nix` first.
+- garret's Puller runs as its own user but shares the Pusher's bucket-write
+  S3 key until a GetObject-only key exists. Its backup is an online
+  `garret-admin backup` copy, so a backup never stops the cache.
 - `dns/dnsconfig.js` is the source of truth for the Cloudflare zones. CI
   applies it on merge with full purge; only `_acme-challenge` TXT records
   are ignored. A dashboard edit is for emergencies and must be copied back

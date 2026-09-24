@@ -81,6 +81,14 @@ in {
             so live SQLite databases are captured consistently.
           '';
         };
+        prepareCommand = lib.mkOption {
+          type = lib.types.lines;
+          default = "";
+          description = ''
+            Shell run before the snapshot, after the Volume check, such as
+            an online copy of a live database into one of the paths.
+          '';
+        };
       };
     };
   in {
@@ -90,8 +98,8 @@ in {
       description = ''
         Per-service Restic backup jobs, keyed by service name. Legion nodes
         populate them from each `legion.services` entry's backupSet and
-        units (modules/hosts/legion/default.nix); a backup pauses the
-        service's own units.
+        units (modules/hosts/legion/default.nix); by default a backup
+        pauses the service's own units.
       '';
     };
 
@@ -126,7 +134,8 @@ in {
             ''
             + lib.optionalString (job.pauseUnits != []) ''
               systemctl stop ${lib.concatStringsSep " " job.pauseUnits}
-            '';
+            ''
+            + job.prepareCommand;
           backupCleanupCommand = lib.optionalString (job.pauseUnits != []) ''
             systemctl start ${lib.concatStringsSep " " job.pauseUnits}
           '';
