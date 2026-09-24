@@ -21,8 +21,9 @@
   # q8_0 is about 1.3 GiB.
   llmContextLength = 131072;
   # The 23 GB of weights do not fit the 16 GB dGPU: the MoE experts of this
-  # many layers stay on the CPU.
-  llmCpuMoeLayers = 22;
+  # many layers stay on the CPU, which also leaves VRAM headroom for a full
+  # context with an image.
+  llmCpuMoeLayers = 24;
 in {
   flake.lib = {
     llmServerPort = llmPort;
