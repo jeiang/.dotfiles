@@ -1,0 +1,41 @@
+{inputs, ...}: let
+  port = 4321;
+  stateDir = "/var/lib/portfolio";
+in {
+  legion.services.portfolio = {
+    # Off the edge node: legion-node1 has no restic credentials, and this is
+    # the node with the most memory headroom.
+    node = "legion-node2";
+    module = "portfolio";
+    stateful = true;
+    units = ["portfolio"];
+    ports.app = port;
+    firewall = [
+      {
+        inherit port;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+    # SQLite database and uploads on the root disk. The backup pauses the
+    # unit, so the database is never copied mid-write.
+    backupSet = [stateDir];
+  };
+
+  nixos.modules.portfolio = {config, ...}: {
+    imports = [inputs.portfolio.nixosModules.default];
+
+    sops.secrets."portfolio/admin-password-hash".sopsFile = ./secrets.yaml;
+
+    services.portfolio = {
+      enable = true;
+      # Reached from Caddy on legion-node1; the firewall keeps it off the
+      # public interface.
+      host = "0.0.0.0";
+      inherit port stateDir;
+      siteUrl = "https://noelejoshua.com";
+      blogUrl = "https://blog.noelejoshua.com";
+      adminPasswordHashFile = config.sops.secrets."portfolio/admin-password-hash".path;
+    };
+  };
+}
