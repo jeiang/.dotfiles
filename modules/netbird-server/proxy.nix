@@ -161,6 +161,10 @@ in {
         # unreachable LAPI -- start new services in observe.
         NB_PROXY_CROWDSEC_API_URL = "http://${node1PrivateIp}:${toString crowdsecLapiPort}";
         NB_PROXY_LOG_LEVEL = "info";
+        # The default /var/lib/netbird/geolocation is the server's directory,
+        # which this user cannot write; without the GeoLite2 database every
+        # service with a country restriction denies all requests.
+        NB_PROXY_GEO_DATA_DIR = "/var/cache/netbird-proxy";
       };
       serviceConfig = {
         ExecStart = lib.getExe proxyPkg;
@@ -170,7 +174,8 @@ in {
         User = "netbird-proxy";
         Group = "netbird-proxy";
         AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
-        MemoryMax = "128M";
+        CacheDirectory = "netbird-proxy";
+        MemoryMax = "256M";
       };
     };
 
