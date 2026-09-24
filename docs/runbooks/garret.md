@@ -168,7 +168,8 @@ closed until fsck has covered every restored row. See garret's
 
 2. Close the push endpoint. `enp7s0` is a trusted interface, so the NixOS
     firewall cannot do it; a separate table rejects the Pusher's port on
-    every interface:
+    every interface. A deploy leaves it in place, a reboot does not: do not
+    reboot node4 before step 7, and if it reboots, repeat this step at once.
 
     ```bash
     ssh -t node4.jeiang.dev "sudo nft 'add table inet garret-restore; add chain inet garret-restore input { type filter hook input priority -10; }; add rule inet garret-restore input tcp dport 8082 reject with tcp reset'"
@@ -203,8 +204,9 @@ closed until fsck has covered every restored row. See garret's
     ssh -t node4.jeiang.dev sudo systemctl start garret-puller
     ```
 
-7. fsck skips rows younger than 24 hours. Once the newest restored row is
-    older than that, run the step 5 fsck again, then reopen pushes:
+7. fsck skips rows younger than 24 hours, and no restored row is newer than
+    the copy. From 24 hours after the snapshot time `restic-garret snapshots`
+    showed, run the step 5 fsck again, then reopen pushes:
 
     ```bash
     ssh -t node4.jeiang.dev sudo nft delete table inet garret-restore

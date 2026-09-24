@@ -181,17 +181,23 @@ in {
     in {
       garret-pusher = lib.recursiveUpdate {serviceConfig.MemoryMax = "896M";} guard;
       garret-puller = lib.recursiveUpdate {serviceConfig.MemoryMax = "192M";} guard;
+      # Ordering only: a backup must never start a Pusher stopped for a restore.
+      restic-backups-garret.after = ["garret-pusher.service"];
     };
 
     environment.systemPackages = [garretAdmin];
 
     # An online copy, so the backup never stops the cache. The Pusher never
-    # overwrites a file, hence the rm.
+    # overwrites a file, hence the rm. A Pusher that has just started may not
+    # have bound its admin socket yet.
     backups.jobs.garret = {
       pauseUnits = [];
-      prepareCommand = ''
+      prepareCommand = let
+        socket = config.services.garret.pusher.adminSocketPath;
+      in ''
+        for _ in $(seq 30); do [ -S ${socket} ] && break; sleep 1; done
         rm -f ${backupFile}
-        ${lib.getExe' garretAdmin "garret-admin"} backup ${backupFile}
+        ${lib.getExe' garretAdmin "garret-admin"} --socket ${socket} backup ${backupFile}
       '';
     };
 

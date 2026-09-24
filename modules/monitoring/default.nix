@@ -587,12 +587,12 @@ in {
               }
               {
                 alert = "GarretJwksRefreshFailed";
-                expr = "increase(garret_jwks_refresh_failures_total[1h]) > 0";
+                expr = "increase(garret_jwks_refresh_failures_total[1h]) > 1";
                 for = "0m";
                 labels.severity = "warning";
                 annotations = {
                   summary = "garret could not refresh the JWKS of {{ $labels.issuer }}";
-                  description = "garret_jwks_refresh_failures_total{issuer=\"{{ $labels.issuer }}\"} increased on {{ $labels.instance }} in the last hour: tokens signed by a new key of that issuer are refused.";
+                  description = "garret failed more than one JWKS refresh for {{ $labels.issuer }} on {{ $labels.instance }} in the last hour. Cached keys keep validating, but a token signed by a key the issuer rotated in is refused until a refresh succeeds.";
                 };
               }
               {
