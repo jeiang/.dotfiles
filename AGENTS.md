@@ -309,8 +309,10 @@ behavior for its own sake.
   never granted. Tier 2 is to be upgraded to Telegram approval gating later,
   not left operator-executed indefinitely.
 - The Hermes model server (`modules/llm-server`) runs Qwen3.6-35B-A3B
-  (UD-Q4_K_XL) with the MoE experts of the first layers on the CPU, because
-  the weights exceed the dGPU, and with thinking disabled.
+  (the MTP UD-Q4_K_XL GGUF, drafting with its own MTP heads, plus its vision
+  projector) with the MoE experts of the first layers on the CPU, because
+  the weights exceed the dGPU, and with thinking disabled. Its context
+  length is `flake.lib.llmServerContextLength`, which Hermes also reads.
 - The weights live under the persisted cache directory and never in the Nix
   store; `llm-server-fetch.service` downloads and checksums them onto disk.
 - `just llm-stop` and `just llm-start` are the manual counterpart of the

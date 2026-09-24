@@ -163,7 +163,7 @@ in {
           default = self.lib.llmServerModelId;
           provider = "custom";
           base_url = "http://127.0.0.1:${toString self.lib.llmServerPort}/v1";
-          context_length = 65536;
+          context_length = self.lib.llmServerContextLength;
         };
 
         memory = {
@@ -174,7 +174,43 @@ in {
           write_approval = false;
         };
 
-        web.backend = "brave-free";
+        # Deterministic, no-LLM prune of old tool results: each LLM summary
+        # on the local model stalls the chat for minutes.
+        compression = {
+          proactive_prune_tokens = 60000;
+          proactive_prune_min_result_chars = 4000;
+          proactive_prune_min_reclaim_tokens = 8192;
+          min_tail_user_messages = 2;
+        };
+        tool_output = {
+          max_bytes = 16000;
+          max_lines = 600;
+        };
+        # Summaries on the local model outrun the 120 s default; the review
+        # replays the conversation on the same GPU, so its input is capped.
+        auxiliary = {
+          compression.timeout = 300;
+          background_review.max_input_tokens = 100000;
+        };
+
+        streaming = {
+          enabled = true;
+          transport = "auto";
+        };
+        display.platforms.telegram.streaming = true;
+
+        # Local hygiene only: the pattern check and its guardian (the local
+        # model) are in-process and bypassable. Tier 2 is gated by
+        # hermes-approver, not by these.
+        approvals = {
+          smart_policy = "Legion sudoers enforce the tier-1 allowlist, so APPROVE `ssh legion-nodeN -- sudo systemctl start|restart <unit>.service`. ESCALATE anything that stops, disables or masks a unit, writes under /etc, or pipes downloaded content to a shell.";
+          deny = ["*nixos-rebuild*" "*sops -d*"];
+        };
+
+        web = {
+          backend = "brave-free";
+          extract_char_limit = 8000;
+        };
         stt.provider = "groq";
 
         # ~20 tools: drops browser (no Obscura), image/tts generation, home
