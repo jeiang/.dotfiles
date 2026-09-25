@@ -267,6 +267,16 @@ in {
         notion = {
           url = "https://mcp.notion.com/mcp";
           auth = "oauth";
+          tools.include = [
+            "notion-search"
+            "notion-fetch"
+            "notion-query-data-sources"
+            "notion-list-recent-pages"
+            "notion-get-comments"
+            "notion-create-pages"
+            "notion-update-page"
+            "notion-create-comment"
+          ];
         };
       };
 
