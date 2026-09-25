@@ -24,6 +24,7 @@
           hashedPasswordFile = config.sops.secrets."passwords/aidanp".path;
           openssh.authorizedKeys.keys = [
             "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDX/1mgkG5030b8C3eAZN2vBcoYvS9d+/OTtRf0f6XJJ"
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHQvWsGTb0u/1rmZpL8Av7+6824ecAOwtKeTe1fT9Rvz Hillwillow SSH Key"
           ];
         };
         users.root = {
