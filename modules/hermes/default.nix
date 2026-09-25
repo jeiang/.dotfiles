@@ -263,6 +263,11 @@ in {
           command = "${grafanaMcp}";
           env.GRAFANA_URL = self.lib.grafanaMeshUrl;
         };
+        # Tokens live in $HERMES_HOME/mcp-tokens; the first login is an interactive `hermes mcp login notion`.
+        notion = {
+          url = "https://mcp.notion.com/mcp";
+          auth = "oauth";
+        };
       };
 
       hermesHomeFiles."SOUL.md" = ./SOUL.md;
