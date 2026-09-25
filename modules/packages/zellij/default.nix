@@ -96,10 +96,13 @@
   nixos.modules = {
     artemis = {pkgs, ...}: {
       environment.systemPackages = [pkgs.wl-clipboard];
-      environment.variables.ZELLIJ_CONFIG_FILE = "${self.lib.mkZellijConfig {
-        inherit pkgs;
-        copyCommand = "wl-copy";
-      }}";
+      environment.variables = {
+        ZELLIJ_CONFIG_FILE = "${self.lib.mkZellijConfig {
+          inherit pkgs;
+          copyCommand = "wl-copy";
+        }}";
+        ZELLIJ_AUTO_ATTACH = "1";
+      };
     };
 
     # Read by the fish wrapper, which is one package for every host.
