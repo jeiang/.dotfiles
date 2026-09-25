@@ -144,7 +144,8 @@ in {
     grafanaMcp = pkgs.writeShellScript "hermes-mcp-grafana" ''
       GRAFANA_SERVICE_ACCOUNT_TOKEN=$(<${config.sops.secrets."hermes/grafana-token".path})
       export GRAFANA_SERVICE_ACCOUNT_TOKEN
-      exec ${lib.getExe pkgs.mcp-grafana} -disable-write "$@"
+      exec ${lib.getExe pkgs.mcp-grafana} -disable-write \
+        -enabled-tools search,datasource,prometheus,loki,alerting,dashboard,navigation,annotations "$@"
     '';
 
     agentSkillNames = ["eli5" "grilling" "i-have-adhd" "research"];
@@ -201,6 +202,9 @@ in {
           max_bytes = 16000;
           max_lines = 600;
         };
+        # Keeps MCP tool definitions out of every request behind a fixed
+        # bridge, so the llama.cpp prompt cache survives.
+        tools.tool_search.enabled = "on";
         # Summaries on the local model outrun the 120 s default; the review
         # replays the conversation on the same GPU, so its input is capped.
         auxiliary = {
