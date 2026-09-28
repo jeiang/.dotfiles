@@ -245,7 +245,15 @@ in {
           "computer_use"
         ];
 
-        skills.external_dirs = ["${kbExportDir}/skills" "${agentSkills}"];
+        # Bundled skills load from the store instead of the local skills dir:
+        # the startup sync defers to an external copy, and its local copy keeps
+        # the store's read-only mode, which breaks skill_manage's writes and
+        # rollbacks. The local dir holds only the skills Hermes writes itself.
+        skills.external_dirs = [
+          "${kbExportDir}/skills"
+          "${agentSkills}"
+          "${cfg.package}/share/hermes-agent/skills"
+        ];
 
         platforms.webhook = {
           enabled = true;
