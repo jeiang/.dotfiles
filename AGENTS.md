@@ -5,7 +5,7 @@ machine must run.
 
 | Host | Kind | Role |
 | --- | --- | --- |
-| `artemis` | NixOS | Headless gaming and streaming box at home. Impermanent btrfs root. Reached over NetBird with Sunshine/Moonlight and hypr-rdp. Also hosts the Hermes assistant and its local model server. |
+| `artemis` | NixOS | Headless gaming and streaming box at home. Impermanent btrfs root. Reached over NetBird with Sunshine/Moonlight and hypr-rdp. Also hosts the Hermes assistant, its local model server, and the media stack. |
 | `zakkart` | nix-darwin | The operator's MacBook. |
 | `legion-node1`..`legion-node4` | NixOS | Hetzner Cloud service nodes. `legion-node1` is the Caddy edge. |
 
@@ -311,6 +311,15 @@ behavior for its own sake.
   run after the operator approves each command in Telegram through a second
   bot; tier 3 is never granted. Hermes only asks, through `hermes-tier2`;
   its own built-in approvals are not a boundary.
+- The media stack on artemis (`modules/media.nix`: Radarr, Sonarr,
+  Prowlarr, Jellyfin, Seerr, with qBittorrent as the client) keeps
+  downloads and library in one persisted tree, `/var/lib/media`, so imports
+  are hardlinks: a hardlink cannot cross two impermanence bind mounts. The
+  library is not backed up, because it can be downloaded again; only the
+  apps' state is. Only Jellyfin is public, through netbird-proxy.
+- qBittorrent peers from the home IP for now. The planned exit is an
+  arct.cloud VPS: once it is added to the NetBird network, qBittorrent's
+  traffic goes out through it, and that VPS is not yet in this flake.
 - The Hermes model server (`modules/llm-server`) runs Qwen3.6-35B-A3B
   (the MTP UD-Q4_K_XL GGUF, drafting with its own MTP heads, plus its vision
   projector) with the MoE experts of the first layers on the CPU, because
