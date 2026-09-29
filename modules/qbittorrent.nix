@@ -5,7 +5,7 @@
   # the proxy later needs no port change here.
   torrentingPort = 42881;
   stateDir = "/var/lib/qbittorrent";
-  downloadDir = "${stateDir}/downloads";
+  downloadDir = self.lib.mediaDownloadDir;
 in {
   # Web UI, file listing and peer port all ride the NetBird interface, which
   # is already trusted (modules/netbird.nix); nothing here opens a port on
@@ -20,6 +20,7 @@ in {
       qbittorrent = {
         enable = true;
         inherit webuiPort torrentingPort;
+        group = self.lib.mediaGroup;
         profileDir = stateDir;
         openFirewall = false;
         # The unit reinstalls this file on every start, so the flake owns
@@ -50,12 +51,16 @@ in {
       };
     };
 
-    systemd.tmpfiles.settings.qbittorrent-downloads.${downloadDir}.d = {
-      user = "qbittorrent";
-      group = "qbittorrent";
-      # World-readable: darkhttpd runs under a DynamicUser that is in no
-      # group of ours.
-      mode = "0755";
+    # Group-writable, so Radarr and Sonarr may hardlink the files
+    # (fs.protected_hardlinks); world-readable, because darkhttpd runs under a
+    # DynamicUser that is in no group of ours.
+    systemd = {
+      services.qbittorrent.serviceConfig.UMask = "0002";
+      tmpfiles.settings.qbittorrent-downloads.${downloadDir}.d = {
+        user = "qbittorrent";
+        group = self.lib.mediaGroup;
+        mode = "2775";
+      };
     };
   };
 }
