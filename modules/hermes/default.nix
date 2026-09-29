@@ -156,6 +156,16 @@ in {
           path = "${agentSkillsTree}/skills/${name}";
         })
         agentSkillNames);
+
+    seerrCli = pkgs.writers.writePython3Bin "seerr" {} (
+      builtins.replaceStrings ["@url@" "@email@" "@passwordFile@"] [
+        self.lib.seerrUrl
+        # Hermes's Seerr login; the operator creates this local user with
+        # the Request permission only.
+        "hermes@jeiang.dev"
+        config.sops.secrets."hermes/seerr-password".path
+      ] (builtins.readFile ./seerr.py)
+    );
   in {
     imports = [inputs.hermes-agent.nixosModules.default];
 
@@ -295,7 +305,7 @@ in {
       hermesHomeFiles."SOUL.md" = ./SOUL.md;
       documents."SERVERS.md" = ./SERVERS.md;
 
-      extraPackages = [pkgs.gh pkgs.openssh pkgs.sqlite pkgs.himalaya pkgs.vdirsyncer pkgs.khal pkgs.khard];
+      extraPackages = [pkgs.gh pkgs.openssh pkgs.sqlite pkgs.himalaya pkgs.vdirsyncer pkgs.khal pkgs.khard seerrCli];
     };
 
     sops.secrets = {
@@ -319,6 +329,13 @@ in {
         inherit (cfg) group;
         mode = "0400";
         restartUnits = ["hermes-agent.service"];
+      };
+      # Read on each `seerr` call, so a rotation needs no restart.
+      "hermes/seerr-password" = {
+        inherit sopsFile;
+        owner = cfg.user;
+        inherit (cfg) group;
+        mode = "0400";
       };
     };
 

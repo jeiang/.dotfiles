@@ -320,6 +320,9 @@ behavior for its own sake.
 - qBittorrent peers from the home IP for now. The planned exit is an
   arct.cloud VPS: once it is added to the NetBird network, qBittorrent's
   traffic goes out through it, and that VPS is not yet in this flake.
+- Hermes adds movies and series only through Seerr, as a local Seerr user
+  with the Request permission alone (`seerr` in `modules/hermes/`). It
+  never gets a Radarr, Sonarr, or Seerr API key: each of those is full admin.
 - The Hermes model server (`modules/llm-server`) runs Qwen3.6-35B-A3B
   (the MTP UD-Q4_K_XL GGUF, drafting with its own MTP heads, plus its vision
   projector) with the MoE experts of the first layers on the CPU, because
