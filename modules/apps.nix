@@ -1,15 +1,10 @@
-{
-  self,
-  inputs,
-  ...
-}: {
+{self, ...}: {
   darwin.modules.base = {
     config,
     pkgs,
     ...
   }: let
     wrapped = self.packages.${pkgs.stdenv.hostPlatform.system};
-    agents = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system};
   in {
     fonts.packages = [pkgs.nerd-fonts.mononoki];
 
@@ -72,8 +67,6 @@
       ++ [
         wrapped.git
         wrapped.difft
-        agents.chatgpt
-        agents.claude-desktop
       ];
   };
 }
