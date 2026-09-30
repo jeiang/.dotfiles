@@ -10,6 +10,7 @@
       # rather than --config, which only the launch, acp and models commands take.
       settings = (pkgs.formats.yaml {}).generate "omp-config.yml" {
         tools.approvalMode = "yolo";
+        tui.mouse = true;
       };
     in
       inputs.wrapper-modules.lib.wrapPackage (_: {
