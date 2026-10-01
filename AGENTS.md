@@ -17,7 +17,11 @@ behavior for its own sake.
 
 - Never commit to `main`. Use a branch and a pull request. `main` is
   protected and requires signed commits. Merge with
-  `gh pr merge --auto --merge` after CI passes.
+  `gh pr merge --auto --merge` after CI passes. Wait for CI with
+  `gh pr checks <n> --watch --fail-fast --interval 30` as a background job,
+  then confirm `gh pr view <n> --json state,mergedAt`. Do not add
+  `--required`: `all-checks` needs every other job, so it is not reported
+  until they finish and the command exits at once.
 - Use Conventional Commits.
 - Repository tools come from the devshell: `direnv` loads `.envrc`, or run
   `nix develop --impure -c <cmd>`.
