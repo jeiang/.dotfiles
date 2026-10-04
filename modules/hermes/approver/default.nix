@@ -26,7 +26,7 @@ in {
           ConnectTimeout 10
           StrictHostKeyChecking accept-new
           UserKnownHostsFile ${stateDir}/known_hosts'')
-      (builtins.attrNames self.lib.legionNodes)
+      self.lib.legionMeshNodeNames
     );
 
     allowlist = pkgs.writeText "hermes-approver-allowlist.json" (builtins.toJSON self.lib.hermesTier2Commands);

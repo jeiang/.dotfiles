@@ -11,6 +11,7 @@ var ALDA_V4 = NODES["alda"].publicIPv4;
 var VIDA_V4 = NODES["vida"].publicIPv4;
 var ZANTARK_V4 = NODES["zantark"].publicIPv4;
 var PERIA_V4 = NODES["peria"].publicIPv4;
+var RICKLENT_V4 = NODES["ricklent"].publicIPv4;
 var ALDA_V6 = NODES["alda"].publicIPv6;
 var VIDA_V6 = NODES["vida"].publicIPv6;
 var ZANTARK_V6 = NODES["zantark"].publicIPv6;
@@ -65,6 +66,7 @@ D("jeiang.dev", REG_NONE,
   AAAA("zantark.svr", ZANTARK_V6),
   A("peria.svr", PERIA_V4),
   AAAA("peria.svr", PERIA_V6),
+  A("ricklent.svr", RICKLENT_V4),
 
   A("node1", ALDA_V4),
   AAAA("node1", ALDA_V6),

@@ -4,7 +4,7 @@
   lib,
   ...
 }: let
-  legionNodeNames = builtins.attrNames self.lib.legionNodes;
+  hetznerNodeNames = builtins.attrNames self.lib.hetznerNodes;
 
   mkMeshInterface = address: {
     wt0 = {
@@ -55,10 +55,10 @@ in {
 
       nodes = lib.mkMerge [
         (lib.mapAttrs (_: address: {interfaces = mkMeshInterface address;}) self.lib.netbirdPeers)
-        (lib.genAttrs legionNodeNames (_: {interfaces.enp7s0.network = "hetzner-private";}))
+        (lib.genAttrs hetznerNodeNames (_: {interfaces.enp7s0.network = "hetzner-private";}))
         {
           internet = mkInternet {
-            connections = map (node: mkConnection node "enp1s0") legionNodeNames;
+            connections = map (node: mkConnection node "enp1s0") hetznerNodeNames;
           };
 
           artemis.interfaces =

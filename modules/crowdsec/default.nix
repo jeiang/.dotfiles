@@ -33,6 +33,7 @@ in {
     ...
   }: let
     sopsFile = ./secrets.yaml;
+    agentSopsFile = ./secrets.agent.yaml;
 
     localAppsecConfigName = "jeiang/appsec-caddy";
 
@@ -64,7 +65,10 @@ in {
       edge-caddy = config.sops.secrets."caddy/crowdsec-lapi-key".path;
       netbird-proxy = config.sops.secrets."crowdsec/bouncer-netbird-proxy-key".path;
       legion-node2-firewall = config.sops.secrets."crowdsec/bouncer-legion-node2-firewall".path;
+      ricklent-firewall = config.sops.secrets."crowdsec/bouncer-ricklent-firewall".path;
     };
+
+    machinePasswords.ricklent = config.sops.secrets."crowdsec/machine-ricklent-password".path;
   in {
     config = {
       services.crowdsec = {
@@ -155,14 +159,25 @@ in {
       # No declarative bouncer option exists upstream, so known bouncer keys
       # are registered idempotently below. The edge-caddy key is the same
       # value Caddy sends as CROWDSEC_LAPI_KEY; the other two are consumed by
-      # vida (modules/netbird-server/proxy.nix).
-      sops.secrets."crowdsec/bouncer-netbird-proxy-key" = {
-        inherit sopsFile;
-        restartUnits = ["crowdsec-bouncers.service"];
-      };
-      sops.secrets."crowdsec/bouncer-legion-node2-firewall" = {
-        inherit sopsFile;
-        restartUnits = ["crowdsec-bouncers.service"];
+      # vida (modules/netbird-server/proxy.nix); ricklent's bouncer and
+      # machine credentials are consumed by modules/crowdsec/agent.nix.
+      sops.secrets = {
+        "crowdsec/bouncer-netbird-proxy-key" = {
+          inherit sopsFile;
+          restartUnits = ["crowdsec-bouncers.service"];
+        };
+        "crowdsec/bouncer-legion-node2-firewall" = {
+          inherit sopsFile;
+          restartUnits = ["crowdsec-bouncers.service"];
+        };
+        "crowdsec/bouncer-ricklent-firewall" = {
+          sopsFile = agentSopsFile;
+          restartUnits = ["crowdsec-bouncers.service"];
+        };
+        "crowdsec/machine-ricklent-password" = {
+          sopsFile = agentSopsFile;
+          restartUnits = ["crowdsec-bouncers.service"];
+        };
       };
 
       systemd.services = {
@@ -176,7 +191,9 @@ in {
             RemainAfterExit = true;
             # As the crowdsec user the module's cscli wrapper skips sudo, which would log the --key argument.
             User = config.services.crowdsec.user;
-            LoadCredential = lib.mapAttrsToList (name: path: "${name}:${path}") bouncerKeys;
+            LoadCredential =
+              lib.mapAttrsToList (name: path: "${name}:${path}") bouncerKeys
+              ++ lib.mapAttrsToList (name: path: "machine-${name}:${path}") machinePasswords;
           };
           script = let
             # The module's cscli wrapper bakes in -c <store config>; it is only exposed via environment.systemPackages.
@@ -186,8 +203,13 @@ in {
               ${cscli} bouncers delete ${lib.escapeShellArg name} || true
               ${cscli} bouncers add ${lib.escapeShellArg name} --key "$(cat "$CREDENTIALS_DIRECTORY"/${lib.escapeShellArg name})" > /dev/null
             '';
+            # --file - keeps the dump off the local credentials file; --force replaces the machine's stored password.
+            registerMachine = name: ''
+              ${cscli} machines add ${lib.escapeShellArg name} --password "$(cat "$CREDENTIALS_DIRECTORY"/machine-${lib.escapeShellArg name})" --file - --force > /dev/null
+            '';
           in
-            lib.concatMapStrings registerBouncer (builtins.attrNames bouncerKeys);
+            lib.concatMapStrings registerBouncer (builtins.attrNames bouncerKeys)
+            + lib.concatMapStrings registerMachine (builtins.attrNames machinePasswords);
         };
 
         crowdsec.serviceConfig.MemoryMax = "512M";

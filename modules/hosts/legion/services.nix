@@ -145,6 +145,7 @@ in {
         named;
       # The Volume filesystem label is its service name (see modules/hosts/legion/default.nix); ext4 labels cap at 16 bytes.
       labelTooLong = builtins.filter (s: s.volume != null && builtins.stringLength s.name > 16) named;
+      volumeOffHetzner = builtins.filter (s: s.volume != null && self.lib.legionNodes.${s.node}.provider != "hetzner") named;
     in
       assert lib.assertMsg (builtins.length edgeEntries == 1)
       "legion.services must declare exactly one edge service: ${builtins.concatStringsSep ", " (map (s: s.name) edgeEntries)}";
@@ -155,6 +156,8 @@ in {
       assert lib.assertMsg (backupSetViolations == [])
       "Every legion.services backupSet path of a service with a Volume must be a subset of its mountpoint: ${builtins.concatStringsSep ", " (map (s: s.name) backupSetViolations)}";
       assert lib.assertMsg (labelTooLong == [])
-      "legion.services entry name exceeds ext4's 16-byte label limit, so its Volume could not be labeled and would never mount: ${builtins.concatStringsSep ", " (map (s: s.name) labelTooLong)}"; services;
+      "legion.services entry name exceeds ext4's 16-byte label limit, so its Volume could not be labeled and would never mount: ${builtins.concatStringsSep ", " (map (s: s.name) labelTooLong)}";
+      assert lib.assertMsg (volumeOffHetzner == [])
+      "legion.services Volumes exist only on Hetzner nodes; keep state on the root disk with a backupSet: ${builtins.concatStringsSep ", " (map (s: s.name) volumeOffHetzner)}"; services;
   };
 }

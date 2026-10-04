@@ -12,10 +12,18 @@
 
   legionNodes = self.lib.legionNodes;
 
-  nodeAddresses = lib.concatMap (node: [node.privateIPv4 node.publicIPv4 node.publicIPv6]) (builtins.attrValues legionNodes);
+  nodeAddresses = builtins.filter (a: a != null) (lib.concatMap (node: [node.privateIPv4 node.publicIPv4 node.publicIPv6]) (builtins.attrValues legionNodes));
 
   validatedLegionNodes = assert lib.assertMsg (builtins.length nodeAddresses == builtins.length (lib.unique nodeAddresses))
   "Legion inventory must not reuse an IP address"; legionNodes;
+
+  isHetzner = node: node.provider == "hetzner";
+
+  # Hetzner nodes reach each other over the private network; every other pair goes over the mesh. Null while a node is not yet in modules/netbird-peers.nix.
+  legionAddress = from: to:
+    if isHetzner legionNodes.${from} && isHetzner legionNodes.${to}
+    then legionNodes.${to}.privateIPv4
+    else self.lib.netbirdPeers.${to} or null;
 
   legionServices = config.legion.services;
   servicesByNode = nodeName: builtins.filter (s: s.node == nodeName) (lib.mapAttrsToList (name: s: s // {inherit name;}) legionServices);
@@ -97,34 +105,53 @@
   };
 in {
   flake = {
-    lib.legionNodes = {
-      alda = {
-        privateIPv4 = "172.17.0.1";
-        publicIPv4 = "178.156.226.145";
-        publicIPv6 = "2a01:4ff:f0:6b8e::1";
+    lib = {
+      legionNodes = {
+        alda = {
+          provider = "hetzner";
+          privateIPv4 = "172.17.0.1";
+          publicIPv4 = "178.156.226.145";
+          publicIPv6 = "2a01:4ff:f0:6b8e::1";
+        };
+
+        vida = {
+          provider = "hetzner";
+          privateIPv4 = "172.17.0.2";
+          publicIPv4 = "178.156.201.35";
+          publicIPv6 = "2a01:4ff:f0:a1ff::1";
+        };
+
+        zantark = {
+          provider = "hetzner";
+          privateIPv4 = "172.17.0.3";
+          publicIPv4 = "178.156.186.147";
+          publicIPv6 = "2a01:4ff:f0:c52a::1";
+        };
+
+        peria = {
+          provider = "hetzner";
+          privateIPv4 = "172.17.0.4";
+          publicIPv4 = "178.156.191.180";
+          publicIPv6 = "2a01:4ff:f0:ca96::1";
+        };
+
+        ricklent = {
+          provider = "arct";
+          privateIPv4 = null;
+          publicIPv4 = "51.146.56.59";
+          publicIPv6 = null;
+        };
       };
 
-      vida = {
-        privateIPv4 = "172.17.0.2";
-        publicIPv4 = "178.156.201.35";
-        publicIPv6 = "2a01:4ff:f0:a1ff::1";
-      };
+      hetznerNodes = lib.filterAttrs (_: isHetzner) legionNodes;
 
-      zantark = {
-        privateIPv4 = "172.17.0.3";
-        publicIPv4 = "178.156.186.147";
-        publicIPv6 = "2a01:4ff:f0:c52a::1";
-      };
+      inherit legionAddress;
 
-      peria = {
-        privateIPv4 = "172.17.0.4";
-        publicIPv4 = "178.156.191.180";
-        publicIPv6 = "2a01:4ff:f0:ca96::1";
-      };
+      legionMeshNodeNames = builtins.filter (name: self.lib.netbirdPeers ? ${name}) (builtins.attrNames legionNodes);
+
+      # dns/dnsconfig.js reads this through require(); `just dns-nodes` rewrites the committed dns/nodes.json.
+      legionNodesJson = builtins.toJSON (lib.mapAttrs (_: node: {inherit (node) publicIPv4 publicIPv6;}) validatedLegionNodes) + "\n";
     };
-
-    # dns/dnsconfig.js reads this through require(); `just dns-nodes` rewrites the committed dns/nodes.json.
-    lib.legionNodesJson = builtins.toJSON (lib.mapAttrs (_: node: {inherit (node) publicIPv4 publicIPv6;}) validatedLegionNodes) + "\n";
 
     deploy.nodes =
       builtins.mapAttrs (name: _: {
@@ -140,162 +167,171 @@ in {
       validatedLegionNodes;
   };
 
-  nixos.modules.legion = {
-    pkgs,
-    config,
-    lib,
-    ...
-  }: {
-    imports = [
-      self.diskoConfigurations.legion
-    ];
+  nixos = {
+    modules.legion = {
+      pkgs,
+      config,
+      lib,
+      ...
+    }: {
+      imports = [
+        self.diskoConfigurations.legion
+      ];
 
-    # documentation.man.enable stays on: the toolbox keeps man pages, only the rest of the headless-server bulk goes.
-    documentation = {
-      nixos.enable = false;
-      doc.enable = false;
-      info.enable = false;
-    };
-    xdg = {
-      icons.enable = false;
-      sounds.enable = false;
-      mime.enable = false;
-    };
-    fonts.fontconfig.enable = false;
+      # documentation.man.enable stays on: the toolbox keeps man pages, only the rest of the headless-server bulk goes.
+      documentation = {
+        nixos.enable = false;
+        doc.enable = false;
+        info.enable = false;
+      };
+      xdg = {
+        icons.enable = false;
+        sounds.enable = false;
+        mime.enable = false;
+      };
+      fonts.fontconfig.enable = false;
 
-    # Host DNS must never use Blocky-over-NetBird as primary resolver: netbird.jeiang.dev has to resolve via public DNS before the tunnel is up.
-    sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
-    services = {
-      prometheus.exporters.node = {
-        enable = true;
-        enabledCollectors = ["systemd"];
-        # Explicit unit-include keeps node_systemd_unit_state cardinality bounded for the memory-constrained VictoriaMetrics; the default `.+` would emit hundreds of series.
-        extraFlags = [
-          "--collector.systemd.unit-include=${unitIncludeFor config.networking.hostName}"
-        ];
+      # Host DNS must never use Blocky-over-NetBird as primary resolver: netbird.jeiang.dev has to resolve via public DNS before the tunnel is up.
+      sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
+      services = {
+        prometheus.exporters.node = {
+          enable = true;
+          enabledCollectors = ["systemd"];
+          # Explicit unit-include keeps node_systemd_unit_state cardinality bounded for the memory-constrained VictoriaMetrics; the default `.+` would emit hundreds of series.
+          extraFlags = [
+            "--collector.systemd.unit-include=${unitIncludeFor config.networking.hostName}"
+          ];
+        };
+
+        # systemd-journal-upload appends `/upload` itself and VictoriaLogs' route is /insert/journald/upload, so this URL must end at /insert/journald.
+        journald.upload = {
+          enable = true;
+          settings.Upload.URL = "http://${legionAddress config.networking.hostName "zantark"}:${toString legionServices.monitoring.ports.victoria-logs}/insert/journald";
+        };
+
+        journald.settings.Journal.SystemMaxUse = "1G";
       };
 
-      # systemd-journal-upload appends `/upload` itself and VictoriaLogs' route is /insert/journald/upload, so this URL must end at /insert/journald.
-      journald.upload = {
-        enable = true;
-        settings.Upload.URL = "http://${legionNodes.zantark.privateIPv4}:${toString legionServices.monitoring.ports.victoria-logs}/insert/journald";
+      backups.jobs = lib.listToAttrs (
+        map (s:
+          lib.nameValuePair s.name {
+            paths = s.backupSet;
+            volume =
+              if s.volume == null
+              then null
+              else s.volume.mountpoint;
+            pauseUnits = lib.mkDefault (map (u: "${u}.service") s.units);
+          })
+        (builtins.filter (s: s.backupSet != [])
+          (servicesByNode config.networking.hostName))
+      );
+
+      users = {
+        groups.deploy = {};
+        users.deploy = {
+          isSystemUser = true;
+          group = "deploy";
+          home = "/var/empty";
+          createHome = false;
+          hashedPassword = "!";
+          shell = pkgs.bashInteractive;
+          openssh.authorizedKeys.keys = [
+            "restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGEDR/RgCI/ULKL6ywYbmeqvU5BfjpmMnOieuQ66XlX+ legion-deploy"
+          ];
+        };
       };
 
-      journald.settings.Journal.SystemMaxUse = "1G";
-    };
+      nix.settings.trusted-users = ["deploy"];
 
-    backups.jobs = lib.listToAttrs (
-      map (s:
-        lib.nameValuePair s.name {
-          paths = s.backupSet;
-          volume =
-            if s.volume == null
-            then null
-            else s.volume.mountpoint;
-          pauseUnits = lib.mkDefault (map (u: "${u}.service") s.units);
-        })
-      (builtins.filter (s: s.backupSet != [])
-        (servicesByNode config.networking.hostName))
-    );
-
-    # The label is the service name, applied once by the operator; nofail keeps a missing Volume from blocking boot, and mountGuard keeps the service off the unmounted dir.
-    fileSystems = lib.listToAttrs (
-      map (s:
-        lib.nameValuePair s.volume.mountpoint {
-          device = "/dev/disk/by-label/${s.name}";
-          fsType = "ext4";
-          options = ["nofail" "x-systemd.device-timeout=10s"];
-        })
-      (builtins.filter (s: s.volume != null) (servicesByNode config.networking.hostName))
-    );
-
-    users = {
-      groups.deploy = {};
-      users.deploy = {
-        isSystemUser = true;
-        group = "deploy";
-        home = "/var/empty";
-        createHome = false;
-        hashedPassword = "!";
-        shell = pkgs.bashInteractive;
-        openssh.authorizedKeys.keys = [
-          "restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGEDR/RgCI/ULKL6ywYbmeqvU5BfjpmMnOieuQ66XlX+ legion-deploy"
-        ];
-      };
-    };
-
-    nix.settings.trusted-users = ["deploy"];
-
-    security.sudo.extraRules = [
-      {
-        users = ["deploy"];
-        runAs = "root";
-        commands = [
-          {
-            command = "/nix/store/*/activate-rs";
-            options = ["NOPASSWD"];
-          }
-          # deploy-rs magic rollback confirms via `sudo rm /tmp/deploy-rs-canary-<hash>`; without NOPASSWD the confirmation times out and every deploy rolls back.
-          {
-            command = "/run/current-system/sw/bin/rm /tmp/deploy-rs-canary-*";
-            options = ["NOPASSWD"];
-          }
-        ];
-      }
-    ];
-
-    boot = {
-      # Required by services.netbird's useRoutingFeatures = "both".
-      kernel.sysctl = {
-        "net.ipv4.ip_forward" = 1;
-        "net.ipv6.conf.all.forwarding" = 1;
-      };
-
-      loader.grub.enable = true;
-      tmp.cleanOnBoot = true;
-    };
-
-    systemd.network.networks."20-hcloud-private" = {
-      matchConfig.Name = "enp7s0";
-      networkConfig.DHCP = "ipv4";
-      dhcpV4Config.UseRoutes = false;
-      routes = [
+      security.sudo.extraRules = [
         {
-          Destination = self.lib.hetznerPrivateCidr;
-          Gateway = "172.16.0.1";
-          GatewayOnLink = true;
+          users = ["deploy"];
+          runAs = "root";
+          commands = [
+            {
+              command = "/nix/store/*/activate-rs";
+              options = ["NOPASSWD"];
+            }
+            # deploy-rs magic rollback confirms via `sudo rm /tmp/deploy-rs-canary-<hash>`; without NOPASSWD the confirmation times out and every deploy rolls back.
+            {
+              command = "/run/current-system/sw/bin/rm /tmp/deploy-rs-canary-*";
+              options = ["NOPASSWD"];
+            }
+          ];
         }
       ];
+
+      boot = {
+        # Required by services.netbird's useRoutingFeatures = "both".
+        kernel.sysctl = {
+          "net.ipv4.ip_forward" = 1;
+          "net.ipv6.conf.all.forwarding" = 1;
+        };
+
+        tmp.cleanOnBoot = true;
+      };
+
+      networking.firewall = {
+        allowedTCPPorts = firewallPortsFor config.networking.hostName "tcp" "public";
+        allowedUDPPorts = firewallPortsFor config.networking.hostName "udp" "public";
+        allowedTCPPortRanges = firewallPortRangesFor config.networking.hostName "tcp" "public";
+        allowedUDPPortRanges = firewallPortRangesFor config.networking.hostName "udp" "public";
+      };
+
+      nixpkgs.hostPlatform = "x86_64-linux";
+      system.stateVersion = "25.05";
     };
 
-    networking.firewall = {
-      allowedTCPPorts = firewallPortsFor config.networking.hostName "tcp" "public";
-      allowedUDPPorts = firewallPortsFor config.networking.hostName "udp" "public";
-      allowedTCPPortRanges = firewallPortRangesFor config.networking.hostName "tcp" "public";
-      allowedUDPPortRanges = firewallPortRangesFor config.networking.hostName "udp" "public";
-      trustedInterfaces = ["enp7s0"];
+    modules.hetzner = {
+      config,
+      lib,
+      ...
+    }: {
+      systemd.network.networks = {
+        "10-wan" = mkWan {
+          inherit (legionNodes.${config.networking.hostName}) publicIPv4 publicIPv6;
+        };
+
+        "20-hcloud-private" = {
+          matchConfig.Name = "enp7s0";
+          networkConfig.DHCP = "ipv4";
+          dhcpV4Config.UseRoutes = false;
+          routes = [
+            {
+              Destination = self.lib.hetznerPrivateCidr;
+              Gateway = "172.16.0.1";
+              GatewayOnLink = true;
+            }
+          ];
+        };
+      };
+
+      networking.firewall.trustedInterfaces = ["enp7s0"];
+
+      # The label is the service name, applied once by the operator; nofail keeps a missing Volume from blocking boot, and mountGuard keeps the service off the unmounted dir.
+      fileSystems = lib.listToAttrs (
+        map (s:
+          lib.nameValuePair s.volume.mountpoint {
+            device = "/dev/disk/by-label/${s.name}";
+            fsType = "ext4";
+            options = ["nofail" "x-systemd.device-timeout=10s"];
+          })
+        (builtins.filter (s: s.volume != null) (servicesByNode config.networking.hostName))
+      );
     };
 
-    nixpkgs.hostPlatform = "x86_64-linux";
-    system.stateVersion = "25.05";
+    configurations = let
+      mkLegionSystem = name: node: {
+        module.imports =
+          [
+            modules.base
+            modules.legion
+          ]
+          ++ lib.optional (isHetzner node) modules.hetzner
+          ++ [{networking.hostName = name;}]
+          ++ map (m: modules.${m}) (moduleNamesFor name);
+      };
+    in
+      builtins.mapAttrs mkLegionSystem validatedLegionNodes;
   };
-
-  nixos.configurations = let
-    mkLegionSystem = name: node: {
-      module.imports =
-        [
-          modules.base
-          modules.legion
-          {
-            networking.hostName = name;
-
-            systemd.network.networks."10-wan" = mkWan {
-              inherit (node) publicIPv4 publicIPv6;
-            };
-          }
-        ]
-        ++ map (m: modules.${m}) (moduleNamesFor name);
-    };
-  in
-    builtins.mapAttrs mkLegionSystem validatedLegionNodes;
 }
