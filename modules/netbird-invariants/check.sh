@@ -98,16 +98,13 @@ run_check "primary-nameserver-group" "$dns_groups" '
       ($primary[0]) as $g
       | [
           (if $g.enabled != true then "primary nameserver group \($g.name // $g.id) is disabled" else empty end),
-          (if ($g.nameservers[0].ip // null) != $expected.primaryNameservers[0].ip
-            or ($g.nameservers[0].port // null) != $expected.primaryNameservers[0].port
-          then
-            "primary nameserver group \($g.name // $g.id) primary nameserver is \($g.nameservers[0].ip // "?"):\($g.nameservers[0].port // "?"), expected \($expected.primaryNameservers[0].ip):\($expected.primaryNameservers[0].port)"
-          else empty end),
-          (if ($g.nameservers[1].ip // null) != $expected.primaryNameservers[1].ip
-            or ($g.nameservers[1].port // null) != $expected.primaryNameservers[1].port
-          then
-            "primary nameserver group \($g.name // $g.id) secondary nameserver is \($g.nameservers[1].ip // "?"):\($g.nameservers[1].port // "?"), expected \($expected.primaryNameservers[1].ip):\($expected.primaryNameservers[1].port)"
-          else empty end)
+          (
+            ($g.nameservers // [] | map("\(.ip // "?"):\(.port // "?")")) as $actual
+            | ($expected.primaryNameservers | map("\(.ip):\(.port)")) as $want
+            | if $actual != $want then
+                "primary nameserver group \($g.name // $g.id) nameservers are [\($actual | join(", "))], expected in order [\($want | join(", "))]"
+              else empty end
+          )
         ][]
     end
 '

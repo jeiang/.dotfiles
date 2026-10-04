@@ -11,7 +11,7 @@ machine must run.
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
 | `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring. |
 | `peria` | NixOS | Legion server, Hetzner Cloud. garret, Actual Budget, atuin, hath, glance, gatus. |
-| `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer. |
+| `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer. Second Blocky, on its mesh IP only. |
 
 Legion is the fleet's servers, whatever the provider: four run on Hetzner
 Cloud, `ricklent` on Arct Cloud. `legionNodes.<name>.provider` (`hetzner` or
@@ -226,7 +226,8 @@ behavior for its own sake.
   added after it first enrolls, and until then its journald upload,
   CrowdSec agent, and scrape do not connect. NetBird access policies must
   allow ricklent to alda (CrowdSec LAPI), to zantark (VictoriaLogs), and
-  zantark to ricklent (node exporter).
+  zantark to ricklent (node exporter), and all DNS clients to ricklent's
+  Blocky (port 553, TCP and UDP).
 - Legion host firewalls are on. A `legion.services.<name>` entry's
   `scope = "private"` is documentation: `enp7s0` (Hetzner nodes) and the
   NetBird interface are trusted interfaces. On a Hetzner node a public
@@ -259,10 +260,11 @@ behavior for its own sake.
   readable only by alda and ricklent.
 - `modules/netbird-invariants/` is a read-only check (never PUT/POST/DELETE)
   of the self-hosted NetBird management API: the Quad9 `jeiang.dev` group's
-  `search_domains_enabled` stays off, the primary DNS group is Blocky on
-  `vida` failing over to Quad9, some Networks resource for node2 is
-  enabled behind an enabled router, client auto-update is disabled, and
-  every reverse-proxy service's CrowdSec mode is `enforce`.
+  `search_domains_enabled` stays off, the primary DNS group is, in order,
+  Blocky on `vida`, Blocky on `ricklent` (its mesh IP), then Quad9, some
+  Networks resource for node2 is enabled behind an enabled router, client
+  auto-update is disabled, and every reverse-proxy service's CrowdSec mode
+  is `enforce`.
   `just netbird-invariants` runs it locally with
   `NETBIRD_API_TOKEN`; `.github/workflows/netbird.yml` runs it weekly with
   an Auditor-role token (`NETBIRD_READ_TOKEN`), since that role is

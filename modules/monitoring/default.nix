@@ -55,6 +55,7 @@ in {
     relayEuTargets = port: map (a: "${a}:${toString port}") (builtins.filter (a: a != null) [(self.lib.legionAddress "zantark" "ricklent")]);
     netbirdProxyPort = legionServices.netbird-proxy.ports;
     blockyPort = legionServices.blocky.ports.http;
+    blockyTargets = map (a: "${a}:${toString blockyPort}") (builtins.filter (a: a != null) [node2 (self.lib.legionAddress "zantark" "ricklent")]);
     hathPort = legionServices.hath.ports.app;
     garretPort = legionServices.garret.ports;
     gatusPort = legionServices.gatus.ports.app;
@@ -202,7 +203,7 @@ in {
             job_name = "blocky";
             static_configs = [
               {
-                targets = ["${node2}:${toString blockyPort}"];
+                targets = blockyTargets;
                 labels.type = "dns";
               }
             ];
