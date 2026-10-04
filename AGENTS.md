@@ -246,6 +246,13 @@ behavior for its own sake.
   `alda`. The host opens TCP/UDP 40000-45000 for ad hoc services,
   and the Hetzner `legion` firewall allows that range, so a port in it is
   public on any Hetzner node whose host firewall opens it.
+- `netbird-relay-eu` on `ricklent` is a second NetBird relay that terminates
+  its own TLS on public TCP 443 (built-in Let's Encrypt, TLS-ALPN) at
+  `relay-eu.netbird.jeiang.dev`, DNS-only, with no STUN. Its auth secret is
+  a copy of the one in `modules/netbird-server/secrets.yaml`, kept in
+  `secrets.relay-eu.yaml` so ricklent never reads the store encryption key;
+  rotate both together. Its certificate state lives in
+  `/var/lib/netbird-relay-eu` and is reissued if lost.
 - ricklent runs a CrowdSec agent (sshd logs from the journal) and an
   nftables bouncer, both against the LAPI on `alda` over the mesh. Its
   machine and bouncer credentials live in `modules/crowdsec/secrets.agent.yaml`,

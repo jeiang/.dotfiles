@@ -51,6 +51,8 @@ in {
     crowdsecPort = legionServices.crowdsec.ports.metrics;
     netbirdServerPort = legionServices.netbird-server.ports;
     netbirdRelayPort = legionServices.netbird-relay.ports;
+    netbirdRelayEuPort = legionServices.netbird-relay-eu.ports;
+    relayEuTargets = port: map (a: "${a}:${toString port}") (builtins.filter (a: a != null) [(self.lib.legionAddress "zantark" "ricklent")]);
     netbirdProxyPort = legionServices.netbird-proxy.ports;
     blockyPort = legionServices.blocky.ports.http;
     hathPort = legionServices.hath.ports.app;
@@ -191,7 +193,7 @@ in {
             job_name = "netbird-relay";
             static_configs = [
               {
-                targets = ["${node2}:${toString netbirdRelayPort.metrics}"];
+                targets = ["${node2}:${toString netbirdRelayPort.metrics}"] ++ relayEuTargets netbirdRelayEuPort.metrics;
                 labels.type = "netbird";
               }
             ];
@@ -281,7 +283,7 @@ in {
                 };
               }
               {
-                targets = ["http://${node2}:${toString netbirdRelayPort.health}/health"];
+                targets = ["http://${node2}:${toString netbirdRelayPort.health}/health"] ++ map (t: "http://${t}/health") (relayEuTargets netbirdRelayEuPort.health);
                 labels = {
                   type = "probe";
                   tier = "warning";

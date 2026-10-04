@@ -52,6 +52,7 @@ D("jeiang.dev", REG_NONE,
   AAAA("netbird", ALDA_V6),
   A("stun.netbird", VIDA_V4),
   AAAA("stun.netbird", VIDA_V6),
+  A("relay-eu.netbird", RICKLENT_V4),
 
   A("proxy", VIDA_V4),
   AAAA("proxy", VIDA_V6),
