@@ -2,7 +2,7 @@ _: let
   port = 3000;
 in {
   legion.services.tinyauth = {
-    node = "legion-node1";
+    node = "alda";
     module = "tinyauth";
     units = ["tinyauth"];
     ports.app = port;

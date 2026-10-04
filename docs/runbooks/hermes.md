@@ -12,7 +12,7 @@ command here.
   NixOS module), which talks to that model as its only provider. Jev
   (TypeSafe System One) runs in code in front of Hermes — `modules/hermes/jev/`
   — never as a tool the agent itself picks.
-- **legion-node1**..**legion-node4** are operational targets, not a Hermes
+- **alda**..**peria** are operational targets, not a Hermes
   host: Hermes reaches them over NetBird mesh SSH as the `hermes-ops` user
   (`modules/hermes-ops.nix`), under a per-node sudoers allowlist. artemis has
   no route to Hetzner's private `172.17.0.0/24`, so every hop rides the mesh.
@@ -41,7 +41,7 @@ where it comes from:
 | `ICLOUD_MAIL_USERNAME` | the bare iCloud short name (before `@icloud.com`) — iCloud IMAP auth takes the short name, not a full address |
 | `ICLOUD_APP_PASSWORD` | an app-specific password from the Apple ID account page, shared by himalaya (mail) and vdirsyncer (calendar/contacts) |
 | `TYPESAFE_API_KEY` | the TypeSafe System One key; every Jev integration (mail triage, alert triage, memory gate) calls this |
-| `JEV_ALERT_TOKEN` | optional — a bearer token for `jev-alert-triage`'s listener. Without it, the listener falls back to a source-IP allowlist against `legion-node3`'s NetBird address; wiring the token into Alertmanager's `http_config` is a separate, currently unfinished step |
+| `JEV_ALERT_TOKEN` | optional — a bearer token for `jev-alert-triage`'s listener. Without it, the listener falls back to a source-IP allowlist against `zantark`'s NetBird address; wiring the token into Alertmanager's `http_config` is a separate, currently unfinished step |
 
 The CalDAV/CardDAV/mail *display* identity (`aidan@aidanpinard.co`) is a
 literal in `modules/hermes/default.nix`, not a secret — only the mail
@@ -191,7 +191,7 @@ approves or denies the request, or it expires after 2 minutes.
 - Legion host keys are trust-on-first-use in
   `/var/lib/hermes-approver/known_hosts`, which is not persisted, so they
   are accepted again after each artemis boot.
-- Stopping `netbird-server`, `netbird-relay` or `blocky` on legion-node2
+- Stopping `netbird-server`, `netbird-relay` or `blocky` on vida
   can cut the mesh path the approver itself uses.
 
 ### Rotation

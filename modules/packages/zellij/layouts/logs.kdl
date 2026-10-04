@@ -9,18 +9,18 @@ layout {
         pane split_direction="vertical" {
             pane split_direction="horizontal" {
                 pane command="ssh" {
-                    args "-t" "node1.jeiang.dev" "journalctl -f"
+                    args "-t" "alda.svr.jeiang.dev" "journalctl -f"
                 }
                 pane command="ssh" {
-                    args "-t" "node2.jeiang.dev" "journalctl -f"
+                    args "-t" "vida.svr.jeiang.dev" "journalctl -f"
                 }
             }
             pane split_direction="horizontal" {
                 pane command="ssh" {
-                    args "-t" "node3.jeiang.dev" "journalctl -f"
+                    args "-t" "zantark.svr.jeiang.dev" "journalctl -f"
                 }
                 pane command="ssh" {
-                    args "-t" "node4.jeiang.dev" "journalctl -f"
+                    args "-t" "peria.svr.jeiang.dev" "journalctl -f"
                 }
             }
             pane command="ssh" {

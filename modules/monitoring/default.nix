@@ -11,7 +11,7 @@
   legionServices = config.legion.services;
 in {
   legion.services.monitoring = {
-    node = "legion-node3";
+    node = "zantark";
     module = "monitoring";
     units = ["grafana" "victoriametrics" "victorialogs" "vmalert-default" "alertmanager" "prometheus-blackbox-exporter"];
     ports = {
@@ -39,9 +39,9 @@ in {
     pkgs,
     ...
   }: let
-    node1 = self.lib.legionNodes.legion-node1.privateIPv4;
-    node2 = self.lib.legionNodes.legion-node2.privateIPv4;
-    node4 = self.lib.legionNodes.legion-node4.privateIPv4;
+    node1 = self.lib.legionNodes.alda.privateIPv4;
+    node2 = self.lib.legionNodes.vida.privateIPv4;
+    node4 = self.lib.legionNodes.peria.privateIPv4;
 
     sopsFile = ./secrets.yaml;
     legionPrivateIPs = map (node: node.privateIPv4) (builtins.attrValues self.lib.legionNodes);

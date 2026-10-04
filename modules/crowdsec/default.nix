@@ -4,7 +4,7 @@
   appsecPort = 7422;
 in {
   legion.services.crowdsec = {
-    node = "legion-node1";
+    node = "alda";
     module = "crowdsec";
     units = ["crowdsec" "crowdsec-bouncers"];
     ports = {
@@ -90,7 +90,7 @@ in {
 
           general.api.server = {
             enable = true;
-            # 0.0.0.0: edge Caddy (loopback) and legion-node2's bouncers
+            # 0.0.0.0: edge Caddy (loopback) and vida's bouncers
             # (private network) both dial in; the firewall scopes it private.
             listen_uri = "0.0.0.0:${toString lapiPort}";
           };
@@ -155,7 +155,7 @@ in {
       # No declarative bouncer option exists upstream, so known bouncer keys
       # are registered idempotently below. The edge-caddy key is the same
       # value Caddy sends as CROWDSEC_LAPI_KEY; the other two are consumed by
-      # legion-node2 (modules/netbird-server/proxy.nix).
+      # vida (modules/netbird-server/proxy.nix).
       sops.secrets."crowdsec/bouncer-netbird-proxy-key" = {
         inherit sopsFile;
         restartUnits = ["crowdsec-bouncers.service"];

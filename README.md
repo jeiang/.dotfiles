@@ -5,8 +5,8 @@
 ![cornn flaek](assets/cornn-flaek.jpg "Cornn Flaek")
 
 Personal Nix flake for `artemis` (headless NixOS gaming and streaming box),
-`zakkart` (nix-darwin MacBook), and the `legion-node1`..`legion-node4`
-Hetzner service nodes.
+`zakkart` (nix-darwin MacBook), and the Legion servers (`alda`, `vida`,
+`zantark`, `peria`; Hetzner Cloud).
 
 ![Network topology](docs/topology/network.svg "Network topology")
 

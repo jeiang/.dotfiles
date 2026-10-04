@@ -5,7 +5,7 @@ in {
 
   # LibreSpeed on every NixOS host. Each host serves its own plain-http
   # page on the mesh listing all five hosts, so any page can test any
-  # peer; speed.jeiang.dev (modules/edge) fronts legion-node1's
+  # peer; speed.jeiang.dev (modules/edge) fronts alda's
   # instance for the public path with a one-entry list, because a https
   # page cannot call these http listeners. iperf3 rides along for raw
   # numbers from headless hosts. Neither opens a firewall port: the

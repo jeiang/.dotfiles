@@ -1,6 +1,6 @@
 {self, ...}: let
-  node2 = self.lib.legionNodes.legion-node2;
-  blockyDnsPort = self.nixosConfigurations.legion-node2.config.services.blocky.settings.ports.dns;
+  node2 = self.lib.legionNodes.vida;
+  blockyDnsPort = self.nixosConfigurations.vida.config.services.blocky.settings.ports.dns;
 
   expected = {
     # The Quad9 nameserver group matching this domain must never mark it as

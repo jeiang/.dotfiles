@@ -7,7 +7,7 @@
   monitoringPorts = config.legion.services.monitoring.ports;
 in {
   legion.services.glance = {
-    node = "legion-node4";
+    node = "peria";
     module = "glance";
     units = ["glance"];
     ports.app = port;
@@ -22,7 +22,7 @@ in {
 
   # Glance the widget dashboard (glanceapp/glance), not `services.glances`.
   nixos.modules.glance = {lib, ...}: let
-    node3 = self.lib.legionNodes.legion-node3.privateIPv4;
+    node3 = self.lib.legionNodes.zantark.privateIPv4;
 
     # Server-side fetch over the hcloud private network; browsers have no
     # route to 172.17.0.0/12, so anything the page links to must be public.
@@ -190,7 +190,7 @@ in {
                         links =
                           [
                             {
-                              title = "legion-node1 (public)";
+                              title = "alda (public)";
                               url = "https://speed.jeiang.dev";
                             }
                           ]

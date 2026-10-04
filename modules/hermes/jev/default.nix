@@ -170,7 +170,7 @@ in {
                 ++ [
                   "JEV_ALERT_BIND_HOST=${self.lib.netbirdPeers.artemis}"
                   "JEV_ALERT_BIND_PORT=${toString jevAlertPort}"
-                  "JEV_ALERT_SOURCE_IP=${self.lib.netbirdPeers.legion-node3}"
+                  "JEV_ALERT_SOURCE_IP=${self.lib.netbirdPeers.zantark}"
                 ];
             };
         };

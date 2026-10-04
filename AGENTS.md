@@ -7,7 +7,13 @@ machine must run.
 | --- | --- | --- |
 | `artemis` | NixOS | Headless gaming and streaming box at home. Impermanent btrfs root. Reached over NetBird with Sunshine/Moonlight and hypr-rdp. Also hosts the Hermes assistant, its local model server, and the media stack. |
 | `zakkart` | nix-darwin | The operator's MacBook. |
-| `legion-node1`..`legion-node4` | NixOS | Hetzner Cloud service nodes. `legion-node1` is the Caddy edge. |
+| `alda` | NixOS | Legion server, Hetzner Cloud. Caddy edge. |
+| `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
+| `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring. |
+| `peria` | NixOS | Legion server, Hetzner Cloud. garret, Actual Budget, atuin, hath, glance, gatus. |
+
+Legion is the fleet's servers, whatever the provider; today all four run on
+Hetzner Cloud.
 
 Backwards compatibility matters only for rollback. Flag a change that would
 break a rollback to the previous generation; otherwise do not keep old
@@ -110,12 +116,12 @@ behavior for its own sake.
 
 ### Access
 
-- Legion: `node1.jeiang.dev`..`node4.jeiang.dev`. NetBird mesh names for
+- Legion: `<name>.svr.jeiang.dev` (`alda.svr.jeiang.dev`, ...). NetBird mesh names for
   these nodes carry collision suffixes, and mesh SSH from the Mac times out.
   `sudo` needs a password and a TTY (`ssh -t`).
 - artemis: `artemis.jeiang.vpn`. A bare `artemis` resolves through the
   wildcard record and does not reach the host. `doas` is passwordless;
-  deploy-rs depends on that. When NetBird is down, `legion-node1` reaches
+  deploy-rs depends on that. When NetBird is down, `alda` reaches
   artemis at `10.100.0.2` over the `wg-backup` WireGuard tunnel.
 - artemis has an EDID dummy plug on `HDMI-A-1`. The motherboard does not
   POST without a powered display, so the plug must stay in.
@@ -196,7 +202,7 @@ behavior for its own sake.
   `mountGuard`, so a missing Volume never initializes fresh state on the
   root disk. State that can tolerate losing the interval since its last
   backup instead lives on the root disk with a `backupSet` restic job as
-  its whole durability story; atuin on `legion-node4` is the first such
+  its whole durability story; atuin on `peria` is the first such
   service. Exactly one node owns each stateful service; moving it is an
   explicit Volume (or backup) and state migration, not a placement edit
   alone. Legion `fileSystems` entries for a Volume mount by ext4 label, not
@@ -213,16 +219,16 @@ behavior for its own sake.
   this: the expected rule set is the union of each node's merged
   `networking.firewall`, not `legion.services` (a node can open a port
   through another module), and it excludes ICMP.
-- `netbird-proxy` on `legion-node2` is public and terminates its own TLS
+- `netbird-proxy` on `vida` is public and terminates its own TLS
   (DNS-01 wildcard for `proxy.jeiang.dev`). CrowdSec IP reputation and an
   nftables bouncer protect it with decisions from the LAPI on
-  `legion-node1`. The host opens TCP/UDP 40000-45000 for ad hoc services,
+  `alda`. The host opens TCP/UDP 40000-45000 for ad hoc services,
   and `legion` allows that range on every node, so a port in it is public
   on any node whose host firewall opens it.
 - `modules/netbird-invariants/` is a read-only check (never PUT/POST/DELETE)
   of the self-hosted NetBird management API: the Quad9 `jeiang.dev` group's
   `search_domains_enabled` stays off, the primary DNS group is Blocky on
-  `legion-node2` failing over to Quad9, some Networks resource for node2 is
+  `vida` failing over to Quad9, some Networks resource for node2 is
   enabled behind an enabled router, client auto-update is disabled, and
   every reverse-proxy service's CrowdSec mode is `enforce`.
   `just netbird-invariants` runs it locally with

@@ -62,7 +62,7 @@
                 echo "FAIL all_violations: expected violations, exit 0" >&2
                 fail=1
               fi
-              for needle in "quad9-search-domain" "legion-node2-network" "client-auto-update" "reverse-proxy-crowdsec-mode"; do
+              for needle in "quad9-search-domain" "vida-network" "client-auto-update" "reverse-proxy-crowdsec-mode"; do
                 grep -qF "$needle" all_violations.out || { echo "FAIL all_violations: missing '$needle' in output" >&2; cat all_violations.out >&2; fail=1; }
               done
 

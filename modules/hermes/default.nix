@@ -232,7 +232,7 @@ in {
         # model) are in-process and bypassable. Tier 2 is gated by
         # hermes-approver, not by these.
         approvals = {
-          smart_policy = "Legion sudoers enforce the tier-1 allowlist, so APPROVE `ssh legion-nodeN -- sudo systemctl start|restart <unit>.service`. ESCALATE anything that stops, disables or masks a unit, writes under /etc, or pipes downloaded content to a shell.";
+          smart_policy = "Legion sudoers enforce the tier-1 allowlist, so APPROVE `ssh <name> -- sudo systemctl start|restart <unit>.service`. ESCALATE anything that stops, disables or masks a unit, writes under /etc, or pipes downloaded content to a shell.";
           deny = ["*nixos-rebuild*" "*sops -d*"];
         };
 

@@ -7,7 +7,7 @@
   crowdsecLapiPort = config.legion.services.crowdsec.ports.lapi;
 in {
   legion.services.netbird-proxy = {
-    node = "legion-node2";
+    node = "vida";
     module = "netbird-proxy";
     units = ["netbird-proxy" "crowdsec-firewall-bouncer" "acme-.*"];
     ports.health = healthPort;
@@ -52,8 +52,8 @@ in {
     netbirdProxySopsFile = ./secrets.proxy.yaml;
     crowdsecSopsFile = ../crowdsec/secrets.yaml;
 
-    node1PrivateIp = self.lib.legionNodes.legion-node1.privateIPv4;
-    node2PrivateIp = self.lib.legionNodes.legion-node2.privateIPv4;
+    node1PrivateIp = self.lib.legionNodes.alda.privateIPv4;
+    node2PrivateIp = self.lib.legionNodes.vida.privateIPv4;
 
     # Static-cert mode: security.acme provisions the DNS-01 wildcard and the
     # proxy's own file watcher picks up renewals, so no reloadServices hook

@@ -3,7 +3,7 @@
   port = 8888;
 in {
   legion.services.hath = {
-    node = "legion-node4";
+    node = "peria";
     module = "hath";
     stateful = true;
     units = ["hath"];

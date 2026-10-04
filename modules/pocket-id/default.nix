@@ -5,7 +5,7 @@
   appPort = 1411;
 in {
   legion.services.pocket-id = {
-    node = "legion-node2";
+    node = "vida";
     module = "pocket-id";
     stateful = true;
     units = ["pocket-id"];

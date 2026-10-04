@@ -1,5 +1,5 @@
 """jev-alert-triage: HTTP listener, bound to artemis's NetBird address, that
-Alertmanager on legion-node3 posts to. Judges each firing alert with Jev
+Alertmanager on zantark posts to. Judges each firing alert with Jev
 (page_now / digest / suppress, a "restart-fixable" noul, and a blast-radius
 score) and only forwards page_now alerts to the Hermes webhook, with an
 investigate-and-report-only prompt -- the agent investigates, it never
@@ -25,7 +25,7 @@ BIND_PORT = int(os.environ["JEV_ALERT_BIND_PORT"])
 # Alertmanager cannot be configured (out of this PR's file scope, see AGENTS.md)
 # to send a bearer header, so JEV_ALERT_TOKEN -- if the operator later wires it
 # into Alertmanager's http_config -- is checked when present; otherwise this
-# falls back to a source-IP allowlist for legion-node3's NetBird address.
+# falls back to a source-IP allowlist for zantark's NetBird address.
 JEV_ALERT_TOKEN = os.environ.get("JEV_ALERT_TOKEN", "")
 ALERTMANAGER_IP = os.environ.get("JEV_ALERT_SOURCE_IP", "")
 

@@ -1,7 +1,7 @@
 [
   {
     "id": "rtr-legion",
-    "peer": "peer-legion-node2",
+    "peer": "peer-vida",
     "metric": 9999,
     "masquerade": false,
     "enabled": true

@@ -6,7 +6,7 @@ _: let
   wireguardPort = 51821;
 in {
   legion.services.backup-tunnel = {
-    node = "legion-node1";
+    node = "alda";
     module = "backup-tunnel-responder";
     ports.wireguard = wireguardPort;
     firewall = [
@@ -32,7 +32,7 @@ in {
           {
             publicKey = node1PublicKey;
             allowedIPs = ["10.100.0.1/32"];
-            endpoint = "node1.jeiang.dev:${toString wireguardPort}";
+            endpoint = "alda.svr.jeiang.dev:${toString wireguardPort}";
             persistentKeepalive = 25;
             # Without this the peer unit is a one-shot that fails permanently
             # when the boot-time DNS lookup runs before the network is up.

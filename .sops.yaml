@@ -4,10 +4,10 @@ keys:
   - &user_aidanp_yubikey_b age1yubikey1qtdc4zk5vh49smwk40q4229mqxaywuz7qwutwfm7pww6z9zxjpa2utzw4aw
   - &user_aidanp_se age1se1qtaeyd7cgq6czap5vgy6uj7nqjaefvvjsl73e9cej2865q6ddq56k83mkz3
   - &server_artemis age1fm8meecmpus97y9ra9gjdk08g8njran6fv4jxnr0zegpfd89a9esayj39c
-  - &server_legion_node1 age1fexn9r8huh294w3hmyst605fndjagyg7e3s23aqfedlqrqnn24rq5lvgr7
-  - &server_legion_node2 age1f9t7ktuy3hny3lju3692mqx35mrc0wrfrl8mtelyeecc4lydcu0snxtm23
-  - &server_legion_node3 age1yc37qpvazdtfswa38057e73sh523q0exj75qqahzgax6kqaxeqmsq2wx9t
-  - &server_legion_node4 age1a80m5fpv387njdmg63q6vvkavahepdkx7zq4gjjkg62x3lme4f7q9s5c66
+  - &server_alda age1fexn9r8huh294w3hmyst605fndjagyg7e3s23aqfedlqrqnn24rq5lvgr7
+  - &server_vida age1f9t7ktuy3hny3lju3692mqx35mrc0wrfrl8mtelyeecc4lydcu0snxtm23
+  - &server_zantark age1yc37qpvazdtfswa38057e73sh523q0exj75qqahzgax6kqaxeqmsq2wx9t
+  - &server_peria age1a80m5fpv387njdmg63q6vvkavahepdkx7zq4gjjkg62x3lme4f7q9s5c66
   - &server_zakkart age1dy6m8ldy4pnqhleqhkqtej3nxvvkyu9dflzjkctrxxwl2ddj5sjqzc4j3p
 
 # One shard per consuming module, encrypted to the admin plus the hosts that run it.
@@ -31,10 +31,10 @@ creation_rules:
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
       - *server_artemis
-      - *server_legion_node1
-      - *server_legion_node2
-      - *server_legion_node3
-      - *server_legion_node4
+      - *server_alda
+      - *server_vida
+      - *server_zantark
+      - *server_peria
 
   # modules/hosts/artemis/default.nix -- artemis only.
   - path_regex: modules/hosts/artemis/secrets\.yaml$
@@ -77,7 +77,7 @@ creation_rules:
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
       - *server_artemis
-      - *server_legion_node1
+      - *server_alda
 
   # modules/hosts/legion/default.nix -- every Legion node.
   - path_regex: modules/hosts/legion/secrets\.yaml$
@@ -87,10 +87,10 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_legion_node1
-      - *server_legion_node2
-      - *server_legion_node3
-      - *server_legion_node4
+      - *server_alda
+      - *server_vida
+      - *server_zantark
+      - *server_peria
 
   # modules/backups/default.nix -- only the Legion nodes that own a Backup
   # Set. One repository password covers every Legion repository, so a node
@@ -102,8 +102,8 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_legion_node2
-      - *server_legion_node4
+      - *server_vida
+      - *server_peria
 
   # modules/backups/default.nix (the /persist job) -- artemis only.
   - path_regex: modules/backups/secrets\.artemis\.yaml$
@@ -123,7 +123,7 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_legion_node1
+      - *server_alda
 
   # modules/crowdsec/default.nix (edge engine) and
   # modules/netbird-server/proxy.nix (proxy bouncer client).
@@ -134,8 +134,8 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_legion_node1
-      - *server_legion_node2
+      - *server_alda
+      - *server_vida
 
   # modules/netbird-server/default.nix.
   - path_regex: modules/netbird-server/secrets\.yaml$
@@ -145,7 +145,7 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_legion_node2
+      - *server_vida
 
   # modules/netbird-server/proxy.nix.
   - path_regex: modules/netbird-server/secrets\.proxy\.yaml$
@@ -155,7 +155,7 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_legion_node2
+      - *server_vida
 
   # modules/pocket-id/default.nix.
   - path_regex: modules/pocket-id/secrets\.yaml$
@@ -165,7 +165,7 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_legion_node2
+      - *server_vida
 
   # modules/portfolio/default.nix.
   - path_regex: modules/portfolio/secrets\.yaml$
@@ -175,7 +175,7 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_legion_node2
+      - *server_vida
 
   # modules/monitoring/default.nix.
   - path_regex: modules/monitoring/secrets\.yaml$
@@ -185,7 +185,7 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_legion_node3
+      - *server_zantark
 
   # modules/garret/default.nix.
   - path_regex: modules/garret/secrets\.yaml$
@@ -195,7 +195,7 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_legion_node4
+      - *server_peria
 
   # modules/hermes/approver/default.nix -- artemis only.
   - path_regex: modules/hermes/approver/secrets\.yaml$

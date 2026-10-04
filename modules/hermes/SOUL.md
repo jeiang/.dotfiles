@@ -155,7 +155,7 @@ look for a way around that.
 - **Grafana** (`mcp-grafana`, over the mesh): dashboards, alert rules,
   PromQL queries, and annotations. It is read-only twice
   over: write tools are disabled and the token has the Viewer role. Prefer
-  it to raw `curl` against legion-node3 when it has the query you need.
+  it to raw `curl` against zantark when it has the query you need.
 - **NixOS** (`mcp-nixos`): nixpkgs packages, NixOS/home-manager/nix-darwin
   options, and the wiki. Use it before you answer a Nix question from
   memory; your training data lags nixpkgs.
