@@ -1,4 +1,4 @@
-{self, ...}: let
+_: let
   mediaDir = "/var/lib/media";
   group = "media";
   # librespeed holds Sonarr's default 8989 on every host (modules/speedtest.nix).
@@ -14,9 +14,7 @@ in {
   };
 
   # No port opens in the firewall, so only the trusted NetBird interface
-  # reaches these services. Jellyfin alone is public, through a
-  # netbird-proxy service (NetBird dashboard, CrowdSec enforce) targeting
-  # artemis's 8096.
+  # reaches these services.
   nixos.modules.artemis = {
     config,
     lib,
@@ -40,7 +38,6 @@ in {
     };
   in
     lib.mkMerge [
-      (staticUser "prowlarr")
       (staticUser "seerr")
       {
         persistence.directories = [
@@ -59,24 +56,11 @@ in {
             inherit group;
           }
           {
-            directory = "/var/lib/prowlarr";
-            user = "prowlarr";
-            group = "prowlarr";
-          }
-          {
-            directory = "/var/lib/jellyfin";
-            user = "jellyfin";
-            group = "jellyfin";
-          }
-          {
             directory = "/var/lib/seerr";
             user = "seerr";
             group = "seerr";
           }
         ];
-
-        # A transcode shares the dGPU with the game.
-        gaming.pauseUnits = ["jellyfin.service"];
 
         # The operator copies files into the library and tidies it by hand.
         users = {
@@ -94,15 +78,6 @@ in {
             inherit group;
             settings.server.port = sonarrPort;
           };
-          prowlarr.enable = true;
-          jellyfin = {
-            enable = true;
-            hardwareAcceleration = {
-              enable = true;
-              type = "vaapi";
-              device = "/dev/dri/by-path/pci-${self.lib.artemisDgpuPci.full}-render";
-            };
-          };
           seerr = {
             enable = true;
             port = seerrPort;
@@ -110,8 +85,7 @@ in {
           };
         };
 
-        # setgid keeps every file in the media group. Jellyfin and darkhttpd
-        # only read, and the tree is world-readable.
+        # setgid keeps every file in the media group; the tree is world-readable.
         systemd.tmpfiles.settings.media = {
           ${mediaDir}.d = {
             user = "root";

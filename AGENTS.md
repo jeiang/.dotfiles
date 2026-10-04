@@ -316,11 +316,11 @@ behavior for its own sake.
   bot; tier 3 is never granted. Hermes only asks, through `hermes-tier2`;
   its own built-in approvals are not a boundary.
 - The media stack on artemis (`modules/media.nix`: Radarr, Sonarr,
-  Prowlarr, Jellyfin, Seerr, with qBittorrent as the client) keeps
+  Seerr, with qBittorrent as the client) keeps
   downloads and library in one persisted tree, `/var/lib/media`, so imports
   are hardlinks: a hardlink cannot cross two impermanence bind mounts. The
   library is not backed up, because it can be downloaded again; only the
-  apps' state is. Only Jellyfin is public, through netbird-proxy.
+  apps' state is.
 - qBittorrent peers from the home IP for now. The planned exit is an
   arct.cloud VPS: once it is added to the NetBird network, qBittorrent's
   traffic goes out through it, and that VPS is not yet in this flake.
