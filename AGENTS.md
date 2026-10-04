@@ -90,9 +90,11 @@ behavior for its own sake.
 
 ### Guardrails
 
-- Never run `sudo` or `doas` yourself on any host. Give the operator the
-  exact command. The operator's shell is fish on every machine: write fish
-  syntax, and wrap POSIX one-liners run over SSH in `bash -c '...'`.
+- Never run `sudo` or `doas` yourself, and never reboot a host, unless the
+  user explicitly permits it for the current task; that permission covers
+  only that task. Otherwise give the operator the exact command. The
+  operator's shell is fish on every machine: write fish syntax, and wrap
+  POSIX one-liners run over SSH in `bash -c '...'`.
 - Deploy, `clean-deploy`, `install`, `disko-format`, and any sops change
   need the user's explicit approval for that action and target. Approval
   can be conditional ("merge and deploy when CI is green").
