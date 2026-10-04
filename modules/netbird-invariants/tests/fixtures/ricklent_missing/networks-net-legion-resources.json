@@ -1,0 +1,11 @@
+[
+  {
+    "id": "res-vida",
+    "type": "host",
+    "name": "vida",
+    "description": "",
+    "address": "172.17.0.2/32",
+    "enabled": true,
+    "groups": ["group-legion-routers"]
+  }
+]

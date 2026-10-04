@@ -10,6 +10,11 @@
         "port": 80
       },
       {
+        "ip": "@ricklent@",
+        "ns_type": "udp",
+        "port": 553
+      },
+      {
         "ip": "9.9.9.9",
         "ns_type": "udp",
         "port": 53

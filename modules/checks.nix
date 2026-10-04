@@ -15,12 +15,16 @@
           # Runs modules/netbird-invariants/check.sh against fixtures with a fake curl; the build sandbox has no network.
           netbird-invariants = let
             fakeCurl = pkgs.writeShellScriptBin "curl" (builtins.readFile "${self}/modules/netbird-invariants/tests/fake-curl.sh");
-            fixtures = "${self}/modules/netbird-invariants/tests/fixtures";
+            fixtureSource = "${self}/modules/netbird-invariants/tests/fixtures";
             script = "${self}/modules/netbird-invariants/check.sh";
             expectedFile = pkgs.writeText "netbird-invariants-expected.json" self.lib.netbirdInvariantsExpectedJson;
           in
             pkgs.runCommand "netbird-invariants-check" {nativeBuildInputs = [pkgs.jq fakeCurl];} ''
               export NETBIRD_API_TOKEN=test
+              cp -r ${fixtureSource} fixtures
+              chmod -R u+w fixtures
+              grep -rl @ricklent@ fixtures | xargs sed -i 's/@ricklent@/${self.lib.netbirdPeers.ricklent}/'
+              fixtures=$PWD/fixtures
               NETBIRD_INVARIANTS_EXPECTED=$(cat ${expectedFile})
               export NETBIRD_INVARIANTS_EXPECTED
 
@@ -29,7 +33,7 @@
 
               run_case() {
                 status=0
-                NETBIRD_TEST_DIR=${fixtures}/$1 bash ${script} >"$1.out" 2>&1 || status=$?
+                NETBIRD_TEST_DIR=$fixtures/$1 bash ${script} >"$1.out" 2>&1 || status=$?
               }
 
               run_case baseline
@@ -40,7 +44,7 @@
               fi
               grep -qF "ok:" baseline.out || { echo "FAIL baseline: missing success line" >&2; fail=1; }
 
-              for bad in search_domains_enabled_true blocky_wrong secondary_missing network_resource_missing network_resource_disabled network_router_missing auto_update_enabled proxy_observe; do
+              for bad in search_domains_enabled_true blocky_wrong ricklent_missing secondary_missing network_resource_missing network_resource_disabled network_router_missing auto_update_enabled proxy_observe; do
                 run_case "$bad"
                 if [ "$status" -eq 0 ]; then
                   echo "FAIL $bad: expected a violation, exit 0" >&2
@@ -77,7 +81,7 @@
 
               # The missing-token path never reaches the network at all.
               status=0
-              (unset NETBIRD_API_TOKEN; NETBIRD_TEST_DIR=${fixtures}/baseline bash ${script}) >missing_token.out 2>&1 || status=$?
+              (unset NETBIRD_API_TOKEN; NETBIRD_TEST_DIR=$fixtures/baseline bash ${script}) >missing_token.out 2>&1 || status=$?
               [ "$status" -ne 0 ] || { echo "FAIL missing_token: expected nonzero exit, got 0" >&2; fail=1; }
               grep -qF "ok:" missing_token.out && { echo "FAIL missing_token: printed a success line despite missing token" >&2; fail=1; }
 

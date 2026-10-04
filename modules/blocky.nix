@@ -1,14 +1,24 @@
-_: let
+{self, ...}: let
   httpPort = 8000;
-in {
-  legion.services.blocky = {
-    node = "vida";
-    module = "blocky";
+  # 553, not 53: NetBird's embedded DNS resolver binds 53 on these hosts.
+  dnsPort = 553;
+
+  service = node: module: {
+    inherit node module;
     units = ["blocky"];
     ports.http = httpPort;
   };
 
-  nixos.modules.blocky = {config, ...}: {
+  listen = host: port:
+    if host == null
+    then port
+    else "${host}:${toString port}";
+
+  mkBlocky = host: {
+    config,
+    lib,
+    ...
+  }: {
     services.blocky = {
       enable = true;
       settings = {
@@ -25,9 +35,8 @@ in {
         customDNS.mapping = {};
         prometheus.enable = true;
         ports = {
-          # 553, not 53: NetBird's embedded DNS resolver binds 53 on this host.
-          dns = 553;
-          http = httpPort;
+          dns = listen host dnsPort;
+          http = listen host httpPort;
         };
         upstreams.groups.default = [
           "1.1.1.1"
@@ -47,10 +56,27 @@ in {
       };
     };
 
-    systemd.services.blocky = {
-      after = [(config.services.netbird.clients.default.service.name + ".service")];
-      wants = [(config.services.netbird.clients.default.service.name + ".service")];
-      serviceConfig.MemoryMax = "512M";
-    };
+    systemd.services.blocky = lib.mkMerge [
+      {
+        after = [(config.services.netbird.clients.default.service.name + ".service")];
+        wants = [(config.services.netbird.clients.default.service.name + ".service")];
+        serviceConfig.MemoryMax = "512M";
+      }
+      (lib.mkIf (host != null) {
+        # The mesh address appears only once NetBird connects; keep retrying the bind until then.
+        startLimitIntervalSec = 0;
+        serviceConfig.RestartSec = 5;
+      })
+    ];
+  };
+in {
+  legion.services = {
+    blocky = service "vida" "blocky";
+    blocky-ricklent = service "ricklent" "blocky-ricklent";
+  };
+
+  nixos.modules = {
+    blocky = mkBlocky null;
+    blocky-ricklent = mkBlocky self.lib.netbirdPeers.ricklent;
   };
 }
