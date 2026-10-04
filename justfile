@@ -81,6 +81,29 @@ llm-stop:
 llm-start:
   ssh artemis.jeiang.vpn doas systemctl start llm-server.service
 
+# Build an artemis kernel change that differs from origin/main on artemis, then push it and the deploy profile path to garret; run before opening a PR
+artemis-kernel:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  host=artemis.jeiang.vpn
+  git fetch origin main
+  main="git+file://$PWD?rev=$(git rev-parse origin/main)"
+  attr=nixosConfigurations.artemis.config.boot.kernelPackages.kernel.drvPath
+  old=$(nix eval --raw "$main#$attr")
+  new=$(nix eval --raw ".#$attr")
+  if [ "$old" = "$new" ]; then
+    echo "artemis kernel unchanged from origin/main"
+    exit 0
+  fi
+  profile=$(nix eval --raw ".#deploy.nodes.artemis.profiles.system.path.drvPath")
+  nix copy --derivation --to "ssh-ng://$host" "$new" "$profile"
+  outs=$(ssh "$host" bash -s <<EOF
+  set -euo pipefail
+  nix build --no-link --print-out-paths '$new^*' '$profile^*'
+  EOF
+  )
+  ssh -t "$host" "bash -c 'set -e; nix run github:jeiang/garret#garret -- login; nix run github:jeiang/garret#garret -- push $(echo $outs)'"
+
 # Show the artemis model server unit and, when rocm-smi is there, its VRAM use
 llm-status:
   ssh artemis.jeiang.vpn 'systemctl status llm-server.service --no-pager -n 5; command -v rocm-smi >/dev/null && rocm-smi --showmeminfo vram; true'

@@ -34,6 +34,11 @@ behavior for its own sake.
   surfaces are impure.
 - In a new git worktree, copy the gitignored `.pre-commit-config.yaml`
   symlink from the main checkout before the first commit.
+- Before opening a pull request for a change that touches artemis's
+  configuration or updates a flake input that can affect the artemis kernel,
+  run `just artemis-kernel`. If the kernel differs from `origin/main`, it
+  builds the kernel and the deploy profile path on artemis and pushes both
+  to garret; make no PR until that finishes.
 - A command that runs more than once becomes a `justfile` recipe.
   `just --list` is the recipe index.
 
@@ -361,13 +366,13 @@ behavior for its own sake.
   and drains the rest even when the build fails; a garret failure never
   fails the job. zakkart builds on a macOS runner. `all-checks` is the only
   required status.
-- Only a `main` run pushes to garret. A change that rebuilds the artemis
-  kernel must therefore be built on artemis and pushed to garret before the
-  branch is pushed, or every PR run compiles the full-LTO kernel on a shared
-  runner against its job time limit. deploy-rs installs
-  `deploy.nodes.<host>.profiles.system.path`, not the toplevel, so push that
-  too: it carries `activate-rs`, and when a rustc bump drops it from the
-  cache, `--remote-build` makes each target compile deploy-rs itself.
+- Only a `main` run pushes to garret, so a PR run cannot substitute a
+  rebuilt artemis kernel and would compile the full-LTO kernel on a shared
+  runner against its job time limit (see Workflow for `just artemis-kernel`).
+  deploy-rs installs `deploy.nodes.<host>.profiles.system.path`, not the
+  toplevel, so that path is pushed too: it carries `activate-rs`, and when a
+  rustc bump drops it from the cache, `--remote-build` makes each target
+  compile deploy-rs itself.
 - `dns.yml` previews DNS changes on pull requests, pushes them on merge, and
   runs a weekly drift check.
 - `hcloud.yml` is read-only and advisory (not part of `all-checks`): it runs
