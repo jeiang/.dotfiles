@@ -20,7 +20,7 @@
   # (restart allowlist); prometheus-blackbox-exporter is tier 1 too, but
   # rides inside the otherwise tier-2 monitoring service, so it is picked
   # out by unit name instead.
-  tier1Services = ["gatus" "glance" "garret" "hath" "crowdsec"];
+  tier1Services = ["gatus" "gatus-london" "glance" "garret" "hath" "crowdsec"];
   tier1PickedUnits = ["prometheus-blackbox-exporter"];
   nodeExporterUnit = "prometheus-node-exporter";
 

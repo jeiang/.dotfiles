@@ -1,0 +1,162 @@
+_: let
+  port = 8086;
+
+  service = {
+    units = ["gatus"];
+    ports.app = port;
+    firewall = [
+      {
+        inherit port;
+        proto = "tcp";
+        scope = "private";
+      }
+    ];
+  };
+
+  https = name: group: url: conditions: {
+    inherit name group url conditions;
+    interval = "2m";
+  };
+
+  ok = name: group: url: https name group url ["[STATUS] == 200"];
+
+  # A body assertion beside status: an empty 200 slipped past status-only
+  # checks on 2026-09-18 and nothing alerted.
+  page = name: group: url: needle:
+    https name group url ["[STATUS] == 200" "[BODY] == pat(*${needle}*)"];
+
+  base = {
+    web.port = port;
+
+    # In-memory deliberately: keeps this service stateless and off the
+    # backup path.
+    storage.type = "memory";
+
+    ui = {
+      title = "Status | jeiang.dev";
+      header = "jeiang.dev";
+      link = "https://jeiang.dev";
+      dashboard-heading = "Service Status";
+      dashboard-subheading = "Live checks against the fleet's public endpoints";
+    };
+
+    endpoints = [
+      (page "Website" "Web" "https://jeiang.dev" "Aidan Pinard - Home")
+      (page "aidanpinard.co" "Web" "https://aidanpinard.co" "Aidan Pinard - Home")
+      (page "pinard.co.tt" "Web" "https://pinard.co.tt" "Aidan Pinard - Home")
+      (page "Portfolio" "Web" "https://noelejoshua.com" "Joshua Noel")
+      (page "Portfolio blog" "Web" "https://blog.noelejoshua.com" "Writing")
+      (ok "Bill Splitter" "Web" "https://bill-split.jeiang.dev")
+      (ok "Rivals Randomizer" "Web" "https://rivals.jeiang.dev")
+      (ok "Markdown Table Editor" "Web" "https://mdtable.jeiang.dev")
+
+      # /healthz returns 204 No Content; 200 elsewhere is just the SPA
+      # fallback, which says nothing about backend health.
+      (https "Pocket ID" "Services" "https://auth.jeiang.dev/healthz" ["[STATUS] == 204"])
+      (ok "Grafana" "Services" "https://grafana.jeiang.dev/api/health")
+      (ok "Actual Budget" "Services" "https://budget.jeiang.dev")
+      # "/" falls through to the static dashboard on node1's edge Caddy
+      # even when netbird-server is down; this path proxies to node2.
+      (ok "NetBird" "Services" "https://netbird.jeiang.dev/oauth2/.well-known/openid-configuration")
+      # nix-cache-info is the first request every substituter client makes.
+      (ok "Nix cache" "Services" "https://cache.jeiang.dev/nix-cache-info")
+      (ok "tinyauth" "Services" "https://tinyauth.jeiang.dev")
+
+      # netbird-proxy has no stable unauthenticated HTTP response, so
+      # plain TCP reachability.
+      {
+        name = "NetBird proxy";
+        group = "Services";
+        url = "tcp://proxy.jeiang.dev:443";
+        interval = "2m";
+        conditions = ["[CONNECTED] == true"];
+      }
+
+      # cache.jeiang.dev is grey-clouded (DNS-only), so this reads
+      # Caddy's own *.jeiang.dev wildcard cert directly, not
+      # Cloudflare's edge cert as a proxied hostname would.
+      {
+        name = "TLS certificate";
+        group = "Edge";
+        url = "https://cache.jeiang.dev/nix-cache-info";
+        interval = "1h";
+        conditions = [
+          "[STATUS] == 200"
+          "[CERTIFICATE_EXPIRATION] > 240h"
+        ];
+      }
+      # proxy.jeiang.dev has its own security.acme cert, renewed
+      # separately from the edge wildcard.
+      {
+        name = "proxy.jeiang.dev certificate";
+        group = "Edge";
+        url = "tls://proxy.jeiang.dev:443";
+        interval = "1h";
+        conditions = [
+          "[CONNECTED] == true"
+          "[CERTIFICATE_EXPIRATION] > 240h"
+        ];
+      }
+    ];
+  };
+in {
+  legion.services.gatus =
+    service
+    // {
+      node = "peria";
+      module = "gatus";
+    };
+
+  legion.services.gatus-london =
+    service
+    // {
+      node = "ricklent";
+      module = "gatus-london";
+    };
+
+  nixos.modules.gatus = _: {
+    services.gatus = {
+      enable = true;
+      settings =
+        base
+        // {
+          # Scraped by VictoriaMetrics so a failed check reaches Alertmanager;
+          # the dashboard alone never notifies anyone.
+          metrics = true;
+        };
+    };
+
+    systemd.services.gatus.serviceConfig.MemoryMax = "64M";
+  };
+
+  # Alerts straight to Discord so the watchdog does not depend on peria or zantark.
+  nixos.modules.gatus-london = {config, ...}: {
+    services.gatus = {
+      enable = true;
+      environmentFile = config.sops.templates."gatus.env".path;
+      settings =
+        base
+        // {
+          alerting.discord = {
+            webhook-url = "\${DISCORD_WEBHOOK_URL}";
+            default-alert = {
+              failure-threshold = 5;
+              success-threshold = 2;
+              send-on-resolved = true;
+            };
+          };
+          endpoints = map (endpoint: endpoint // {alerts = [{type = "discord";}];}) base.endpoints;
+        };
+    };
+
+    systemd.services.gatus.serviceConfig.MemoryMax = "64M";
+
+    sops = {
+      secrets."discord-webhook".sopsFile = ./secrets.yaml;
+      templates."gatus.env" = {
+        restartUnits = ["gatus.service"];
+        content = "DISCORD_WEBHOOK_URL=${config.sops.placeholder."discord-webhook"}\n";
+      };
+    };
+  };
+}

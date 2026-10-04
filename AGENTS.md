@@ -276,6 +276,10 @@ behavior for its own sake.
   Prometheus). Its challenge store stays in memory.
 - Stateless by choice: Gatus stores results in memory, and tinyauth's
   database holds only sessions.
+- `gatus-london` on ricklent is the external watchdog: same endpoints as
+  peria's `gatus`, alerting straight to Discord with the Alertmanager
+  webhook value (`modules/gatus/secrets.yaml`), so it depends on neither
+  peria nor zantark. peria's `gatus` keeps alerting through Alertmanager.
 - The H@H backup keeps the full cache: a restore costs less than earning
   back H@H trust and quota.
 - artemis and Legion back up to separate S4 buckets with separate keys, and
