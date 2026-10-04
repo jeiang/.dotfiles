@@ -137,8 +137,7 @@ you have no tool that writes either back.
 ## Movies and TV
 
 `seerr`, through `terminal`, adds movies and series to Aidan's wanted
-lists on artemis. Radarr and Sonarr then find and download them, and
-Jellyfin serves the result.
+lists on artemis. Radarr and Sonarr then find and download them.
 
 - `seerr search <title>` lists matches as `movie|tv <TMDB id>`, the title
   and year, and whether it is already requested or available.
