@@ -47,6 +47,9 @@ D("jeiang.dev", REG_NONE,
   A("speed", ALDA_V4, CF_PROXY_OFF),
   AAAA("speed", ALDA_V6, CF_PROXY_OFF),
 
+  // UDP game traffic cannot pass the Cloudflare proxy, so the wildcard does not cover it.
+  A("factorio", RICKLENT_V4, CF_PROXY_OFF),
+
   // NetBird control plane and STUN: long-lived gRPC/WebSocket streams and UDP, kept off the Cloudflare proxy.
   A("netbird", ALDA_V4),
   AAAA("netbird", ALDA_V6),
