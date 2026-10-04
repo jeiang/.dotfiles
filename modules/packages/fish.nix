@@ -18,7 +18,7 @@
     # just keeps its local history until it is back on.
     atuinConfig = pkgs.writeTextDir "config.toml" ''
       auto_sync = true
-      sync_address = "http://${self.lib.netbirdPeers.legion-node4}:${toString config.legion.services.atuin.ports.app}"
+      sync_address = "http://${self.lib.netbirdPeers.peria}:${toString config.legion.services.atuin.ports.app}"
     '';
     fishConf =
       pkgs.writeText "fishy-fishy"

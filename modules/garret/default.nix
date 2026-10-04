@@ -21,7 +21,7 @@ in {
   flake.lib.garretWatermarks = watermarks;
 
   legion.services.garret = {
-    node = "legion-node4";
+    node = "peria";
     module = "garret";
     stateful = true;
     units = ["garret-pusher" "garret-puller"];
@@ -72,7 +72,7 @@ in {
 
     garretAdmin = inputs.garret.packages.${pkgs.stdenv.hostPlatform.system}.garret-admin;
 
-    privateIPv4 = self.lib.legionNodes.legion-node4.privateIPv4;
+    privateIPv4 = self.lib.legionNodes.peria.privateIPv4;
 
     sopsFile = ./secrets.yaml;
 

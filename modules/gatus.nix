@@ -2,7 +2,7 @@ _: let
   port = 8086;
 in {
   legion.services.gatus = {
-    node = "legion-node4";
+    node = "peria";
     module = "gatus";
     units = ["gatus"];
     ports.app = port;

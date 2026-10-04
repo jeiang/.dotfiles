@@ -8,7 +8,7 @@
   metricsPort = 2020;
 in {
   legion.services.caddy = {
-    node = "legion-node1";
+    node = "alda";
     module = "edge";
     edge = true;
     units = ["caddy" "rivals-heroes-sync"];
@@ -64,10 +64,10 @@ in {
     crowdsecHere = (legionServices ? crowdsec) && legionServices.crowdsec.node == config.networking.hostName;
     system = pkgs.stdenv.hostPlatform.system;
 
-    node1 = self.lib.legionNodes.legion-node1.privateIPv4;
-    node2 = self.lib.legionNodes.legion-node2.privateIPv4;
-    node3 = self.lib.legionNodes.legion-node3.privateIPv4;
-    node4 = self.lib.legionNodes.legion-node4.privateIPv4;
+    node1 = self.lib.legionNodes.alda.privateIPv4;
+    node2 = self.lib.legionNodes.vida.privateIPv4;
+    node3 = self.lib.legionNodes.zantark.privateIPv4;
+    node4 = self.lib.legionNodes.peria.privateIPv4;
 
     port = svc: key: toString legionServices.${svc}.ports.${key};
 
@@ -90,7 +90,7 @@ in {
       function get_servers() {
         return ${builtins.toJSON [
         {
-          name = "legion-node1 (public)";
+          name = "alda (public)";
           server = "//speed.jeiang.dev";
           dlURL = "backend/garbage";
           ulURL = "backend/empty";

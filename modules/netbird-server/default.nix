@@ -11,7 +11,7 @@
   relayHealthPort = 9001;
 in {
   legion.services.netbird-server = {
-    node = "legion-node2";
+    node = "vida";
     module = "netbird-server";
     stateful = true;
     units = [mainUnit];
@@ -37,7 +37,7 @@ in {
 
   # Started by the netbird-server module above; no module of its own.
   legion.services.netbird-relay = {
-    node = "legion-node2";
+    node = "vida";
     units = ["netbird-relay"];
     ports = {
       stun = stunPort;

@@ -65,7 +65,7 @@
     units = lib.unique (fixedLegionUnits ++ lib.concatMap (s: s.units) (servicesByNode nodeName));
   in "(${lib.concatStringsSep "|" units})\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)";
 
-  nodeHostname = name: "${lib.removePrefix "legion-" name}.jeiang.dev";
+  nodeHostname = name: "${name}.svr.jeiang.dev";
 
   mkWan = {
     publicIPv4,
@@ -98,25 +98,25 @@
 in {
   flake = {
     lib.legionNodes = {
-      legion-node1 = {
+      alda = {
         privateIPv4 = "172.17.0.1";
         publicIPv4 = "178.156.226.145";
         publicIPv6 = "2a01:4ff:f0:6b8e::1";
       };
 
-      legion-node2 = {
+      vida = {
         privateIPv4 = "172.17.0.2";
         publicIPv4 = "178.156.201.35";
         publicIPv6 = "2a01:4ff:f0:a1ff::1";
       };
 
-      legion-node3 = {
+      zantark = {
         privateIPv4 = "172.17.0.3";
         publicIPv4 = "178.156.186.147";
         publicIPv6 = "2a01:4ff:f0:c52a::1";
       };
 
-      legion-node4 = {
+      peria = {
         privateIPv4 = "172.17.0.4";
         publicIPv4 = "178.156.191.180";
         publicIPv6 = "2a01:4ff:f0:ca96::1";
@@ -129,7 +129,7 @@ in {
     deploy.nodes =
       builtins.mapAttrs (name: _: {
         hostname = nodeHostname name;
-        # Bootstrapping a node without the deploy user: deploy .#legion-nodeN --ssh-user aidanp --sudo='doas -u' --magic-rollback=false
+        # Bootstrapping a node without the deploy user: deploy .#<name> --ssh-user aidanp --sudo='doas -u' --magic-rollback=false
         sshUser = "deploy";
         sudo = "sudo -u";
         profiles.system = {
@@ -178,7 +178,7 @@ in {
       # systemd-journal-upload appends `/upload` itself and VictoriaLogs' route is /insert/journald/upload, so this URL must end at /insert/journald.
       journald.upload = {
         enable = true;
-        settings.Upload.URL = "http://${legionNodes.legion-node3.privateIPv4}:${toString legionServices.monitoring.ports.victoria-logs}/insert/journald";
+        settings.Upload.URL = "http://${legionNodes.zantark.privateIPv4}:${toString legionServices.monitoring.ports.victoria-logs}/insert/journald";
       };
 
       journald.settings.Journal.SystemMaxUse = "1G";

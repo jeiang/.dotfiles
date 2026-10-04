@@ -112,7 +112,7 @@ run_check "primary-nameserver-group" "$dns_groups" '
     end
 '
 
-run_check "legion-node2-network" "$networks_detail" '
+run_check "vida-network" "$networks_detail" '
   ($expected.legionNode2Ip) as $ip
   | [.[] | . as $net | ($net.resources // [])[]
       | select((.address // "" | sub("/32$"; "")) == $ip)

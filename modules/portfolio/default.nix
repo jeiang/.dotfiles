@@ -9,9 +9,9 @@
   edge = self.lib.legionNodes.${config.legion.services.caddy.node}.privateIPv4;
 in {
   legion.services.portfolio = {
-    # Off the edge node: legion-node1 has no restic credentials, and this is
+    # Off the edge node: alda has no restic credentials, and this is
     # the node with the most memory headroom.
-    node = "legion-node2";
+    node = "vida";
     module = "portfolio";
     stateful = true;
     units = ["portfolio"];
@@ -39,7 +39,7 @@ in {
 
     services.portfolio = {
       enable = true;
-      # Reached from Caddy on legion-node1; the firewall keeps it off the
+      # Reached from Caddy on alda; the firewall keeps it off the
       # public interface.
       host = "0.0.0.0";
       inherit port stateDir;

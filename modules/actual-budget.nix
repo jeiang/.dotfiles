@@ -3,7 +3,7 @@
   port = 5006;
 in {
   legion.services.actual-budget = {
-    node = "legion-node4";
+    node = "peria";
     module = "actual-budget";
     stateful = true;
     units = ["actual"];

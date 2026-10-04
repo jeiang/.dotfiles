@@ -66,10 +66,10 @@ in {
               enp16s0.network = "artemis-lan";
             }
             // lib.recursiveUpdate (mkBackupTunnelInterface "artemis") {
-              wg-backup.physicalConnections = [(mkConnection "legion-node1" "wg-backup")];
+              wg-backup.physicalConnections = [(mkConnection "alda" "wg-backup")];
             };
 
-          legion-node1.interfaces = mkBackupTunnelInterface "legion-node1";
+          alda.interfaces = mkBackupTunnelInterface "alda";
 
           # nix-topology has no darwin module, so zakkart cannot self-describe.
           zakkart = mkDevice "zakkart" {

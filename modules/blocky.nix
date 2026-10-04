@@ -2,7 +2,7 @@ _: let
   httpPort = 8000;
 in {
   legion.services.blocky = {
-    node = "legion-node2";
+    node = "vida";
     module = "blocky";
     units = ["blocky"];
     ports.http = httpPort;

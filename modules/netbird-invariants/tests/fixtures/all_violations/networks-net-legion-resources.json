@@ -1,8 +1,8 @@
 [
   {
-    "id": "res-legion-node2",
+    "id": "res-vida",
     "type": "host",
-    "name": "legion-node2",
+    "name": "vida",
     "description": "",
     "address": "172.17.0.2/32",
     "enabled": false,

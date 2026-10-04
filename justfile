@@ -29,7 +29,7 @@ clean-deploy system address *args:
   #!/usr/bin/env bash
   set -euo pipefail
   case "{{system}}" in
-    legion-node*) facter=modules/hosts/legion/facter.json ;;
+    alda|vida|zantark|peria) facter=modules/hosts/legion/facter.json ;;
     *) facter=modules/hosts/{{system}}/facter.json ;;
   esac
   nix run github:nix-community/nixos-anywhere/1.13.0 -- --generate-hardware-config nixos-facter "$facter" --flake .#{{system}} --target-host root@{{address}} {{args}}
@@ -135,7 +135,7 @@ legion-run *command:
   summary=""
   failed=0
   for node in $(nix eval --raw '.#lib.legionNodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrNames nodes)'); do
-    if ssh "${node#legion-}.jeiang.dev" -- {{command}}; then
+    if ssh "${node}.svr.jeiang.dev" -- {{command}}; then
       summary+="  $node ok"$'\n'
     else
       summary+="  $node FAILED"$'\n'

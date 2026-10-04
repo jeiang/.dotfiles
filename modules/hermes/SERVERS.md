@@ -16,11 +16,11 @@ NetBird mesh addresses (`modules/netbird-peers.nix`); Hetzner's own
 private network (`172.17.0.0/24`) is not reachable from artemis, so all
 fleet SSH rides the mesh.
 
-- **legion-node1** — edge (Caddy reverse proxy), CrowdSec, Anubis, tinyauth
-- **legion-node2** — NetBird server/relay/proxy, Pocket ID, Blocky DNS
-- **legion-node3** — monitoring (VictoriaMetrics, VictoriaLogs, Grafana,
+- **alda** — edge (Caddy reverse proxy), CrowdSec, Anubis, tinyauth
+- **vida** — NetBird server/relay/proxy, Pocket ID, Blocky DNS
+- **zantark** — monitoring (VictoriaMetrics, VictoriaLogs, Grafana,
   vmalert, Alertmanager)
-- **legion-node4** — garret (Nix binary cache), Actual Budget, atuin, hath,
+- **peria** — garret (Nix binary cache), Actual Budget, atuin, hath,
   glance, Gatus
 
 ## Tier mechanics
@@ -38,10 +38,10 @@ on every unit in the tier-2 column. You never hold that capability: the
 
 | Node | Tier 1 — start/restart free | Tier 2 — start/stop/restart after approval |
 |---|---|---|
-| legion-node1 | `crowdsec`, `crowdsec-bouncers`, `prometheus-node-exporter` | `caddy`, `rivals-heroes-sync`, `anubis-content`, `tinyauth` |
-| legion-node2 | `prometheus-node-exporter`, `restic-backups-netbird-server`, `restic-backups-pocket-id` | `netbird-server`, `netbird-relay`, `pocket-id`, `netbird-proxy`, `crowdsec-firewall-bouncer`, `blocky` |
-| legion-node3 | `prometheus-node-exporter`, `prometheus-blackbox-exporter` | `grafana`, `victoriametrics`, `victorialogs`, `vmalert-default`, `alertmanager` |
-| legion-node4 | `prometheus-node-exporter`, `garret-pusher`, `garret-puller`, `hath`, `glance`, `gatus`, `restic-backups-actual-budget`, `restic-backups-garret`, `restic-backups-hath` | `actual`, `atuin` |
+| alda | `crowdsec`, `crowdsec-bouncers`, `prometheus-node-exporter` | `caddy`, `rivals-heroes-sync`, `anubis-content`, `tinyauth` |
+| vida | `prometheus-node-exporter`, `restic-backups-netbird-server`, `restic-backups-pocket-id` | `netbird-server`, `netbird-relay`, `pocket-id`, `netbird-proxy`, `crowdsec-firewall-bouncer`, `blocky` |
+| zantark | `prometheus-node-exporter`, `prometheus-blackbox-exporter` | `grafana`, `victoriametrics`, `victorialogs`, `vmalert-default`, `alertmanager` |
+| peria | `prometheus-node-exporter`, `garret-pusher`, `garret-puller`, `hath`, `glance`, `gatus`, `restic-backups-actual-budget`, `restic-backups-garret`, `restic-backups-hath` | `actual`, `atuin` |
 
 Anything not named in either column for a node — `sshd`, `netbird`
 itself, the `acme-*` certificate units, `nixos-rebuild`, disk or secret
@@ -49,12 +49,12 @@ operations — is tier 3: no sudo rule exists anywhere in the fleet for it.
 
 ## How to run a fleet command
 
-Your SSH config (`~/.ssh/config`, Nix-managed) resolves `legion-node1`
-through `legion-node4` to `hermes-ops@<mesh IP>` with your key already
+Your SSH config (`~/.ssh/config`, Nix-managed) resolves `alda`
+through `peria` to `hermes-ops@<mesh IP>` with your key already
 selected:
 
 ```sh
-ssh legion-node1 -- sudo systemctl restart crowdsec.service
+ssh alda -- sudo systemctl restart crowdsec.service
 ```
 
 The sudoers rule pins the absolute path
@@ -65,7 +65,7 @@ form to reach for first.
 ## How to request a tier-2 command
 
 ```sh
-hermes-tier2 legion-node1 restart caddy "caddy returns 502 for every host since 09:14; journal shows ..."
+hermes-tier2 alda restart caddy "caddy returns 502 for every host since 09:14; journal shows ..."
 ```
 
 Arguments are node, verb (`start`, `stop` or `restart`), unit (without
@@ -81,12 +81,12 @@ background.
 
 ## Logs and metrics
 
-Query `legion-node3` directly rather than SSHing to the node that owns a
+Query `zantark` directly rather than SSHing to the node that owns a
 unit — its journal collects every node's via `systemd-journal-upload`. Its
-mesh IP is the `HostName` of the `legion-node3` entry in `~/.ssh/config`:
+mesh IP is the `HostName` of the `zantark` entry in `~/.ssh/config`:
 
 ```sh
-curl -s 'http://<legion-node3 mesh IP>:9428/select/logsql/query' \
+curl -s 'http://<zantark mesh IP>:9428/select/logsql/query' \
   --data-urlencode 'query=_SYSTEMD_UNIT:caddy.service' \
   --data-urlencode 'limit=50'
 ```
