@@ -44,7 +44,8 @@ in {
     node4 = self.lib.legionNodes.peria.privateIPv4;
 
     sopsFile = ./secrets.yaml;
-    legionPrivateIPs = map (node: node.privateIPv4) (builtins.attrValues self.lib.legionNodes);
+    # A node outside the private network is scraped over the mesh and drops out until it has a peer entry.
+    legionNodeAddresses = builtins.filter (a: a != null) (map (self.lib.legionAddress "zantark") (builtins.attrNames self.lib.legionNodes));
 
     caddyPort = legionServices.caddy.ports.metrics;
     crowdsecPort = legionServices.crowdsec.ports.metrics;
@@ -147,7 +148,7 @@ in {
             job_name = "node";
             static_configs = [
               {
-                targets = map (ip: "${ip}:9100") legionPrivateIPs;
+                targets = map (ip: "${ip}:9100") legionNodeAddresses;
                 labels.type = "node";
               }
               {

@@ -7,7 +7,7 @@
   # WEBHOOK_ENABLED/WEBHOOK_PORT env story below stay in one place.
   hermesWebhookPort = 8644;
   kbRepo = "jeiang/knowledge-base";
-  legionNodeNames = builtins.attrNames self.lib.legionNodes;
+  legionNodeNames = self.lib.legionMeshNodeNames;
   # Not a secret: it's the CalDAV/CardDAV/IMAP display identity, shared by
   # the himalaya and vdirsyncer config below.
   icloudAppleId = "aidan@aidanpinard.co";

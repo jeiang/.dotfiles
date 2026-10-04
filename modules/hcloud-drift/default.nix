@@ -4,7 +4,7 @@
   config,
   ...
 }: let
-  legionNodeNames = builtins.attrNames self.lib.legionNodes;
+  legionNodeNames = builtins.attrNames self.lib.hetznerNodes;
 
   firewallOf = node: self.nixosConfigurations.${node}.config.networking.firewall;
 

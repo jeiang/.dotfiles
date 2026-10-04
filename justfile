@@ -29,10 +29,11 @@ clean-deploy system address *args:
   #!/usr/bin/env bash
   set -euo pipefail
   case "{{system}}" in
-    alda|vida|zantark|peria) facter=modules/hosts/legion/facter.json ;;
-    *) facter=modules/hosts/{{system}}/facter.json ;;
+    alda|vida|zantark|peria) facter=(--generate-hardware-config nixos-facter modules/hosts/legion/facter.json) ;;
+    ricklent) facter=() ;;
+    *) facter=(--generate-hardware-config nixos-facter modules/hosts/{{system}}/facter.json) ;;
   esac
-  nix run github:nix-community/nixos-anywhere/1.13.0 -- --generate-hardware-config nixos-facter "$facter" --flake .#{{system}} --target-host root@{{address}} {{args}}
+  nix run github:nix-community/nixos-anywhere/1.13.0 -- ${facter[@]+"${facter[@]}"} --flake .#{{system}} --target-host root@{{address}} {{args}}
 
 deploy system *args:
   deploy .#{{system}} {{args}}

@@ -11,9 +11,11 @@ machine must run.
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
 | `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring. |
 | `peria` | NixOS | Legion server, Hetzner Cloud. garret, Actual Budget, atuin, hath, glance, gatus. |
+| `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer. |
 
-Legion is the fleet's servers, whatever the provider; today all four run on
-Hetzner Cloud.
+Legion is the fleet's servers, whatever the provider: four run on Hetzner
+Cloud, `ricklent` on Arct Cloud. `legionNodes.<name>.provider` (`hetzner` or
+`arct`) selects the provider-specific parts.
 
 Backwards compatibility matters only for rollback. Flag a change that would
 break a rollback to the previous generation; otherwise do not keep old
@@ -79,7 +81,10 @@ behavior for its own sake.
   `legion.services.<name>` option; each Legion service's own feature file
   sets its own entry (node, ports, firewall, Volume, backup set), and
   `modules/hosts/legion/default.nix` derives per-node module imports,
-  firewall openings, Volume `fileSystems`, and `backups.jobs` from it.
+  firewall openings, and `backups.jobs` from it, plus (Hetzner nodes only,
+  through `nixos.modules.hetzner`) Volume `fileSystems`, the private NIC,
+  and the WAN gateway config. `modules/hosts/ricklent/` holds the Arct
+  node's own disk, network, and resource settings.
 - `modules/<feature>.nix`, or `modules/<feature>/` when it has sibling
   files (secrets shard, Lua, JSON, script): one flake-parts module that
   implements the feature for every class it applies to. A secret shard sits
@@ -197,34 +202,54 @@ behavior for its own sake.
   rules are for audit, not containment. Removing that trust needs a
   signed-closure delivery design.
 - Hetzner servers, Volumes, and Cloud Firewalls are provisioned outside the
-  flake. A Volume is for state that cannot suffer loss if the server fails.
-  A stateful Legion service that keeps such state uses a Volume and
-  `mountGuard`, so a missing Volume never initializes fresh state on the
-  root disk. State that can tolerate losing the interval since its last
-  backup instead lives on the root disk with a `backupSet` restic job as
-  its whole durability story; atuin on `peria` is the first such
-  service. Exactly one node owns each stateful service; moving it is an
+  flake, and are Hetzner-only. A Volume is for state that cannot suffer loss
+  if the server fails. A stateful Legion service that keeps such state uses
+  a Volume and `mountGuard`, so a missing Volume never initializes fresh
+  state on the root disk. State that can tolerate losing the interval since
+  its last backup instead lives on the root disk with a `backupSet` restic
+  job as its whole durability story; atuin on `peria` is the first such
+  service. ricklent has no Volumes, so a stateful service there must use
+  that root-disk-plus-restic pattern (a Volume on an Arct node fails
+  evaluation). Exactly one node owns each stateful service; moving it is an
   explicit Volume (or backup) and state migration, not a placement edit
   alone. Legion `fileSystems` entries for a Volume mount by ext4 label, not
   by `hcloudVolumeId`: a new Volume must be formatted with its
   `legion.services.<name>` key as that label (at most 16 bytes) before the
   deploy that mounts it.
+- The Hetzner private network (`172.16.0.0/12`, `enp7s0`) exists only on
+  Hetzner nodes, and no NetBird route reaches it from the mesh (the one
+  Networks resource is vida's Blocky address). Hetzner nodes address each
+  other by `privateIPv4`; every pair involving ricklent uses the target's
+  mesh IP from `modules/netbird-peers.nix`, through
+  `self.lib.legionAddress <from> <to>` (null until the target has a peer
+  entry, and then dropped from scrape targets). ricklent's peer entry is
+  added after it first enrolls, and until then its journald upload,
+  CrowdSec agent, and scrape do not connect. NetBird access policies must
+  allow ricklent to alda (CrowdSec LAPI), to zantark (VictoriaLogs), and
+  zantark to ricklent (node exporter).
 - Legion host firewalls are on. A `legion.services.<name>` entry's
-  `scope = "private"` is documentation: `enp7s0` and the NetBird interface
-  are trusted interfaces. A public opening also needs a rule in `legion`,
-  the one Hetzner Cloud Firewall all four nodes share. It is attached by
-  server ID, so a new node must be attached to it explicitly. Public ICMP
-  stays blocked there; the operator opens it by hand when needed.
+  `scope = "private"` is documentation: `enp7s0` (Hetzner nodes) and the
+  NetBird interface are trusted interfaces. On a Hetzner node a public
+  opening also needs a rule in `legion`, the one Hetzner Cloud Firewall the
+  four Hetzner nodes share. It is attached by
+  server ID, so a new Hetzner node must be attached to it explicitly. Public
+  ICMP stays blocked there; the operator opens it by hand when needed.
   `just hcloud-drift` (`modules/hcloud-drift/`) proves live state matches
-  this: the expected rule set is the union of each node's merged
-  `networking.firewall`, not `legion.services` (a node can open a port
-  through another module), and it excludes ICMP.
+  this for Hetzner nodes only: the expected rule set is the union of each
+  Hetzner node's merged `networking.firewall`, not `legion.services` (a node
+  can open a port through another module), and it excludes ICMP. ricklent
+  has no provider firewall, so its host firewall is the only barrier and
+  every public opening is exactly what its `networking.firewall` lists.
 - `netbird-proxy` on `vida` is public and terminates its own TLS
   (DNS-01 wildcard for `proxy.jeiang.dev`). CrowdSec IP reputation and an
   nftables bouncer protect it with decisions from the LAPI on
   `alda`. The host opens TCP/UDP 40000-45000 for ad hoc services,
-  and `legion` allows that range on every node, so a port in it is public
-  on any node whose host firewall opens it.
+  and the Hetzner `legion` firewall allows that range, so a port in it is
+  public on any Hetzner node whose host firewall opens it.
+- ricklent runs a CrowdSec agent (sshd logs from the journal) and an
+  nftables bouncer, both against the LAPI on `alda` over the mesh. Its
+  machine and bouncer credentials live in `modules/crowdsec/secrets.agent.yaml`,
+  readable only by alda and ricklent.
 - `modules/netbird-invariants/` is a read-only check (never PUT/POST/DELETE)
   of the self-hosted NetBird management API: the Quad9 `jeiang.dev` group's
   `search_domains_enabled` stays off, the primary DNS group is Blocky on

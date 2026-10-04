@@ -8,6 +8,7 @@ keys:
   - &server_vida age1f9t7ktuy3hny3lju3692mqx35mrc0wrfrl8mtelyeecc4lydcu0snxtm23
   - &server_zantark age1yc37qpvazdtfswa38057e73sh523q0exj75qqahzgax6kqaxeqmsq2wx9t
   - &server_peria age1a80m5fpv387njdmg63q6vvkavahepdkx7zq4gjjkg62x3lme4f7q9s5c66
+  - &server_ricklent age16lknh6g3xu8hz8wdz9fkkv26mxf7syynrth83kpgxsgkphs0c9gqza78aa
   - &server_zakkart age1dy6m8ldy4pnqhleqhkqtej3nxvvkyu9dflzjkctrxxwl2ddj5sjqzc4j3p
 
 # One shard per consuming module, encrypted to the admin plus the hosts that run it.
@@ -35,6 +36,7 @@ creation_rules:
       - *server_vida
       - *server_zantark
       - *server_peria
+      - *server_ricklent
 
   # modules/hosts/artemis/default.nix -- artemis only.
   - path_regex: modules/hosts/artemis/secrets\.yaml$
@@ -91,6 +93,7 @@ creation_rules:
       - *server_vida
       - *server_zantark
       - *server_peria
+      - *server_ricklent
 
   # modules/backups/default.nix -- only the Legion nodes that own a Backup
   # Set. One repository password covers every Legion repository, so a node
@@ -136,6 +139,18 @@ creation_rules:
       - *user_aidanp_se
       - *server_alda
       - *server_vida
+
+  # modules/crowdsec/default.nix (LAPI registration on alda) and
+  # modules/crowdsec/agent.nix (ricklent's machine and bouncer credentials).
+  - path_regex: modules/crowdsec/secrets\.agent\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_alda
+      - *server_ricklent
 
   # modules/netbird-server/default.nix.
   - path_regex: modules/netbird-server/secrets\.yaml$
