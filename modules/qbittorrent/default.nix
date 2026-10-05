@@ -119,14 +119,13 @@ in {
       };
     };
 
-    # Group-writable, so Radarr and Sonarr may hardlink the files
-    # (fs.protected_hardlinks); world-readable, because darkhttpd runs under a
-    # DynamicUser that is in no group of ours.
+    # World-readable, because darkhttpd runs under a DynamicUser that is in no
+    # group of ours.
     systemd = {
       tmpfiles.settings.qbittorrent-downloads.${downloadDir}.d = {
         user = "qbittorrent";
         group = self.lib.mediaGroup;
-        mode = "2775";
+        mode = "0755";
       };
 
       services = {

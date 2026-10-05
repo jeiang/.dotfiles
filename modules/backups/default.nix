@@ -184,8 +184,6 @@ in {
       # Host identity: with these two a rebuilt artemis keeps its sops key and
       # its NetBird peer address, which the flake hardcodes.
       ["etc/ssh" "var/lib/netbird" "var/lib/hermes"]
-      # Media app state only: the library itself is re-downloadable.
-      ++ ["var/lib/radarr" "var/lib/sonarr" "var/lib/seerr"]
       ++ map (directory: "data${home}/${directory}") [
         ".config/sunshine"
         ".gnupg"

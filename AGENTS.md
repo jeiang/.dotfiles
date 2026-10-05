@@ -366,12 +366,9 @@ behavior for its own sake.
   run after the operator approves each command in Telegram through a second
   bot; tier 3 is never granted. Hermes only asks, through `hermes-tier2`;
   its own built-in approvals are not a boundary.
-- The media stack on artemis (`modules/media.nix`: Radarr, Sonarr,
-  Seerr, with qBittorrent as the client) keeps
-  downloads and library in one persisted tree, `/var/lib/media`, so imports
-  are hardlinks: a hardlink cannot cross two impermanence bind mounts. The
-  library is not backed up, because it can be downloaded again; only the
-  apps' state is.
+- The media tree on artemis (`modules/media.nix`) is one persisted
+  directory, `/var/lib/media`, holding qBittorrent's downloads. It is not
+  backed up, because it can be downloaded again.
 - qBittorrent runs in a network namespace on artemis whose only link besides
   loopback is a WireGuard interface to ricklent (`modules/qbittorrent/`), so
   with the tunnel down it has no route. ricklent masquerades its traffic and
@@ -380,9 +377,6 @@ behavior for its own sake.
   socket proxy, so qBittorrent sees every Web UI client as loopback and
   whitelists it. The tunnel endpoint is ricklent's public IP, not its name:
   `wg` resolves inside the namespace, before any resolver is reachable.
-- Hermes adds movies and series only through Seerr, as a local Seerr user
-  with the Request permission alone (`seerr` in `modules/hermes/`). It
-  never gets a Radarr, Sonarr, or Seerr API key: each of those is full admin.
 - The Hermes model server (`modules/llm-server`) runs Qwen3.6-35B-A3B
   (the MTP UD-Q4_K_XL GGUF, drafting with its own MTP heads, plus its vision
   projector) with the MoE experts of the first layers on the CPU, because
