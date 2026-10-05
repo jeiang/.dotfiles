@@ -80,6 +80,8 @@
     ripper.url = "github:jeiang/ripper";
     # Deliberately no follows: upstream's uv2nix Python environment is tested against its own pin; following ours would rebuild it on every nixpkgs bump.
     hermes-agent.url = "github:NousResearch/hermes-agent/v2026.9.24";
+    # Deliberately no follows: upstream's README advises against it; its buildbot patches track its own nixos-unstable-small pin.
+    buildbot-nix.url = "github:nix-community/buildbot-nix";
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);
