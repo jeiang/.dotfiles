@@ -300,6 +300,12 @@ behavior for its own sake.
 - garret's Puller runs as its own user with its own GetObject-only S3 key
   (`garret/puller-s3-*`); only the Pusher holds the bucket-write key. Its backup is an online
   `garret-admin backup` copy, so a backup never stops the cache.
+- buildbot-nix runs on `ricklent` with no login of its own
+  (`authBackend = "none"`, `allowUnauthenticatedControl`): its HTTP port is
+  mesh-only, and `buildbot.jeiang.dev` on alda's Caddy puts everything
+  except `/change_hook/github` behind tinyauth. A repository builds when it
+  carries the GitHub topic `build-with-buildbot` and `jeiang` owns it. The
+  `userAllowlist` filters repository owners, not pull request authors.
 - `dns/dnsconfig.js` is the source of truth for the Cloudflare zones. CI
   applies it on merge with full purge; only `_acme-challenge` TXT records
   are ignored. A dashboard edit is for emergencies and must be copied back
