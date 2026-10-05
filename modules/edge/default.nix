@@ -28,6 +28,7 @@ in {
       "bill-split.jeiang.dev"
       "rivals.jeiang.dev"
       "mdtable.jeiang.dev"
+      "life-sim.jeiang.dev"
       "github.jeiang.dev"
       "status.jeiang.dev"
       "tinyauth.jeiang.dev"
@@ -78,6 +79,7 @@ in {
     billSplitter = "${inputs.bill-splitter.packages.${system}.default}/dist";
     rivalsRandomizer = inputs.character-randomizer.packages.${system}.default;
     mdTableEditor = inputs.markdown-table-live-editor.packages.${system}.default;
+    lifeSim = "${inputs.life-sim.packages.${system}.default}/dist";
 
     # Symlink swapped atomically by rivals-heroes-sync; Caddy resolves it
     # per request, so a half-written snapshot is never visible.
@@ -495,6 +497,14 @@ in {
 
           mdtable.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}root * ${mdTableEditor}
+            file_server
+          }
+
+          life-sim.jeiang.dev {
+            ${logLine}${crowdsecLine}${appsecLine}root * ${lifeSim}
+            @hashed path /assets/*
+            header @hashed Cache-Control "public, max-age=31536000, immutable"
+            header ?Cache-Control no-cache
             file_server
           }
 

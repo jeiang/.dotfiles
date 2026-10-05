@@ -181,6 +181,10 @@ in {
                             title = "Markdown Table Editor";
                             url = "https://mdtable.jeiang.dev";
                           }
+                          {
+                            title = "Life Sim";
+                            url = "https://life-sim.jeiang.dev";
+                          }
                         ];
                       }
                       {
