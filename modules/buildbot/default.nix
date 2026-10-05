@@ -58,7 +58,7 @@ in {
       export GARRET_TOKEN
       find ${gcroots} -type l -print0 \
         | xargs -0 -r readlink -f \
-        | grep -v '\.drv$' \
+        | sed '/\.drv$/d' \
         | sort -u \
         | xargs -r ${lib.getExe' garret "garret"} --config ${garretConfig} push
     '';
