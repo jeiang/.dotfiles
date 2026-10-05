@@ -17,11 +17,14 @@ private network (`172.17.0.0/24`) is not reachable from artemis, so all
 fleet SSH rides the mesh.
 
 - **alda** — edge (Caddy reverse proxy), CrowdSec, Anubis, tinyauth
-- **vida** — NetBird server/relay/proxy, Pocket ID, Blocky DNS
+- **vida** — NetBird server/relay/proxy, Pocket ID, Blocky DNS, portfolio
 - **zantark** — monitoring (VictoriaMetrics, VictoriaLogs, Grafana,
   vmalert, Alertmanager)
 - **peria** — garret (Nix binary cache), Actual Budget, atuin, hath,
   glance, Gatus
+- **ricklent** — CrowdSec agent and firewall bouncer, Factorio,
+  buildbot-nix master/worker (postgres, garret push timer), Gatus London
+  watchdog, EU NetBird relay, second Blocky
 
 ## Tier mechanics
 
@@ -39,9 +42,10 @@ on every unit in the tier-2 column. You never hold that capability: the
 | Node | Tier 1 — start/restart free | Tier 2 — start/stop/restart after approval |
 |---|---|---|
 | alda | `crowdsec`, `crowdsec-bouncers`, `prometheus-node-exporter` | `caddy`, `rivals-heroes-sync`, `anubis-content`, `tinyauth` |
-| vida | `prometheus-node-exporter`, `restic-backups-netbird-server`, `restic-backups-pocket-id` | `netbird-server`, `netbird-relay`, `pocket-id`, `netbird-proxy`, `crowdsec-firewall-bouncer`, `blocky` |
+| vida | `prometheus-node-exporter`, `restic-backups-netbird-server`, `restic-backups-pocket-id` | `netbird-server`, `netbird-relay`, `pocket-id`, `netbird-proxy`, `crowdsec-firewall-bouncer`, `blocky`, `portfolio` |
 | zantark | `prometheus-node-exporter`, `prometheus-blackbox-exporter` | `grafana`, `victoriametrics`, `victorialogs`, `vmalert-default`, `alertmanager` |
 | peria | `prometheus-node-exporter`, `garret-pusher`, `garret-puller`, `hath`, `glance`, `gatus`, `restic-backups-actual-budget`, `restic-backups-garret`, `restic-backups-hath` | `actual`, `atuin` |
+| ricklent | `prometheus-node-exporter`, `gatus` | `blocky`, `buildbot-master`, `buildbot-worker`, `buildbot-garret-push`, `postgresql`, `crowdsec`, `crowdsec-firewall-bouncer`, `factorio`, `netbird-relay-eu` |
 
 Anything not named in either column for a node — `sshd`, `netbird`
 itself, the `acme-*` certificate units, `nixos-rebuild`, disk or secret
@@ -50,7 +54,7 @@ operations — is tier 3: no sudo rule exists anywhere in the fleet for it.
 ## How to run a fleet command
 
 Your SSH config (`~/.ssh/config`, Nix-managed) resolves `alda`
-through `peria` to `hermes-ops@<mesh IP>` with your key already
+through `ricklent` to `hermes-ops@<mesh IP>` with your key already
 selected:
 
 ```sh
