@@ -263,3 +263,23 @@ creation_rules:
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
       - *server_ricklent
+
+  # modules/qbittorrent/default.nix -- artemis side of the exit tunnel.
+  - path_regex: modules/qbittorrent/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_artemis
+
+  # modules/qbittorrent/default.nix -- ricklent side of the exit tunnel.
+  - path_regex: modules/qbittorrent/secrets\.exit\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_ricklent

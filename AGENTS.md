@@ -372,9 +372,14 @@ behavior for its own sake.
   are hardlinks: a hardlink cannot cross two impermanence bind mounts. The
   library is not backed up, because it can be downloaded again; only the
   apps' state is.
-- qBittorrent peers from the home IP for now. The planned exit is an
-  arct.cloud VPS: once it is added to the NetBird network, qBittorrent's
-  traffic goes out through it, and that VPS is not yet in this flake.
+- qBittorrent runs in a network namespace on artemis whose only link besides
+  loopback is a WireGuard interface to ricklent (`modules/qbittorrent/`), so
+  with the tunnel down it has no route. ricklent masquerades its traffic and
+  DNATs peer port 42881 to artemis's tunnel address. The namespace resolves
+  through Quad9 over the tunnel, and the Web UI reaches the host through a
+  socket proxy, so qBittorrent sees every Web UI client as loopback and
+  whitelists it. The tunnel endpoint is ricklent's public IP, not its name:
+  `wg` resolves inside the namespace, before any resolver is reachable.
 - Hermes adds movies and series only through Seerr, as a local Seerr user
   with the Request permission alone (`seerr` in `modules/hermes/`). It
   never gets a Radarr, Sonarr, or Seerr API key: each of those is full admin.
