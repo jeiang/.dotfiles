@@ -313,8 +313,8 @@ in {
                       }
                       {
                         title = "NetBird";
-                        # "/" falls through to node1's static dashboard even
-                        # when netbird-server is down; this path proxies to node2.
+                        # "/" falls through to alda's static dashboard even
+                        # when netbird-server is down; this path proxies to vida.
                         url = "https://netbird.jeiang.dev/oauth2/.well-known/openid-configuration";
                       }
                       {

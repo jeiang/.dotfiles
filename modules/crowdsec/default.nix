@@ -99,7 +99,7 @@ in {
             listen_uri = "0.0.0.0:${toString lapiPort}";
           };
 
-          # The default loopback bind would be unreachable from node3's
+          # The default loopback bind would be unreachable from zantark's
           # cross-node scraper.
           general.prometheus.listen_addr = "0.0.0.0";
         };

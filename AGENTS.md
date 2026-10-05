@@ -11,7 +11,7 @@ machine must run.
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
 | `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring. |
 | `peria` | NixOS | Legion server, Hetzner Cloud. garret, Actual Budget, atuin, hath, glance, gatus. |
-| `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer. Second Blocky, on its mesh IP only. |
+| `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer, Factorio, buildbot-nix master/worker (postgres, garret push timer), Gatus London watchdog, EU NetBird relay, qBittorrent WireGuard exit, second Blocky (mesh IP only). |
 
 Legion is the fleet's servers, whatever the provider: four run on Hetzner
 Cloud, `ricklent` on Arct Cloud. `legionNodes.<name>.provider` (`hetzner` or
@@ -190,7 +190,7 @@ behavior for its own sake.
   switch ends still fails the deploy, but one that fails later does not,
   and its restart is not listed in the deploy output. A consumer that starts before
   `sysinit.target` or reads a secret in an activation script needs its own
-  ordering or a start-time copy (node1's `systemd-networkd`, the Hermes
+  ordering or a start-time copy (alda's `systemd-networkd`, the Hermes
   `.env`). Secrets with `neededForUsers` still install from an activation
   script.
 - `modules/sops/secrets.admin.yaml` is the admin's own stash. No module
@@ -262,7 +262,7 @@ behavior for its own sake.
   of the self-hosted NetBird management API: the Quad9 `jeiang.dev` group's
   `search_domains_enabled` stays off, the primary DNS group is, in order,
   Blocky on `vida`, Blocky on `ricklent` (its mesh IP), then Quad9, some
-  Networks resource for node2 is enabled behind an enabled router, client
+  Networks resource for vida is enabled behind an enabled router, client
   auto-update is disabled, and every reverse-proxy service's CrowdSec mode
   is `enforce`.
   `just netbird-invariants` runs it locally with
