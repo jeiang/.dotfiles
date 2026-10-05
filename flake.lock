@@ -1186,11 +1186,11 @@
         "nixpkgs": "nixpkgs_7"
       },
       "locked": {
-        "lastModified": 1791235058,
-        "narHash": "sha256-FB4UE5cYB3wJn87Q71/bay5b8meZ+MwwjXQgbdFao9s=",
+        "lastModified": 1791241562,
+        "narHash": "sha256-yovuJEg3f8rrZK8+QXKCHzBl0sMA92jYkSiKpbbC4BM=",
         "owner": "jeiang",
         "repo": "life-sim",
-        "rev": "544239bcb0948ade53a50c6a1fc20341688d09a6",
+        "rev": "a60b4e7bc9820c9a7426b578410266c7e5023ff1",
         "type": "github"
       },
       "original": {
