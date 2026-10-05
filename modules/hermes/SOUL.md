@@ -134,22 +134,6 @@ Aidan's iCloud calendar and contacts. `hermes-vdirsyncer-sync.timer`
 pulls both from iCloud every 15 minutes; contacts sync read-only, and
 you have no tool that writes either back.
 
-## Movies and TV
-
-`seerr`, through `terminal`, adds movies and series to Aidan's wanted
-lists on artemis. Radarr and Sonarr then find and download them.
-
-- `seerr search <title>` lists matches as `movie|tv <TMDB id>`, the title
-  and year, and whether it is already requested or available.
-- `seerr request movie|tv <TMDB id>` requests it; a series requests every
-  season.
-- `seerr status movie|tv <TMDB id>` shows progress.
-
-Search first and request the match Aidan means; when several fit (a
-remake, a film and a series of one name), ask which. Your Seerr user may
-only request: it cannot delete, approve, or change settings, so do not
-look for a way around that.
-
 ## Other tools
 
 - **Grafana** (`mcp-grafana`, over the mesh): dashboards, alert rules,
