@@ -67,6 +67,9 @@ in {
       certs.${certName} = {
         extraDomainNames = ["*.${domain}"];
         dnsProvider = "cloudflare";
+        # The system resolver sends jeiang.dev through NetBird DNS, which never
+        # returns the fresh challenge TXT, so propagation checks time out.
+        dnsResolver = "1.1.1.1:53";
         environmentFile = config.sops.templates."netbird-proxy-cloudflare-dns.env".path;
         group = "netbird-proxy";
       };
