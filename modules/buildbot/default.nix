@@ -7,6 +7,8 @@
   workerCount = 1;
   domain = "buildbot.jeiang.dev";
   dump = "/var/backup/buildbot/buildbot.sql";
+  # life-sim's pull requests run on GitHub-hosted runners; buildbot builds only its default branch.
+  mainOnlyRepo = "jeiang/life-sim";
 in {
   flake.lib.buildbotGarretClientId = garretClientId;
 
@@ -73,6 +75,22 @@ in {
         buildbot-master = {
           inherit port;
           pbPort = "'tcp:${toString workerPort}:interface=127.0.0.1'";
+          # buildbot-nix registers a pull request scheduler for every project and has no option to skip it, so drop it after NixConfigurator has run.
+          extraImports = ''
+            from buildbot.configurators import ConfiguratorBase
+
+            class MainOnly(ConfiguratorBase):
+                def __init__(self, project):
+                    super().__init__()
+                    self.builders = [project + "/nix-eval"]
+
+                def configure(self, config_dict):
+                    config_dict["schedulers"] = [
+                        s for s in config_dict["schedulers"]
+                        if not (s.name.endswith("-prs") and list(s.builderNames) == self.builders)
+                    ]
+          '';
+          configurators = lib.mkAfter [''MainOnly("${mainOnlyRepo}")''];
         };
 
         buildbot-nix = {
