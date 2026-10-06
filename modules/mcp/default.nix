@@ -2,6 +2,7 @@
   self,
   inputs,
   config,
+  lib,
   ...
 }: let
   sopsFile = ./secrets.yaml;
@@ -22,6 +23,10 @@
           env.GRAFANA_URL = grafanaUrl;
           passwordCommand.GRAFANA_SERVICE_ACCOUNT_TOKEN = ["cat" tokenPath];
         };
+      };
+      settings.servers.rea = {
+        command = lib.getExe self.packages.${pkgs.stdenv.hostPlatform.system}.rea;
+        args = ["mcp"];
       };
     };
 
