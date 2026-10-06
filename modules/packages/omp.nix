@@ -15,6 +15,7 @@
         startup.checkUpdate = false;
         secrets.enabled = true;
         task.showResolvedModelBadge = true;
+        task.agentModelOverrides.researcher = "@researcher";
       };
     in
       inputs.wrapper-modules.lib.wrapPackage (_: {
