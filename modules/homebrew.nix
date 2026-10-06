@@ -19,6 +19,7 @@
         "homebrew/homebrew-cask" = inputs.homebrew-cask;
         "k06a/homebrew-tap" = inputs.k06a-tap;
         "netbirdio/homebrew-tap" = inputs.netbird-tap;
+        "omlahore/homebrew-tap" = inputs.omlahore-tap;
       };
     };
 
@@ -53,6 +54,7 @@
 
       brews = [
         "k06a/tap/macpow"
+        "omlahore/tap/removemacai"
       ];
 
       masApps = {

@@ -1735,6 +1735,22 @@
         "type": "github"
       }
     },
+    "omlahore-tap": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1791235160,
+        "narHash": "sha256-0wSEp4/wxTPxSvuZ9C5Egb3sUfBPsIEIJh0kFUIbZf0=",
+        "owner": "omlahore",
+        "repo": "homebrew-tap",
+        "rev": "69642c4b8a69200ce83e7ba2c2e4069b31bb9484",
+        "type": "github"
+      },
+      "original": {
+        "owner": "omlahore",
+        "repo": "homebrew-tap",
+        "type": "github"
+      }
+    },
     "portfolio": {
       "inputs": {
         "nixpkgs": [
@@ -1878,6 +1894,7 @@
         "nix-index-database": "nix-index-database",
         "nix-topology": "nix-topology",
         "nixpkgs": "nixpkgs_10",
+        "omlahore-tap": "omlahore-tap",
         "portfolio": "portfolio",
         "ripper": "ripper",
         "sops-nix": "sops-nix",
