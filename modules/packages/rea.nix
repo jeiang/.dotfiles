@@ -24,6 +24,16 @@
         dontNpmBuild = true;
         npmInstallFlags = ["--omit=dev"];
 
+        # Ghidra comes from the Homebrew formula (modules/rea.nix): nixpkgs lags the exact release REA accepts.
+        makeWrapperArgs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
+          "--set-default"
+          "GHIDRA_INSTALL_DIR"
+          "/opt/homebrew/opt/ghidra/libexec"
+          "--set-default"
+          "JAVA_HOME"
+          pkgs.jdk21.home
+        ];
+
         meta.mainProgram = "rea";
       };
   };

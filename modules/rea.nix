@@ -33,5 +33,8 @@ in {
     pkgs,
     ...
   }:
-    rea {inherit config pkgs;};
+    rea {inherit config pkgs;}
+    // {
+      homebrew.brews = ["ghidra"];
+    };
 }
