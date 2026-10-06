@@ -383,13 +383,19 @@ behavior for its own sake.
   socket proxy, so qBittorrent sees every Web UI client as loopback and
   whitelists it. The tunnel endpoint is ricklent's public IP, not its name:
   `wg` resolves inside the namespace, before any resolver is reachable.
-- The Hermes model server (`modules/llm-server`) runs Qwen3.6-35B-A3B
-  (the MTP UD-Q4_K_XL GGUF, drafting with its own MTP heads, plus its vision
-  projector) with the MoE experts of the first layers on the CPU, because
-  the weights exceed the dGPU, and with thinking disabled. Its context
-  length is `flake.lib.llmServerContextLength`, which Hermes also reads.
+- The Hermes model server (`modules/llm-server`) is Strata
+  (`modules/packages/strata.nix`, built for artemis's gfx1201 and Zen 4)
+  running Qwen3.8-Flash-Next, ISTA-DASLab's IQ2_XS GGUF, with thinking
+  disabled. llama.cpp runs this model at about a quarter of the speed,
+  because its expert split is static: Strata keeps all experts pinned in
+  RAM, caches the most-used ones in VRAM, and drafts with the MTP layer.
+  Its images go through Strata's CPU encoder, since Strata has no HIP one.
+  Its context length is `flake.lib.llmServerContextLength`, which Hermes
+  also reads.
 - The weights live under the persisted cache directory and never in the Nix
-  store; `llm-server-fetch.service` downloads and checksums them onto disk.
+  store; `llm-server-fetch.service` downloads and checksums them onto disk
+  and derives Strata's pack and MTP runtime from them. Both carry the Strata
+  version in their path, so a Strata bump rebuilds them.
 - `just llm-stop` and `just llm-start` are the manual counterpart of the
   gamemode hooks that free the dGPU for a game.
 - Jev (TypeSafe System One) judgments run in code in front of Hermes --

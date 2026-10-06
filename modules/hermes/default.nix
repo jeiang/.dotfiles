@@ -203,7 +203,7 @@ in {
           max_lines = 600;
         };
         # Keeps MCP tool definitions out of every request behind a fixed
-        # bridge, so the llama.cpp prompt cache survives.
+        # bridge, so the model server's prompt cache survives.
         tools.tool_search.enabled = "on";
         # Summaries on the local model outrun the 120 s default; the review
         # replays the conversation on the same GPU, so its input is capped.
