@@ -4,6 +4,11 @@
   ...
 }: let
   profile = "personal";
+  homes = {
+    claude = ".claude";
+    codex = ".codex";
+    omp = ".omp/agent";
+  };
 
   # The clients write inside these directories themselves (Claude Code syncs
   # skills, Codex ships .system), so hjem owns the entries, never the directory.
@@ -36,11 +41,10 @@
     // links "skills"
     // links "agents";
 
-  files = pkgs:
-    harness pkgs ".claude" "claude"
-    // harness pkgs ".codex" "codex"
-    // harness pkgs ".omp/agent" "omp";
+  files = pkgs: lib.concatMapAttrs (name: root: harness pkgs root name) homes;
 in {
+  flake.lib.agentHomes = homes;
+
   nixos.modules.artemis = {
     config,
     pkgs,
