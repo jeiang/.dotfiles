@@ -79,7 +79,9 @@ in {
     billSplitter = "${inputs.bill-splitter.packages.${system}.default}/dist";
     rivalsRandomizer = inputs.character-randomizer.packages.${system}.default;
     mdTableEditor = inputs.markdown-table-live-editor.packages.${system}.default;
-    lifeSim = "${inputs.life-sim.packages.${system}.default}/dist";
+    lifeSim = "${inputs.life-sim.packages.${system}.default.overrideAttrs (_: {
+      VITE_HIDDEN_CODE_HASH = "$2a$12$vRtNc8AU7uvBPgOC2Cz5p.lst6roFUPp9g5BHIDJraQFx.XH3aHM.";
+    })}/dist";
 
     # Symlink swapped atomically by rivals-heroes-sync; Caddy resolves it
     # per request, so a half-written snapshot is never visible.
