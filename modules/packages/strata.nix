@@ -21,16 +21,30 @@
       hash = "sha256-SRGoXa+4ACBCB3eaG9XFYhMN1i0FyPEy9Rrer+dFGYI=";
     };
 
+    # GGML_NATIVE would compile ggml-cpu for the build host; the experts and
+    # the image encoder run on artemis's Zen 4, so its feature set is named.
+    unpinNative = file: ''
+      substituteInPlace ${file} \
+        --replace-fail 'set(GGML_NATIVE ON CACHE BOOL "" FORCE)' 'set(GGML_NATIVE OFF CACHE BOOL "" FORCE)'
+    '';
+    zen4Flags = map (f: lib.cmakeBool "GGML_${f}" true) [
+      "SSE42"
+      "AVX"
+      "AVX2"
+      "BMI2"
+      "FMA"
+      "F16C"
+      "AVX512"
+      "AVX512_VBMI"
+      "AVX512_VNNI"
+      "AVX512_BF16"
+    ];
+
     engine = pkgs.stdenv.mkDerivation {
       pname = "strata-engine";
       inherit version src;
 
-      # GGML_NATIVE would compile ggml-cpu for the build host; the experts run
-      # on artemis's Zen 4, so its AVX-512 set is named instead.
-      postPatch = ''
-        substituteInPlace CMakeLists.txt \
-          --replace-fail 'set(GGML_NATIVE ON CACHE BOOL "" FORCE)' 'set(GGML_NATIVE OFF CACHE BOOL "" FORCE)'
-      '';
+      postPatch = unpinNative "CMakeLists.txt";
 
       nativeBuildInputs = [pkgs.cmake pkgs.ninja pkgs.git pkgs.python3];
       buildInputs = with pkgs.rocmPackages; [clr hipblas hipblaslt rocblas];
@@ -45,24 +59,41 @@
           (lib.cmakeFeature "CMAKE_HIP_ARCHITECTURES" self.lib.artemisDgpuTarget)
           (lib.cmakeFeature "CMAKE_HIP_COMPILER" "${pkgs.rocmPackages.clr.hipClangPath}/clang++")
         ]
-        ++ map (f: lib.cmakeBool "GGML_${f}" true) [
-          "SSE42"
-          "AVX"
-          "AVX2"
-          "BMI2"
-          "FMA"
-          "F16C"
-          "AVX512"
-          "AVX512_VBMI"
-          "AVX512_VNNI"
-          "AVX512_BF16"
-        ];
+        ++ zen4Flags;
 
       ninjaFlags = ["strata"];
 
       installPhase = ''
         runHook preInstall
         install -Dm755 strata $out/bin/strata
+        runHook postInstall
+      '';
+    };
+
+    # The image encoder runs on the CPU: Strata has no HIP encoder build.
+    vision = pkgs.stdenv.mkDerivation {
+      pname = "strata-vision";
+      inherit version src;
+
+      sourceRoot = "${src.name}/tools/vision";
+      postPatch = unpinNative "CMakeLists.txt";
+
+      nativeBuildInputs = [pkgs.cmake pkgs.ninja pkgs.git];
+
+      cmakeFlags =
+        [
+          (lib.cmakeFeature "LLAMA_DIR" "${llamaCppSrc}")
+          (lib.cmakeBool "STRATA_VISION_CUDA" false)
+          (lib.cmakeBool "LLAMA_CURL" false)
+          (lib.cmakeBool "LLAMA_OPENSSL" false)
+        ]
+        ++ zen4Flags;
+
+      ninjaFlags = ["strata-vision"];
+
+      installPhase = ''
+        runHook preInstall
+        install -Dm755 bin/strata-vision $out/bin/strata-vision
         runHook postInstall
       '';
     };
@@ -91,6 +122,7 @@
           mkdir -p $out/share/strata
           cp -r serve tools data $out/share/strata/
           install -Dm755 ${engine}/bin/strata $out/bin/strata
+          install -Dm755 ${vision}/bin/strata-vision $out/bin/strata-vision
           makeWrapper ${python}/bin/python $out/bin/strata-server \
             --add-flags "$out/share/strata/serve/server.py --engine strata" \
             --set STRATA_GGUF_PY ${llamaCppSrc}/gguf-py
@@ -105,7 +137,7 @@
           runHook postInstall
         '';
 
-        passthru = {inherit engine;};
+        passthru = {inherit engine vision;};
         meta.mainProgram = "strata-server";
       };
     };
