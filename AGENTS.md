@@ -5,7 +5,7 @@ machine must run.
 
 | Host | Kind | Role |
 | --- | --- | --- |
-| `artemis` | NixOS | Headless gaming and streaming box at home. Impermanent btrfs root. Reached over NetBird with Sunshine/Moonlight and hypr-rdp. Also hosts the Hermes assistant, its local model server, and the media stack. |
+| `artemis` | NixOS | Headless gaming and streaming box at home. Impermanent btrfs root. Reached over NetBird with Sunshine/Moonlight and hypr-rdp. Also hosts atrium and the media stack. |
 | `zakkart` | nix-darwin | The operator's MacBook. |
 | `alda` | NixOS | Legion server, Hetzner Cloud. Caddy edge. |
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
@@ -190,9 +190,8 @@ behavior for its own sake.
   switch ends still fails the deploy, but one that fails later does not,
   and its restart is not listed in the deploy output. A consumer that starts before
   `sysinit.target` or reads a secret in an activation script needs its own
-  ordering or a start-time copy (alda's `systemd-networkd`, the Hermes
-  `.env`). Secrets with `neededForUsers` still install from an activation
-  script.
+  ordering or a start-time copy (alda's `systemd-networkd`). Secrets with
+  `neededForUsers` still install from an activation script.
 - `modules/sops/secrets.admin.yaml` is the admin's own stash. No module
   consumes it.
 
@@ -366,15 +365,6 @@ behavior for its own sake.
   sops secret at launch, so the key is never in the store and the desktop
   app does not get it. The token only reaches the TypeSafe API; rotate it
   with `just sops-edit` and a switch.
-- hermes-ops tiers on Legion (`modules/hermes-ops.nix`): tier 0 is
-  `journalctl`/read access via `systemd-journal` group membership; tier 1 is
-  the mechanical `systemctl start`/`restart` sudoers allowlist; tier 2
-  (`stop` on tier-1 units, and `start`/`stop`/`restart` on the other literal
-  `legion.services` units) is sudoers for a separate `hermes-t2` user whose
-  key only `hermes-approver` on artemis holds (`modules/hermes/approver/`),
-  run after the operator approves each command in Telegram through a second
-  bot; tier 3 is never granted. Hermes only asks, through `hermes-tier2`;
-  its own built-in approvals are not a boundary.
 - The media tree on artemis (`modules/media.nix`) is one persisted
   directory, `/var/lib/media`, holding qBittorrent's downloads. It is not
   backed up, because it can be downloaded again.
@@ -386,36 +376,18 @@ behavior for its own sake.
   socket proxy, so qBittorrent sees every Web UI client as loopback and
   whitelists it. The tunnel endpoint is ricklent's public IP, not its name:
   `wg` resolves inside the namespace, before any resolver is reachable.
-- The Hermes model server (`modules/llm-server`) is Strata
-  (`modules/packages/strata.nix`, built for artemis's gfx1201 and Zen 4)
-  running Qwen3.8-Flash-Next, ISTA-DASLab's IQ2_XS GGUF, with thinking
-  disabled. llama.cpp runs this model at about a quarter of the speed,
-  because its expert split is static: Strata keeps all experts pinned in
-  RAM, caches the most-used ones in VRAM, and drafts with the MTP layer.
-  Its images go through Strata's CPU encoder, since Strata has no HIP one.
-  Its context length is `flake.lib.llmServerContextLength`, which Hermes
-  also reads.
-- The weights live under the persisted cache directory and never in the Nix
-  store; `llm-server-fetch.service` downloads and checksums them onto disk
-  and derives Strata's pack and MTP runtime from them. Both carry the Strata
-  version in their path, so a Strata bump rebuilds them.
-- `just llm-stop` and `just llm-start` are the manual counterpart of the
-  gamemode hooks that free the dGPU for a game.
-- Jev (TypeSafe System One) judgments run in code in front of Hermes --
-  systemd services and a shell hook (`modules/hermes/jev/`) -- never as a
-  tool the agent itself chooses.
+- `atrium` (`modules/atrium/`) is the code-owned service on artemis. Jev
+  (TypeSafe System One) judgments run in its
+  code, never as a tool an agent itself chooses. Its state is
+  `/var/lib/atrium` under the static `atrium` user.
 - Jev picks a mail folder by walking a decision tree in
-  `modules/hermes/jev/jev_mail_triage.py`: one category question plus the
+  `modules/atrium/mail_triage.py`: one category question plus the
   branch questions, all asked in one request with their premises stated,
   because answers in a request cannot see each other. Folder names live in
   that script's mapping, never in a judgment, so a mailbox added to the
   account receives nothing until it has an entry, and a branch that misses
-  the confidence floor falls through to `Misc`.
-- Hermes is Nix-managed, so it refuses to save configuration at runtime: a
-  chat command such as `/sethome` lasts only until the gateway restarts. The
-  Telegram home channel, where the Jev webhook routes deliver, is
-  `TELEGRAM_HOME_CHANNEL` in the `hermes/env` secret, which keeps the chat ID
-  out of this public repository.
+  the confidence floor falls through to `Misc`. Urgent unread mail is only
+  flagged; nothing notifies the operator.
 
 ## CI
 

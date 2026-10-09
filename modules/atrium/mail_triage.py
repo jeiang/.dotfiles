@@ -1,29 +1,32 @@
-"""jev-mail-triage: every 15 minutes, keep only unread or flagged mail in the
+"""atrium-mail-triage: every 15 minutes, keep only unread or flagged mail in the
 iCloud INBOX. Each INBOX message is judged once with Jev (bucket choice, "needs
-a reply today" noul, importance score, destination folder walk). Only unread
-mail is escalated: an urgent unread message is flagged and goes into one
-Telegram digest per run, while mail the user has already read is never flagged
-and never raises an alert. A message that is read and not flagged moves to its
-judged folder, or to Misc when the walk did not resolve one, so unflagging an
-urgent message files it on the next run. The folder comes from a decision tree
--- a category and its branch question, walked into a name by the mapping below
--- so Jev never names a mailbox itself. An urgent line stays queued in
-jev-mail.db until Hermes accepts a digest that carries it, so a Hermes outage
-delays the digest instead of dropping it.
+a reply today" noul, importance score, destination folder walk). An urgent
+unread message is flagged; mail the user has already read is never flagged. A
+message that is read and not flagged moves to its judged folder, or to Misc
+when the walk did not resolve one, so unflagging an urgent message files it on
+the next run. The folder comes from a decision tree -- a category and its
+branch question, walked into a name by the mapping below -- so Jev never names
+a mailbox itself.
 Idempotent: a message already logged in jev-mail.db is never re-judged. Never
 blocks mail: a per-message failure (himalaya or Jev) is logged and skipped, so
 one bad message can't stop the run, and an unjudged message is simply retried
-next timer tick (see jev_common.call_jev's fail-open contract).
+next timer tick (call_jev fails open: None means no judgment).
 
 The himalaya calls below target the v2 shared API: mailboxes (not folders),
 `-m/--mailbox`, `--json`, and JSON payloads wrapped in a single key
 ("envelopes", "mailboxes").
 """
 
+import json
+import logging
+import os
 import sqlite3
 import subprocess
+import time
+import urllib.error
+import urllib.request
 
-logging.basicConfig(level=logging.INFO, format="jev-mail: %(message)s")
+logging.basicConfig(level=logging.INFO, format="atrium-mail: %(message)s")
 
 ACCOUNT = "icloud"
 INBOX = "INBOX"
@@ -58,13 +61,59 @@ SEED_CAP_PER_FOLDER = 200
 # run's INBOX and the per-folder seeding cap in a single call.
 PAGE_SIZE = SEED_CAP_PER_FOLDER
 
-HERMES_HOME = os.environ.get("HERMES_HOME") or os.path.join(os.environ.get("HOME", ""), ".hermes")
-DB_PATH = os.path.join(HERMES_HOME, "jev-mail.db")
+STATE_DIR = os.environ["STATE_DIRECTORY"]
+DB_PATH = os.path.join(STATE_DIR, "jev-mail.db")
 
-WEBHOOK_HOST = os.environ.get("HERMES_WEBHOOK_HOST", "127.0.0.1")
-WEBHOOK_PORT = os.environ.get("HERMES_WEBHOOK_PORT", "8644")
-WEBHOOK_ROUTE = os.environ.get("HERMES_WEBHOOK_ROUTE_DIGEST", "jev-digest")
-WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "")
+
+JEV_API_URL = "https://api.typesafe.ai/v1/systemone"
+JEV_MODEL = "jev-latest"
+JEV_MAX_RETRIES = 3
+# Cloudflare fronts the API and answers urllib's default agent with 403 and its
+# own "error code: 1010", which never reaches the API at all.
+JEV_USER_AGENT = "jev-triage/1.0 (+https://github.com/jeiang/.dotfiles)"
+
+
+def call_jev(state, questions, timeout=20):
+    """POST {state, model, questions} to the System One API. Returns the answers
+    dict, or None on a missing key, network failure, or exhausted 429/529
+    backoff -- callers treat None as "no judgment" and fail open."""
+    api_key = os.environ.get("TYPESAFE_API_KEY", "")
+    if not api_key:
+        logging.warning("TYPESAFE_API_KEY not set, skipping Jev call")
+        return None
+    body = json.dumps({"state": state, "model": JEV_MODEL, "questions": questions}).encode()
+    req = urllib.request.Request(
+        JEV_API_URL,
+        data=body,
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+            "User-Agent": JEV_USER_AGENT,
+        },
+    )
+    delay = 1.0
+    for attempt in range(JEV_MAX_RETRIES + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return json.load(resp)["answers"]
+        except urllib.error.HTTPError as exc:
+            if exc.code in (429, 529) and attempt < JEV_MAX_RETRIES:
+                time.sleep(delay)
+                delay *= 2
+                continue
+            # The body carries the API's own explanation (bad key, exhausted
+            # credits, malformed question); the status alone does not.
+            try:
+                detail = exc.read().decode("utf-8", "replace").strip()[:500]
+            except Exception as read_exc:
+                detail = f"<body unreadable: {read_exc}>"
+            logging.warning("Jev API call failed with HTTP %s %s: %s", exc.code, exc.reason, detail)
+            return None
+        except Exception as exc:  # network error, timeout, bad JSON, ...
+            logging.warning("Jev API call failed: %s", exc)
+            return None
+    return None
 
 
 def himalaya(*args):
@@ -120,7 +169,7 @@ def init_db(conn):
             PRIMARY KEY (sender_domain, folder)
         );
         CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
-        CREATE TABLE IF NOT EXISTS urgent_pending (message_id TEXT PRIMARY KEY, line TEXT);
+        DROP TABLE IF EXISTS urgent_pending;
         """
     )
     # Heals a database seeded before system mailboxes were excluded; a no-op
@@ -399,18 +448,14 @@ def judge_message(conn, envelope, uid, message_id, folders):
         category.get("choice", ""), dest_confidence, dest_folder,
     )
 
-    urgent_line = None
     if bucket == "urgent" and not has_flag(envelope, "seen"):
         himalaya("flag", "add", "--mailbox", INBOX, "--flag", "flagged", uid)
-        urgent_line = f"- {subject} — {sender}"
 
     conn.execute(
         "INSERT INTO decisions (message_id, sender, sender_domain, subject, bucket, needs_reply, "
         "importance, folder, confidence, moved, ts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, strftime('%s','now'))",
         (message_id, sender, domain, subject, bucket, needs_reply, importance, dest_folder, dest_confidence),
     )
-    if urgent_line:
-        conn.execute("INSERT INTO urgent_pending (message_id, line) VALUES (?, ?)", (message_id, urgent_line))
     conn.commit()
     return domain, dest_folder, dest_confidence
 
@@ -436,7 +481,6 @@ def main():
     if not os.environ.get("TYPESAFE_API_KEY"):
         logging.warning("TYPESAFE_API_KEY not set; every message is left untouched this run")
 
-    os.makedirs(HERMES_HOME, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     init_db(conn)
 
@@ -455,13 +499,6 @@ def main():
                 logging.exception("failed to triage one message; skipped, will retry next run")
     else:
         logging.warning("no destination mailboxes listed; nothing judged or filed this run")
-
-    pending = conn.execute("SELECT message_id, line FROM urgent_pending ORDER BY rowid").fetchall()
-    if pending:
-        digest = "Urgent mail (Jev triage):\n" + "\n".join(line for _, line in pending)
-        if post_hermes_webhook(WEBHOOK_HOST, int(WEBHOOK_PORT), WEBHOOK_ROUTE, WEBHOOK_SECRET, {"digest": digest}) is not None:
-            conn.executemany("DELETE FROM urgent_pending WHERE message_id = ?", [(message_id,) for message_id, _ in pending])
-            conn.commit()
 
 
 if __name__ == "__main__":

@@ -74,14 +74,6 @@ migrate-persist flake="." sudo="sudo":
 install system sudo="sudo":
   {{sudo}} nixos-install --flake .#{{system}}
 
-# Free artemis's dGPU for a game; the gamemode hooks do this automatically
-llm-stop:
-  ssh artemis.jeiang.vpn doas systemctl stop llm-server.service
-
-# Start the artemis model server again after a manual llm-stop
-llm-start:
-  ssh artemis.jeiang.vpn doas systemctl start llm-server.service
-
 # Build an artemis kernel change that differs from origin/main on artemis, then push it and the deploy profile path to garret; run before opening a PR
 artemis-kernel:
   #!/usr/bin/env bash
@@ -104,10 +96,6 @@ artemis-kernel:
   EOF
   )
   ssh -t "$host" "bash -c 'set -e; nix run github:jeiang/garret#garret -- login; nix run github:jeiang/garret#garret -- push $(echo $outs)'"
-
-# Show the artemis model server unit and, when rocm-smi is there, its VRAM use
-llm-status:
-  ssh artemis.jeiang.vpn 'systemctl status llm-server.service --no-pager -n 5; command -v rocm-smi >/dev/null && rocm-smi --showmeminfo vram; true'
 
 # Generate an image with Qwen-Image 2.1 (sd-cli args, e.g. -p "..." -o out.png; add -r in.png to edit); the first run downloads 11 GB of weights to ~/.cache/qwen-image-2.1
 [no-cd, positional-arguments]
