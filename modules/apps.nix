@@ -22,6 +22,7 @@
       (with pkgs; [
         crossover
         discord
+        finetune
         iina
         moonlight-qt
         mos
