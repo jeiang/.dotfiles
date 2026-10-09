@@ -26,11 +26,12 @@ It owns the daemon and `/etc/nix/nix.conf` from here on; nix-darwin's own
 
 ## 3. Sign into the App Store
 
-Sign in with the Apple ID that owns the `homebrew.masApps` entries
-(Bitwarden, Yubico Authenticator, Wipr 2) **before** the first activation.
-`mas` only installs for a signed-in account, and `programs.mas` swallows the
-"not signed in" failure — activation would skip the App Store apps with no
-error and need a second `nh darwin switch` afterward.
+Sign in before the first activation. Install Bitwarden and Wipr 2 from the
+App Store manually: Spotlight does not index them on this Mac, so `mas` would
+reinstall them on every switch. They remain in `homebrew.masApps` to keep
+Homebrew cleanup from uninstalling them, but activation skips their installation
+and leaves updates to the App Store. Yubico Authenticator is installed by
+activation.
 
 ## 4. Clone the repo
 
@@ -55,9 +56,9 @@ sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake .#zakkart \
   --option extra-trusted-public-keys "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
 ```
 
-This installs Homebrew (via nix-homebrew) and its taps/casks/brews/App Store
-apps — including the NetBird desktop client cask, which installs its own
-system daemon on first run — sets the login shell, and every
+This installs Homebrew (via nix-homebrew) and its taps/casks/brews/Yubico
+Authenticator — including the NetBird desktop client cask, which installs
+its own system daemon on first run — sets the login shell, and every
 other darwin feature module.
 
 Subsequent switches need no flags; the previous activation's config is
@@ -108,7 +109,7 @@ dscl . -read /Users/aidanp UserShell   # should end in .../bin/fish (the wrapped
 echo $SSH_AUTH_SOCK                     # .../Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock
 brew list --cask                        # matches modules/homebrew.nix's `casks`
 brew list --formula                     # matches `brews`
-mas list                                # matches `masApps`
+mas list                                # Spotlight may omit Bitwarden and Wipr 2
 ```
 
 NetBird is the cask (`netbirdio/tap/netbird-ui`), not a nix-managed daemon.

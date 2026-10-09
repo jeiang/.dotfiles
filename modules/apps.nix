@@ -33,7 +33,6 @@
         raycast
         telegram-desktop
         utm
-        whatsapp-for-mac
         zed-editor
         wrapped.ghostty
 
