@@ -147,8 +147,6 @@ in {
 
       inherit legionAddress;
 
-      legionMeshNodeNames = builtins.filter (name: self.lib.netbirdPeers ? ${name}) (builtins.attrNames legionNodes);
-
       # dns/dnsconfig.js reads this through require(); `just dns-nodes` rewrites the committed dns/nodes.json.
       legionNodesJson = builtins.toJSON (lib.mapAttrs (_: node: {inherit (node) publicIPv4 publicIPv6;}) validatedLegionNodes) + "\n";
     };
