@@ -16,6 +16,7 @@
         secrets.enabled = true;
         task.showResolvedModelBadge = true;
         task.agentModelOverrides.researcher = "@researcher";
+        modelRoles.fast = "anthropic/claude-haiku-5-5";
       };
     in
       inputs.wrapper-modules.lib.wrapPackage (_: {
