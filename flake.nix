@@ -78,7 +78,7 @@
     character-randomizer.inputs.nixpkgs.follows = "nixpkgs";
     markdown-table-live-editor.url = "github:jeiang/markdown-table-live-editor";
     markdown-table-live-editor.inputs.nixpkgs.follows = "nixpkgs";
-    # Deliberately no follows: buildbot pushes life-sim built against its own nixpkgs pin to garret, and a different pin here would miss that cache.
+    # Deliberately no follows: life-sim builds against its own nixpkgs pin.
     life-sim.url = "github:jeiang/life-sim";
     # Deliberately no follows: CI installs the garret client from this input's locked rev, and a different pin than garret's own cache seeding would force from-source rebuilds every run.
     garret.url = "github:jeiang/garret";

@@ -304,7 +304,7 @@ behavior for its own sake.
   mesh-only, and `buildbot.jeiang.dev` on alda's Caddy puts everything
   except `/change_hook/github` behind tinyauth. A repository builds when it
   carries the GitHub topic `build-with-buildbot` and `jeiang` owns it. The
-  `userAllowlist` filters repository owners, not pull request authors.
+  `userAllowlist` filters repository owners, not pull request authors. life-sim is not a buildbot project: `alda` builds it during `just deploy alda --remote-build`.
 - `dns/dnsconfig.js` is the source of truth for the Cloudflare zones. CI
   applies it on merge with full purge; only `_acme-challenge` TXT records
   are ignored. A dashboard edit is for emergencies and must be copied back
