@@ -43,6 +43,8 @@ _: {
         CustomUserPreferences.NSGlobalDomain = {
           # "Fill" is the macOS 26 window-tiling action; the pinned nix-darwin has no option for this key.
           AppleActionOnDoubleClick = "Fill";
+          # Settings > Control Center > "Automatically hide and show the menu bar" = Never; no nix-darwin option.
+          AppleMenuBarVisibleInFullscreen = true;
         };
       };
 
