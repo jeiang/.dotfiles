@@ -153,7 +153,7 @@ in {
       text = ''
         exec systemd-run --pipe --wait --collect --quiet \
           --property=User=atrium --property=Group=atrium \
-          --property=StateDirectory=${stateDirName} \
+          --property=StateDirectory=${stateDirName} --property=StateDirectoryMode=0750 --property=UMask=0027 \
           --property=EnvironmentFile=${envFile} \
           ${lib.concatStringsSep " \\\n          " (lib.mapAttrsToList (name: value: "--setenv=${name}=${value}") appEnvironment)} \
           -- ${lib.getExe atrium} "$@"
@@ -220,6 +220,7 @@ in {
       Group = "atrium";
       StateDirectory = stateDirName;
       StateDirectoryMode = "0750";
+      UMask = "0027";
       EnvironmentFile = envFile;
       NoNewPrivileges = true;
       ProtectSystem = "strict";
@@ -272,6 +273,8 @@ in {
             User = "atrium";
             Group = "atrium";
             StateDirectory = stateDirName;
+            StateDirectoryMode = "0750";
+            UMask = "0027";
             ExecStart = lib.getExe modelsFetch;
             TimeoutStartSec = 0;
             PrivateTmp = true;
