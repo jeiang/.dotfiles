@@ -26,7 +26,6 @@
         iina
         moonlight-qt
         mos
-        nomacs
         notion-app
         obsidian
         qbittorrent
