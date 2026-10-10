@@ -15,10 +15,11 @@
         startup.checkUpdate = false;
         secrets.enabled = true;
         task.showResolvedModelBadge = true;
-        task.agentModelOverrides.researcher = "@smol";
+        task.agentModelOverrides.researcher = "@researcher";
         modelRoles = {
           fast = "anthropic/claude-haiku-5-5:high";
-          smol = "openai-codex/gpt-6-luna:max";
+          smol = "openai-codex/gpt-6-luna:high";
+          researcher = "openai-codex/gpt-6-luna:max";
           max-reasoning = "anthropic/claude-fable-5-1:high";
         };
       };
