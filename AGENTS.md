@@ -387,6 +387,11 @@ behavior for its own sake.
   operator's approval after reading `atrium shadow-report`. Rules and folder
   data live in atrium's SQLite database, imported on the host, never in this
   public repository.
+- atrium's web UI (`atrium-web`, `atrium serve`) has no login. It is
+  reachable only over NetBird: it listens on `0.0.0.0` and the port is not
+  in any `allowedTCPPorts`, so only the trusted NetBird interface reaches it.
+  Never open its port on another interface. It carries no IMAP credentials
+  and never writes to a mailbox in shadow mode.
 - atrium's model weights (Qwen3.5-9B chat, EmbeddingGemma 2) and the raw
   message cache live in `/var/lib/atrium/cache`, never in the Nix store. The
   directory is excluded from the artemis restic job; `atrium.db` and

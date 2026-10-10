@@ -7,6 +7,7 @@
   modelsDir = "${cacheDir}/models";
   chatPort = 8187;
   embedPort = 8188;
+  webPort = 8480;
   hf = repo: rev: file: "https://huggingface.co/${repo}/resolve/${rev}/${file}";
   models = {
     chat = {
@@ -22,16 +23,46 @@
   };
   llamaUnits = ["atrium-llm.service" "atrium-embed.service"];
 in {
-  perSystem = {pkgs, ...}: {
-    packages.atrium = pkgs.python314Packages.buildPythonApplication {
+  perSystem = {pkgs, ...}: let
+    py = pkgs.python314Packages;
+    npmTarball = name: version: hash:
+      pkgs.fetchurl {
+        url = "https://registry.npmjs.org/${name}/-/${name}-${version}.tgz";
+        inherit hash;
+      };
+    basecoat = npmTarball "basecoat-css" "1.0.2" "sha512-C6I5rr7HziIAoBYNGPO5U6HaU/6FuF3iVp++IgoEqqJ836is3XoRty6l1ibXqxnoIRZNnOAYDMX8QxVC+58zhw==";
+    htmx = npmTarball "htmx.org" "2.0.11" "sha512-Thx/WtpeOQqSrqBCw/A1cwGJGg4UrVa3+sW0GmrM3p4gJgO89ecH4qtbnyzDDWFvBTqjnIMCgELTNt636dtamA==";
+  in {
+    packages.atrium = py.buildPythonApplication {
       pname = "atrium";
       version = (builtins.fromTOML (builtins.readFile ./app/pyproject.toml)).project.version;
       src = ./app;
       pyproject = true;
-      build-system = [pkgs.python314Packages.setuptools];
-      dependencies = [pkgs.python314Packages.sqlite-vec];
-      nativeCheckInputs = [pkgs.python314Packages.pytestCheckHook];
+      build-system = [py.setuptools];
+      dependencies = [py.fastapi py.jinja2 py.python-multipart py.sqlite-vec py.uvicorn];
+      nativeCheckInputs = [py.httpx py.pytestCheckHook];
       meta.mainProgram = "atrium";
+    };
+
+    packages.atrium-static = pkgs.stdenvNoCC.mkDerivation {
+      name = "atrium-static";
+      src = ./app/src/atrium/web;
+      nativeBuildInputs = [pkgs.tailwindcss_4];
+      dontConfigure = true;
+      buildPhase = ''
+        runHook preBuild
+        mkdir -p node_modules/basecoat-css
+        tar -xzf ${basecoat} --strip-components=1 -C node_modules/basecoat-css
+        tailwindcss --input static/input.css --output app.css --minify
+        runHook postBuild
+      '';
+      installPhase = ''
+        runHook preInstall
+        install -Dm444 app.css $out/app.css
+        install -Dm444 node_modules/basecoat-css/dist/js/all.min.js $out/basecoat/all.min.js
+        tar -xzOf ${htmx} package/dist/htmx.min.js > $out/htmx.min.js
+        runHook postInstall
+      '';
     };
   };
 
@@ -115,6 +146,7 @@ in {
     '';
 
     inherit (selfpkgs) atrium;
+    atriumStatic = selfpkgs.atrium-static;
 
     appEnvironment = {
       ATRIUM_DB = "${stateDir}/atrium.db";
@@ -319,6 +351,21 @@ in {
             Restart = "always";
             RestartSec = 10;
           };
+          wantedBy = ["multi-user.target"];
+        };
+
+        atrium-web = {
+          description = "atrium web UI";
+          after = ["network-online.target"] ++ llamaUnits;
+          wants = ["network-online.target"] ++ llamaUnits;
+          environment = appEnvironment // {ATRIUM_STATIC_DIR = atriumStatic;};
+          serviceConfig =
+            lib.removeAttrs hardening ["EnvironmentFile"]
+            // {
+              ExecStart = "${lib.getExe atrium} serve --host 0.0.0.0 --port ${toString webPort}";
+              Restart = "always";
+              RestartSec = 5;
+            };
           wantedBy = ["multi-user.target"];
         };
 
