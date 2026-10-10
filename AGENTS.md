@@ -380,6 +380,22 @@ behavior for its own sake.
   (TypeSafe System One) judgments run in its
   code, never as a tool an agent itself chooses. Its state is
   `/var/lib/atrium` under the static `atrium` user.
+- The atrium mail core (`modules/atrium/app`) runs in shadow mode: it syncs
+  and indexes iCloud and Gmail over IMAP and records what its cascade would
+  do, and every IMAP write path refuses unless `ATRIUM_MODE=live`. Only
+  Jev's `atrium-mail-triage` files mail. Moving the core to live needs the
+  operator's approval after reading `atrium shadow-report`. Rules and folder
+  data live in atrium's SQLite database, imported on the host, never in this
+  public repository.
+- atrium's model weights (Qwen3.5-9B chat, EmbeddingGemma 2) and the raw
+  message cache live in `/var/lib/atrium/cache`, never in the Nix store. The
+  directory is excluded from the artemis restic job; `atrium.db` and
+  `jev-mail.db` stay backed up. It sits inside the persisted
+  `/var/lib/atrium`, so it needs no `persistence.*` entry of its own.
+- atrium's llama-server is `packages.llama-cpp-atrium`: nixpkgs
+  `llama-cpp-vulkan` pinned to an upstream `b*` tag, because no `v*` release
+  nor nixpkgs's 0.4.1 loads the `gemma-embedding2` architecture EmbeddingGemma 2
+  needs. Drop the override once nixpkgs ships a release that has it.
 - Jev picks a mail folder by walking a decision tree in
   `modules/atrium/mail_triage.py`: one category question plus the
   branch questions, all asked in one request with their premises stated,
