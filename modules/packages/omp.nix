@@ -16,7 +16,12 @@
         secrets.enabled = true;
         task.showResolvedModelBadge = true;
         task.agentModelOverrides.researcher = "@researcher";
-        modelRoles.fast = "anthropic/claude-haiku-5-5";
+        modelRoles = {
+          fast = "anthropic/claude-haiku-5-5:high";
+          smol = "openai-codex/gpt-6-luna:high";
+          researcher = "openai-codex/gpt-6-luna:max";
+          max-reasoning = "anthropic/claude-fable-5-1:high";
+        };
       };
     in
       inputs.wrapper-modules.lib.wrapPackage (_: {
