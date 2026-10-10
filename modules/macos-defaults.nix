@@ -14,6 +14,12 @@ _: {
     # symlinking it into ~/Pictures.
     wallpapers = ../assets/wallpapers-kanabox;
     defaultbrowser = lib.getExe pkgs.defaultbrowser;
+    # duti settings: `<bundle id> <UTI> <role>` or `<bundle id> <URL scheme>`.
+    defaultApps = pkgs.writeText "default-apps.duti" ''
+      com.microsoft.Word org.openxmlformats.wordprocessingml.document all
+      com.microsoft.Word com.microsoft.word.doc all
+      com.apple.mail mailto
+    '';
   in {
     system = {
       defaults = {
@@ -71,6 +77,9 @@ _: {
           ${asUser "${defaultbrowser} helium"} \
             || echo >&2 "warning: failed to set default browser to Helium"
         fi
+
+        ${asUser "${lib.getExe pkgs.duti} ${defaultApps}"} \
+          || echo >&2 "warning: failed to set default applications"
       '';
     };
   };
