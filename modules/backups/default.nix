@@ -228,6 +228,7 @@ in {
     services.restic.backups.persist = {
       inherit repository;
       paths = map (path: "${snapshot}/${path}") backupSet;
+      exclude = ["${snapshot}/var/lib/atrium/cache"];
       passwordFile = config.sops.secrets."restic/password".path;
       environmentFile = config.sops.secrets."restic/s4-env".path;
       initialize = true;
