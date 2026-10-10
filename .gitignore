@@ -9,3 +9,6 @@ result
 
 # MacOS
 .DS_Store
+
+# Git worktrees
+.worktrees/
