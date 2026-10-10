@@ -80,7 +80,7 @@ artemis-kernel:
   set -euo pipefail
   host=artemis.jeiang.vpn
   git fetch origin main
-  main="git+file://$PWD?rev=$(git rev-parse origin/main)"
+  main="git+file://$PWD?rev=$(git rev-parse origin/main)&shallow=1"
   attr=nixosConfigurations.artemis.config.boot.kernelPackages.kernel.drvPath
   old=$(nix eval --raw "$main#$attr")
   new=$(nix eval --raw ".#$attr")
