@@ -40,7 +40,7 @@ in {
       src = ./app;
       pyproject = true;
       build-system = [py.setuptools];
-      dependencies = [py.fastapi py.jinja2 py.python-multipart py.sqlite-vec py.trafilatura py.uvicorn];
+      dependencies = [py.fastapi py.jinja2 py.markdown-it-py py.nh3 py.python-multipart py.sqlite-vec py.trafilatura py.uvicorn];
       nativeCheckInputs = [py.httpx py.pytestCheckHook];
       meta.mainProgram = "atrium";
     };
@@ -292,7 +292,7 @@ in {
     sops.secrets."atrium/env" = {
       sopsFile = ./secrets.yaml;
       mode = "0400";
-      restartUnits = ["atrium-mail-triage.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service"];
+      restartUnits = ["atrium-mail-triage.service" "atrium-notion-sync.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service" "atrium-web.service"];
     };
 
     sops.secrets."atrium/searxng" = {
@@ -384,7 +384,7 @@ in {
           wants = ["network-online.target"] ++ llamaUnits;
           environment = appEnvironment // {ATRIUM_STATIC_DIR = atriumStatic;};
           serviceConfig =
-            lib.removeAttrs hardening ["EnvironmentFile"]
+            hardening
             // {
               ExecStart = "${lib.getExe atrium} serve --host 0.0.0.0 --port ${toString webPort}";
               Restart = "always";
@@ -398,6 +398,23 @@ in {
           serviceConfig = {
             Type = "oneshot";
             ExecStart = "${lib.getExe atrium} sync";
+          };
+        };
+
+        atrium-notion-sync = appService {
+          description = "Mirror Notion into the atrium index";
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = "${lib.getExe atrium} notion sync";
+          };
+        };
+
+        atrium-scan = appService {
+          description = "Scan the mailboxes for rebalance, deletion and label proposals";
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = "${lib.getExe atrium} proposals scan-all";
+            TimeoutStartSec = "2h";
           };
         };
 
@@ -455,6 +472,22 @@ in {
           timerConfig = {
             OnActiveSec = "2m";
             OnUnitActiveSec = "15m";
+          };
+        };
+
+        atrium-notion-sync = {
+          wantedBy = ["timers.target"];
+          timerConfig = {
+            OnActiveSec = "3m";
+            OnUnitActiveSec = "15m";
+          };
+        };
+
+        atrium-scan = {
+          wantedBy = ["timers.target"];
+          timerConfig = {
+            OnCalendar = "monthly";
+            Persistent = true;
           };
         };
 
