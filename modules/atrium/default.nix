@@ -8,6 +8,7 @@
   chatPort = 8187;
   embedPort = 8188;
   webPort = 8480;
+  searxPort = 8189;
   hf = repo: rev: file: "https://huggingface.co/${repo}/resolve/${rev}/${file}";
   models = {
     chat = {
@@ -39,7 +40,7 @@ in {
       src = ./app;
       pyproject = true;
       build-system = [py.setuptools];
-      dependencies = [py.fastapi py.jinja2 py.python-multipart py.sqlite-vec py.uvicorn];
+      dependencies = [py.fastapi py.jinja2 py.markdown-it-py py.nh3 py.python-multipart py.sqlite-vec py.trafilatura py.uvicorn];
       nativeCheckInputs = [py.httpx py.pytestCheckHook];
       meta.mainProgram = "atrium";
     };
@@ -154,6 +155,7 @@ in {
       ATRIUM_MODE = "shadow";
       ATRIUM_CHAT_URL = "http://127.0.0.1:${toString chatPort}/v1";
       ATRIUM_EMBED_URL = "http://127.0.0.1:${toString embedPort}/v1";
+      ATRIUM_SEARX_URL = "http://127.0.0.1:${toString searxPort}";
       ATRIUM_CONTACTS_DIR = contactsDir;
       ATRIUM_JEV_DB = "${stateDir}/jev-mail.db";
     };
@@ -290,7 +292,29 @@ in {
     sops.secrets."atrium/env" = {
       sopsFile = ./secrets.yaml;
       mode = "0400";
-      restartUnits = ["atrium-mail-triage.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service"];
+      restartUnits = ["atrium-mail-triage.service" "atrium-notion-sync.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service" "atrium-web.service"];
+    };
+
+    sops.secrets."atrium/searxng" = {
+      sopsFile = ./secrets.yaml;
+      mode = "0400";
+      restartUnits = ["searx.service"];
+    };
+
+    services.searx = {
+      enable = true;
+      environmentFile = config.sops.secrets."atrium/searxng".path;
+      settings = {
+        use_default_settings = true;
+        server = {
+          bind_address = "127.0.0.1";
+          port = searxPort;
+          secret_key = "$SEARXNG_SECRET";
+          limiter = false;
+          public_instance = false;
+        };
+        search.formats = ["html" "json"];
+      };
     };
 
     systemd = {
@@ -360,7 +384,7 @@ in {
           wants = ["network-online.target"] ++ llamaUnits;
           environment = appEnvironment // {ATRIUM_STATIC_DIR = atriumStatic;};
           serviceConfig =
-            lib.removeAttrs hardening ["EnvironmentFile"]
+            hardening
             // {
               ExecStart = "${lib.getExe atrium} serve --host 0.0.0.0 --port ${toString webPort}";
               Restart = "always";
@@ -374,6 +398,23 @@ in {
           serviceConfig = {
             Type = "oneshot";
             ExecStart = "${lib.getExe atrium} sync";
+          };
+        };
+
+        atrium-notion-sync = appService {
+          description = "Mirror Notion into the atrium index";
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = "${lib.getExe atrium} notion sync";
+          };
+        };
+
+        atrium-scan = appService {
+          description = "Scan the mailboxes for rebalance, deletion and label proposals";
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = "${lib.getExe atrium} proposals scan-all";
+            TimeoutStartSec = "2h";
           };
         };
 
@@ -431,6 +472,22 @@ in {
           timerConfig = {
             OnActiveSec = "2m";
             OnUnitActiveSec = "15m";
+          };
+        };
+
+        atrium-notion-sync = {
+          wantedBy = ["timers.target"];
+          timerConfig = {
+            OnActiveSec = "3m";
+            OnUnitActiveSec = "15m";
+          };
+        };
+
+        atrium-scan = {
+          wantedBy = ["timers.target"];
+          timerConfig = {
+            OnCalendar = "monthly";
+            Persistent = true;
           };
         };
 
