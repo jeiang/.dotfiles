@@ -76,36 +76,10 @@ in {
     selfpkgs = self.packages.${pkgs.stdenv.hostPlatform.system};
     llama = selfpkgs.llama-cpp-atrium;
     envFile = config.sops.secrets."atrium/env".path;
-    xdgConfigHome = "${stateDir}/config";
-    himalayaConfig = "${xdgConfigHome}/himalaya/config.toml";
     vdirsyncerDir = "${stateDir}/vdirsyncer";
     calendarDir = "${vdirsyncerDir}/calendars";
     contactsDir = "${vdirsyncerDir}/contacts";
     vdirsyncerStatusDir = "${vdirsyncerDir}/status";
-
-    mailTriage = pkgs.writers.writePython3Bin "atrium-mail-triage" {flakeIgnore = ["E501"];} (builtins.readFile ./mail_triage.py);
-
-    himalayaTemplate = pkgs.writeText "atrium-himalaya-config" ''
-      [accounts.icloud]
-      default = true
-      email = "${icloudAppleId}"
-      display-name = "Aidan Pinard"
-
-      [accounts.icloud.imap]
-      server = "imap.mail.me.com:993"
-      tls = {}
-
-      [accounts.icloud.imap.sasl.plain]
-      username = "''${ICLOUD_MAIL_USERNAME}"
-      password.cmd = "printenv ICLOUD_APP_PASSWORD"
-    '';
-
-    renderHimalayaConfig = pkgs.writeShellScript "atrium-render-himalaya-config" ''
-      set -euo pipefail
-      install -d -m 0700 ${builtins.dirOf himalayaConfig}
-      ${pkgs.gettext}/bin/envsubst '$ICLOUD_MAIL_USERNAME' < ${himalayaTemplate} > ${himalayaConfig}
-      chmod 0600 ${himalayaConfig}
-    '';
 
     vdirsyncerConfig = pkgs.writeText "atrium-vdirsyncer-config" ''
       [general]
@@ -152,12 +126,11 @@ in {
     appEnvironment = {
       ATRIUM_DB = "${stateDir}/atrium.db";
       ATRIUM_CACHE_DIR = "${cacheDir}/messages";
-      ATRIUM_MODE = "shadow";
+      ATRIUM_MODE = "live";
       ATRIUM_CHAT_URL = "http://127.0.0.1:${toString chatPort}/v1";
       ATRIUM_EMBED_URL = "http://127.0.0.1:${toString embedPort}/v1";
       ATRIUM_SEARX_URL = "http://127.0.0.1:${toString searxPort}";
       ATRIUM_CONTACTS_DIR = contactsDir;
-      ATRIUM_JEV_DB = "${stateDir}/jev-mail.db";
     };
 
     modelsFetch = pkgs.writeShellApplication {
@@ -292,7 +265,7 @@ in {
     sops.secrets."atrium/env" = {
       sopsFile = ./secrets.yaml;
       mode = "0400";
-      restartUnits = ["atrium-mail-triage.service" "atrium-notion-sync.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service" "atrium-web.service"];
+      restartUnits = ["atrium-notion-sync.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service" "atrium-web.service"];
     };
 
     sops.secrets."atrium/searxng" = {
@@ -418,21 +391,6 @@ in {
           };
         };
 
-        atrium-mail-triage = {
-          description = "Triage unseen iCloud mail with Jev";
-          after = ["network-online.target"];
-          wants = ["network-online.target"];
-          path = [pkgs.himalaya];
-          environment.XDG_CONFIG_HOME = xdgConfigHome;
-          serviceConfig =
-            hardening
-            // {
-              Type = "oneshot";
-              ExecStartPre = renderHimalayaConfig;
-              ExecStart = lib.getExe mailTriage;
-            };
-        };
-
         atrium-vdirsyncer-sync = {
           description = "Sync iCloud calendar and contacts via vdirsyncer";
           after = ["network-online.target"];
@@ -459,14 +417,6 @@ in {
       };
 
       timers = {
-        atrium-mail-triage = {
-          wantedBy = ["timers.target"];
-          timerConfig = {
-            OnCalendar = "*:0/15";
-            Persistent = true;
-          };
-        };
-
         atrium-sync = {
           wantedBy = ["timers.target"];
           timerConfig = {

@@ -376,39 +376,47 @@ behavior for its own sake.
   socket proxy, so qBittorrent sees every Web UI client as loopback and
   whitelists it. The tunnel endpoint is ricklent's public IP, not its name:
   `wg` resolves inside the namespace, before any resolver is reachable.
-- `atrium` (`modules/atrium/`) is the code-owned service on artemis. Jev
-  (TypeSafe System One) judgments run in its
-  code, never as a tool an agent itself chooses. Its state is
-  `/var/lib/atrium` under the static `atrium` user.
-- The atrium mail core (`modules/atrium/app`) runs in shadow mode: it syncs
-  and indexes iCloud and Gmail over IMAP and records what its cascade would
-  do, and every IMAP write path refuses unless `ATRIUM_MODE=live`. Only
-  Jev's `atrium-mail-triage` files mail. Moving the core to live needs the
-  operator's approval after reading `atrium shadow-report`. Rules and folder
+- `atrium` (`modules/atrium/`) is the code-owned service on artemis. Its
+  judgments run in its code, never as a tool an agent itself chooses. Its
+  state is `/var/lib/atrium` under the static `atrium` user.
+- The atrium mail core (`modules/atrium/app`) runs `ATRIUM_MODE=live` and is
+  the only thing that changes the iCloud and Gmail mailboxes. It syncs and
+  indexes both over IMAP, records every routing decision, and applies it in
+  the watch and sync passes. Every IMAP write path refuses unless the mode
+  is `live` or an approved proposal or undo is running, and refuses
+  automatic writes while `/var/lib/atrium/pause` exists. Rules and folder
   data live in atrium's SQLite database, imported on the host, never in this
   public repository.
 - atrium's web UI (`atrium-web`, `atrium serve`) has no login. It is
   reachable only over NetBird: it listens on `0.0.0.0` and the port is not
   in any `allowedTCPPorts`, so only the trusted NetBird interface reaches it.
-  Never open its port on another interface. It carries no IMAP credentials
-  and never writes to a mailbox in shadow mode.
+  Never open its port on another interface. It carries the IMAP credentials:
+  approving a proposal, undoing an automatic action and correcting a message
+  write to a mailbox, and the pause switch stops only automatic writes.
 - atrium's model weights (Qwen3.5-9B chat, EmbeddingGemma 2) and the raw
   message cache live in `/var/lib/atrium/cache`, never in the Nix store. The
-  directory is excluded from the artemis restic job; `atrium.db` and
-  `jev-mail.db` stay backed up. It sits inside the persisted
+  directory is excluded from the artemis restic job; `atrium.db` stays
+  backed up. The retired `jev-mail.db` stays on disk untouched. It sits inside the persisted
   `/var/lib/atrium`, so it needs no `persistence.*` entry of its own.
 - atrium's llama-server is `packages.llama-cpp-atrium`: nixpkgs
   `llama-cpp-vulkan` pinned to an upstream `b*` tag, because no `v*` release
   nor nixpkgs's 0.4.1 loads the `gemma-embedding2` architecture EmbeddingGemma 2
   needs. Drop the override once nixpkgs ships a release that has it.
-- Jev picks a mail folder by walking a decision tree in
-  `modules/atrium/mail_triage.py`: one category question plus the
-  branch questions, all asked in one request with their premises stated,
-  because answers in a request cannot see each other. Folder names live in
-  that script's mapping, never in a judgment, so a mailbox added to the
-  account receives nothing until it has an entry, and a branch that misses
-  the confidence floor falls through to `Misc`. Urgent unread mail is only
-  flagged; nothing notifies the operator.
+- atrium applies a routing decision only to mail that became eligible after
+  go-live. Eligible means in the Inbox (Gmail: `\Inbox` label), `\Seen` and
+  not `\Flagged`. iCloud moves to the decided folder (fallback `Misc`);
+  Gmail adds the label and removes `\Inbox`, and leaves a fallback or
+  uncertain decision in the Inbox. Mail already eligible at go-live is never
+  filed automatically: `atrium live backlog` turns it into one
+  `inbox_backlog` proposal per account for the operator to approve. A contact
+  rule sets `\Flagged` on unread Inbox mail from a contact that has no
+  `List-Id` and is not no-reply; the 9B flag judgment is only logged, and
+  atrium never clears a flag except by undoing its own action. Operator
+  `delete` rules also trash matching mail in every folder once a day and when
+  new mail already matches. Every automatic write is logged in
+  `auto_actions` with enough data to undo it, is verified against the server
+  first, is capped at `WRITE_CAP` messages per account per pass, and never
+  touches Trash, Sent, Drafts or Spam/Junk.
 
 ## CI
 
