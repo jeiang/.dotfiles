@@ -34,6 +34,7 @@
         utm
         zed-editor
         wrapped.ghostty
+        wrapped.zeiger
 
         bat
         btop
