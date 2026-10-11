@@ -1711,11 +1711,11 @@
         "renpy-src": "renpy-src"
       },
       "locked": {
-        "lastModified": 1791092999,
-        "narHash": "sha256-+YhrHFH2QL0eXQBhBdVapqP11jzb0CqLQK6LXFLvTbI=",
+        "lastModified": 1791760540,
+        "narHash": "sha256-sRLkWjRf9dmEXQ/MMs+pB/OQ4/fALtW03PhCpPuwH8w=",
         "owner": "jeiang",
         "repo": "renpy_proj",
-        "rev": "08f5761e70c492fdbe325b074feb9b82efab7b1d",
+        "rev": "68a7d5d0d0abe163ef2370594716e06f41a1cebc",
         "type": "github"
       },
       "original": {
