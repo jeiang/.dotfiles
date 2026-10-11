@@ -140,14 +140,15 @@ in {
             github_owner_id = "31970261";
             # Release tags are unprotected, so ref_protected stays unset.
             ref_patterns = ["refs/heads/main" "refs/tags/v*"];
-            # jeiang/.dotfiles, jeiang/garret, jeiang/ripper.
-            repository_ids = ["553667153" "1324491067" "1380302823"];
+            # jeiang/.dotfiles, jeiang/garret, jeiang/ripper, jeiang/renpy_proj.
+            repository_ids = ["553667153" "1324491067" "1380302823" "1395832586"];
             event_names = ["push" "workflow_dispatch"];
             job_workflow_refs = [
               "jeiang/.dotfiles/.github/workflows/ci.yml@refs/heads/main"
               "jeiang/garret/.github/workflows/ci.yml@refs/heads/main"
               "jeiang/garret/.github/workflows/ci.yml@refs/tags/v*"
               "jeiang/ripper/.github/workflows/release.yml@refs/tags/v*"
+              "jeiang/renpy_proj/.github/workflows/garret.yml@refs/heads/main"
             ];
             allowed_groups = [];
           }
