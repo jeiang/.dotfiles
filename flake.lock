@@ -1493,6 +1493,22 @@
     },
     "nixpkgs_10": {
       "locked": {
+        "lastModified": 1790578696,
+        "narHash": "sha256-ZoxIApko70jCdbH3l20HWXOBaT2HZd87orzd2yJ9dVE=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "7a0f122f5090cf4c2ade2a13a0e229d4e19ba71f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_11": {
+      "locked": {
         "lastModified": 1789844176,
         "narHash": "sha256-COQmpo4lFIzMgUjr3ntDpjH0NwrCnf7N0uhR+6WPGP8=",
         "owner": "NixOS",
@@ -1689,9 +1705,45 @@
         "type": "github"
       }
     },
+    "renpy-proj": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_10",
+        "renpy-src": "renpy-src"
+      },
+      "locked": {
+        "lastModified": 1791092999,
+        "narHash": "sha256-+YhrHFH2QL0eXQBhBdVapqP11jzb0CqLQK6LXFLvTbI=",
+        "owner": "jeiang",
+        "repo": "renpy_proj",
+        "rev": "08f5761e70c492fdbe325b074feb9b82efab7b1d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "renpy_proj",
+        "type": "github"
+      }
+    },
+    "renpy-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1778894081,
+        "narHash": "sha256-RLLgCVLf6LJiv5O66lgcwF5jP1NZPpsG1/OD4nZXCJc=",
+        "owner": "renpy",
+        "repo": "renpy",
+        "rev": "39895c1e017f0b36ffea2447d97eccd69d76ee1c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "renpy",
+        "ref": "8.5.3.26051504",
+        "repo": "renpy",
+        "type": "github"
+      }
+    },
     "ripper": {
       "inputs": {
-        "nixpkgs": "nixpkgs_10"
+        "nixpkgs": "nixpkgs_11"
       },
       "locked": {
         "lastModified": 1790218786,
@@ -1741,6 +1793,7 @@
         "nixpkgs": "nixpkgs_9",
         "omlahore-tap": "omlahore-tap",
         "portfolio": "portfolio",
+        "renpy-proj": "renpy-proj",
         "ripper": "ripper",
         "sops-nix": "sops-nix",
         "treefmt-nix": "treefmt-nix_4",
