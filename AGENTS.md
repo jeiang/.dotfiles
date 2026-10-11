@@ -360,11 +360,6 @@ behavior for its own sake.
   releases faster than nixpkgs. Its `nixpkgs` deliberately does not follow
   ours: `cache.numtide.com` only serves builds made against its own pin, so
   a `follows` would rebuild every agent from source.
-- `claude` on artemis and zakkart is the wrapped package from
-  `modules/claude-code/`. The wrapper exports `TYPESAFE_API_KEY` from the
-  sops secret at launch, so the key is never in the store and the desktop
-  app does not get it. The token only reaches the TypeSafe API; rotate it
-  with `just sops-edit` and a switch.
 - The media tree on artemis (`modules/media.nix`) is one persisted
   directory, `/var/lib/media`, holding qBittorrent's downloads. It is not
   backed up, because it can be downloaded again.

@@ -48,17 +48,6 @@ creation_rules:
       - *user_aidanp_se
       - *server_artemis
 
-  # modules/claude-code/default.nix -- the hosts that run Claude Code.
-  - path_regex: modules/claude-code/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_artemis
-      - *server_zakkart
-
   # modules/mcp/default.nix -- the hosts that run the MCP clients.
   - path_regex: modules/mcp/secrets\.yaml$
     key_groups:
