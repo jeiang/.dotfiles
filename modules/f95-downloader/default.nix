@@ -7,11 +7,7 @@
   stateDir = "/var/lib/${unit}";
   tokenSecret = "f95-downloader/token";
 in {
-  nixos.modules.artemis = {
-    config,
-    lib,
-    ...
-  }: let
+  nixos.modules.artemis = {config, ...}: let
     user = config.preferences.user.name;
   in {
     imports = [inputs.f95-tracker.nixosModules.downloader];
