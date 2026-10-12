@@ -342,6 +342,26 @@
         "type": "github"
       }
     },
+    "f95-tracker": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791207078,
+        "narHash": "sha256-4mRjHtpYC+JMmaHyi/E0KH7/IA9PNTgVTxy4Wp6W3+A=",
+        "owner": "jeiang",
+        "repo": "f95-tracker",
+        "rev": "aa8607c356d77e0aa68518d8821d4c5ded0cff64",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "f95-tracker",
+        "type": "github"
+      }
+    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -1785,6 +1805,7 @@
         "determinate": "determinate",
         "devenv": "devenv",
         "disko": "disko",
+        "f95-tracker": "f95-tracker",
         "flake-parts": "flake-parts_3",
         "flake-schemas": "flake-schemas",
         "garret": "garret",
