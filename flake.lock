@@ -349,11 +349,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791207078,
-        "narHash": "sha256-4mRjHtpYC+JMmaHyi/E0KH7/IA9PNTgVTxy4Wp6W3+A=",
+        "lastModified": 1791828485,
+        "narHash": "sha256-Z0+Wzyo1GXwLQSePm8/GDhwEks10TK8GThyyDjvzC2E=",
         "owner": "jeiang",
         "repo": "f95-tracker",
-        "rev": "aa8607c356d77e0aa68518d8821d4c5ded0cff64",
+        "rev": "1017794ef321bc5780af1af4d0958c40585591c2",
         "type": "github"
       },
       "original": {
