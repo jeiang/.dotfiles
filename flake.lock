@@ -1647,6 +1647,22 @@
         "type": "github"
       }
     },
+    "notproton-tap": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1791745233,
+        "narHash": "sha256-9FXD0SxRq6ueCnKB2rnSFgURE7dRaHkHxgJrfOFq/J0=",
+        "owner": "NotProtonNot",
+        "repo": "homebrew-notproton",
+        "rev": "de49b5c4174bdcdd1b4f054e41c9bdb3ca470d2b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NotProtonNot",
+        "repo": "homebrew-notproton",
+        "type": "github"
+      }
+    },
     "omlahore-tap": {
       "flake": false,
       "locked": {
@@ -1791,6 +1807,7 @@
         "nix-index-database": "nix-index-database",
         "nix-topology": "nix-topology",
         "nixpkgs": "nixpkgs_9",
+        "notproton-tap": "notproton-tap",
         "omlahore-tap": "omlahore-tap",
         "portfolio": "portfolio",
         "renpy-proj": "renpy-proj",
