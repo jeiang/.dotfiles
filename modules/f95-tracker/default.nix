@@ -56,9 +56,12 @@ in {
       };
     };
 
-    backups.jobs.f95-tracker.prepareCommand = ''
-      systemctl start ${config.services.f95-tracker.backupUnit}
-    '';
+    backups.jobs.f95-tracker = {
+      pauseUnits = [];
+      prepareCommand = ''
+        systemctl start ${config.services.f95-tracker.backupUnit}
+      '';
+    };
 
     systemd.timers.restic-backups-f95-tracker.timerConfig = {
       OnCalendar = lib.mkForce "hourly";
