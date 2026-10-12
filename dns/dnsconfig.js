@@ -43,6 +43,10 @@ D("jeiang.dev", REG_NONE,
   A("cache-push", ALDA_V4, CF_PROXY_OFF),
   AAAA("cache-push", ALDA_V6, CF_PROXY_OFF),
 
+  // Long-lived subscription streams (SSE/WebSocket) stay off the Cloudflare proxy, and the client IP reaches ntfy's rate limiter.
+  A("ntfy", ALDA_V4, CF_PROXY_OFF),
+  AAAA("ntfy", ALDA_V6, CF_PROXY_OFF),
+
   // Grey-clouded so the speed test measures ISP-to-Hetzner rather than the Cloudflare edge, and upload bodies clear the 100 MB cap.
   A("speed", ALDA_V4, CF_PROXY_OFF),
   AAAA("speed", ALDA_V6, CF_PROXY_OFF),

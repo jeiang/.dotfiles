@@ -1,4 +1,4 @@
-_: let
+{self, ...}: let
   port = 8086;
 
   service = {
@@ -62,6 +62,7 @@ _: let
       # nix-cache-info is the first request every substituter client makes.
       (ok "Nix cache" "Services" "https://cache.jeiang.dev/nix-cache-info")
       (ok "tinyauth" "Services" "https://tinyauth.jeiang.dev")
+      (ok "ntfy" "Services" "${self.lib.ntfyBaseUrl}/v1/health")
 
       # netbird-proxy has no stable unauthenticated HTTP response, so
       # plain TCP reachability.

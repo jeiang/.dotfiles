@@ -183,6 +183,16 @@ creation_rules:
       - *user_aidanp_se
       - *server_ricklent
 
+  # modules/ntfy/default.nix -- peria only.
+  - path_regex: modules/ntfy/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_peria
+
   # modules/pocket-id/default.nix.
   - path_regex: modules/pocket-id/secrets\.yaml$
     key_groups:

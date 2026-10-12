@@ -21,6 +21,7 @@ in {
       "cache.jeiang.dev"
       "cache-push.jeiang.dev"
       "budget.jeiang.dev"
+      "ntfy.jeiang.dev"
       "grafana.jeiang.dev"
       "netbird.jeiang.dev"
       "noelejoshua.com"
@@ -368,6 +369,10 @@ in {
 
           budget.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node4}:${port "actual-budget" "app"}
+          }
+
+          ntfy.jeiang.dev {
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "ntfy" "app"}
           }
 
           grafana.jeiang.dev {

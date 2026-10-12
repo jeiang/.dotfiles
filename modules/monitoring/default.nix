@@ -61,6 +61,7 @@ in {
     gatusPort = legionServices.gatus.ports.app;
     pocketIdPort = legionServices.pocket-id.ports.app;
     actualBudgetPort = legionServices.actual-budget.ports.app;
+    ntfyPort = legionServices.ntfy.ports.app;
 
     blackboxPort = 9115;
 
@@ -264,6 +265,13 @@ in {
               }
               {
                 targets = ["http://${node4}:${toString actualBudgetPort}/health"];
+                labels = {
+                  type = "probe";
+                  tier = "warning";
+                };
+              }
+              {
+                targets = ["http://${node4}:${toString ntfyPort}/v1/health"];
                 labels = {
                   type = "probe";
                   tier = "warning";
