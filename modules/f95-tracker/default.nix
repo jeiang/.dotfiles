@@ -16,6 +16,8 @@
     ntfyToken = "f95-tracker/ntfy-token";
   };
 in {
+  flake.lib.f95TrackerUrl = "https://f95.proxy.jeiang.dev";
+
   legion.services.f95-tracker = {
     node = "peria";
     module = "f95-tracker";
@@ -42,7 +44,7 @@ in {
       enable = true;
       host = "0.0.0.0";
       inherit port stateDir;
-      baseUrl = "https://f95.proxy.jeiang.dev";
+      baseUrl = self.lib.f95TrackerUrl;
       oidc = {
         inherit (oidc) clientId allowedSubjects;
         issuer = "https://auth.jeiang.dev";
