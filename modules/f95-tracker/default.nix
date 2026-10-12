@@ -7,8 +7,8 @@
   stateDir = "/var/lib/f95-tracker";
   unit = "f95-tracker";
   oidc = {
-    clientId = "";
-    allowedSubjects = [];
+    clientId = "e71a725c-6065-4119-9b4b-3ff567a28461";
+    allowedSubjects = ["d677fcea-ce81-4fb5-bd24-79c3fb2990f2"];
   };
   secretNames = {
     oidcClientSecret = "f95-tracker/oidc-client-secret";
