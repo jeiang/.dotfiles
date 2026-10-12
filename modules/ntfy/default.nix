@@ -5,7 +5,7 @@
   tracker = "tracker";
   stateDir = "/var/lib/private/ntfy-sh";
 in {
-  flake.lib.ntfyBaseUrl = "https://ntfy.proxy.jeiang.dev";
+  flake.lib.ntfyBaseUrl = "https://ntfy.jeiang.dev";
 
   legion.services.ntfy = {
     node = "peria";
