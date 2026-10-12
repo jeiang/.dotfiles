@@ -62,6 +62,7 @@ in {
     pocketIdPort = legionServices.pocket-id.ports.app;
     actualBudgetPort = legionServices.actual-budget.ports.app;
     ntfyPort = legionServices.ntfy.ports.app;
+    f95TrackerPort = legionServices.f95-tracker.ports.app;
 
     blackboxPort = 9115;
 
@@ -264,7 +265,10 @@ in {
                 };
               }
               {
-                targets = ["http://${node4}:${toString actualBudgetPort}/health"];
+                targets = [
+                  "http://${node4}:${toString actualBudgetPort}/health"
+                  "http://${node4}:${toString f95TrackerPort}/healthz"
+                ];
                 labels = {
                   type = "probe";
                   tier = "warning";

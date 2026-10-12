@@ -40,6 +40,7 @@
     "actual-budget"
     "atuin"
     "ntfy"
+    "f95-tracker"
     "hath"
     "blocky"
     "glance"
