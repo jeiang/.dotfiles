@@ -10,7 +10,7 @@ machine must run.
 | `alda` | NixOS | Legion server, Hetzner Cloud. Caddy edge. |
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
 | `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring. |
-| `peria` | NixOS | Legion server, Hetzner Cloud. garret, Actual Budget, atuin, hath, glance, gatus. |
+| `peria` | NixOS | Legion server, Hetzner Cloud. garret, Actual Budget, atuin, ntfy, hath, glance, gatus. |
 | `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer, Factorio, buildbot-nix master/worker (postgres, garret push timer), Gatus London watchdog, EU NetBird relay, qBittorrent WireGuard exit, second Blocky (mesh IP only). |
 
 Legion is the fleet's servers, whatever the provider: four run on Hetzner

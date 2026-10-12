@@ -39,6 +39,7 @@
     "garret"
     "actual-budget"
     "atuin"
+    "ntfy"
     "hath"
     "blocky"
     "glance"
