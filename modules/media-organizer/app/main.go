@@ -7,9 +7,11 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -25,6 +27,7 @@ type server struct {
 	qb    *qbit
 	media string
 	tmpl  *template.Template
+	watch *watcher // nil without -state
 }
 
 // item is one finished torrent or one entry under import/.
@@ -60,15 +63,63 @@ func main() {
 	listen := flag.String("listen", ":8083", "listen address")
 	qbURL := flag.String("qbittorrent", "http://127.0.0.1:8081", "qBittorrent Web UI URL")
 	media := flag.String("media", "/var/lib/media", "media root holding import/, movies/ and tv/")
+	statePath := flag.String("state", "", "watch rule state file; empty disables the release watcher")
+	ntfyURL := flag.String("ntfy-url", "", "ntfy server URL")
+	ntfyTopic := flag.String("ntfy-topic", "", "ntfy topic for release notifications")
+	ntfyTokenFile := flag.String("ntfy-token-file", "", "file holding the ntfy access token")
+	publicURL := flag.String("public-url", "", "URL a phone uses to reach this service, for the notification's Add action")
 	flag.Parse()
 
 	s := &server{qb: newQbit(*qbURL), media: *media, tmpl: template.Must(template.New("index").Parse(indexHTML))}
+	if *statePath != "" {
+		w, err := newWatcher(*statePath, *ntfyURL, *ntfyTopic, *ntfyTokenFile, *publicURL)
+		if err != nil {
+			log.Fatal(err)
+		}
+		s.watch = w
+		go w.loop()
+		http.HandleFunc("POST /rules", s.addRule)
+		http.HandleFunc("POST /rules/delete", s.deleteRule)
+	}
 	go s.sweepLoop()
 
 	http.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) { s.render(w, r.Context(), "", nil) })
 	http.HandleFunc("POST /file", s.file)
 	http.HandleFunc("POST /ignore", s.ignore)
+	http.HandleFunc("POST /add", s.add)
 	log.Fatal(http.ListenAndServe(*listen, nil))
+}
+
+// add takes a magnet link as the request body: the notification's action
+// posts it from the phone.
+func (s *server) add(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(io.LimitReader(r.Body, 16<<10))
+	magnet := strings.TrimSpace(string(body))
+	if err != nil || !strings.HasPrefix(magnet, "magnet:?") {
+		http.Error(w, "the body must be a magnet link", http.StatusBadRequest)
+		return
+	}
+	if err := s.qb.post(r.Context(), "torrents/add", url.Values{"urls": {magnet}}); err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	fmt.Fprintln(w, "Added.")
+}
+
+func (s *server) addRule(w http.ResponseWriter, r *http.Request) {
+	msg := "Watching."
+	if err := s.watch.addRule(r.FormValue("name"), r.FormValue("imdb"), r.FormValue("pattern")); err != nil {
+		msg = err.Error()
+	}
+	s.render(w, r.Context(), msg, nil)
+}
+
+func (s *server) deleteRule(w http.ResponseWriter, r *http.Request) {
+	msg := "Removed."
+	if err := s.watch.deleteRule(r.FormValue("id")); err != nil {
+		msg = err.Error()
+	}
+	s.render(w, r.Context(), msg, nil)
 }
 
 func videosUnder(root string) []string {
@@ -300,7 +351,11 @@ func (s *server) render(w http.ResponseWriter, ctx context.Context, msg string, 
 		}
 		views = append(views, v)
 	}
-	if err := s.tmpl.Execute(w, map[string]any{"Msg": msg, "Err": errMsg, "Items": views}); err != nil {
+	data := map[string]any{"Msg": msg, "Err": errMsg, "Items": views}
+	if s.watch != nil {
+		data["Watch"] = s.watch.view()
+	}
+	if err := s.tmpl.Execute(w, data); err != nil {
 		log.Print(err)
 	}
 }

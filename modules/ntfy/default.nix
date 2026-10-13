@@ -1,11 +1,16 @@
 {self, ...}: let
   port = 2586;
   topic = "f95-tracker";
+  mediaTopic = "media-releases";
   operator = "operator";
   tracker = "tracker";
+  organizer = "organizer";
   stateDir = "/var/lib/private/ntfy-sh";
 in {
-  flake.lib.ntfyBaseUrl = "https://ntfy.jeiang.dev";
+  flake.lib = {
+    ntfyBaseUrl = "https://ntfy.jeiang.dev";
+    ntfyMediaTopic = mediaTopic;
+  };
 
   legion.services.ntfy = {
     node = "peria";
@@ -34,6 +39,8 @@ in {
         auth-access = [
           "${operator}:${topic}:read-only"
           "${tracker}:${topic}:write-only"
+          "${operator}:${mediaTopic}:read-only"
+          "${organizer}:${mediaTopic}:write-only"
         ];
       };
     };
@@ -45,12 +52,14 @@ in {
         "ntfy/operator-password-hash" = {inherit sopsFile;};
         "ntfy/tracker-password-hash" = {inherit sopsFile;};
         "ntfy/tracker-token" = {inherit sopsFile;};
+        "ntfy/organizer-password-hash" = {inherit sopsFile;};
+        "ntfy/organizer-token" = {inherit sopsFile;};
       };
       templates."ntfy.env" = {
         restartUnits = ["ntfy-sh.service"];
         content = ''
-          NTFY_AUTH_USERS='${operator}:${secret "operator-password-hash"}:user,${tracker}:${secret "tracker-password-hash"}:user'
-          NTFY_AUTH_TOKENS='${tracker}:${secret "tracker-token"}:tracker'
+          NTFY_AUTH_USERS='${operator}:${secret "operator-password-hash"}:user,${tracker}:${secret "tracker-password-hash"}:user,${organizer}:${secret "organizer-password-hash"}:user'
+          NTFY_AUTH_TOKENS='${tracker}:${secret "tracker-token"}:tracker,${organizer}:${secret "organizer-token"}:organizer'
         '';
       };
     };

@@ -58,5 +58,29 @@ input[type=number] { width: 4rem; }
 {{else}}
 <p>Nothing is waiting.</p>
 {{end}}
+{{with .Watch}}
+<h1>Release watch</h1>
+<p class="meta">EZTV, every 30 minutes; a match sends an ntfy notification with an Add button.
+{{if .LastCheck.IsZero}}Not checked yet.{{else}}Last check {{.LastCheck.Format "2006-01-02 15:04"}}.{{end}}</p>
+{{range .Errors}}<p class="err">{{.}}</p>{{end}}
+<table>
+<tr><th>Show</th><th>IMDb</th><th>Title regex</th><th></th></tr>
+{{range .Rules}}
+<tr>
+<td>{{.Name}}{{if not .Primed}} <span class="meta">(first check pending)</span>{{end}}</td>
+<td class="path">tt{{.IMDb}}</td>
+<td class="path">{{.Pattern}}</td>
+<td><form method="post" action="/rules/delete"><input type="hidden" name="id" value="{{.ID}}"><button>Remove</button></form></td>
+</tr>
+{{end}}
+<tr>
+<td><input form="new-rule" name="name" placeholder="Lanterns" required></td>
+<td><input form="new-rule" name="imdb" placeholder="tt1234567" size="11" required></td>
+<td><input form="new-rule" name="pattern" placeholder="^Lanterns S\d+E\d+ 1080p" size="40" required></td>
+<td><button form="new-rule">Watch</button></td>
+</tr>
+</table>
+<form id="new-rule" method="post" action="/rules"></form>
+{{end}}
 </body>
 </html>
