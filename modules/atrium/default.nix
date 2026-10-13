@@ -24,6 +24,8 @@
   };
   llamaUnits = ["atrium-llm.service" "atrium-embed.service"];
 in {
+  flake.lib.atriumWebPort = webPort;
+
   perSystem = {pkgs, ...}: let
     py = pkgs.python314Packages;
     npmTarball = name: version: hash:

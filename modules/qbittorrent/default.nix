@@ -17,6 +17,11 @@
   artemisExitPublicKey = "m+sxbQiaqKHzsaroCGK8KUR1DOgo+oUwxSbKkySrbjI=";
   ricklentExitPublicKey = "hIn9a8Tqq/9BMilfiiUOdP1qDFrAX3VFQslfBARfggw=";
 in {
+  flake.lib = {
+    qbittorrentWebuiPort = webuiPort;
+    mediaFilesPort = filesPort;
+  };
+
   legion.services.qbittorrent-exit = {
     node = "ricklent";
     module = "qbittorrent-exit";
