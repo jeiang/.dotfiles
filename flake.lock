@@ -1747,11 +1747,11 @@
         "renpy-src": "renpy-src"
       },
       "locked": {
-        "lastModified": 1791853935,
-        "narHash": "sha256-WiI/U5pnMxdLTbrfBZI4gvjILi/Rl/gMsrXwMyJepnY=",
+        "lastModified": 1791910109,
+        "narHash": "sha256-iYntx2q2cd46In2q+5XFpPjTSiCog3359rrjmUHPe9k=",
         "owner": "jeiang",
         "repo": "renpy_proj",
-        "rev": "7ecffb216eb28b1069c4d6c67ea44c3c244ad8f8",
+        "rev": "8895c53f84a50a88a5e28281042d8e29637e3619",
         "type": "github"
       },
       "original": {
