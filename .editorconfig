@@ -9,7 +9,7 @@ charset = utf-8
 indent_style = space
 indent_size = 2
 
-[*.lua]
+[*.{lua,go}]
 indent_style = tab
 
 [**/secrets*.{yaml,env,ini,json}]

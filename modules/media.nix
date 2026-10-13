@@ -3,11 +3,16 @@ _: let
   group = "media";
 in {
   flake.lib = {
+    inherit mediaDir;
     mediaGroup = group;
     mediaDownloadDir = "${mediaDir}/downloads";
   };
 
-  nixos.modules.artemis = {config, ...}: {
+  nixos.modules.artemis = {
+    config,
+    lib,
+    ...
+  }: {
     persistence.directories = [
       {
         directory = mediaDir;
@@ -22,10 +27,12 @@ in {
     };
 
     # setgid keeps every file in the media group; the tree is world-readable.
-    systemd.tmpfiles.settings.media.${mediaDir}.d = {
-      user = "root";
-      inherit group;
-      mode = "2775";
-    };
+    systemd.tmpfiles.settings.media = lib.genAttrs (map (d: "${mediaDir}${d}") ["" "/import" "/movies" "/tv"]) (_: {
+      d = {
+        user = "root";
+        inherit group;
+        mode = "2775";
+      };
+    });
   };
 }
