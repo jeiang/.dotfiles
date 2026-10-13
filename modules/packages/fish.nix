@@ -50,10 +50,10 @@
           # DIRENV_CONFIG only reaches shells sourcing nix-darwin's set-environment, which this wrapped fish never does; without it direnv skips the nix-direnv loader.
           set -gx DIRENV_CONFIG /etc/direnv
         ''}
+        set -gx ATUIN_CONFIG_DIR ${atuinConfig}
         status is-interactive; and begin
           # gpg's curses pinentry needs the terminal; NixOS only exports this through programs.fish, which this fish does not use.
           set -gx GPG_TTY (tty)
-          set -gx ATUIN_CONFIG_DIR ${atuinConfig}
           source ${donefish}
           zoxide init fish --cmd cd | source
           fzf --fish | source
