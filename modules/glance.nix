@@ -188,6 +188,20 @@ in {
                         ];
                       }
                       {
+                        title = "artemis";
+                        # Plain http on the mesh name; opens only when the
+                        # browser's host is on the mesh.
+                        links =
+                          lib.mapAttrsToList (title: port: {
+                            inherit title;
+                            url = "http://${self.deploy.nodes.artemis.hostname}:${toString port}";
+                          }) {
+                            qBittorrent = self.lib.qbittorrentWebuiPort;
+                            Downloads = self.lib.mediaFilesPort;
+                            atrium = self.lib.atriumWebPort;
+                          };
+                      }
+                      {
                         title = "Speed test";
                         # The mesh links are plain http on NetBird peer IPs
                         # and only open when the browser's host is on the mesh.
