@@ -82,6 +82,10 @@ in {
           mode = "0700";
         }
         ".local/share/fish"
+        {
+          directory = ".local/share/atuin";
+          mode = "0700";
+        }
         ".local/share/zoxide"
         ".config/fish"
       ];
