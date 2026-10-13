@@ -28,7 +28,6 @@
         mos
         notion-app
         obsidian
-        qbittorrent
         raycast
         telegram-desktop
         utm
