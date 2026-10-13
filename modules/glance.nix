@@ -199,6 +199,7 @@ in {
                             qBittorrent = self.lib.qbittorrentWebuiPort;
                             Downloads = self.lib.mediaFilesPort;
                             atrium = self.lib.atriumWebPort;
+                            Organizer = self.lib.mediaOrganizerPort;
                           };
                       }
                       {

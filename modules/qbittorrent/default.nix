@@ -100,7 +100,14 @@ in {
         # restart, and gamemode restarts the service for each game.
         serverConfig = {
           LegalNotice.Accepted = true;
-          BitTorrent.Session.DefaultSavePath = downloadDir;
+          BitTorrent.Session = {
+            DefaultSavePath = downloadDir;
+            # Stop, never remove: the media organizer deletes a stopped
+            # torrent's files only after it has filed them into the library.
+            GlobalMaxRatio = 2;
+            GlobalMaxSeedingMinutes = 14 * 24 * 60;
+            ShareLimitAction = "Stop";
+          };
           # The exit forwards the peer port with a static DNAT.
           Network.PortForwardingEnabled = false;
           Preferences.WebUI = {
