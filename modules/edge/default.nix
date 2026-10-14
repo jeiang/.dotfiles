@@ -350,8 +350,14 @@ in {
 
           # appsec skipped on the cache routes: clients legitimately fetch
           # in high-volume bursts, and fail-open wins here.
+          # garret closes a connection idle for 30 s, so Caddy must drop its
+          # pooled upstream connections first or reuse one mid-close (502).
           cache.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "garret" "puller"}
+            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "garret" "puller"} {
+              transport http {
+                keepalive 20s
+              }
+            }
           }
 
           # MUST stay grey-clouded/DNS-only in Cloudflare: a push is one
@@ -360,6 +366,7 @@ in {
           cache-push.jeiang.dev {
             ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "garret" "pusher"} {
               transport http {
+                keepalive 20s
                 read_timeout 15m
                 write_timeout 15m
                 response_header_timeout 15m
