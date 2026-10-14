@@ -109,7 +109,7 @@ in {
     services.garret = {
       pusher = {
         enable = true;
-        listen = "0.0.0.0:${toString pusherPort}";
+        listen = "${privateIPv4}:${toString pusherPort}";
         metricsListen = "${privateIPv4}:${toString pusherMetricsPort}";
         inherit dbPath s3;
         signingKeyFiles = [config.sops.secrets."garret/signing-key".path];
@@ -167,7 +167,7 @@ in {
 
       puller = {
         enable = true;
-        listen = "0.0.0.0:${toString pullerPort}";
+        listen = "${privateIPv4}:${toString pullerPort}";
         metricsListen = "${privateIPv4}:${toString pullerMetricsPort}";
         # Its own key, limited to GetObject on the bucket: the Puller only
         # presigns GETs, so this public-facing process cannot write or
@@ -198,14 +198,14 @@ in {
     environment.systemPackages = [garretAdmin];
 
     # An online copy, so the backup never stops the cache. The Pusher never
-    # overwrites a file, hence the rm. A Pusher that has just started may not
-    # have bound its admin socket yet.
+    # overwrites a file, hence the rm. The Pusher is Type=notify and signals
+    # ready only once the admin socket exists, so ordering after its unit
+    # is enough.
     backups.jobs.garret = {
       pauseUnits = [];
       prepareCommand = let
         socket = config.services.garret.pusher.adminSocketPath;
       in ''
-        for _ in $(seq 30); do [ -S ${socket} ] && break; sleep 1; done
         rm -f ${backupFile}
         ${lib.getExe' garretAdmin "garret-admin"} --socket ${socket} backup ${backupFile}
       '';

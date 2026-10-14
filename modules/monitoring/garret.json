@@ -48,7 +48,7 @@
       }
     ]
   },
-  "description": "Per-service board for garret, the fleet's Nix binary cache on peria. One scrape job, job=\"garret\", with two targets distinguished by the `component` label: pusher (:9091) and puller (:9092). Metric names verified against garret rev 724ca56 (garret-server/src/{metrics,storage}.rs, garret-pusher/src/{main,gc}.rs, garret-puller/src/main.rs). Datasource is the fixed provisioned uid \"victoriametrics\"; the Logs row uses \"victorialogs\".",
+  "description": "Per-service board for garret, the fleet's Nix binary cache on peria. One scrape job, job=\"garret\", with two targets distinguished by the `component` label: pusher (:9091) and puller (:9092). Datasource is the fixed provisioned uid \"victoriametrics\"; the Logs row uses \"victorialogs\".",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -506,13 +506,13 @@
     },
     {
       "id": 10,
-      "title": "NAR redirects / s",
+      "title": "NAR requests / s by outcome",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
         "uid": "victoriametrics"
       },
-      "description": "garret_nar_redirects_total -- each one is a 302 to a presigned S3 URL, so the NAR bytes themselves never pass through this host or the edge.",
+      "description": "garret_nar_requests_total by outcome. A hit is a 302 to a presigned S3 URL, so the NAR bytes never pass through this host or the edge; a miss is a path the index does not hold. The miss ratio is on the right axis.",
       "gridPos": {
         "x": 8,
         "y": 8,
@@ -546,7 +546,38 @@
           },
           "mappings": []
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "miss ratio"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {
@@ -563,8 +594,14 @@
         {
           "refId": "A",
           "range": true,
-          "expr": "sum(rate(garret_nar_redirects_total{job=\"garret\",component=\"puller\"}[5m]))",
-          "legendFormat": "redirects/s"
+          "expr": "sum by (outcome) (rate(garret_nar_requests_total{job=\"garret\",component=\"puller\"}[5m]))",
+          "legendFormat": "{{outcome}}"
+        },
+        {
+          "refId": "B",
+          "range": true,
+          "expr": "sum(rate(garret_nar_requests_total{job=\"garret\",component=\"puller\",outcome=\"miss\"}[5m])) / sum(rate(garret_nar_requests_total{job=\"garret\",component=\"puller\"}[5m]))",
+          "legendFormat": "miss ratio"
         }
       ]
     },
@@ -646,7 +683,7 @@
         "type": "prometheus",
         "uid": "victoriametrics"
       },
-      "description": "garret_browse_requests_total by endpoint (the Pocket ID-gated list/detail/tree/referrers routes) alongside garret_browse_auth_failures_total. Sustained failures usually mean an expired token or a Pocket ID client change, not an attack.",
+      "description": "garret_browse_requests_total by endpoint (the Pocket ID-gated list/detail/tree/referrers routes) alongside garret_browse_auth_failures_total by reason (missing_bearer: no token sent; token_rejected: token failed verification). Sustained token_rejected usually means an expired token or a Pocket ID client change, not an attack.",
       "gridPos": {
         "x": 0,
         "y": 15,
@@ -703,8 +740,8 @@
         {
           "refId": "B",
           "range": true,
-          "expr": "sum(rate(garret_browse_auth_failures_total{job=\"garret\",component=\"puller\"}[5m]))",
-          "legendFormat": "auth failures"
+          "expr": "sum by (reason) (rate(garret_browse_auth_failures_total{job=\"garret\",component=\"puller\"}[5m]))",
+          "legendFormat": "auth failures ({{reason}})"
         }
       ]
     },
@@ -1846,6 +1883,288 @@
       ]
     },
     {
+      "id": 30,
+      "type": "row",
+      "title": "Process and database",
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 60
+      },
+      "panels": []
+    },
+    {
+      "id": 31,
+      "title": "Resident memory",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "process_resident_memory_bytes per unit; the Pusher's systemd MemoryMax is 896M and the Puller's 192M.",
+      "gridPos": {
+        "x": 0,
+        "y": 61,
+        "w": 12,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "process_resident_memory_bytes{job=\"garret\"}",
+          "legendFormat": "{{component}}"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "title": "CPU",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "rate(process_cpu_seconds_total) per unit, in cores.",
+      "gridPos": {
+        "x": 12,
+        "y": 61,
+        "w": 12,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "rate(process_cpu_seconds_total{job=\"garret\"}[5m])",
+          "legendFormat": "{{component}}"
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "title": "DB query latency by family",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "garret_db_query_duration_seconds p50 and p99 by query family (missing, insert_object, get_object, exists, bump_flush, evictable, evict_object).",
+      "gridPos": {
+        "x": 0,
+        "y": 68,
+        "w": 12,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "histogram_quantile(0.5, sum by (le, query) (rate(garret_db_query_duration_seconds_bucket{job=\"garret\"}[5m])))",
+          "legendFormat": "p50 {{query}}"
+        },
+        {
+          "refId": "B",
+          "range": true,
+          "expr": "histogram_quantile(0.99, sum by (le, query) (rate(garret_db_query_duration_seconds_bucket{job=\"garret\"}[5m])))",
+          "legendFormat": "p99 {{query}}"
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "title": "GC pass duration",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics"
+      },
+      "description": "garret_gc_pass_duration_seconds p50 and p99.",
+      "gridPos": {
+        "x": 12,
+        "y": 68,
+        "w": 12,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisPlacement": "auto",
+            "gradientMode": "none"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "range": true,
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(garret_gc_pass_duration_seconds_bucket{job=\"garret\"}[5m])))",
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "range": true,
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(garret_gc_pass_duration_seconds_bucket{job=\"garret\"}[5m])))",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
       "id": 100,
       "type": "row",
       "title": "Logs",
@@ -1855,7 +2174,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 60
+        "y": 75
       },
       "panels": [
         {
