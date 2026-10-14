@@ -342,6 +342,22 @@
         "type": "github"
       }
     },
+    "erdtree": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1792006164,
+        "narHash": "sha256-3hK+IWjtdVDO5ccDPPJIu3lhOvKxyZAr4x+Cq1jdH9o=",
+        "owner": "jeiang",
+        "repo": "erdtree",
+        "rev": "93ee1a4a385a67aa2905e6706eba2bec874ecc88",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "erdtree",
+        "type": "github"
+      }
+    },
     "f95-tracker": {
       "inputs": {
         "nixpkgs": [
@@ -1805,6 +1821,7 @@
         "determinate": "determinate",
         "devenv": "devenv",
         "disko": "disko",
+        "erdtree": "erdtree",
         "f95-tracker": "f95-tracker",
         "flake-parts": "flake-parts_3",
         "flake-schemas": "flake-schemas",
