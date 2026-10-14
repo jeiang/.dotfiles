@@ -33,6 +33,8 @@
 
           # macOS login shells start from path_helper's PATH, and this fish is deliberately not programs.fish (which normally injects the nix profile paths).
           fish_add_path --global --move --path $HOME/.nix-profile/bin /etc/profiles/per-user/$USER/bin /run/current-system/sw/bin /nix/var/nix/profiles/default/bin
+          # The same profiles' fish completions, ahead of the man-page generated_completions entry that fish puts last.
+          set fish_complete_path $fish_complete_path[1..-2] {$HOME/.nix-profile,/etc/profiles/per-user/$USER,/run/current-system/sw,/nix/var/nix/profiles/default}/share/fish/vendor_completions.d $fish_complete_path[-1]
           # Homebrew's shellenv is never sourced either; keep it behind the nix paths.
           fish_add_path --global --append --path /opt/homebrew/bin /opt/homebrew/sbin
 
