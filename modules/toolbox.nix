@@ -7,7 +7,7 @@
     self.packages.${pkgs.stdenv.hostPlatform.system}.helix
     self.packages.${pkgs.stdenv.hostPlatform.system}.yazi
     self.packages.${pkgs.stdenv.hostPlatform.system}.zellij
-    pkgs.erdtree
+    self.packages.${pkgs.stdenv.hostPlatform.system}.erdtree
     pkgs.fd
     pkgs.ripgrep
   ];
