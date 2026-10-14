@@ -15,6 +15,7 @@ in {
   nixos.modules = {
     base = {pkgs, ...}: {
       environment.systemPackages = basePackages pkgs;
+      environment.pathsToLink = ["/share/fish"];
       # trippy needs cap_net_raw for its raw-socket tracing; the module wraps `trip` with it.
       programs.trippy.enable = true;
     };
@@ -73,9 +74,8 @@ in {
         # of yazi's built-in trash crate (modules/packages/yazi/keymap.rip.toml).
         ++ [(lib.hiPrio self.packages.${system}.yazi-artemis)];
 
-      # rip's fish/zsh completions live under share/fish and share/zsh, which
-      # NixOS doesn't link into the profile by default (bash-completion already is).
-      environment.pathsToLink = ["/share/fish" "/share/zsh"];
+      # rip's zsh completions live under share/zsh, which NixOS doesn't link into the profile by default.
+      environment.pathsToLink = ["/share/zsh"];
 
       systemd.user.timers.rip-empty = {
         wantedBy = ["timers.target"];
@@ -95,6 +95,7 @@ in {
   };
 
   darwin.modules.base = {pkgs, ...}: {
+    environment.pathsToLink = ["/share/fish"];
     environment.systemPackages =
       basePackages pkgs
       ++ (with pkgs; [
