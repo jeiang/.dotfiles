@@ -189,7 +189,9 @@ in {
         mode = "0750";
       };
     in {
-      garret-pusher = lib.recursiveUpdate {serviceConfig.MemoryMax = "896M";} guard;
+      # garret's sizing rule (spec 10): 2 x maxInFlightBytes + per-upload decoder
+      # window and preamble = 2 x 384 MiB + 16 x 9 MiB = 912 MiB, plus headroom.
+      garret-pusher = lib.recursiveUpdate {serviceConfig.MemoryMax = "960M";} guard;
       garret-puller = lib.recursiveUpdate {serviceConfig.MemoryMax = "192M";} guard;
       # Ordering only: a backup must never start a Pusher stopped for a restore.
       restic-backups-garret.after = ["garret-pusher.service"];
