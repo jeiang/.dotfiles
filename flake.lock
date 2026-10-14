@@ -366,11 +366,11 @@
         "rust-overlay": "rust-overlay_2"
       },
       "locked": {
-        "lastModified": 1792012212,
-        "narHash": "sha256-RTKJ3pL613wWM7vP2tPGeN2xxBsOidrLA+jRyTDh3dc=",
+        "lastModified": 1792013371,
+        "narHash": "sha256-y+PdqD2T3hkm5+TC//MiE6xwJa/TqIWKPyaYDm/oQQQ=",
         "owner": "jeiang",
         "repo": "erdtree",
-        "rev": "1dd9f998073ac5cd8ae216f92bbb99c7b59cb8de",
+        "rev": "1871909b89012070da2f18c7179df1a402114b90",
         "type": "github"
       },
       "original": {
