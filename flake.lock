@@ -196,6 +196,21 @@
         "type": "github"
       }
     },
+    "crane": {
+      "locked": {
+        "lastModified": 1791754810,
+        "narHash": "sha256-cN0Mgk+sQtCJcGWs9H4M0CnLRAuC4I8aCwiBTcBJs6E=",
+        "owner": "ipetkov",
+        "repo": "crane",
+        "rev": "bd63bf1d0a0f6dcacd7549c714a671ee63b0db6a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ipetkov",
+        "repo": "crane",
+        "type": "github"
+      }
+    },
     "crate2nix": {
       "flake": false,
       "locked": {
@@ -343,13 +358,19 @@
       }
     },
     "erdtree": {
-      "flake": false,
+      "inputs": {
+        "crane": "crane",
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "rust-overlay": "rust-overlay_2"
+      },
       "locked": {
-        "lastModified": 1792006164,
-        "narHash": "sha256-3hK+IWjtdVDO5ccDPPJIu3lhOvKxyZAr4x+Cq1jdH9o=",
+        "lastModified": 1792012212,
+        "narHash": "sha256-RTKJ3pL613wWM7vP2tPGeN2xxBsOidrLA+jRyTDh3dc=",
         "owner": "jeiang",
         "repo": "erdtree",
-        "rev": "93ee1a4a385a67aa2905e6706eba2bec874ecc88",
+        "rev": "1dd9f998073ac5cd8ae216f92bbb99c7b59cb8de",
         "type": "github"
       },
       "original": {
@@ -1869,6 +1890,27 @@
         "owner": "oxalica",
         "repo": "rust-overlay",
         "rev": "860d7c835ab91bfc8972b67092f5f2db8e9390a0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "type": "github"
+      }
+    },
+    "rust-overlay_2": {
+      "inputs": {
+        "nixpkgs": [
+          "erdtree",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791962566,
+        "narHash": "sha256-rEB0dvSZw1niBVJvt0AiWygNS/OMdA81lquTzLIWuvo=",
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "rev": "8111d2b45adcbaeaff037f996643f1ac43f944e6",
         "type": "github"
       },
       "original": {

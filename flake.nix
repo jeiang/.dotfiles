@@ -94,10 +94,8 @@
     renpy-proj.url = "github:jeiang/renpy_proj";
     # Deliberately no follows: upstream's README advises against it; its buildbot patches track its own nixos-unstable-small pin.
     buildbot-nix.url = "github:nix-community/buildbot-nix";
-    erdtree = {
-      url = "github:jeiang/erdtree";
-      flake = false;
-    };
+    erdtree.url = "github:jeiang/erdtree";
+    erdtree.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);
