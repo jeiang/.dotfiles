@@ -634,11 +634,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1791140392,
-        "narHash": "sha256-f8wElMiIW7DJG9FL8RHu8S+JC2JwaTFmoE8u1mxgEbY=",
+        "lastModified": 1792022557,
+        "narHash": "sha256-JH1e8dH8enJ1sTUNtPHAUrbXl1+0wsMdVnZwPxTZJeQ=",
         "owner": "jeiang",
         "repo": "garret",
-        "rev": "c51d73fcff6eadf310fda510a29d3712ae4bf5d0",
+        "rev": "cd668bd59815b7496fbb86380d033563d3bcee82",
         "type": "github"
       },
       "original": {
