@@ -1,0 +1,10 @@
+{
+  "name": "atrium-actual-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "JSON bridge from atrium to an Actual Budget server",
+  "dependencies": {
+    "@actual-app/api": "26.9.0"
+  }
+}

@@ -41,37 +41,56 @@ in {
     basecoat = npmTarball "basecoat-css" "1.0.2" "sha512-C6I5rr7HziIAoBYNGPO5U6HaU/6FuF3iVp++IgoEqqJ836is3XoRty6l1ibXqxnoIRZNnOAYDMX8QxVC+58zhw==";
     htmx = npmTarball "htmx.org" "2.0.11" "sha512-Thx/WtpeOQqSrqBCw/A1cwGJGg4UrVa3+sW0GmrM3p4gJgO89ecH4qtbnyzDDWFvBTqjnIMCgELTNt636dtamA==";
   in {
-    packages.atrium = py.buildPythonApplication {
-      pname = "atrium";
-      version = (builtins.fromTOML (builtins.readFile ./app/pyproject.toml)).project.version;
-      src = ./app;
-      pyproject = true;
-      build-system = [py.setuptools];
-      dependencies = [py.anthropic py.caldav py.fastapi py.google-api-python-client py.google-auth py.httpx py.icalendar py.jinja2 py.markdown-it-py py.nh3 py.pydantic-monty py.python-multipart py.sqlite-vec py.trafilatura py.uvicorn py.vobject];
-      nativeCheckInputs = [py.respx py.pytestCheckHook];
-      meta.mainProgram = "atrium";
-    };
+    packages = {
+      atrium = py.buildPythonApplication {
+        pname = "atrium";
+        version = (builtins.fromTOML (builtins.readFile ./app/pyproject.toml)).project.version;
+        src = ./app;
+        pyproject = true;
+        build-system = [py.setuptools];
+        dependencies = [py.anthropic py.caldav py.fastapi py.google-api-python-client py.google-auth py.httpx py.icalendar py.jinja2 py.markdown-it-py py.nh3 py.pydantic-monty py.python-multipart py.sqlite-vec py.trafilatura py.uvicorn py.vobject];
+        nativeCheckInputs = [py.respx py.pytestCheckHook];
+        meta.mainProgram = "atrium";
+      };
 
-    packages.atrium-static = pkgs.stdenvNoCC.mkDerivation {
-      name = "atrium-static";
-      src = ./app/src/atrium/web;
-      nativeBuildInputs = [pkgs.tailwindcss_4];
-      dontConfigure = true;
-      buildPhase = ''
-        runHook preBuild
-        mkdir -p node_modules/basecoat-css
-        tar -xzf ${basecoat} --strip-components=1 -C node_modules/basecoat-css
-        tailwindcss --input static/input.css --output app.css --minify
-        runHook postBuild
-      '';
-      installPhase = ''
-        runHook preInstall
-        install -Dm444 app.css $out/app.css
-        install -Dm444 static/app.js $out/app.js
-        install -Dm444 node_modules/basecoat-css/dist/js/all.min.js $out/basecoat/all.min.js
-        tar -xzOf ${htmx} package/dist/htmx.min.js > $out/htmx.min.js
-        runHook postInstall
-      '';
+      actual-bridge = pkgs.buildNpmPackage {
+        pname = "atrium-actual-bridge";
+        version = "1.0.0";
+        src = ./actual-bridge;
+        npmDepsHash = "sha256-kH8TiCSnAt8WqO6hlVXlwesTJZfNVsH86SJxZp3kO3Y=";
+        dontNpmBuild = true;
+        nativeBuildInputs = [pkgs.makeWrapper];
+        installPhase = ''
+          runHook preInstall
+          mkdir -p $out/lib/actual-bridge $out/bin
+          cp -r bridge.mjs package.json node_modules $out/lib/actual-bridge/
+          makeWrapper ${pkgs.nodejs}/bin/node $out/bin/actual-bridge --add-flags $out/lib/actual-bridge/bridge.mjs
+          runHook postInstall
+        '';
+        meta.mainProgram = "actual-bridge";
+      };
+
+      atrium-static = pkgs.stdenvNoCC.mkDerivation {
+        name = "atrium-static";
+        src = ./app/src/atrium/web;
+        nativeBuildInputs = [pkgs.tailwindcss_4];
+        dontConfigure = true;
+        buildPhase = ''
+          runHook preBuild
+          mkdir -p node_modules/basecoat-css
+          tar -xzf ${basecoat} --strip-components=1 -C node_modules/basecoat-css
+          tailwindcss --input static/input.css --output app.css --minify
+          runHook postBuild
+        '';
+        installPhase = ''
+          runHook preInstall
+          install -Dm444 app.css $out/app.css
+          install -Dm444 static/app.js $out/app.js
+          install -Dm444 node_modules/basecoat-css/dist/js/all.min.js $out/basecoat/all.min.js
+          tar -xzOf ${htmx} package/dist/htmx.min.js > $out/htmx.min.js
+          runHook postInstall
+        '';
+      };
     };
   };
 
