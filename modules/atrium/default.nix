@@ -8,7 +8,8 @@
   chatPort = 8187;
   embedPort = 8188;
   webPort = 8480;
-  searxPort = 8189;
+  webLocalPort = webPort + 1;
+  atriumHostname = "atrium.jeiang.dev";
   hf = repo: rev: file: "https://huggingface.co/${repo}/resolve/${rev}/${file}";
   models = {
     chat = {
@@ -24,7 +25,11 @@
   };
   llamaUnits = ["atrium-llm.service" "atrium-embed.service"];
 in {
-  flake.lib.atriumWebPort = webPort;
+  flake.lib = {
+    atriumWebPort = webPort;
+    atriumWebLocalPort = webLocalPort;
+    inherit atriumHostname;
+  };
 
   perSystem = {pkgs, ...}: let
     py = pkgs.python314Packages;
@@ -42,8 +47,8 @@ in {
       src = ./app;
       pyproject = true;
       build-system = [py.setuptools];
-      dependencies = [py.fastapi py.jinja2 py.markdown-it-py py.nh3 py.python-multipart py.sqlite-vec py.trafilatura py.uvicorn];
-      nativeCheckInputs = [py.httpx py.pytestCheckHook];
+      dependencies = [py.anthropic py.caldav py.fastapi py.google-api-python-client py.google-auth py.httpx py.icalendar py.jinja2 py.markdown-it-py py.nh3 py.pydantic-monty py.python-multipart py.sqlite-vec py.trafilatura py.uvicorn py.vobject];
+      nativeCheckInputs = [py.respx py.pytestCheckHook];
       meta.mainProgram = "atrium";
     };
 
@@ -62,6 +67,7 @@ in {
       installPhase = ''
         runHook preInstall
         install -Dm444 app.css $out/app.css
+        install -Dm444 static/app.js $out/app.js
         install -Dm444 node_modules/basecoat-css/dist/js/all.min.js $out/basecoat/all.min.js
         tar -xzOf ${htmx} package/dist/htmx.min.js > $out/htmx.min.js
         runHook postInstall
@@ -131,8 +137,11 @@ in {
       ATRIUM_MODE = "live";
       ATRIUM_CHAT_URL = "http://127.0.0.1:${toString chatPort}/v1";
       ATRIUM_EMBED_URL = "http://127.0.0.1:${toString embedPort}/v1";
-      ATRIUM_SEARX_URL = "http://127.0.0.1:${toString searxPort}";
       ATRIUM_CONTACTS_DIR = contactsDir;
+      ATRIUM_CALENDAR_DIR = calendarDir;
+      ATRIUM_TZ = self.lib.facts.timeZone;
+      GRAFANA_URL = self.lib.grafanaMeshUrl;
+      NTFY_URL = self.lib.ntfyBaseUrl;
     };
 
     modelsFetch = pkgs.writeShellApplication {
@@ -267,29 +276,18 @@ in {
     sops.secrets."atrium/env" = {
       sopsFile = ./secrets.yaml;
       mode = "0400";
-      restartUnits = ["atrium-notion-sync.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service" "atrium-web.service"];
+      restartUnits = ["atrium-agent-scheduler.service" "atrium-notion-sync.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service" "atrium-web.service" "atrium-web-local.service"];
     };
 
-    sops.secrets."atrium/searxng" = {
-      sopsFile = ./secrets.yaml;
-      mode = "0400";
-      restartUnits = ["searx.service"];
-    };
-
-    services.searx = {
-      enable = true;
-      environmentFile = config.sops.secrets."atrium/searxng".path;
-      settings = {
-        use_default_settings = true;
-        server = {
-          bind_address = "127.0.0.1";
-          port = searxPort;
-          secret_key = "$SEARXNG_SECRET";
-          limiter = false;
-          public_instance = false;
-        };
-        search.formats = ["html" "json"];
-      };
+    networking.nftables.tables.atrium-web = {
+      family = "inet";
+      content = ''
+        chain input {
+          type filter hook input priority filter - 1; policy accept;
+          iifname "${config.services.netbird.clients.default.interface}" tcp dport ${toString webPort} ip saddr != ${self.lib.netbirdPeers.alda} drop
+          iifname "${config.services.netbird.clients.default.interface}" tcp dport ${toString webPort} meta nfproto ipv6 drop
+        }
+      '';
     };
 
     systemd = {
@@ -353,6 +351,16 @@ in {
           wantedBy = ["multi-user.target"];
         };
 
+        atrium-agent-scheduler = appService {
+          description = "Run atrium's scheduled and nightly agent jobs";
+          serviceConfig = {
+            ExecStart = "${lib.getExe atrium} agent scheduler";
+            Restart = "always";
+            RestartSec = 10;
+          };
+          wantedBy = ["multi-user.target"];
+        };
+
         atrium-web = {
           description = "atrium web UI";
           after = ["network-online.target"] ++ llamaUnits;
@@ -361,7 +369,22 @@ in {
           serviceConfig =
             hardening
             // {
-              ExecStart = "${lib.getExe atrium} serve --host 0.0.0.0 --port ${toString webPort}";
+              ExecStart = "${lib.getExe atrium} serve --host 0.0.0.0 --port ${toString webPort} --auth proxy";
+              Restart = "always";
+              RestartSec = 5;
+            };
+          wantedBy = ["multi-user.target"];
+        };
+
+        atrium-web-local = {
+          description = "atrium web UI (loopback, no proxy auth)";
+          after = ["network-online.target"] ++ llamaUnits;
+          wants = ["network-online.target"] ++ llamaUnits;
+          environment = appEnvironment // {ATRIUM_STATIC_DIR = atriumStatic;};
+          serviceConfig =
+            hardening
+            // {
+              ExecStart = "${lib.getExe atrium} serve --host 127.0.0.1 --port ${toString webLocalPort} --auth local";
               Restart = "always";
               RestartSec = 5;
             };
