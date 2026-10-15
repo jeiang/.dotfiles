@@ -36,6 +36,7 @@ in {
       "glance.jeiang.dev"
       "speed.jeiang.dev"
       "buildbot.jeiang.dev"
+      self.lib.atriumHostname
     ];
     firewall = [
       {
@@ -404,6 +405,24 @@ in {
               uri /api/auth/caddy
             }
             reverse_proxy ${node4}:${port "glance" "app"}
+          }
+
+          # Only a tinyauth session in the atrium_access group is forwarded.
+          # `route` keeps the written order: Caddy's default order runs
+          # request_header after forward_auth, which would delete the
+          # identity headers tinyauth just copied in.
+          ${self.lib.atriumHostname} {
+            ${logLine}${crowdsecLine}${appsecLine}route {
+              request_header -Remote-User
+              request_header -Remote-Email
+              request_header -Remote-Name
+              request_header -Remote-Groups
+              forward_auth 127.0.0.1:${port "tinyauth" "app"} {
+                uri /api/auth/caddy
+                copy_headers Remote-User Remote-Email Remote-Groups
+              }
+              reverse_proxy ${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumWebPort}
+            }
           }
 
           # Only GitHub's webhook is public (authenticated by its HMAC
