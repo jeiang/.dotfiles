@@ -26,14 +26,13 @@ EOF
 watch)
   rev=$(jq -r '.nodes.garret.locked.rev' flake.lock)
   nix build --out-link "$tmp/garret" "github:jeiang/garret/${rev}#garret"
-  # Paths substituted from garret itself are skipped one by one; the drain's
-  # push of the job's outputs still marks their closures as pushed now.
+  # public_keys is the watcher's own-key filter: paths already signed by garret are skipped one by
+  # one; the drain's push of the job's outputs still marks their closures as pushed now.
   {
+    printf 'public_keys = ["%s"]\n' "$GARRET_PUBLIC_KEY"
     cat .ci/garret.toml
-    printf '\n[watch]\ncursor_path = "%s"\nsocket_path = "%s"\nupstream_keys = ["cache.nixos.org-1", "%s"]\n' \
-      "$cursor" "$socket" "${GARRET_PUBLIC_KEY%%:*}"
   } >"$config"
-  nohup "$client" --config "$config" watch-store >"$log" 2>&1 &
+  nohup "$client" --config "$config" watch-store --cursor "$cursor" --socket "$socket" >"$log" 2>&1 &
   echo $! >"$pidfile"
   # The cursor appears once the watcher has authenticated and bootstrapped.
   for _ in $(seq 30); do
@@ -55,7 +54,7 @@ drain)
     tail -n 100 "$log"
   fi
   status=0
-  "$client" --config "$config" watch-store --drain || status=$?
+  "$client" --config "$config" watch-store --cursor "$cursor" --drain || status=$?
   if [ -s "$outputs" ]; then
     # shellcheck disable=SC2046 # one store path per line
     "$client" --config "$config" push $(cat "$outputs") || status=$?

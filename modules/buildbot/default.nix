@@ -41,21 +41,15 @@ in {
         issuer = "https://auth.jeiang.dev";
         client_id = garretClientId;
         audience = garretClientId;
+        client_secret_file = secret "garret-client-secret";
       };
     };
 
     # buildbot-nix registers a gcroot for every default-branch push output, built or already local, and for no pull request output, so the roots are exactly what garret should hold.
     gcroots = "/nix/var/nix/gcroots/per-user/buildbot-worker";
 
-    # GARRET_TOKEN is handed to the client as-is, so the config's oidc table only has to parse.
     pushGcroots = pkgs.writeShellScript "buildbot-garret-push" ''
       set -euo pipefail
-      GARRET_TOKEN=$(${lib.getExe pkgs.curl} -fsS https://auth.jeiang.dev/api/oidc/token \
-        --data-urlencode grant_type=client_credentials \
-        --data-urlencode client_id=${garretClientId} \
-        --data-urlencode "client_secret@${secret "garret-client-secret"}" \
-        | ${lib.getExe pkgs.jq} -er .access_token)
-      export GARRET_TOKEN
       find ${gcroots} -type l -print0 \
         | xargs -0 -r readlink -f \
         | sed '/\.drv$/d' \
