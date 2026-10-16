@@ -76,8 +76,6 @@ in {
 
     sopsFile = ./secrets.yaml;
 
-    buildbotClientId = self.lib.buildbotGarretClientId;
-
     pocketIdAudience = "384a5193-a040-4025-a8d3-7815d6269ca2";
 
     # garret grants no read/write tiers -- any accepted token means full
@@ -156,12 +154,7 @@ in {
           # first that does, and it must be the human one; the Puller's
           # browseOidc submodule rejects the option entirely). Pocket ID
           # uses the client id as the audience, hence the same value twice.
-          (pocketIdIssuer
-            // {
-              client_id = pocketIdAudience;
-              # Machine clients' tokens carry their own client id as `aud`.
-              extra_audiences = [buildbotClientId];
-            })
+          (pocketIdIssuer // {client_id = pocketIdAudience;})
         ];
       };
 
