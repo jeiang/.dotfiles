@@ -53,6 +53,26 @@
         "type": "github"
       }
     },
+    "atrium": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792264636,
+        "narHash": "sha256-8tqFeXSpUsmGSyfm6Z4pViYkEn3UbXoxtG+/7oygzt4=",
+        "owner": "jeiang",
+        "repo": "atrium",
+        "rev": "be214ad8c86161ccbe670e7454fa51bec296048d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "atrium",
+        "type": "github"
+      }
+    },
     "bill-splitter": {
       "inputs": {
         "nixpkgs": [
@@ -1835,6 +1855,7 @@
     "root": {
       "inputs": {
         "agent-skills": "agent-skills",
+        "atrium": "atrium",
         "bill-splitter": "bill-splitter",
         "buildbot-nix": "buildbot-nix",
         "character-randomizer": "character-randomizer",

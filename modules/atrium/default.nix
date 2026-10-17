@@ -1,11 +1,12 @@
-{self, ...}: let
+{
+  self,
+  inputs,
+  ...
+}: let
   icloudAppleId = "aidan@aidanpinard.co";
   stateDirName = "atrium";
   stateDir = "/var/lib/${stateDirName}";
-  codemodeDirName = "atrium-codemode";
-  atriumId = 880;
-  cacheDir = "${stateDir}/cache";
-  modelsDir = "${cacheDir}/models";
+  modelsDir = "${stateDir}/cache/models";
   chatPort = 8187;
   embedPort = 8188;
   webPort = 8480;
@@ -32,129 +33,13 @@ in {
     inherit atriumHostname;
   };
 
-  perSystem = {pkgs, ...}: let
-    py = pkgs.python314Packages;
-    npmTarball = name: version: hash:
-      pkgs.fetchurl {
-        url = "https://registry.npmjs.org/${name}/-/${name}-${version}.tgz";
-        inherit hash;
-      };
-    basecoat = npmTarball "basecoat-css" "1.0.2" "sha512-C6I5rr7HziIAoBYNGPO5U6HaU/6FuF3iVp++IgoEqqJ836is3XoRty6l1ibXqxnoIRZNnOAYDMX8QxVC+58zhw==";
-    htmx = npmTarball "htmx.org" "2.0.11" "sha512-Thx/WtpeOQqSrqBCw/A1cwGJGg4UrVa3+sW0GmrM3p4gJgO89ecH4qtbnyzDDWFvBTqjnIMCgELTNt636dtamA==";
-  in {
-    packages = {
-      atrium = py.buildPythonApplication {
-        pname = "atrium";
-        version = (builtins.fromTOML (builtins.readFile ./app/pyproject.toml)).project.version;
-        src = ./app;
-        pyproject = true;
-        build-system = [py.setuptools];
-        dependencies = [py.anthropic py.caldav py.fastapi py.google-api-python-client py.google-auth py.httpx py.icalendar py.jinja2 py.markdown-it-py py.nh3 py.pydantic-monty py.python-multipart py.sqlite-vec py.trafilatura py.uvicorn py.vobject];
-        nativeCheckInputs = [py.respx py.pytestCheckHook];
-        meta.mainProgram = "atrium";
-      };
-
-      atrium-static = pkgs.stdenvNoCC.mkDerivation {
-        name = "atrium-static";
-        src = ./app/src/atrium/web;
-        nativeBuildInputs = [pkgs.tailwindcss_4];
-        dontConfigure = true;
-        buildPhase = ''
-          runHook preBuild
-          mkdir -p node_modules/basecoat-css
-          tar -xzf ${basecoat} --strip-components=1 -C node_modules/basecoat-css
-          tailwindcss --input static/input.css --output app.css --minify
-          runHook postBuild
-        '';
-        installPhase = ''
-          runHook preInstall
-          install -Dm444 app.css $out/app.css
-          install -Dm444 static/app.js $out/app.js
-          install -Dm444 node_modules/basecoat-css/dist/js/all.min.js $out/basecoat/all.min.js
-          tar -xzOf ${htmx} package/dist/htmx.min.js > $out/htmx.min.js
-          runHook postInstall
-        '';
-      };
-    };
-  };
-
   nixos.modules.artemis = {
     config,
     lib,
     pkgs,
     ...
   }: let
-    selfpkgs = self.packages.${pkgs.stdenv.hostPlatform.system};
-    llama = selfpkgs.llama-cpp-atrium;
-    envFile = config.sops.secrets."atrium/env".path;
-    vdirsyncerDir = "${stateDir}/vdirsyncer";
-    calendarDir = "${vdirsyncerDir}/calendars";
-    contactsDir = "${vdirsyncerDir}/contacts";
-    vdirsyncerStatusDir = "${vdirsyncerDir}/status";
-
-    vdirsyncerConfig = pkgs.writeText "atrium-vdirsyncer-config" ''
-      [general]
-      status_path = "${vdirsyncerStatusDir}"
-
-      [pair icloud_calendar]
-      a = "icloud_calendar_local"
-      b = "icloud_calendar_remote"
-      collections = ["from b"]
-
-      [storage icloud_calendar_local]
-      type = "filesystem"
-      path = "${calendarDir}"
-      fileext = ".ics"
-
-      [storage icloud_calendar_remote]
-      type = "caldav"
-      url = "https://caldav.icloud.com/"
-      username = "${icloudAppleId}"
-      password.fetch = ["command", "printenv", "ICLOUD_APP_PASSWORD"]
-      item_types = ["VEVENT"]
-
-      [pair icloud_contacts]
-      a = "icloud_contacts_local"
-      b = "icloud_contacts_remote"
-      collections = ["from b"]
-
-      [storage icloud_contacts_local]
-      type = "filesystem"
-      path = "${contactsDir}"
-      fileext = ".vcf"
-
-      [storage icloud_contacts_remote]
-      type = "carddav"
-      url = "https://contacts.icloud.com/"
-      username = "${icloudAppleId}"
-      password.fetch = ["command", "printenv", "ICLOUD_APP_PASSWORD"]
-      read_only = true
-    '';
-
-    inherit (selfpkgs) atrium;
-    atriumStatic = selfpkgs.atrium-static;
-
-    appEnvironment = {
-      ATRIUM_DB = "${stateDir}/atrium.db";
-      ATRIUM_CACHE_DIR = "${cacheDir}/messages";
-      ATRIUM_MODE = "live";
-      ATRIUM_CHAT_URL = "http://127.0.0.1:${toString chatPort}/v1";
-      ATRIUM_EMBED_URL = "http://127.0.0.1:${toString embedPort}/v1";
-      ATRIUM_CONTACTS_DIR = contactsDir;
-      ATRIUM_CALENDAR_DIR = calendarDir;
-      ATRIUM_TZ = self.lib.facts.timeZone;
-      GRAFANA_URL = self.lib.grafanaMeshUrl;
-      NTFY_URL = self.lib.ntfyBaseUrl;
-      NTFY_TOPIC = self.lib.ntfyAtriumTopic;
-      NTFY_MEDIA_TOPIC = self.lib.ntfyMediaTopic;
-      ATRIUM_MEDIA_ROOT = self.lib.mediaDir;
-      QBITTORRENT_URL = "http://127.0.0.1:${toString self.lib.qbittorrentWebuiPort}";
-      ATRIUM_PUBLIC_URL = "https://${atriumHostname}";
-      ATRIUM_MEDIA_MOVIES_URL = "http://${self.deploy.nodes.artemis.hostname}:${toString self.lib.mediaMoviesPort}";
-      ATRIUM_MEDIA_TV_URL = "http://${self.deploy.nodes.artemis.hostname}:${toString self.lib.mediaTvPort}";
-      ATRIUM_CODEMODE_SOCKET = "/run/${codemodeDirName}/codemode.sock";
-      ICLOUD_APPLE_ID = icloudAppleId;
-    };
+    llama = self.packages.${pkgs.stdenv.hostPlatform.system}.llama-cpp-atrium;
 
     modelsFetch = pkgs.writeShellApplication {
       name = "atrium-models-fetch";
@@ -175,19 +60,6 @@ in {
           fi
         '')
         (lib.attrValues models);
-    };
-
-    atriumRun = pkgs.writeShellApplication {
-      name = "atrium-run";
-      runtimeInputs = [pkgs.systemd];
-      text = ''
-        exec systemd-run --pipe --wait --collect --quiet \
-          --property=User=atrium --property=Group=atrium \
-          --property=StateDirectory=${stateDirName} --property=StateDirectoryMode=0750 --property=UMask=0027 \
-          --property=EnvironmentFile=${envFile} \
-          ${lib.concatStringsSep " \\\n          " (lib.mapAttrsToList (name: value: "--setenv=${name}=${value}") appEnvironment)} \
-          -- ${lib.getExe atrium} "$@"
-      '';
     };
 
     llamaService = name: {
@@ -234,55 +106,40 @@ in {
         LockPersonality = true;
       };
     };
-
-    appService = args:
-      lib.recursiveUpdate
-      {
-        after = ["network-online.target"] ++ llamaUnits;
-        wants = ["network-online.target"] ++ llamaUnits;
-        environment = appEnvironment;
-        serviceConfig = hardening;
-      }
-      args;
-
-    # Files the library gains must be group-writable and readable by the
-    # darkhttpd DynamicUsers, so media writers use the media group and 0002.
-    mediaWriter = {
-      SupplementaryGroups = [self.lib.mediaGroup];
-      UMask = "0002";
-      ReadWritePaths = [self.lib.mediaDir];
-    };
-
-    hardening = {
-      User = "atrium";
-      Group = "atrium";
-      StateDirectory = stateDirName;
-      StateDirectoryMode = "0750";
-      UMask = "0027";
-      EnvironmentFile = envFile;
-      NoNewPrivileges = true;
-      ProtectSystem = "strict";
-      ProtectHome = true;
-      PrivateTmp = true;
-      ProtectKernelModules = true;
-      ProtectKernelLogs = true;
-      ProtectClock = true;
-      RestrictSUIDSGID = true;
-      LockPersonality = true;
-    };
   in {
-    users.users.atrium = {
-      isSystemUser = true;
-      uid = atriumId;
-      group = "atrium";
+    imports = [inputs.atrium.nixosModules.default];
+
+    services.atrium = {
+      enable = true;
+      mode = "live";
+      environmentFiles = [config.sops.secrets."atrium/env".path];
+      modelServerUnits = llamaUnits;
+      chatUrl = "http://127.0.0.1:${toString chatPort}/v1";
+      embedUrl = "http://127.0.0.1:${toString embedPort}/v1";
+      publicUrl = "https://${atriumHostname}";
+      grafanaUrl = self.lib.grafanaMeshUrl;
+      inherit icloudAppleId;
+      web = {
+        port = webPort;
+        allowedHost = atriumHostname;
+        local.port = webLocalPort;
+      };
+      ntfy = {
+        url = self.lib.ntfyBaseUrl;
+        topic = self.lib.ntfyAtriumTopic;
+        mediaTopic = self.lib.ntfyMediaTopic;
+      };
+      media = {
+        enable = true;
+        group = self.lib.mediaGroup;
+        root = self.lib.mediaDir;
+        qbittorrentUrl = "http://127.0.0.1:${toString self.lib.qbittorrentWebuiPort}";
+        moviesUrl = "http://${self.deploy.nodes.artemis.hostname}:${toString self.lib.mediaMoviesPort}";
+        tvUrl = "http://${self.deploy.nodes.artemis.hostname}:${toString self.lib.mediaTvPort}";
+      };
     };
-    users.groups.atrium.gid = atriumId;
 
     gaming.pauseUnits = llamaUnits;
-
-    environment.systemPackages = [atriumRun];
-
-    systemd.tmpfiles.rules = ["d ${cacheDir} 0750 atrium atrium -"];
 
     persistence.directories = [
       {
@@ -299,247 +156,54 @@ in {
       restartUnits = ["atrium-agent-scheduler.service" "atrium-notion-sync.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service" "atrium-web.service" "atrium-web-local.service"];
     };
 
-    systemd = {
-      # Code-mode worker: one sandboxed instance per connection (the Monty interpreter is not an OS boundary).
-      sockets.atrium-codemode = {
-        description = "atrium code-mode worker socket";
-        wantedBy = ["sockets.target"];
-        socketConfig = {
-          ListenStream = "/run/${codemodeDirName}/codemode.sock";
-          SocketUser = "atrium";
-          SocketGroup = "atrium";
-          SocketMode = "0600";
-          DirectoryMode = "0755";
-          Accept = true;
+    systemd.services = {
+      atrium-models-fetch = {
+        description = "Fetch the atrium model weights";
+        after = ["network-online.target"];
+        wants = ["network-online.target"];
+        unitConfig.ConditionPathExists = map (model: "|!${modelsDir}/${model.file}") (lib.attrValues models);
+        serviceConfig = {
+          Type = "oneshot";
+          User = "atrium";
+          Group = "atrium";
+          StateDirectory = stateDirName;
+          StateDirectoryMode = "0750";
+          UMask = "0027";
+          ExecStart = lib.getExe modelsFetch;
+          TimeoutStartSec = 0;
+          PrivateTmp = true;
+          ProtectSystem = "strict";
+          ProtectHome = true;
+          NoNewPrivileges = true;
         };
       };
 
-      services = {
-        "atrium-codemode@" = {
-          description = "atrium code-mode worker";
-          serviceConfig = {
-            ExecStart = "${lib.getExe atrium} codemode-worker";
-            StandardInput = "socket";
-            StandardOutput = "socket";
-            StandardError = "journal";
-            DynamicUser = true;
-            PrivateNetwork = true;
-            ProtectSystem = "strict";
-            ProtectHome = true;
-            PrivateTmp = true;
-            PrivateDevices = true;
-            ProtectProc = "invisible";
-            ProcSubset = "pid";
-            NoNewPrivileges = true;
-            CapabilityBoundingSet = "";
-            RestrictAddressFamilies = "AF_UNIX";
-            RestrictSUIDSGID = true;
-            LockPersonality = true;
-            ProtectKernelModules = true;
-            ProtectKernelLogs = true;
-            ProtectKernelTunables = true;
-            ProtectClock = true;
-            MemoryMax = "256M";
-            CPUQuota = "50%";
-            RuntimeMaxSec = 60;
-          };
-        };
-
-        atrium-models-fetch = {
-          description = "Fetch the atrium model weights";
-          after = ["network-online.target"];
-          wants = ["network-online.target"];
-          unitConfig.ConditionPathExists = map (model: "|!${modelsDir}/${model.file}") (lib.attrValues models);
-          serviceConfig = {
-            Type = "oneshot";
-            User = "atrium";
-            Group = "atrium";
-            StateDirectory = stateDirName;
-            StateDirectoryMode = "0750";
-            UMask = "0027";
-            ExecStart = lib.getExe modelsFetch;
-            TimeoutStartSec = 0;
-            PrivateTmp = true;
-            ProtectSystem = "strict";
-            ProtectHome = true;
-            NoNewPrivileges = true;
-          };
-        };
-
-        atrium-llm = llamaService "atrium-llm" {
-          description = "Qwen3.5-9B chat server for atrium";
-          model = models.chat;
-          port = chatPort;
-          args = [
-            "--ctx-size"
-            "8192"
-            "--jinja"
-            "--chat-template-kwargs"
-            (builtins.toJSON {enable_thinking = false;})
-          ];
-        };
-
-        atrium-embed = llamaService "atrium-embed" {
-          description = "EmbeddingGemma 2 embedding server for atrium";
-          model = models.embed;
-          port = embedPort;
-          args = [
-            "--embedding"
-            "--ctx-size"
-            "2048"
-            "--batch-size"
-            "2048"
-            "--ubatch-size"
-            "2048"
-          ];
-        };
-
-        atrium-watch = appService {
-          description = "Watch the atrium mailboxes for new mail";
-          serviceConfig = {
-            ExecStart = "${lib.getExe atrium} watch";
-            Restart = "always";
-            RestartSec = 10;
-          };
-          wantedBy = ["multi-user.target"];
-        };
-
-        atrium-agent-scheduler = appService {
-          description = "Run atrium's scheduled and nightly agent jobs";
-          path = [pkgs.ffmpeg-headless];
-          serviceConfig =
-            mediaWriter
-            // {
-              ExecStart = "${lib.getExe atrium} agent scheduler";
-              Restart = "always";
-              RestartSec = 10;
-            };
-          wantedBy = ["multi-user.target"];
-        };
-
-        atrium-web = {
-          description = "atrium web UI";
-          after = ["network-online.target"] ++ llamaUnits;
-          wants = ["network-online.target"] ++ llamaUnits;
-          environment =
-            appEnvironment
-            // {
-              ATRIUM_STATIC_DIR = atriumStatic;
-              ATRIUM_PUBLIC_HOST = atriumHostname;
-            };
-          path = [pkgs.ffmpeg-headless];
-          serviceConfig =
-            hardening
-            // mediaWriter
-            // {
-              # 0.0.0.0 on purpose: binding to the NetBird address would race the interface
-              # coming up. Guard rejects any Host but the public one.
-              ExecStart = "${lib.getExe atrium} serve --host 0.0.0.0 --port ${toString webPort} --auth proxy --allowed-host ${atriumHostname}";
-              Restart = "always";
-              RestartSec = 5;
-            };
-          wantedBy = ["multi-user.target"];
-        };
-
-        atrium-web-local = {
-          description = "atrium web UI (loopback, no proxy auth)";
-          after = ["network-online.target"] ++ llamaUnits;
-          wants = ["network-online.target"] ++ llamaUnits;
-          environment = appEnvironment // {ATRIUM_STATIC_DIR = atriumStatic;};
-          path = [pkgs.ffmpeg-headless];
-          serviceConfig =
-            hardening
-            // mediaWriter
-            // {
-              ExecStart = "${lib.getExe atrium} serve --host 127.0.0.1 --port ${toString webLocalPort} --auth local";
-              Restart = "always";
-              RestartSec = 5;
-            };
-          wantedBy = ["multi-user.target"];
-        };
-
-        atrium-sync = appService {
-          description = "Reconcile the atrium mail index";
-          serviceConfig = {
-            Type = "oneshot";
-            ExecStart = "${lib.getExe atrium} sync";
-          };
-        };
-
-        atrium-notion-sync = appService {
-          description = "Mirror Notion into the atrium index";
-          serviceConfig = {
-            Type = "oneshot";
-            ExecStart = "${lib.getExe atrium} notion sync";
-          };
-        };
-
-        atrium-scan = appService {
-          description = "Scan the mailboxes for rebalance, deletion and label proposals";
-          serviceConfig = {
-            Type = "oneshot";
-            ExecStart = "${lib.getExe atrium} proposals scan-all";
-            TimeoutStartSec = "2h";
-          };
-        };
-
-        atrium-vdirsyncer-sync = {
-          description = "Sync iCloud calendar and contacts via vdirsyncer";
-          after = ["network-online.target"];
-          wants = ["network-online.target"];
-          path = [pkgs.vdirsyncer];
-          environment.VDIRSYNCER_CONFIG = vdirsyncerConfig;
-          serviceConfig =
-            hardening
-            // {
-              Type = "oneshot";
-            };
-          script = ''
-            set -euo pipefail
-
-            install -d -m 0700 "${calendarDir}" "${contactsDir}" "${vdirsyncerStatusDir}"
-
-            # discover prompts on stdin for each new remote collection and has
-            # no --yes flag; a bounded y-feed (not `yes |`, which would
-            # SIGPIPE under pipefail) keeps it non-interactive.
-            printf 'y\n%.0s' $(seq 1 100) | vdirsyncer discover
-            vdirsyncer sync
-          '';
-        };
+      atrium-llm = llamaService "atrium-llm" {
+        description = "Qwen3.5-9B chat server for atrium";
+        model = models.chat;
+        port = chatPort;
+        args = [
+          "--ctx-size"
+          "8192"
+          "--jinja"
+          "--chat-template-kwargs"
+          (builtins.toJSON {enable_thinking = false;})
+        ];
       };
 
-      timers = {
-        atrium-sync = {
-          wantedBy = ["timers.target"];
-          timerConfig = {
-            OnActiveSec = "2m";
-            OnUnitActiveSec = "15m";
-          };
-        };
-
-        atrium-notion-sync = {
-          wantedBy = ["timers.target"];
-          timerConfig = {
-            OnActiveSec = "3m";
-            OnUnitActiveSec = "15m";
-          };
-        };
-
-        atrium-scan = {
-          wantedBy = ["timers.target"];
-          timerConfig = {
-            OnCalendar = "monthly";
-            Persistent = true;
-          };
-        };
-
-        atrium-vdirsyncer-sync = {
-          wantedBy = ["timers.target"];
-          timerConfig = {
-            OnActiveSec = "1m";
-            OnUnitActiveSec = "15m";
-          };
-        };
+      atrium-embed = llamaService "atrium-embed" {
+        description = "EmbeddingGemma 2 embedding server for atrium";
+        model = models.embed;
+        port = embedPort;
+        args = [
+          "--embedding"
+          "--ctx-size"
+          "2048"
+          "--batch-size"
+          "2048"
+          "--ubatch-size"
+          "2048"
+        ];
       };
     };
   };
