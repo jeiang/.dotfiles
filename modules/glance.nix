@@ -198,9 +198,14 @@ in {
                           }) {
                             qBittorrent = self.lib.qbittorrentWebuiPort;
                             Downloads = self.lib.mediaFilesPort;
-                            atrium = self.lib.atriumWebPort;
                             Organizer = self.lib.mediaOrganizerPort;
-                          };
+                          }
+                          ++ [
+                            {
+                              title = "atrium";
+                              url = "https://${self.lib.atriumHostname}";
+                            }
+                          ];
                       }
                       {
                         title = "Speed test";

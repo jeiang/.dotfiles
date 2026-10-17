@@ -1,4 +1,4 @@
-_: let
+{self, ...}: let
   port = 3000;
 in {
   legion.services.tinyauth = {
@@ -35,6 +35,8 @@ in {
         OAUTH_PROVIDERS_POCKETID_USERINFOURL = "${pocketId}/api/oidc/userinfo";
         OAUTH_PROVIDERS_POCKETID_REDIRECTURL = "${appUrl}/api/oauth/callback/pocketid";
         OAUTH_PROVIDERS_POCKETID_SCOPES = "openid email profile groups";
+        APPS_ATRIUM_CONFIG_DOMAIN = self.lib.atriumHostname;
+        APPS_ATRIUM_OAUTH_GROUPS = "atrium_access";
       };
     };
 

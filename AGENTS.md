@@ -7,7 +7,7 @@ machine must run.
 | --- | --- | --- |
 | `artemis` | NixOS | Headless gaming and streaming box at home. Impermanent btrfs root. Reached over NetBird with Sunshine/Moonlight and hypr-rdp. Also hosts atrium and the media stack. |
 | `zakkart` | nix-darwin | The operator's MacBook. |
-| `alda` | NixOS | Legion server, Hetzner Cloud. Caddy edge. |
+| `alda` | NixOS | Legion server, Hetzner Cloud. Caddy edge (also fronts atrium on artemis). |
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
 | `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring. |
 | `peria` | NixOS | Legion server, Hetzner Cloud. garret, Actual Budget, atuin, ntfy, hath, glance, gatus. |
@@ -380,23 +380,37 @@ behavior for its own sake.
   socket proxy, so qBittorrent sees every Web UI client as loopback and
   whitelists it. The tunnel endpoint is ricklent's public IP, not its name:
   `wg` resolves inside the namespace, before any resolver is reachable.
-- `atrium` (`modules/atrium/`) is the code-owned service on artemis. Its
-  judgments run in its code, never as a tool an agent itself chooses. Its
-  state is `/var/lib/atrium` under the static `atrium` user.
+- `atrium` (`modules/atrium/`) is the code-owned service on artemis. Mail
+  routing and flagging run in its code, never as a tool an agent chooses.
+  Its state is `/var/lib/atrium` under the static `atrium` user.
 - The atrium mail core (`modules/atrium/app`) runs `ATRIUM_MODE=live` and is
   the only thing that changes the iCloud and Gmail mailboxes. It syncs and
   indexes both over IMAP, records every routing decision, and applies it in
   the watch and sync passes. Every IMAP write path refuses unless the mode
-  is `live` or an approved proposal or undo is running, and refuses
-  automatic writes while `/var/lib/atrium/pause` exists. Rules and folder
-  data live in atrium's SQLite database, imported on the host, never in this
-  public repository.
-- atrium's web UI (`atrium-web`, `atrium serve`) has no login. It is
-  reachable only over NetBird: it listens on `0.0.0.0` and the port is not
-  in any `allowedTCPPorts`, so only the trusted NetBird interface reaches it.
-  Never open its port on another interface. It carries the IMAP credentials:
-  approving a proposal, undoing an automatic action and correcting a message
-  write to a mailbox, and the pause switch stops only automatic writes.
+  is `live`, an approved proposal or undo is running, or the operator is
+  sending a draft (which may only append the copy to iCloud Sent), and
+  refuses automatic writes while `/var/lib/atrium/pause` exists. Rules,
+  folder data, skills, profile and agent threads live in atrium's SQLite
+  database, never in this public repository.
+- atrium's assistant is its own loop on the Anthropic API (Claude Haiku 5.5,
+  `ANTHROPIC_API_KEY` in `atrium/env`), so mail, Notion, calendar and Grafana
+  content it reads leaves the house. Tool policy is enforced by the tool
+  registry per run kind, never by the prompt: no tool sends mail (only the
+  operator's Send click on `/drafts` does), restarts anything, or fetches a
+  URL the operator did not type or a search did not return. Scheduled runs
+  only read, notify and create proposals; the nightly run writes Notion and
+  the profile directly, each write logged with undo on `/changes`; research
+  subagents and code mode are read-only. A monthly budget (default $75)
+  pauses scheduled runs at 80% and chat at 100%.
+- atrium's web UI has no login of its own. The public listener
+  (`atrium-web`, `--auth proxy`) is reached only through alda's Caddy at
+  `atrium.jeiang.dev` behind tinyauth: nftables on artemis drops its port
+  from every NetBird peer except alda, and the app rejects any request whose
+  `Remote-Groups` lacks `atrium_access`. `atrium-web-local` (`--auth local`)
+  listens on loopback only for emergency access over an SSH tunnel. Never
+  open either port on another interface. The UI carries the IMAP, SMTP,
+  Notion, Google and Anthropic credentials, and the pause switch stops only
+  automatic writes and scheduled runs.
 - atrium's model weights (Qwen3.5-9B chat, EmbeddingGemma 2) and the raw
   message cache live in `/var/lib/atrium/cache`, never in the Nix store. The
   directory is excluded from the artemis restic job; `atrium.db` stays

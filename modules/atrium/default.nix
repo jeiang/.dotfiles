@@ -1,14 +1,21 @@
-{self, ...}: let
+{
+  self,
+  config,
+  ...
+}: let
+  actualPort = config.legion.services.actual-budget.ports.app;
   icloudAppleId = "aidan@aidanpinard.co";
   stateDirName = "atrium";
   stateDir = "/var/lib/${stateDirName}";
+  codemodeDirName = "atrium-codemode";
   atriumId = 880;
   cacheDir = "${stateDir}/cache";
   modelsDir = "${cacheDir}/models";
   chatPort = 8187;
   embedPort = 8188;
   webPort = 8480;
-  searxPort = 8189;
+  webLocalPort = webPort + 1;
+  atriumHostname = "atrium.jeiang.dev";
   hf = repo: rev: file: "https://huggingface.co/${repo}/resolve/${rev}/${file}";
   models = {
     chat = {
@@ -24,7 +31,11 @@
   };
   llamaUnits = ["atrium-llm.service" "atrium-embed.service"];
 in {
-  flake.lib.atriumWebPort = webPort;
+  flake.lib = {
+    atriumWebPort = webPort;
+    atriumWebLocalPort = webLocalPort;
+    inherit atriumHostname;
+  };
 
   perSystem = {pkgs, ...}: let
     py = pkgs.python314Packages;
@@ -36,36 +47,56 @@ in {
     basecoat = npmTarball "basecoat-css" "1.0.2" "sha512-C6I5rr7HziIAoBYNGPO5U6HaU/6FuF3iVp++IgoEqqJ836is3XoRty6l1ibXqxnoIRZNnOAYDMX8QxVC+58zhw==";
     htmx = npmTarball "htmx.org" "2.0.11" "sha512-Thx/WtpeOQqSrqBCw/A1cwGJGg4UrVa3+sW0GmrM3p4gJgO89ecH4qtbnyzDDWFvBTqjnIMCgELTNt636dtamA==";
   in {
-    packages.atrium = py.buildPythonApplication {
-      pname = "atrium";
-      version = (builtins.fromTOML (builtins.readFile ./app/pyproject.toml)).project.version;
-      src = ./app;
-      pyproject = true;
-      build-system = [py.setuptools];
-      dependencies = [py.fastapi py.jinja2 py.markdown-it-py py.nh3 py.python-multipart py.sqlite-vec py.trafilatura py.uvicorn];
-      nativeCheckInputs = [py.httpx py.pytestCheckHook];
-      meta.mainProgram = "atrium";
-    };
+    packages = {
+      atrium = py.buildPythonApplication {
+        pname = "atrium";
+        version = (builtins.fromTOML (builtins.readFile ./app/pyproject.toml)).project.version;
+        src = ./app;
+        pyproject = true;
+        build-system = [py.setuptools];
+        dependencies = [py.anthropic py.caldav py.fastapi py.google-api-python-client py.google-auth py.httpx py.icalendar py.jinja2 py.markdown-it-py py.nh3 py.pydantic-monty py.python-multipart py.sqlite-vec py.trafilatura py.uvicorn py.vobject];
+        nativeCheckInputs = [py.respx py.pytestCheckHook];
+        meta.mainProgram = "atrium";
+      };
 
-    packages.atrium-static = pkgs.stdenvNoCC.mkDerivation {
-      name = "atrium-static";
-      src = ./app/src/atrium/web;
-      nativeBuildInputs = [pkgs.tailwindcss_4];
-      dontConfigure = true;
-      buildPhase = ''
-        runHook preBuild
-        mkdir -p node_modules/basecoat-css
-        tar -xzf ${basecoat} --strip-components=1 -C node_modules/basecoat-css
-        tailwindcss --input static/input.css --output app.css --minify
-        runHook postBuild
-      '';
-      installPhase = ''
-        runHook preInstall
-        install -Dm444 app.css $out/app.css
-        install -Dm444 node_modules/basecoat-css/dist/js/all.min.js $out/basecoat/all.min.js
-        tar -xzOf ${htmx} package/dist/htmx.min.js > $out/htmx.min.js
-        runHook postInstall
-      '';
+      actual-bridge = pkgs.buildNpmPackage {
+        pname = "atrium-actual-bridge";
+        version = "1.0.0";
+        src = ./actual-bridge;
+        npmDepsHash = "sha256-kH8TiCSnAt8WqO6hlVXlwesTJZfNVsH86SJxZp3kO3Y=";
+        dontNpmBuild = true;
+        nativeBuildInputs = [pkgs.makeWrapper];
+        installPhase = ''
+          runHook preInstall
+          mkdir -p $out/lib/actual-bridge $out/bin
+          cp -r bridge.mjs package.json node_modules $out/lib/actual-bridge/
+          makeWrapper ${pkgs.nodejs}/bin/node $out/bin/actual-bridge --add-flags $out/lib/actual-bridge/bridge.mjs
+          runHook postInstall
+        '';
+        meta.mainProgram = "actual-bridge";
+      };
+
+      atrium-static = pkgs.stdenvNoCC.mkDerivation {
+        name = "atrium-static";
+        src = ./app/src/atrium/web;
+        nativeBuildInputs = [pkgs.tailwindcss_4];
+        dontConfigure = true;
+        buildPhase = ''
+          runHook preBuild
+          mkdir -p node_modules/basecoat-css
+          tar -xzf ${basecoat} --strip-components=1 -C node_modules/basecoat-css
+          tailwindcss --input static/input.css --output app.css --minify
+          runHook postBuild
+        '';
+        installPhase = ''
+          runHook preInstall
+          install -Dm444 app.css $out/app.css
+          install -Dm444 static/app.js $out/app.js
+          install -Dm444 node_modules/basecoat-css/dist/js/all.min.js $out/basecoat/all.min.js
+          tar -xzOf ${htmx} package/dist/htmx.min.js > $out/htmx.min.js
+          runHook postInstall
+        '';
+      };
     };
   };
 
@@ -131,8 +162,17 @@ in {
       ATRIUM_MODE = "live";
       ATRIUM_CHAT_URL = "http://127.0.0.1:${toString chatPort}/v1";
       ATRIUM_EMBED_URL = "http://127.0.0.1:${toString embedPort}/v1";
-      ATRIUM_SEARX_URL = "http://127.0.0.1:${toString searxPort}";
       ATRIUM_CONTACTS_DIR = contactsDir;
+      ATRIUM_CALENDAR_DIR = calendarDir;
+      ATRIUM_TZ = self.lib.facts.timeZone;
+      GRAFANA_URL = self.lib.grafanaMeshUrl;
+      NTFY_URL = self.lib.ntfyBaseUrl;
+      NTFY_TOPIC = self.lib.ntfyAtriumTopic;
+      ATRIUM_CODEMODE_SOCKET = "/run/${codemodeDirName}/codemode.sock";
+      ICLOUD_APPLE_ID = icloudAppleId;
+      ATRIUM_ACTUAL_BRIDGE = lib.getExe selfpkgs.actual-bridge;
+      ATRIUM_ACTUAL_DATA = "${cacheDir}/actual";
+      ACTUAL_SERVER_URL = "http://${self.lib.netbirdPeers.peria}:${toString actualPort}";
     };
 
     modelsFetch = pkgs.writeShellApplication {
@@ -267,33 +307,66 @@ in {
     sops.secrets."atrium/env" = {
       sopsFile = ./secrets.yaml;
       mode = "0400";
-      restartUnits = ["atrium-notion-sync.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service" "atrium-web.service"];
+      restartUnits = ["atrium-agent-scheduler.service" "atrium-notion-sync.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service" "atrium-web.service" "atrium-web-local.service"];
     };
 
-    sops.secrets."atrium/searxng" = {
-      sopsFile = ./secrets.yaml;
-      mode = "0400";
-      restartUnits = ["searx.service"];
-    };
-
-    services.searx = {
-      enable = true;
-      environmentFile = config.sops.secrets."atrium/searxng".path;
-      settings = {
-        use_default_settings = true;
-        server = {
-          bind_address = "127.0.0.1";
-          port = searxPort;
-          secret_key = "$SEARXNG_SECRET";
-          limiter = false;
-          public_instance = false;
-        };
-        search.formats = ["html" "json"];
-      };
+    networking.nftables.tables.atrium-web = {
+      family = "inet";
+      content = ''
+        chain input {
+          type filter hook input priority filter - 1; policy accept;
+          iifname "${config.services.netbird.clients.default.interface}" tcp dport ${toString webPort} ip saddr != ${self.lib.netbirdPeers.alda} drop
+          iifname "${config.services.netbird.clients.default.interface}" tcp dport ${toString webPort} meta nfproto ipv6 drop
+        }
+      '';
     };
 
     systemd = {
+      # Code-mode worker: one sandboxed instance per connection (the Monty interpreter is not an OS boundary).
+      sockets.atrium-codemode = {
+        description = "atrium code-mode worker socket";
+        wantedBy = ["sockets.target"];
+        socketConfig = {
+          ListenStream = "/run/${codemodeDirName}/codemode.sock";
+          SocketUser = "atrium";
+          SocketGroup = "atrium";
+          SocketMode = "0600";
+          DirectoryMode = "0755";
+          Accept = true;
+        };
+      };
+
       services = {
+        "atrium-codemode@" = {
+          description = "atrium code-mode worker";
+          serviceConfig = {
+            ExecStart = "${lib.getExe atrium} codemode-worker";
+            StandardInput = "socket";
+            StandardOutput = "socket";
+            StandardError = "journal";
+            DynamicUser = true;
+            PrivateNetwork = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
+            PrivateTmp = true;
+            PrivateDevices = true;
+            ProtectProc = "invisible";
+            ProcSubset = "pid";
+            NoNewPrivileges = true;
+            CapabilityBoundingSet = "";
+            RestrictAddressFamilies = "AF_UNIX";
+            RestrictSUIDSGID = true;
+            LockPersonality = true;
+            ProtectKernelModules = true;
+            ProtectKernelLogs = true;
+            ProtectKernelTunables = true;
+            ProtectClock = true;
+            MemoryMax = "256M";
+            CPUQuota = "50%";
+            RuntimeMaxSec = 60;
+          };
+        };
+
         atrium-models-fetch = {
           description = "Fetch the atrium model weights";
           after = ["network-online.target"];
@@ -353,15 +426,47 @@ in {
           wantedBy = ["multi-user.target"];
         };
 
+        atrium-agent-scheduler = appService {
+          description = "Run atrium's scheduled and nightly agent jobs";
+          serviceConfig = {
+            ExecStart = "${lib.getExe atrium} agent scheduler";
+            Restart = "always";
+            RestartSec = 10;
+          };
+          wantedBy = ["multi-user.target"];
+        };
+
         atrium-web = {
           description = "atrium web UI";
+          after = ["network-online.target"] ++ llamaUnits;
+          wants = ["network-online.target"] ++ llamaUnits;
+          environment =
+            appEnvironment
+            // {
+              ATRIUM_STATIC_DIR = atriumStatic;
+              ATRIUM_PUBLIC_HOST = atriumHostname;
+            };
+          serviceConfig =
+            hardening
+            // {
+              # 0.0.0.0 on purpose: the nftables table above limits 8480 to alda, and binding to the
+              # NetBird address would race the interface coming up. Guard rejects any other Host.
+              ExecStart = "${lib.getExe atrium} serve --host 0.0.0.0 --port ${toString webPort} --auth proxy --allowed-host ${atriumHostname}";
+              Restart = "always";
+              RestartSec = 5;
+            };
+          wantedBy = ["multi-user.target"];
+        };
+
+        atrium-web-local = {
+          description = "atrium web UI (loopback, no proxy auth)";
           after = ["network-online.target"] ++ llamaUnits;
           wants = ["network-online.target"] ++ llamaUnits;
           environment = appEnvironment // {ATRIUM_STATIC_DIR = atriumStatic;};
           serviceConfig =
             hardening
             // {
-              ExecStart = "${lib.getExe atrium} serve --host 0.0.0.0 --port ${toString webPort}";
+              ExecStart = "${lib.getExe atrium} serve --host 127.0.0.1 --port ${toString webLocalPort} --auth local";
               Restart = "always";
               RestartSec = 5;
             };
