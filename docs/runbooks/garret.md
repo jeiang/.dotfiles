@@ -1,6 +1,6 @@
 # Runbook: garret (Nix binary cache)
 
-Operator runbook for garret on peria, the fleet's Nix binary cache.
+Operator runbook for garret on ricklent, the fleet's Nix binary cache.
 Review [`AGENTS.md`](../../AGENTS.md) before running any command here.
 
 garret is two units on one host:
@@ -10,8 +10,8 @@ garret is two units on one host:
 | `garret-puller.service` | `garret-puller` | 8081 | `cache.jeiang.dev` | Anonymous for narinfo/NAR; Pocket ID for the browse API |
 | `garret-pusher.service` | `garret` | 8082 | `cache-push.jeiang.dev` | OIDC (GitHub Actions + Pocket ID) |
 
-The Puller is in group `garret` only to share the database: `/mnt/garret` is
-`garret:garret` 0750 and the database files are 0660. The signing key
+The Puller is in group `garret` only to share the database: `/var/lib/garret`
+is `garret:garret` 0750 and the database files are 0660. The signing key
 (`garret`, 0400) and the admin socket (`garret`, 0600) are out of its reach.
 The Puller has its own S3 key (`garret/puller-s3-*`), limited by its S4
 policy to GetObject on the bucket; only the Pusher holds the key that can
@@ -20,7 +20,7 @@ console that its policy still grants GetObject only, and that `/ready/deep`
 passes.
 
 Metrics and `/healthz` are on separate listeners (9091 Pusher, 9092 Puller),
-bound to peria's private address and scraped by zantark.
+listening on all interfaces and reachable over the NetBird mesh; zantark scrapes them.
 zantark also probes the Puller's `/ready/deep`, which fetches the first
 byte of a real NAR through a presigned URL, so revoked S3 credentials or an
 S4 outage fail it while `/ready` and the NAR redirects still look healthy.
@@ -36,13 +36,13 @@ the shared-PoP ban behaviour that once made it unreachable from CI.
 ## Deploy
 
 ```bash
-just deploy peria -s --remote-build
+just deploy ricklent -s --remote-build
 ```
 
 Then check both units and a real round-trip:
 
 ```bash
-ssh peria.svr.jeiang.dev 'bash -c "systemctl status garret-pusher garret-puller"'
+ssh ricklent.svr.jeiang.dev 'bash -c "systemctl status garret-pusher garret-puller"'
 ```
 
 ```bash
@@ -76,16 +76,16 @@ pushes needs its entries there first.
 
 ## Operations
 
-`garret-admin` is installed on peria. It talks to the Pusher over its
+`garret-admin` is installed on ricklent. It talks to the Pusher over its
 admin socket at `/run/garret/admin.sock`, so it needs root and a running
 Pusher; it never opens the database directly.
 
 | Task | Command |
 | --- | --- |
-| Object count, usage vs quota, in-flight uploads | `ssh -t peria.svr.jeiang.dev sudo garret-admin status` |
-| Force a GC pass | `ssh -t peria.svr.jeiang.dev sudo garret-admin gc run` |
-| Backfill signatures after adding a key (refuses rows whose existing signature does not verify) | `ssh -t peria.svr.jeiang.dev sudo garret-admin resign` |
-| Audit rows against blobs (dry run) | `ssh -t peria.svr.jeiang.dev sudo garret-admin fsck --verify-sizes` |
+| Object count, usage vs quota, in-flight uploads | `ssh -t ricklent.svr.jeiang.dev sudo garret-admin status` |
+| Force a GC pass | `ssh -t ricklent.svr.jeiang.dev sudo garret-admin gc run` |
+| Backfill signatures after adding a key (refuses rows whose existing signature does not verify) | `ssh -t ricklent.svr.jeiang.dev sudo garret-admin resign` |
+| Audit rows against blobs (dry run) | `ssh -t ricklent.svr.jeiang.dev sudo garret-admin fsck --verify-sizes` |
 | Take a database copy now | see [Backup](#backup) |
 
 Quota is 250 GiB with eviction between the 0.95 and 0.85 watermarks
@@ -98,11 +98,11 @@ a newer push or a live pin still references. The cutoff is a UTC date or an
 age, at least a day ago. Without `--apply` it only lists what would go:
 
 ```bash
-ssh -t peria.svr.jeiang.dev sudo garret-admin prune --before 90d
+ssh -t ricklent.svr.jeiang.dev sudo garret-admin prune --before 90d
 ```
 
 ```bash
-ssh -t peria.svr.jeiang.dev sudo garret-admin prune --before 90d --apply
+ssh -t ricklent.svr.jeiang.dev sudo garret-admin prune --before 90d --apply
 ```
 
 Negotiation and uploads pause while an applied prune runs.
@@ -116,7 +116,7 @@ then list everything that subject first pushed. The subject is
 UTC date or an age:
 
 ```bash
-ssh -t peria.svr.jeiang.dev "sudo garret-admin delete --pushed-by 'https://token.actions.githubusercontent.com#repo:jeiang/<repo>:ref:<ref>' --since 2d"
+ssh -t ricklent.svr.jeiang.dev "sudo garret-admin delete --pushed-by 'https://token.actions.githubusercontent.com#repo:jeiang/<repo>:ref:<ref>' --since 2d"
 ```
 
 Without `--apply` the command is a dry run that only lists them; add
@@ -148,15 +148,15 @@ then drop the old one from both places.
 
 ## Backup
 
-The daily `restic-backups-garret` job does not stop garret. Its prepare step
-removes `/mnt/garret/backup.db` and has the Pusher write a fresh consistent
+The 6-hourly `restic-backups-garret` job does not stop garret. Its prepare step
+removes `/var/lib/garret/backup.db` and has the Pusher write a fresh consistent
 copy there with `garret-admin backup` (SQLite `VACUUM INTO`, mode 0600),
 and restic backs up only that file. The job fails if the Pusher is down. To
-take a copy by hand, pick a new name inside `/mnt/garret` (the Pusher can
+take a copy by hand, pick a new name inside `/var/lib/garret` (the Pusher can
 write nowhere else and never overwrites a file):
 
 ```bash
-ssh -t peria.svr.jeiang.dev sudo garret-admin backup /mnt/garret/manual-<date>.db
+ssh -t ricklent.svr.jeiang.dev sudo garret-admin backup /var/lib/garret/manual-<date>.db
 ```
 
 ## Restoring the index
@@ -170,44 +170,44 @@ closed until fsck has covered every restored row. See garret's
 
 1. Restore the copy to a scratch directory and check it
     ([`restore.md`](restore.md#restore-to-a-scratch-directory)). The file is
-    `/tmp/restore-garret/mnt/garret/backup.db`.
+    `/tmp/restore-garret/var/lib/garret/backup.db`.
 
-2. Close the push endpoint. `enp7s0` is a trusted interface, so the NixOS
-    firewall cannot do it; a separate table rejects the Pusher's port on
-    every interface. A deploy leaves it in place, a reboot does not: do not
-    reboot peria before step 7, and if it reboots, repeat this step at once.
+2. Close the push endpoint. The NetBird interface is trusted, and Caddy
+    reaches the Pusher over loopback, so a separate table rejects the
+    Pusher's port on every interface. A deploy leaves it in place, a reboot
+    does not: do not reboot ricklent before step 7, and if it reboots, repeat this step at once.
 
     ```bash
-    ssh -t peria.svr.jeiang.dev "sudo nft 'add table inet garret-restore; add chain inet garret-restore input { type filter hook input priority -10; }; add rule inet garret-restore input tcp dport 8082 reject with tcp reset'"
+    ssh -t ricklent.svr.jeiang.dev "sudo nft 'add table inet garret-restore; add chain inet garret-restore input { type filter hook input priority -10; }; add rule inet garret-restore input tcp dport 8082 reject with tcp reset'"
     ```
 
 3. Stop both units:
 
     ```bash
-    ssh -t peria.svr.jeiang.dev sudo systemctl stop garret-puller garret-pusher
+    ssh -t ricklent.svr.jeiang.dev sudo systemctl stop garret-puller garret-pusher
     ```
 
 4. Put the copy in place, owned by `garret`, and delete the old WAL, which
     would otherwise be replayed over it:
 
     ```bash
-    ssh -t peria.svr.jeiang.dev "sudo bash -c 'install -o garret -g garret -m 0660 /tmp/restore-garret/mnt/garret/backup.db /mnt/garret/garret.db && rm -f /mnt/garret/garret.db-wal /mnt/garret/garret.db-shm'"
+    ssh -t ricklent.svr.jeiang.dev "sudo bash -c 'install -d -o garret -g garret -m 0750 /var/lib/garret && install -o garret -g garret -m 0660 /tmp/restore-garret/var/lib/garret/backup.db /var/lib/garret/garret.db && rm -f /var/lib/garret/garret.db-wal /var/lib/garret/garret.db-shm'"
     ```
 
 5. Start only the Pusher, then repair:
 
     ```bash
-    ssh -t peria.svr.jeiang.dev sudo systemctl start garret-pusher
+    ssh -t ricklent.svr.jeiang.dev sudo systemctl start garret-pusher
     ```
 
     ```bash
-    ssh -t peria.svr.jeiang.dev sudo garret-admin fsck --repair --verify-sizes --quiesce
+    ssh -t ricklent.svr.jeiang.dev sudo garret-admin fsck --repair --verify-sizes --quiesce
     ```
 
 6. Start the Puller:
 
     ```bash
-    ssh -t peria.svr.jeiang.dev sudo systemctl start garret-puller
+    ssh -t ricklent.svr.jeiang.dev sudo systemctl start garret-puller
     ```
 
 7. fsck skips rows younger than 24 hours, and no restored row is newer than
@@ -215,7 +215,7 @@ closed until fsck has covered every restored row. See garret's
     showed, run the step 5 fsck again, then reopen pushes:
 
     ```bash
-    ssh -t peria.svr.jeiang.dev sudo nft delete table inet garret-restore
+    ssh -t ricklent.svr.jeiang.dev sudo nft delete table inet garret-restore
     ```
 
     CI pushes fail until then; its push steps are best-effort.
@@ -227,8 +227,10 @@ closed until fsck has covered every restored row. See garret's
 
 Without a usable copy, start from an empty cache:
 
-1. Stop both units: `ssh -t peria.svr.jeiang.dev sudo systemctl stop garret-puller garret-pusher`.
+1. Stop both units: `ssh -t ricklent.svr.jeiang.dev sudo systemctl stop garret-puller garret-pusher`.
 2. Empty the `garret` bucket.
-3. Delete the database: `ssh -t peria.svr.jeiang.dev sudo rm -f /mnt/garret/garret.db /mnt/garret/garret.db-wal /mnt/garret/garret.db-shm`.
-4. Start both units again: `ssh -t peria.svr.jeiang.dev sudo systemctl start garret-pusher garret-puller`.
+3. Replace the database with an empty one. Both units skip their start while
+    the file is missing, so a lost index never starts a sweep that empties
+    the bucket: `ssh -t ricklent.svr.jeiang.dev "sudo bash -c 'install -d -o garret -g garret -m 0750 /var/lib/garret && rm -f /var/lib/garret/garret.db /var/lib/garret/garret.db-wal /var/lib/garret/garret.db-shm && install -o garret -g garret -m 0660 /dev/null /var/lib/garret/garret.db'"`.
+4. Start both units again: `ssh -t ricklent.svr.jeiang.dev sudo systemctl start garret-pusher garret-puller`.
 5. Let CI push again on the next `main` run.

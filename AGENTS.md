@@ -9,9 +9,9 @@ machine must run.
 | `zakkart` | nix-darwin | The operator's MacBook. |
 | `alda` | NixOS | Legion server, Hetzner Cloud. Caddy edge (also fronts atrium on artemis). |
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
-| `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring. |
-| `peria` | NixOS | Legion server, Hetzner Cloud. garret, atuin, ntfy, hath, glance, gatus. |
-| `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer, Factorio, buildbot-nix master/worker (postgres, garret push timer), Gatus London watchdog, EU NetBird relay, qBittorrent WireGuard exit, second Blocky (mesh IP only). |
+| `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring, ntfy, gatus, atuin, f95-tracker. |
+| `peria` | NixOS | Legion server, Hetzner Cloud. Lowest-priority services: pumpkin (Minecraft), hath, glance. |
+| `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer, garret behind its own Caddy (which also fronts the EU NetBird relay), Factorio, Gatus London watchdog, qBittorrent WireGuard exit, second Blocky (mesh IP only). |
 
 Legion is the fleet's servers, whatever the provider: four run on Hetzner
 Cloud, `ricklent` on Arct Cloud. `legionNodes.<name>.provider` (`hetzner` or
@@ -206,7 +206,7 @@ behavior for its own sake.
   a Volume and `mountGuard`, so a missing Volume never initializes fresh
   state on the root disk. State that can tolerate losing the interval since
   its last backup instead lives on the root disk with a `backupSet` restic
-  job as its whole durability story; atuin on `peria` is the first such
+  job as its whole durability story; atuin on `zantark` is one such
   service. ricklent has no Volumes, so a stateful service there must use
   that root-disk-plus-restic pattern (a Volume on an Arct node fails
   evaluation). Exactly one node owns each stateful service; moving it is an
@@ -225,8 +225,9 @@ behavior for its own sake.
   added after it first enrolls, and until then its journald upload,
   CrowdSec agent, and scrape do not connect. NetBird access policies must
   allow ricklent to alda (CrowdSec LAPI), to zantark (VictoriaLogs), and
-  zantark to ricklent (node exporter), and all DNS clients to ricklent's
-  Blocky (port 553, TCP and UDP).
+  zantark to ricklent (node exporter, relay-eu metrics and health, garret's
+  8081, 9091 and 9092), atuin clients to zantark (8889), and all DNS
+  clients to ricklent's Blocky (port 553, TCP and UDP).
 - Legion host firewalls are on. A `legion.services.<name>` entry's
   `scope = "private"` is documentation: `enp7s0` (Hetzner nodes) and the
   NetBird interface are trusted interfaces. On a Hetzner node a public
@@ -246,13 +247,13 @@ behavior for its own sake.
   `alda`. The host opens TCP/UDP 40000-45000 for ad hoc services,
   and the Hetzner `legion` firewall allows that range, so a port in it is
   public on any Hetzner node whose host firewall opens it.
-- `netbird-relay-eu` on `ricklent` is a second NetBird relay that terminates
-  its own TLS on public TCP 443 (built-in Let's Encrypt, TLS-ALPN) at
-  `relay-eu.netbird.jeiang.dev`, DNS-only, with no STUN. Its auth secret is
-  a copy of the one in `modules/netbird-server/secrets.yaml`, kept in
-  `secrets.relay-eu.yaml` so ricklent never reads the store encryption key;
-  rotate both together. Its certificate state lives in
-  `/var/lib/netbird-relay-eu` and is reissued if lost.
+- `netbird-relay-eu` on `ricklent` is a second NetBird relay at
+  `relay-eu.netbird.jeiang.dev`, DNS-only, with no STUN. It listens on
+  loopback, and ricklent's Caddy (the one in front of garret) terminates its
+  TLS on public TCP 443, so the relay is down whenever that Caddy is. Its
+  auth secret is a copy of the one in `modules/netbird-server/secrets.yaml`,
+  kept in `secrets.relay-eu.yaml` so ricklent never reads the store
+  encryption key; rotate both together.
 - ricklent runs a CrowdSec agent (sshd logs from the journal) and an
   nftables bouncer, both against the LAPI on `alda` over the mesh. Its
   machine and bouncer credentials live in `modules/crowdsec/secrets.agent.yaml`,
@@ -276,11 +277,16 @@ behavior for its own sake.
 - Stateless by choice: Gatus stores results in memory, and tinyauth's
   database holds only sessions.
 - `gatus-london` on ricklent is the external watchdog: same endpoints as
-  peria's `gatus`, alerting straight to Discord with the Alertmanager
-  webhook value (`modules/gatus/secrets.yaml`), so it depends on neither
-  peria nor zantark. peria's `gatus` keeps alerting through Alertmanager.
+  zantark's `gatus`, alerting straight to Discord with the Alertmanager
+  webhook value (`modules/gatus/secrets.yaml`), so it does not depend on
+  zantark. zantark's `gatus` keeps alerting through Alertmanager.
 - The H@H backup keeps the full cache: a restore costs less than earning
   back H@H trust and quota.
+- pumpkin (Minecraft, Java on TCP 25565 and Bedrock on UDP 19132) on
+  `peria` is public at `mc.jeiang.dev`, IPv4 only, and admits only the
+  players in `/var/lib/private/pumpkin/data/whitelist.json`, which the operator
+  edits by hand before restarting the unit. Its world is on the root disk
+  with a 6-hourly restic job, which stops the server while it runs.
 - artemis and Legion back up to separate S4 buckets with separate keys, and
   one repository password covers all of Legion. A host that owns no backup
   job is therefore not a recipient of a backups shard, and adding one back
@@ -300,12 +306,15 @@ behavior for its own sake.
 - garret's Puller runs as its own user with its own GetObject-only S3 key
   (`garret/puller-s3-*`); only the Pusher holds the bucket-write key. Its backup is an online
   `garret-admin backup` copy, so a backup never stops the cache.
-- buildbot-nix runs on `ricklent` with no login of its own
-  (`authBackend = "none"`, `allowUnauthenticatedControl`): its HTTP port is
-  mesh-only, and `buildbot.jeiang.dev` on alda's Caddy puts everything
-  except `/change_hook/github` behind tinyauth. A repository builds when it
-  carries the GitHub topic `build-with-buildbot` and `jeiang` owns it. The
-  `userAllowlist` filters repository owners, not pull request authors. life-sim is not a buildbot project: `alda` builds it during `just deploy alda --remote-build`.
+- garret runs on `ricklent` because push bandwidth is its constraint, and
+  ricklent's own Caddy terminates `cache` and `cache-push` there instead of
+  alda's edge. Its SQLite index lives on the root disk with a 6-hourly
+  restic job, so a lost ricklent forgets the pushes since the last
+  snapshot. Both garret units skip their start while the index file is
+  missing: the Pusher would create an empty one, and its startup orphan
+  sweep would then delete every bucket object older than 24 hours. That
+  Caddy has no CrowdSec bouncer module or AppSec; ricklent's nftables
+  bouncer is its only CrowdSec protection.
 - The portfolio on `vida` runs whatever upstream `joshua-noel/portfolio`
   main builds: `portfolio-update` builds it as the `portfolio` user at
   00:00 UTC (and 2 minutes after activation) into

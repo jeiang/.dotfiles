@@ -36,12 +36,12 @@ in {
 
   nixos.modules.monitoring = {
     config,
+    lib,
     pkgs,
     ...
   }: let
     node1 = self.lib.legionNodes.alda.privateIPv4;
     node2 = self.lib.legionNodes.vida.privateIPv4;
-    node4 = self.lib.legionNodes.peria.privateIPv4;
 
     sopsFile = ./secrets.yaml;
     # A node outside the private network is scraped over the mesh and drops out until it has a peer entry.
@@ -56,12 +56,12 @@ in {
     netbirdProxyPort = legionServices.netbird-proxy.ports;
     blockyPort = legionServices.blocky.ports.http;
     blockyTargets = map (a: "${a}:${toString blockyPort}") (builtins.filter (a: a != null) [node2 (self.lib.legionAddress "zantark" "ricklent")]);
-    hathPort = legionServices.hath.ports.app;
-    garretPort = legionServices.garret.ports;
-    gatusPort = legionServices.gatus.ports.app;
+    # Where zantark reaches a service port; empty while its node is mesh-only without a peer entry.
+    at = svc: key: path: let
+      a = self.lib.legionAddress "zantark" legionServices.${svc}.node;
+    in
+      lib.optional (a != null) "${a}:${toString legionServices.${svc}.ports.${key}}${path}";
     pocketIdPort = legionServices.pocket-id.ports.app;
-    ntfyPort = legionServices.ntfy.ports.app;
-    f95TrackerPort = legionServices.f95-tracker.ports.app;
 
     blackboxPort = 9115;
 
@@ -218,7 +218,7 @@ in {
             tls_config.insecure_skip_verify = true;
             static_configs = [
               {
-                targets = ["${node4}:${toString hathPort}"];
+                targets = at "hath" "app" "";
                 labels.type = "hath";
               }
             ];
@@ -227,14 +227,14 @@ in {
             job_name = "garret";
             static_configs = [
               {
-                targets = ["${node4}:${toString garretPort.pusher-metrics}"];
+                targets = at "garret" "pusher-metrics" "";
                 labels = {
                   type = "cache";
                   component = "pusher";
                 };
               }
               {
-                targets = ["${node4}:${toString garretPort.puller-metrics}"];
+                targets = at "garret" "puller-metrics" "";
                 labels = {
                   type = "cache";
                   component = "puller";
@@ -246,7 +246,7 @@ in {
             job_name = "gatus";
             static_configs = [
               {
-                targets = ["${node4}:${toString gatusPort}"];
+                targets = at "gatus" "app" "";
                 labels.type = "probe";
               }
             ];
@@ -264,16 +264,14 @@ in {
                 };
               }
               {
-                targets = [
-                  "http://${node4}:${toString f95TrackerPort}/healthz"
-                ];
+                targets = map (t: "http://${t}") (at "f95-tracker" "app" "/healthz");
                 labels = {
                   type = "probe";
                   tier = "warning";
                 };
               }
               {
-                targets = ["http://${node4}:${toString ntfyPort}/v1/health"];
+                targets = map (t: "http://${t}") (at "ntfy" "app" "/v1/health");
                 labels = {
                   type = "probe";
                   tier = "warning";
@@ -284,10 +282,7 @@ in {
                 # URL, so revoked S3 credentials or an S4 outage fail it; the
                 # Pusher's service port is fully token-gated, so its probe
                 # targets the metrics listener's /healthz instead.
-                targets = [
-                  "http://${node4}:${toString garretPort.puller}/ready/deep"
-                  "http://${node4}:${toString garretPort.pusher-metrics}/healthz"
-                ];
+                targets = map (t: "http://${t}") (at "garret" "puller" "/ready/deep" ++ at "garret" "pusher-metrics" "/healthz");
                 labels = {
                   type = "probe";
                   tier = "warning";

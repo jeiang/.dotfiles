@@ -38,10 +38,8 @@ D("jeiang.dev", REG_NONE,
   CAA("@", "iodef", "mailto:aidan@aidanpinard.co"),
 
   // cache-push MUST stay grey-clouded: a push is one streaming PUT of a whole NAR and Cloudflare 413s bodies over 100 MB.
-  A("cache", ALDA_V4, CF_PROXY_OFF),
-  AAAA("cache", ALDA_V6, CF_PROXY_OFF),
-  A("cache-push", ALDA_V4, CF_PROXY_OFF),
-  AAAA("cache-push", ALDA_V6, CF_PROXY_OFF),
+  A("cache", RICKLENT_V4, CF_PROXY_OFF),
+  A("cache-push", RICKLENT_V4, CF_PROXY_OFF),
 
   // Long-lived subscription streams (SSE/WebSocket) stay off the Cloudflare proxy, and the client IP reaches ntfy's rate limiter.
   A("ntfy", ALDA_V4, CF_PROXY_OFF),
@@ -53,6 +51,7 @@ D("jeiang.dev", REG_NONE,
 
   // UDP game traffic cannot pass the Cloudflare proxy, so the wildcard does not cover it.
   A("factorio", RICKLENT_V4, CF_PROXY_OFF),
+  A("mc", PERIA_V4, CF_PROXY_OFF),
 
   // NetBird control plane and STUN: long-lived gRPC/WebSocket streams and UDP, kept off the Cloudflare proxy.
   A("netbird", ALDA_V4),

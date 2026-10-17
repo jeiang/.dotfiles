@@ -18,8 +18,6 @@ in {
       "aidanpinard.co"
       "pinard.co.tt"
       "auth.jeiang.dev"
-      "cache.jeiang.dev"
-      "cache-push.jeiang.dev"
       "ntfy.jeiang.dev"
       "grafana.jeiang.dev"
       "netbird.jeiang.dev"
@@ -34,7 +32,6 @@ in {
       "tinyauth.jeiang.dev"
       "glance.jeiang.dev"
       "speed.jeiang.dev"
-      "buildbot.jeiang.dev"
       self.lib.atriumHostname
     ];
     firewall = [
@@ -70,10 +67,9 @@ in {
     node1 = self.lib.legionNodes.alda.privateIPv4;
     node2 = self.lib.legionNodes.vida.privateIPv4;
     node3 = self.lib.legionNodes.zantark.privateIPv4;
-    node4 = self.lib.legionNodes.peria.privateIPv4;
-    buildbot = "${self.lib.legionAddress "alda" legionServices.buildbot.node}:${port "buildbot" "app"}";
 
     port = svc: key: toString legionServices.${svc}.ports.${key};
+    upstream = svc: key: "${self.lib.legionNodes.${legionServices.${svc}.node}.privateIPv4}:${port svc key}";
 
     website = inputs.website.packages.${system}.default;
     portfolio = "${self.lib.legionNodes.${legionServices.portfolio.node}.privateIPv4}:${port "portfolio" "app"}";
@@ -348,34 +344,8 @@ in {
             ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node2}:${port "pocket-id" "app"}
           }
 
-          # appsec skipped on the cache routes: clients legitimately fetch
-          # in high-volume bursts, and fail-open wins here.
-          # garret closes a connection idle for 30 s, so Caddy must drop its
-          # pooled upstream connections first or reuse one mid-close (502).
-          cache.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "garret" "puller"} {
-              transport http {
-                keepalive 20s
-              }
-            }
-          }
-
-          # MUST stay grey-clouded/DNS-only in Cloudflare: a push is one
-          # streaming PUT of a whole NAR and Cloudflare 413s bodies over
-          # 100 MB on the free plan. Long timeouts for those uploads.
-          cache-push.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "garret" "pusher"} {
-              transport http {
-                keepalive 20s
-                read_timeout 15m
-                write_timeout 15m
-                response_header_timeout 15m
-              }
-            }
-          }
-
           ntfy.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "ntfy" "app"}
+            ${logLine}${crowdsecLine}reverse_proxy ${upstream "ntfy" "app"}
           }
 
           grafana.jeiang.dev {
@@ -386,7 +356,7 @@ in {
           # netbird-proxy, which authenticates against it) would take the
           # outage report down with the outage. appsec skipped, fail-open.
           status.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "gatus" "app"}
+            ${logLine}${crowdsecLine}reverse_proxy ${upstream "gatus" "app"}
           }
 
           tinyauth.jeiang.dev {
@@ -399,7 +369,7 @@ in {
             ${logLine}${crowdsecLine}${appsecLine}forward_auth 127.0.0.1:${port "tinyauth" "app"} {
               uri /api/auth/caddy
             }
-            reverse_proxy ${node4}:${port "glance" "app"}
+            reverse_proxy ${upstream "glance" "app"}
           }
 
           # Only a tinyauth session in the atrium_access group is forwarded.
@@ -424,22 +394,6 @@ in {
                 }
                 reverse_proxy ${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumWebPort}
               }
-            }
-          }
-
-          # Only GitHub's webhook is public (authenticated by its HMAC
-          # signature); the UI sits behind tinyauth. appsec skipped on the
-          # webhook: commit messages in its payloads are arbitrary text.
-          buildbot.jeiang.dev {
-            ${logLine}${crowdsecLine}handle /change_hook/github {
-              reverse_proxy ${buildbot}
-            }
-
-            handle {
-              ${appsecLine}forward_auth 127.0.0.1:${port "tinyauth" "app"} {
-                uri /api/auth/caddy
-              }
-              reverse_proxy ${buildbot}
             }
           }
 

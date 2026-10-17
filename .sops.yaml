@@ -95,17 +95,8 @@ creation_rules:
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
       - *server_vida
+      - *server_zantark
       - *server_peria
-      - *server_ricklent
-
-  # modules/buildbot/default.nix.
-  - path_regex: modules/buildbot/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
       - *server_ricklent
 
   # modules/backups/default.nix (the /persist job) -- artemis only.
@@ -183,7 +174,7 @@ creation_rules:
       - *user_aidanp_se
       - *server_ricklent
 
-  # modules/ntfy/default.nix -- peria only.
+  # modules/ntfy/default.nix -- zantark only.
   - path_regex: modules/ntfy/secrets\.yaml$
     key_groups:
     - age:
@@ -191,7 +182,7 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_peria
+      - *server_zantark
 
   # modules/pocket-id/default.nix.
   - path_regex: modules/pocket-id/secrets\.yaml$
@@ -241,7 +232,7 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_peria
+      - *server_ricklent
 
   # modules/atrium/default.nix -- artemis only.
   - path_regex: modules/atrium/secrets\.yaml$
@@ -293,7 +284,7 @@ creation_rules:
       - *user_aidanp_se
       - *server_artemis
 
-  # modules/f95-tracker/default.nix -- peria only.
+  # modules/f95-tracker/default.nix -- zantark only.
   - path_regex: modules/f95-tracker/secrets\.yaml$
     key_groups:
     - age:
@@ -301,4 +292,4 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_peria
+      - *server_zantark

@@ -8,6 +8,8 @@
   stunPort = 3478;
   relayPort = 8080;
   relayMetricsPort = 9091;
+  # garret's Pusher holds 9091 on ricklent.
+  relayEuMetricsPort = 9093;
   relayHealthPort = 9001;
   relayTlsPort = 443;
   relayEuHost = "relay-eu.netbird.jeiang.dev";
@@ -69,8 +71,8 @@ in {
       module = "netbird-relay-eu";
       units = [relayEuUnit];
       ports = {
-        relay = relayTlsPort;
-        metrics = relayMetricsPort;
+        relay = relayPort;
+        metrics = relayEuMetricsPort;
         health = relayHealthPort;
       };
       publicHostnames = [relayEuHost];
@@ -109,12 +111,10 @@ in {
         wants = ["network-online.target"];
         wantedBy = ["multi-user.target"];
         environment = {
-          NB_LISTEN_ADDRESS = ":${toString relayTlsPort}";
+          NB_LISTEN_ADDRESS = "127.0.0.1:${toString relayPort}";
           NB_EXPOSED_ADDRESS = "rels://${relayEuHost}:${toString relayTlsPort}";
-          NB_LETSENCRYPT_DOMAINS = relayEuHost;
-          NB_LETSENCRYPT_DATA_DIR = "/var/lib/${relayEuUnit}";
           NB_LOG_LEVEL = "info";
-          NB_METRICS_PORT = toString relayMetricsPort;
+          NB_METRICS_PORT = toString relayEuMetricsPort;
           NB_HEALTH_LISTEN_ADDRESS = ":${toString relayHealthPort}";
         };
         serviceConfig = {
@@ -123,10 +123,19 @@ in {
           Restart = "on-failure";
           RestartSec = 5;
           DynamicUser = true;
-          StateDirectory = relayEuUnit;
-          AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
           MemoryMax = "96M";
         };
+      };
+
+      services.caddy = {
+        enable = true;
+        virtualHosts.${relayEuHost}.extraConfig = ''
+          reverse_proxy 127.0.0.1:${toString relayPort} {
+            transport http {
+              read_timeout 15m
+            }
+          }
+        '';
       };
     };
 
