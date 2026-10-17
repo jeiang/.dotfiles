@@ -32,8 +32,8 @@ in {
     services.pumpkin = {
       enable = true;
       settings = {
-        # The list itself is whitelist.json in the state directory, edited
-        # by hand; pumpkin reads it at start.
+        # The list itself is data/whitelist.json in the state directory,
+        # edited by hand; pumpkin reads it at start.
         white_list = true;
         enforce_whitelist = true;
         networking = {
