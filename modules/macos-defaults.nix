@@ -14,12 +14,36 @@ _: {
     # symlinking it into ~/Pictures.
     wallpapers = ../assets/wallpapers-kanabox;
     defaultbrowser = lib.getExe pkgs.defaultbrowser;
+    # IINA takes every type QuickTime Player defaults to, plus m4v, webm and mkv.
+    iinaTypes = [
+      "public.audiovisual-content"
+      "public.movie"
+      "com.apple.quicktime-movie"
+      "public.mpeg"
+      "public.mpeg-2-video"
+      "public.mpeg-4"
+      "com.apple.m4v-video"
+      "public.dv-movie"
+      "public.avi"
+      "public.3gpp"
+      "public.3gpp2"
+      "public.avchd-content"
+      "public.avchd-collection"
+      "org.webmproject.webm"
+      "io.iina.mkv"
+      "public.audio"
+      "public.ulaw-audio"
+      "public.au-audio"
+      "com.apple.coreaudio-format"
+      "com.apple.quicktime-audio"
+      "org.3gpp.adaptive-multi-rate-audio"
+    ];
     # duti settings: `<bundle id> <UTI> <role>` or `<bundle id> <URL scheme>`.
     defaultApps = pkgs.writeText "default-apps.duti" ''
       com.microsoft.Word org.openxmlformats.wordprocessingml.document all
       com.microsoft.Word com.microsoft.word.doc all
       com.apple.mail mailto
-    '';
+      ${lib.concatMapStrings (uti: "com.colliderli.iina ${uti} all\n") iinaTypes}'';
   in {
     system = {
       defaults = {
