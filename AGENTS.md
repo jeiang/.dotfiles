@@ -375,12 +375,12 @@ behavior for its own sake.
   downloaded again. Two darkhttpd units serve the library read-only on 8084
   (movies) and 8085 (tv), mesh-only like the downloads listing on 8082.
 - atrium's Media section owns filing and the EZTV watches (the former
-  media-organizer is gone). Its web and scheduler units write the library
-  through the `media` group (umask 0002, `ReadWritePaths=/var/lib/media`).
-  `/media/file/*` is the one public path on the atrium vhost: Caddy skips
-  tinyauth for it (still stripping `Remote-*`), and atrium serves the bytes
-  only for a valid HMAC-signed, expiring link. The zakkart shim opens
-  atrium's `/media/add` page instead of calling qBittorrent.
+  media-organizer is gone). `services.atrium.media` gives it the `media`
+  group and `/var/lib/media`. `/media/file/*` is the one public path on the
+  atrium vhost: Caddy skips tinyauth for it (still stripping `Remote-*`),
+  and atrium serves the bytes only for a valid HMAC-signed, expiring link.
+  The zakkart shim opens atrium's `/media/add` page instead of calling
+  qBittorrent.
 - qBittorrent runs in a network namespace on artemis whose only link besides
   loopback is a WireGuard interface to ricklent (`modules/qbittorrent/`), so
   with the tunnel down it has no route. ricklent masquerades its traffic and
@@ -389,39 +389,22 @@ behavior for its own sake.
   socket proxy, so qBittorrent sees every Web UI client as loopback and
   whitelists it. The tunnel endpoint is ricklent's public IP, not its name:
   `wg` resolves inside the namespace, before any resolver is reachable.
-- `atrium` (`modules/atrium/`) is the code-owned service on artemis. Mail
-  routing and flagging run in its code, never as a tool an agent chooses.
-  Its state is `/var/lib/atrium` under the static `atrium` user.
-- The atrium mail core (`modules/atrium/app`) runs `ATRIUM_MODE=live` and is
-  the only thing that changes the iCloud and Gmail mailboxes. It syncs and
-  indexes both over IMAP, records every routing decision, and applies it in
-  the watch and sync passes. Every IMAP write path refuses unless the mode
-  is `live`, an approved proposal or undo is running, or the operator is
-  sending a draft (which may only append the copy to iCloud Sent), and
-  refuses automatic writes while `/var/lib/atrium/pause` exists. Rules,
-  folder data, skills, profile and agent threads live in atrium's SQLite
-  database, never in this public repository.
-- atrium's assistant is its own loop on the Anthropic API (Claude Haiku 5.5,
-  `ANTHROPIC_API_KEY` in `atrium/env`), so mail, Notion, calendar and Grafana
-  content it reads leaves the house. Tool policy is enforced by the tool
-  registry per run kind, never by the prompt: no tool sends mail (only the
-  operator's Send click on `/drafts` does), restarts anything, or fetches a
-  URL the operator did not type or a search did not return. Scheduled runs
-  only read, notify and create proposals; the nightly run writes Notion and
-  the profile directly, each write logged with undo on `/changes`; research
-  subagents and code mode are read-only. A monthly budget (default $75)
-  pauses scheduled runs at 80% and chat at 100%.
-- atrium's web UI has no login of its own. The public listener
-  (`atrium-web`, `--auth proxy`) is meant to be reached through alda's Caddy
-  at `atrium.jeiang.dev` behind tinyauth, and the app rejects any request
-  whose `Host` is not that name or whose `Remote-Groups` lacks
-  `atrium_access`. Its port is open to every NetBird peer, because artemis
+- `atrium` is the code-owned service on artemis, built and documented in
+  the `atrium` input (`jeiang/atrium`); its own `AGENTS.md` holds the mail,
+  assistant, web auth and media decisions. `modules/atrium/` only wires
+  `services.atrium` into artemis: `mode = "live"`, the sops environment file
+  (`atrium/env`, which carries the IMAP, SMTP, Notion, Google and Anthropic
+  credentials, so what the assistant reads leaves the house), the shared
+  hostname and ports (`flake.lib.atriumHostname`, `atriumWebPort`,
+  `atriumWebLocalPort`), the llama-server units, persistence and backup.
+  Bumping the input is how a code change reaches artemis.
+- The public listener (`atrium-web`, `--auth proxy`) is reached through
+  alda's Caddy at `atrium.jeiang.dev` behind tinyauth (Pocket ID group
+  `atrium_access`). Its port is open to every NetBird peer, because artemis
   trusts the NetBird interface; the NetBird ACLs, which admit only the
   operator's machines and the fleet, are the boundary. `atrium-web-local`
   (`--auth local`) listens on loopback only for emergency access over an SSH
-  tunnel. Never open either port on another interface. The UI carries the
-  IMAP, SMTP, Notion, Google and Anthropic credentials, and the pause switch
-  stops only automatic writes and scheduled runs.
+  tunnel. Never open either port on another interface.
 - atrium's model weights (Qwen3.5-9B chat, EmbeddingGemma 2) and the raw
   message cache live in `/var/lib/atrium/cache`, never in the Nix store. The
   directory is excluded from the artemis restic job; `atrium.db` stays
@@ -431,21 +414,6 @@ behavior for its own sake.
   `llama-cpp-vulkan` pinned to an upstream `b*` tag, because no `v*` release
   nor nixpkgs's 0.4.1 loads the `gemma-embedding2` architecture EmbeddingGemma 2
   needs. Drop the override once nixpkgs ships a release that has it.
-- atrium applies a routing decision only to mail that became eligible after
-  go-live. Eligible means in the Inbox (Gmail: `\Inbox` label), `\Seen` and
-  not `\Flagged`. iCloud moves to the decided folder (fallback `Misc`);
-  Gmail adds the label and removes `\Inbox`, and leaves a fallback or
-  uncertain decision in the Inbox. Mail already eligible at go-live is never
-  filed automatically: `atrium live backlog` turns it into one
-  `inbox_backlog` proposal per account for the operator to approve. A contact
-  rule sets `\Flagged` on unread Inbox mail from a contact that has no
-  `List-Id` and is not no-reply; the 9B flag judgment is only logged, and
-  atrium never clears a flag except by undoing its own action. Operator
-  `delete` rules also trash matching mail in every folder once a day and when
-  new mail already matches. Every automatic write is logged in
-  `auto_actions` with enough data to undo it, is verified against the server
-  first, is capped at `WRITE_CAP` messages per account per pass, and never
-  touches Trash, Sent, Drafts or Spam/Junk.
 
 ## CI
 
