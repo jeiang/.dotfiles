@@ -11,7 +11,7 @@ machine must run.
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
 | `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring. |
 | `peria` | NixOS | Legion server, Hetzner Cloud. garret, atuin, ntfy, hath, glance, gatus. |
-| `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer, Factorio, buildbot-nix master/worker (postgres, garret push timer), Gatus London watchdog, EU NetBird relay, qBittorrent WireGuard exit, second Blocky (mesh IP only). |
+| `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer, Factorio, Gatus London watchdog, EU NetBird relay, qBittorrent WireGuard exit, second Blocky (mesh IP only). |
 
 Legion is the fleet's servers, whatever the provider: four run on Hetzner
 Cloud, `ricklent` on Arct Cloud. `legionNodes.<name>.provider` (`hetzner` or
@@ -300,12 +300,6 @@ behavior for its own sake.
 - garret's Puller runs as its own user with its own GetObject-only S3 key
   (`garret/puller-s3-*`); only the Pusher holds the bucket-write key. Its backup is an online
   `garret-admin backup` copy, so a backup never stops the cache.
-- buildbot-nix runs on `ricklent` with no login of its own
-  (`authBackend = "none"`, `allowUnauthenticatedControl`): its HTTP port is
-  mesh-only, and `buildbot.jeiang.dev` on alda's Caddy puts everything
-  except `/change_hook/github` behind tinyauth. A repository builds when it
-  carries the GitHub topic `build-with-buildbot` and `jeiang` owns it. The
-  `userAllowlist` filters repository owners, not pull request authors. life-sim is not a buildbot project: `alda` builds it during `just deploy alda --remote-build`.
 - The portfolio on `vida` runs whatever upstream `joshua-noel/portfolio`
   main builds: `portfolio-update` builds it as the `portfolio` user at
   00:00 UTC (and 2 minutes after activation) into

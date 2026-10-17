@@ -34,7 +34,6 @@ in {
       "tinyauth.jeiang.dev"
       "glance.jeiang.dev"
       "speed.jeiang.dev"
-      "buildbot.jeiang.dev"
       self.lib.atriumHostname
     ];
     firewall = [
@@ -71,7 +70,6 @@ in {
     node2 = self.lib.legionNodes.vida.privateIPv4;
     node3 = self.lib.legionNodes.zantark.privateIPv4;
     node4 = self.lib.legionNodes.peria.privateIPv4;
-    buildbot = "${self.lib.legionAddress "alda" legionServices.buildbot.node}:${port "buildbot" "app"}";
 
     port = svc: key: toString legionServices.${svc}.ports.${key};
 
@@ -424,22 +422,6 @@ in {
                 }
                 reverse_proxy ${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumWebPort}
               }
-            }
-          }
-
-          # Only GitHub's webhook is public (authenticated by its HMAC
-          # signature); the UI sits behind tinyauth. appsec skipped on the
-          # webhook: commit messages in its payloads are arbitrary text.
-          buildbot.jeiang.dev {
-            ${logLine}${crowdsecLine}handle /change_hook/github {
-              reverse_proxy ${buildbot}
-            }
-
-            handle {
-              ${appsecLine}forward_auth 127.0.0.1:${port "tinyauth" "app"} {
-                uri /api/auth/caddy
-              }
-              reverse_proxy ${buildbot}
             }
           }
 
