@@ -1,6 +1,6 @@
 {self, ...}: let
   bundleId = "dev.jeiang.send-to-artemis";
-  name = "Send to artemis";
+  name = "Send to atrium";
 in {
   darwin.modules.base = {
     config,
@@ -17,7 +17,7 @@ in {
       CFBundleShortVersionString = "1.0";
       CFBundleVersion = "1";
       LSUIElement = true;
-      QBittorrentURL = "http://${self.deploy.nodes.artemis.hostname}:${toString self.lib.qbittorrentWebuiPort}";
+      AtriumURL = "https://${self.lib.atriumHostname}";
       CFBundleURLTypes = [
         {
           CFBundleURLName = "Magnet link";

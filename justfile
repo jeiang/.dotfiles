@@ -109,7 +109,7 @@ qwen-image *args:
 # Copy iCloud movie files or show folders into artemis's media import queue, one verified file at a time; deletes nothing
 [no-cd, positional-arguments]
 icloud-media-import +paths:
-  nix shell --inputs-from {{justfile_directory()}} nixpkgs#rsync -c {{justfile_directory()}}/modules/media-organizer/icloud-import.sh artemis.jeiang.vpn /var/lib/media "$@"
+  nix shell --inputs-from {{justfile_directory()}} nixpkgs#rsync -c {{justfile_directory()}}/modules/media/icloud-import.sh artemis.jeiang.vpn /var/lib/media "$@"
 
 # A formula-only brew upgrade swaps the daemon binary without restarting the
 # running launchd job, so kickstart re-bootstraps it after the upgrade.

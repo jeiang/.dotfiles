@@ -146,6 +146,12 @@ in {
       GRAFANA_URL = self.lib.grafanaMeshUrl;
       NTFY_URL = self.lib.ntfyBaseUrl;
       NTFY_TOPIC = self.lib.ntfyAtriumTopic;
+      NTFY_MEDIA_TOPIC = self.lib.ntfyMediaTopic;
+      ATRIUM_MEDIA_ROOT = self.lib.mediaDir;
+      QBITTORRENT_URL = "http://127.0.0.1:${toString self.lib.qbittorrentWebuiPort}";
+      ATRIUM_PUBLIC_URL = "https://${atriumHostname}";
+      ATRIUM_MEDIA_MOVIES_URL = "http://${self.deploy.nodes.artemis.hostname}:${toString self.lib.mediaMoviesPort}";
+      ATRIUM_MEDIA_TV_URL = "http://${self.deploy.nodes.artemis.hostname}:${toString self.lib.mediaTvPort}";
       ATRIUM_CODEMODE_SOCKET = "/run/${codemodeDirName}/codemode.sock";
       ICLOUD_APPLE_ID = icloudAppleId;
     };
@@ -238,6 +244,14 @@ in {
         serviceConfig = hardening;
       }
       args;
+
+    # Files the library gains must be group-writable and readable by the
+    # darkhttpd DynamicUsers, so media writers use the media group and 0002.
+    mediaWriter = {
+      SupplementaryGroups = [self.lib.mediaGroup];
+      UMask = "0002";
+      ReadWritePaths = [self.lib.mediaDir];
+    };
 
     hardening = {
       User = "atrium";
@@ -392,11 +406,14 @@ in {
 
         atrium-agent-scheduler = appService {
           description = "Run atrium's scheduled and nightly agent jobs";
-          serviceConfig = {
-            ExecStart = "${lib.getExe atrium} agent scheduler";
-            Restart = "always";
-            RestartSec = 10;
-          };
+          path = [pkgs.ffmpeg-headless];
+          serviceConfig =
+            mediaWriter
+            // {
+              ExecStart = "${lib.getExe atrium} agent scheduler";
+              Restart = "always";
+              RestartSec = 10;
+            };
           wantedBy = ["multi-user.target"];
         };
 
@@ -410,8 +427,10 @@ in {
               ATRIUM_STATIC_DIR = atriumStatic;
               ATRIUM_PUBLIC_HOST = atriumHostname;
             };
+          path = [pkgs.ffmpeg-headless];
           serviceConfig =
             hardening
+            // mediaWriter
             // {
               # 0.0.0.0 on purpose: binding to the NetBird address would race the interface
               # coming up. Guard rejects any Host but the public one.
@@ -427,8 +446,10 @@ in {
           after = ["network-online.target"] ++ llamaUnits;
           wants = ["network-online.target"] ++ llamaUnits;
           environment = appEnvironment // {ATRIUM_STATIC_DIR = atriumStatic;};
+          path = [pkgs.ffmpeg-headless];
           serviceConfig =
             hardening
+            // mediaWriter
             // {
               ExecStart = "${lib.getExe atrium} serve --host 127.0.0.1 --port ${toString webLocalPort} --auth local";
               Restart = "always";

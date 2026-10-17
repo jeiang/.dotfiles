@@ -412,11 +412,18 @@ in {
               request_header -Remote-Email
               request_header -Remote-Name
               request_header -Remote-Groups
-              forward_auth 127.0.0.1:${port "tinyauth" "app"} {
-                uri /api/auth/caddy
-                copy_headers Remote-User Remote-Email Remote-Groups
+              # Signed media links are public: atrium verifies the HMAC.
+              # Remote-* stays stripped above, so nothing can be spoofed.
+              handle /media/file/* {
+                reverse_proxy ${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumWebPort}
               }
-              reverse_proxy ${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumWebPort}
+              handle {
+                forward_auth 127.0.0.1:${port "tinyauth" "app"} {
+                  uri /api/auth/caddy
+                  copy_headers Remote-User Remote-Email Remote-Groups
+                }
+                reverse_proxy ${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumWebPort}
+              }
             }
           }
 
