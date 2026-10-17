@@ -123,17 +123,6 @@ in {
 
           parsers.s02Enrich = [
             {
-              name = "jeiang/cache-whitelist";
-              description = "Do not feed binary cache traffic into ban scenarios";
-              whitelist = {
-                reason = "binary cache clients legitimately fetch and push in bursts";
-                expression = [
-                  "evt.Meta.target_fqdn == 'cache.jeiang.dev'"
-                  "evt.Meta.target_fqdn == 'cache-push.jeiang.dev'"
-                ];
-              };
-            }
-            {
               # The mesh ranges are assigned via the NetBird dashboard and
               # declared nowhere in Nix.
               name = "jeiang/mesh-whitelist";
