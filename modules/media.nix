@@ -26,24 +26,12 @@ in {
         directory = mediaDir;
         inherit group;
       }
-      # Retired media-organizer's state, kept until its rules are imported into atrium:
-      # dropping this bind mount cannot switch live, so it goes in a later --boot deploy.
-      {
-        directory = "/var/lib/media-organizer";
-        user = "media-organizer";
-        inherit group;
-        mode = "0700";
-      }
     ];
 
     # The operator copies files into the library and tidies it by hand.
     users = {
       groups.${group} = {};
       users.${config.preferences.user.name}.extraGroups = [group];
-      users.media-organizer = {
-        isSystemUser = true;
-        inherit group;
-      };
     };
 
     # setgid keeps every file in the media group; the tree is world-readable.
