@@ -60,11 +60,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792278430,
-        "narHash": "sha256-qCO0AiIfgah3+aM7xHz7iuC9VYaDuJUNL0E3pPeZdr4=",
+        "lastModified": 1792280424,
+        "narHash": "sha256-4xrffdDeVrxfxmgCuHqSelZkC30QDQ0eYD8K1N8EChY=",
         "owner": "jeiang",
         "repo": "atrium",
-        "rev": "2846bbe9974c7a7651d43dc96be320c9eaed0a07",
+        "rev": "71f2c4d3812efeb63381ba1d41a8a5cf022aff8b",
         "type": "github"
       },
       "original": {
