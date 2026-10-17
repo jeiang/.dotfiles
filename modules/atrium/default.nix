@@ -1,4 +1,9 @@
-{self, ...}: let
+{
+  self,
+  config,
+  ...
+}: let
+  actualPort = config.legion.services.actual-budget.ports.app;
   icloudAppleId = "aidan@aidanpinard.co";
   stateDirName = "atrium";
   stateDir = "/var/lib/${stateDirName}";
@@ -163,6 +168,9 @@ in {
       GRAFANA_URL = self.lib.grafanaMeshUrl;
       NTFY_URL = self.lib.ntfyBaseUrl;
       ATRIUM_CODEMODE_SOCKET = "/run/${codemodeDirName}/codemode.sock";
+      ATRIUM_ACTUAL_BRIDGE = lib.getExe selfpkgs.actual-bridge;
+      ATRIUM_ACTUAL_DATA = "${cacheDir}/actual";
+      ACTUAL_SERVER_URL = "http://${self.lib.netbirdPeers.peria}:${toString actualPort}";
     };
 
     modelsFetch = pkgs.writeShellApplication {
