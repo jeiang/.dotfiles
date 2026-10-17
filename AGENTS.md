@@ -403,14 +403,16 @@ behavior for its own sake.
   subagents and code mode are read-only. A monthly budget (default $75)
   pauses scheduled runs at 80% and chat at 100%.
 - atrium's web UI has no login of its own. The public listener
-  (`atrium-web`, `--auth proxy`) is reached only through alda's Caddy at
-  `atrium.jeiang.dev` behind tinyauth: nftables on artemis drops its port
-  from every NetBird peer except alda, and the app rejects any request whose
-  `Remote-Groups` lacks `atrium_access`. `atrium-web-local` (`--auth local`)
-  listens on loopback only for emergency access over an SSH tunnel. Never
-  open either port on another interface. The UI carries the IMAP, SMTP,
-  Notion, Google and Anthropic credentials, and the pause switch stops only
-  automatic writes and scheduled runs.
+  (`atrium-web`, `--auth proxy`) is meant to be reached through alda's Caddy
+  at `atrium.jeiang.dev` behind tinyauth, and the app rejects any request
+  whose `Host` is not that name or whose `Remote-Groups` lacks
+  `atrium_access`. Its port is open to every NetBird peer, because artemis
+  trusts the NetBird interface; the NetBird ACLs, which admit only the
+  operator's machines and the fleet, are the boundary. `atrium-web-local`
+  (`--auth local`) listens on loopback only for emergency access over an SSH
+  tunnel. Never open either port on another interface. The UI carries the
+  IMAP, SMTP, Notion, Google and Anthropic credentials, and the pause switch
+  stops only automatic writes and scheduled runs.
 - atrium's model weights (Qwen3.5-9B chat, EmbeddingGemma 2) and the raw
   message cache live in `/var/lib/atrium/cache`, never in the Nix store. The
   directory is excluded from the artemis restic job; `atrium.db` stays
