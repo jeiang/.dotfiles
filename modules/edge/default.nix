@@ -20,7 +20,6 @@ in {
       "auth.jeiang.dev"
       "cache.jeiang.dev"
       "cache-push.jeiang.dev"
-      "budget.jeiang.dev"
       "ntfy.jeiang.dev"
       "grafana.jeiang.dev"
       "netbird.jeiang.dev"
@@ -373,10 +372,6 @@ in {
                 response_header_timeout 15m
               }
             }
-          }
-
-          budget.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node4}:${port "actual-budget" "app"}
           }
 
           ntfy.jeiang.dev {

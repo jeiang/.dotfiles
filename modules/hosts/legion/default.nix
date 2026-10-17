@@ -37,7 +37,6 @@
     "netbird-proxy"
     "pocket-id"
     "garret"
-    "actual-budget"
     "atuin"
     "ntfy"
     "f95-tracker"
