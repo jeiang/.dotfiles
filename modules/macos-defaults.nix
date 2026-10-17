@@ -19,6 +19,9 @@ _: {
       com.microsoft.Word org.openxmlformats.wordprocessingml.document all
       com.microsoft.Word com.microsoft.word.doc all
       com.apple.mail mailto
+      com.colliderli.iina com.apple.quicktime-movie all
+      com.colliderli.iina public.mpeg-4 all
+      com.colliderli.iina io.iina.mkv all
     '';
   in {
     system = {
