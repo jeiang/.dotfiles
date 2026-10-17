@@ -42,7 +42,6 @@ in {
   }: let
     node1 = self.lib.legionNodes.alda.privateIPv4;
     node2 = self.lib.legionNodes.vida.privateIPv4;
-    node4 = self.lib.legionNodes.peria.privateIPv4;
 
     sopsFile = ./secrets.yaml;
     # A node outside the private network is scraped over the mesh and drops out until it has a peer entry.
@@ -57,16 +56,12 @@ in {
     netbirdProxyPort = legionServices.netbird-proxy.ports;
     blockyPort = legionServices.blocky.ports.http;
     blockyTargets = map (a: "${a}:${toString blockyPort}") (builtins.filter (a: a != null) [node2 (self.lib.legionAddress "zantark" "ricklent")]);
-    hathPort = legionServices.hath.ports.app;
     # Where zantark reaches a service port; empty while its node is mesh-only without a peer entry.
     at = svc: key: path: let
       a = self.lib.legionAddress "zantark" legionServices.${svc}.node;
     in
       lib.optional (a != null) "${a}:${toString legionServices.${svc}.ports.${key}}${path}";
-    gatusPort = legionServices.gatus.ports.app;
     pocketIdPort = legionServices.pocket-id.ports.app;
-    ntfyPort = legionServices.ntfy.ports.app;
-    f95TrackerPort = legionServices.f95-tracker.ports.app;
 
     blackboxPort = 9115;
 
@@ -223,7 +218,7 @@ in {
             tls_config.insecure_skip_verify = true;
             static_configs = [
               {
-                targets = ["${node4}:${toString hathPort}"];
+                targets = at "hath" "app" "";
                 labels.type = "hath";
               }
             ];
@@ -251,7 +246,7 @@ in {
             job_name = "gatus";
             static_configs = [
               {
-                targets = ["${node4}:${toString gatusPort}"];
+                targets = at "gatus" "app" "";
                 labels.type = "probe";
               }
             ];
@@ -269,16 +264,14 @@ in {
                 };
               }
               {
-                targets = [
-                  "http://${node4}:${toString f95TrackerPort}/healthz"
-                ];
+                targets = map (t: "http://${t}") (at "f95-tracker" "app" "/healthz");
                 labels = {
                   type = "probe";
                   tier = "warning";
                 };
               }
               {
-                targets = ["http://${node4}:${toString ntfyPort}/v1/health"];
+                targets = map (t: "http://${t}") (at "ntfy" "app" "/v1/health");
                 labels = {
                   type = "probe";
                   tier = "warning";

@@ -67,9 +67,9 @@ in {
     node1 = self.lib.legionNodes.alda.privateIPv4;
     node2 = self.lib.legionNodes.vida.privateIPv4;
     node3 = self.lib.legionNodes.zantark.privateIPv4;
-    node4 = self.lib.legionNodes.peria.privateIPv4;
 
     port = svc: key: toString legionServices.${svc}.ports.${key};
+    upstream = svc: key: "${self.lib.legionNodes.${legionServices.${svc}.node}.privateIPv4}:${port svc key}";
 
     website = inputs.website.packages.${system}.default;
     portfolio = "${self.lib.legionNodes.${legionServices.portfolio.node}.privateIPv4}:${port "portfolio" "app"}";
@@ -345,7 +345,7 @@ in {
           }
 
           ntfy.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "ntfy" "app"}
+            ${logLine}${crowdsecLine}reverse_proxy ${upstream "ntfy" "app"}
           }
 
           grafana.jeiang.dev {
@@ -356,7 +356,7 @@ in {
           # netbird-proxy, which authenticates against it) would take the
           # outage report down with the outage. appsec skipped, fail-open.
           status.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${node4}:${port "gatus" "app"}
+            ${logLine}${crowdsecLine}reverse_proxy ${upstream "gatus" "app"}
           }
 
           tinyauth.jeiang.dev {
@@ -369,7 +369,7 @@ in {
             ${logLine}${crowdsecLine}${appsecLine}forward_auth 127.0.0.1:${port "tinyauth" "app"} {
               uri /api/auth/caddy
             }
-            reverse_proxy ${node4}:${port "glance" "app"}
+            reverse_proxy ${upstream "glance" "app"}
           }
 
           # Only a tinyauth session in the atrium_access group is forwarded.

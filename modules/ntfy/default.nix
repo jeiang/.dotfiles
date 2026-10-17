@@ -15,7 +15,7 @@ in {
   };
 
   legion.services.ntfy = {
-    node = "peria";
+    node = "zantark";
     module = "ntfy";
     stateful = true;
     units = ["ntfy-sh"];

@@ -115,7 +115,7 @@ in {
   legion.services.gatus =
     service
     // {
-      node = "peria";
+      node = "zantark";
       module = "gatus";
     };
 
@@ -141,7 +141,7 @@ in {
     systemd.services.gatus.serviceConfig.MemoryMax = "64M";
   };
 
-  # Alerts straight to Discord so the watchdog does not depend on peria or zantark.
+  # Alerts straight to Discord so the watchdog does not depend on zantark.
   nixos.modules.gatus-london = {config, ...}: {
     services.gatus = {
       enable = true;

@@ -12,7 +12,7 @@
       # just keeps its local history until it is back on.
       env.ATUIN_CONFIG_DIR = "${pkgs.writeTextDir "config.toml" ''
         auto_sync = true
-        sync_address = "http://${self.lib.netbirdPeers.peria}:${toString config.legion.services.atuin.ports.app}"
+        sync_address = "http://${self.lib.netbirdPeers.${config.legion.services.atuin.node}}:${toString config.legion.services.atuin.ports.app}"
       ''}";
     });
   };

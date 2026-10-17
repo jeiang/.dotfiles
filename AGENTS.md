@@ -9,8 +9,8 @@ machine must run.
 | `zakkart` | nix-darwin | The operator's MacBook. |
 | `alda` | NixOS | Legion server, Hetzner Cloud. Caddy edge (also fronts atrium on artemis). |
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
-| `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring. |
-| `peria` | NixOS | Legion server, Hetzner Cloud. atuin, ntfy, hath, glance, gatus. |
+| `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring, ntfy, gatus, atuin, f95-tracker. |
+| `peria` | NixOS | Legion server, Hetzner Cloud. Lowest-priority services: hath, glance. |
 | `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer, garret behind its own Caddy (which also fronts the EU NetBird relay), Factorio, Gatus London watchdog, qBittorrent WireGuard exit, second Blocky (mesh IP only). |
 
 Legion is the fleet's servers, whatever the provider: four run on Hetzner
@@ -206,7 +206,7 @@ behavior for its own sake.
   a Volume and `mountGuard`, so a missing Volume never initializes fresh
   state on the root disk. State that can tolerate losing the interval since
   its last backup instead lives on the root disk with a `backupSet` restic
-  job as its whole durability story; atuin on `peria` is the first such
+  job as its whole durability story; atuin on `zantark` is one such
   service. ricklent has no Volumes, so a stateful service there must use
   that root-disk-plus-restic pattern (a Volume on an Arct node fails
   evaluation). Exactly one node owns each stateful service; moving it is an
@@ -276,9 +276,9 @@ behavior for its own sake.
 - Stateless by choice: Gatus stores results in memory, and tinyauth's
   database holds only sessions.
 - `gatus-london` on ricklent is the external watchdog: same endpoints as
-  peria's `gatus`, alerting straight to Discord with the Alertmanager
-  webhook value (`modules/gatus/secrets.yaml`), so it depends on neither
-  peria nor zantark. peria's `gatus` keeps alerting through Alertmanager.
+  zantark's `gatus`, alerting straight to Discord with the Alertmanager
+  webhook value (`modules/gatus/secrets.yaml`), so it does not depend on
+  zantark. zantark's `gatus` keeps alerting through Alertmanager.
 - The H@H backup keeps the full cache: a restore costs less than earning
   back H@H trust and quota.
 - artemis and Legion back up to separate S4 buckets with separate keys, and

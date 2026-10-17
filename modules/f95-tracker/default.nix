@@ -19,7 +19,7 @@ in {
   flake.lib.f95TrackerUrl = "https://f95.proxy.jeiang.dev";
 
   legion.services.f95-tracker = {
-    node = "peria";
+    node = "zantark";
     module = "f95-tracker";
     stateful = true;
     units = [unit];

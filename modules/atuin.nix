@@ -4,7 +4,7 @@ _: let
   database = "${dataDir}/atuin.db";
 in {
   legion.services.atuin = {
-    node = "peria";
+    node = "zantark";
     module = "atuin";
     stateful = true;
     units = ["atuin"];
