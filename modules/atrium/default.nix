@@ -167,6 +167,7 @@ in {
       ATRIUM_TZ = self.lib.facts.timeZone;
       GRAFANA_URL = self.lib.grafanaMeshUrl;
       NTFY_URL = self.lib.ntfyBaseUrl;
+      NTFY_TOPIC = self.lib.ntfyAtriumTopic;
       ATRIUM_CODEMODE_SOCKET = "/run/${codemodeDirName}/codemode.sock";
       ICLOUD_APPLE_ID = icloudAppleId;
       ATRIUM_ACTUAL_BRIDGE = lib.getExe selfpkgs.actual-bridge;
