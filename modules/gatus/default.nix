@@ -73,11 +73,22 @@
         conditions = ["[CONNECTED] == true"];
       }
 
-      # cache.jeiang.dev is grey-clouded (DNS-only), so this reads
+      # ntfy.jeiang.dev is grey-clouded (DNS-only), so this reads
       # Caddy's own *.jeiang.dev wildcard cert directly, not
       # Cloudflare's edge cert as a proxied hostname would.
       {
         name = "TLS certificate";
+        group = "Edge";
+        url = "${self.lib.ntfyBaseUrl}/v1/health";
+        interval = "1h";
+        conditions = [
+          "[STATUS] == 200"
+          "[CERTIFICATE_EXPIRATION] > 240h"
+        ];
+      }
+      # ricklent's Caddy issues the cache and relay-eu certificates itself.
+      {
+        name = "cache.jeiang.dev certificate";
         group = "Edge";
         url = "https://cache.jeiang.dev/nix-cache-info";
         interval = "1h";

@@ -38,10 +38,8 @@ D("jeiang.dev", REG_NONE,
   CAA("@", "iodef", "mailto:aidan@aidanpinard.co"),
 
   // cache-push MUST stay grey-clouded: a push is one streaming PUT of a whole NAR and Cloudflare 413s bodies over 100 MB.
-  A("cache", ALDA_V4, CF_PROXY_OFF),
-  AAAA("cache", ALDA_V6, CF_PROXY_OFF),
-  A("cache-push", ALDA_V4, CF_PROXY_OFF),
-  AAAA("cache-push", ALDA_V6, CF_PROXY_OFF),
+  A("cache", RICKLENT_V4, CF_PROXY_OFF),
+  A("cache-push", RICKLENT_V4, CF_PROXY_OFF),
 
   // Long-lived subscription streams (SSE/WebSocket) stay off the Cloudflare proxy, and the client IP reaches ntfy's rate limiter.
   A("ntfy", ALDA_V4, CF_PROXY_OFF),

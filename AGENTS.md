@@ -10,8 +10,8 @@ machine must run.
 | `alda` | NixOS | Legion server, Hetzner Cloud. Caddy edge (also fronts atrium on artemis). |
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
 | `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring. |
-| `peria` | NixOS | Legion server, Hetzner Cloud. garret, atuin, ntfy, hath, glance, gatus. |
-| `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer, Factorio, Gatus London watchdog, EU NetBird relay, qBittorrent WireGuard exit, second Blocky (mesh IP only). |
+| `peria` | NixOS | Legion server, Hetzner Cloud. atuin, ntfy, hath, glance, gatus. |
+| `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer, garret behind its own Caddy (which also fronts the EU NetBird relay), Factorio, Gatus London watchdog, qBittorrent WireGuard exit, second Blocky (mesh IP only). |
 
 Legion is the fleet's servers, whatever the provider: four run on Hetzner
 Cloud, `ricklent` on Arct Cloud. `legionNodes.<name>.provider` (`hetzner` or
@@ -246,13 +246,13 @@ behavior for its own sake.
   `alda`. The host opens TCP/UDP 40000-45000 for ad hoc services,
   and the Hetzner `legion` firewall allows that range, so a port in it is
   public on any Hetzner node whose host firewall opens it.
-- `netbird-relay-eu` on `ricklent` is a second NetBird relay that terminates
-  its own TLS on public TCP 443 (built-in Let's Encrypt, TLS-ALPN) at
-  `relay-eu.netbird.jeiang.dev`, DNS-only, with no STUN. Its auth secret is
-  a copy of the one in `modules/netbird-server/secrets.yaml`, kept in
-  `secrets.relay-eu.yaml` so ricklent never reads the store encryption key;
-  rotate both together. Its certificate state lives in
-  `/var/lib/netbird-relay-eu` and is reissued if lost.
+- `netbird-relay-eu` on `ricklent` is a second NetBird relay at
+  `relay-eu.netbird.jeiang.dev`, DNS-only, with no STUN. It listens on
+  loopback, and ricklent's Caddy (the one in front of garret) terminates its
+  TLS on public TCP 443, so the relay is down whenever that Caddy is. Its
+  auth secret is a copy of the one in `modules/netbird-server/secrets.yaml`,
+  kept in `secrets.relay-eu.yaml` so ricklent never reads the store
+  encryption key; rotate both together.
 - ricklent runs a CrowdSec agent (sshd logs from the journal) and an
   nftables bouncer, both against the LAPI on `alda` over the mesh. Its
   machine and bouncer credentials live in `modules/crowdsec/secrets.agent.yaml`,
@@ -300,6 +300,12 @@ behavior for its own sake.
 - garret's Puller runs as its own user with its own GetObject-only S3 key
   (`garret/puller-s3-*`); only the Pusher holds the bucket-write key. Its backup is an online
   `garret-admin backup` copy, so a backup never stops the cache.
+- garret runs on `ricklent` because push bandwidth is its constraint, and
+  ricklent's own Caddy terminates `cache` and `cache-push` there instead of
+  alda's edge. Its SQLite index lives on the root disk with a 6-hourly
+  restic job, so a lost ricklent forgets the pushes since the last
+  snapshot. That Caddy has no CrowdSec bouncer module or AppSec; ricklent's
+  nftables bouncer is its only CrowdSec protection.
 - The portfolio on `vida` runs whatever upstream `joshua-noel/portfolio`
   main builds: `portfolio-update` builds it as the `portfolio` user at
   00:00 UTC (and 2 minutes after activation) into

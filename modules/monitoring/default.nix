@@ -36,6 +36,7 @@ in {
 
   nixos.modules.monitoring = {
     config,
+    lib,
     pkgs,
     ...
   }: let
@@ -57,7 +58,11 @@ in {
     blockyPort = legionServices.blocky.ports.http;
     blockyTargets = map (a: "${a}:${toString blockyPort}") (builtins.filter (a: a != null) [node2 (self.lib.legionAddress "zantark" "ricklent")]);
     hathPort = legionServices.hath.ports.app;
-    garretPort = legionServices.garret.ports;
+    # Where zantark reaches a service port; empty while its node is mesh-only without a peer entry.
+    at = svc: key: path: let
+      a = self.lib.legionAddress "zantark" legionServices.${svc}.node;
+    in
+      lib.optional (a != null) "${a}:${toString legionServices.${svc}.ports.${key}}${path}";
     gatusPort = legionServices.gatus.ports.app;
     pocketIdPort = legionServices.pocket-id.ports.app;
     ntfyPort = legionServices.ntfy.ports.app;
@@ -227,14 +232,14 @@ in {
             job_name = "garret";
             static_configs = [
               {
-                targets = ["${node4}:${toString garretPort.pusher-metrics}"];
+                targets = at "garret" "pusher-metrics" "";
                 labels = {
                   type = "cache";
                   component = "pusher";
                 };
               }
               {
-                targets = ["${node4}:${toString garretPort.puller-metrics}"];
+                targets = at "garret" "puller-metrics" "";
                 labels = {
                   type = "cache";
                   component = "puller";
@@ -284,10 +289,7 @@ in {
                 # URL, so revoked S3 credentials or an S4 outage fail it; the
                 # Pusher's service port is fully token-gated, so its probe
                 # targets the metrics listener's /healthz instead.
-                targets = [
-                  "http://${node4}:${toString garretPort.puller}/ready/deep"
-                  "http://${node4}:${toString garretPort.pusher-metrics}/healthz"
-                ];
+                targets = map (t: "http://${t}") (at "garret" "puller" "/ready/deep" ++ at "garret" "pusher-metrics" "/healthz");
                 labels = {
                   type = "probe";
                   tier = "warning";

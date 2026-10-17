@@ -1,10 +1,7 @@
-{
-  self,
-  inputs,
-  ...
-}: let
+{inputs, ...}: let
   # The SQLite index is the only record of what is in the S3 bucket.
-  dataDir = "/mnt/garret";
+  # pusher.nix's default dbPath lives in its StateDirectory.
+  dataDir = "/var/lib/garret";
   # Written by the Pusher, which can create files only beside the database.
   backupFile = "${dataDir}/backup.db";
 
@@ -21,7 +18,7 @@ in {
   flake.lib.garretWatermarks = watermarks;
 
   legion.services.garret = {
-    node = "peria";
+    node = "ricklent";
     module = "garret";
     stateful = true;
     units = ["garret-pusher" "garret-puller"];
@@ -31,6 +28,7 @@ in {
       pusher-metrics = pusherMetricsPort;
       puller-metrics = pullerMetricsPort;
     };
+    publicHostnames = ["cache.jeiang.dev" "cache-push.jeiang.dev"];
     firewall = [
       {
         port = pullerPort;
@@ -52,13 +50,12 @@ in {
         proto = "tcp";
         scope = "private";
       }
+      {
+        port = 443;
+        proto = "tcp";
+        scope = "public";
+      }
     ];
-    volume = {
-      name = "legion-garret";
-      mountpoint = dataDir;
-      hcloudVolumeId = "106562809";
-      sizeGiB = 10;
-    };
     backupSet = [backupFile];
   };
 
@@ -68,11 +65,7 @@ in {
     pkgs,
     ...
   }: let
-    dbPath = "${dataDir}/garret.db";
-
     garretAdmin = inputs.garret.packages.${pkgs.stdenv.hostPlatform.system}.garret-admin;
-
-    privateIPv4 = self.lib.legionNodes.peria.privateIPv4;
 
     sopsFile = ./secrets.yaml;
 
@@ -107,9 +100,9 @@ in {
     services.garret = {
       pusher = {
         enable = true;
-        listen = "${privateIPv4}:${toString pusherPort}";
-        metricsListen = "${privateIPv4}:${toString pusherMetricsPort}";
-        inherit dbPath s3;
+        listen = "0.0.0.0:${toString pusherPort}";
+        metricsListen = "0.0.0.0:${toString pusherMetricsPort}";
+        inherit s3;
         signingKeyFiles = [config.sops.secrets."garret/signing-key".path];
 
         # Advertised by /api/v1/discovery; without it `garret login` leaves
@@ -160,12 +153,11 @@ in {
 
       puller = {
         enable = true;
-        listen = "${privateIPv4}:${toString pullerPort}";
-        metricsListen = "${privateIPv4}:${toString pullerMetricsPort}";
+        listen = "0.0.0.0:${toString pullerPort}";
+        metricsListen = "0.0.0.0:${toString pullerMetricsPort}";
         # Its own key, limited to GetObject on the bucket: the Puller only
         # presigns GETs, so this public-facing process cannot write or
         # delete cache objects.
-        inherit dbPath;
         s3 = s3 // {credentialsFile = config.sops.templates."garret-puller-s3.env".path;};
         # narinfo and NAR routes stay anonymous; only the browse API is
         # gated.
@@ -173,21 +165,49 @@ in {
       };
     };
 
-    # The Volume mount is `nofail`, so without the guard a late or missing
-    # Volume silently initializes a fresh, empty index on the root disk.
-    systemd.services = let
-      guard = self.lib.mountGuard dataDir {
-        inherit pkgs;
-        owner = "garret";
-        mode = "0750";
+    systemd = {
+      services = {
+        # garret's sizing rule (spec 10): 2 x maxInFlightBytes + per-upload decoder
+        # window and preamble = 2 x 384 MiB + 16 x 9 MiB = 912 MiB, plus headroom.
+        garret-pusher.serviceConfig.MemoryMax = "960M";
+        garret-puller.serviceConfig.MemoryMax = "192M";
+        # Ordering only: a backup must never start a Pusher stopped for a restore.
+        restic-backups-garret.after = ["garret-pusher.service"];
       };
-    in {
-      # garret's sizing rule (spec 10): 2 x maxInFlightBytes + per-upload decoder
-      # window and preamble = 2 x 384 MiB + 16 x 9 MiB = 912 MiB, plus headroom.
-      garret-pusher = lib.recursiveUpdate {serviceConfig.MemoryMax = "960M";} guard;
-      garret-puller = lib.recursiveUpdate {serviceConfig.MemoryMax = "192M";} guard;
-      # Ordering only: a backup must never start a Pusher stopped for a restore.
-      restic-backups-garret.after = ["garret-pusher.service"];
+
+      # The root disk holds the only live index, so the interval is the
+      # pushes a lost node forgets.
+      timers.restic-backups-garret.timerConfig = {
+        OnCalendar = lib.mkForce "00/6:00";
+        RandomizedDelaySec = lib.mkForce "15m";
+      };
+    };
+
+    services.caddy = {
+      enable = true;
+      # appsec is not available here, and clients legitimately fetch in
+      # high-volume bursts. garret closes a connection idle for 30 s, so
+      # Caddy must drop its pooled upstream connections first or reuse one
+      # mid-close (502).
+      virtualHosts."cache.jeiang.dev".extraConfig = ''
+        reverse_proxy 127.0.0.1:${toString pullerPort} {
+          transport http {
+            keepalive 20s
+          }
+        }
+      '';
+      # MUST stay DNS-only in Cloudflare: a push is one streaming PUT of a
+      # whole NAR and Cloudflare 413s bodies over 100 MB on the free plan.
+      virtualHosts."cache-push.jeiang.dev".extraConfig = ''
+        reverse_proxy 127.0.0.1:${toString pusherPort} {
+          transport http {
+            keepalive 20s
+            read_timeout 15m
+            write_timeout 15m
+            response_header_timeout 15m
+          }
+        }
+      '';
     };
 
     environment.systemPackages = [garretAdmin];
