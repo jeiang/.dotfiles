@@ -225,8 +225,9 @@ behavior for its own sake.
   added after it first enrolls, and until then its journald upload,
   CrowdSec agent, and scrape do not connect. NetBird access policies must
   allow ricklent to alda (CrowdSec LAPI), to zantark (VictoriaLogs), and
-  zantark to ricklent (node exporter), and all DNS clients to ricklent's
-  Blocky (port 553, TCP and UDP).
+  zantark to ricklent (node exporter, relay-eu metrics and health, garret's
+  8081, 9091 and 9092), atuin clients to zantark (8889), and all DNS
+  clients to ricklent's Blocky (port 553, TCP and UDP).
 - Legion host firewalls are on. A `legion.services.<name>` entry's
   `scope = "private"` is documentation: `enp7s0` (Hetzner nodes) and the
   NetBird interface are trusted interfaces. On a Hetzner node a public

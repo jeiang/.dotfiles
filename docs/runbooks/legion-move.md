@@ -22,6 +22,11 @@ the old repository with `-r`.
 2. If the service has a public port on a Hetzner node, add it to the
     `legion` Cloud Firewall before deploying (`just hcloud-drift` shows the
     difference).
+3. In the NetBird dashboard, check that the access policies let `<new>`'s
+    clients reach it (zantark's scraper, and peers that use the service), and
+    retarget any reverse-proxy service on `proxy.jeiang.dev` that names
+    `<old>` (f95-tracker's `f95.proxy.jeiang.dev`). The flake declares
+    neither.
 
 ## Cut over
 
