@@ -370,8 +370,17 @@ behavior for its own sake.
   ours: `cache.numtide.com` only serves builds made against its own pin, so
   a `follows` would rebuild every agent from source.
 - The media tree on artemis (`modules/media.nix`) is one persisted
-  directory, `/var/lib/media`, holding qBittorrent's downloads. It is not
-  backed up, because it can be downloaded again.
+  directory, `/var/lib/media`, holding qBittorrent's downloads and the
+  `movies/` and `tv/` library. It is not backed up, because it can be
+  downloaded again. Two darkhttpd units serve the library read-only on 8084
+  (movies) and 8085 (tv), mesh-only like the downloads listing on 8082.
+- atrium's Media section owns filing and the EZTV watches (the former
+  media-organizer is gone). Its web and scheduler units write the library
+  through the `media` group (umask 0002, `ReadWritePaths=/var/lib/media`).
+  `/media/file/*` is the one public path on the atrium vhost: Caddy skips
+  tinyauth for it (still stripping `Remote-*`), and atrium serves the bytes
+  only for a valid HMAC-signed, expiring link. The zakkart shim opens
+  atrium's `/media/add` page instead of calling qBittorrent.
 - qBittorrent runs in a network namespace on artemis whose only link besides
   loopback is a WireGuard interface to ricklent (`modules/qbittorrent/`), so
   with the tunnel down it has no route. ricklent masquerades its traffic and

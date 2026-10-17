@@ -194,7 +194,8 @@ in {
                           }) {
                             qBittorrent = self.lib.qbittorrentWebuiPort;
                             Downloads = self.lib.mediaFilesPort;
-                            Organizer = self.lib.mediaOrganizerPort;
+                            Movies = self.lib.mediaMoviesPort;
+                            TV = self.lib.mediaTvPort;
                           }
                           ++ [
                             {
