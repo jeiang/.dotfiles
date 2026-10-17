@@ -309,8 +309,11 @@ behavior for its own sake.
   ricklent's own Caddy terminates `cache` and `cache-push` there instead of
   alda's edge. Its SQLite index lives on the root disk with a 6-hourly
   restic job, so a lost ricklent forgets the pushes since the last
-  snapshot. That Caddy has no CrowdSec bouncer module or AppSec; ricklent's
-  nftables bouncer is its only CrowdSec protection.
+  snapshot. Both garret units skip their start while the index file is
+  missing: the Pusher would create an empty one, and its startup orphan
+  sweep would then delete every bucket object older than 24 hours. That
+  Caddy has no CrowdSec bouncer module or AppSec; ricklent's nftables
+  bouncer is its only CrowdSec protection.
 - The portfolio on `vida` runs whatever upstream `joshua-noel/portfolio`
   main builds: `portfolio-update` builds it as the `portfolio` user at
   00:00 UTC (and 2 minutes after activation) into

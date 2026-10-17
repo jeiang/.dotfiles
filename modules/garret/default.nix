@@ -166,11 +166,23 @@ in {
     };
 
     systemd = {
-      services = {
+      # The Pusher creates a missing database, and its startup orphan sweep
+      # then deletes every bucket object older than 24 h. A missing index
+      # must leave garret stopped until the operator restores one or creates
+      # an empty one on purpose (docs/runbooks/garret.md).
+      services = let
+        indexPresent = {ConditionPathExists = config.services.garret.pusher.dbPath;};
+      in {
         # garret's sizing rule (spec 10): 2 x maxInFlightBytes + per-upload decoder
         # window and preamble = 2 x 384 MiB + 16 x 9 MiB = 912 MiB, plus headroom.
-        garret-pusher.serviceConfig.MemoryMax = "960M";
-        garret-puller.serviceConfig.MemoryMax = "192M";
+        garret-pusher = {
+          unitConfig = indexPresent;
+          serviceConfig.MemoryMax = "960M";
+        };
+        garret-puller = {
+          unitConfig = indexPresent;
+          serviceConfig.MemoryMax = "192M";
+        };
         # Ordering only: a backup must never start a Pusher stopped for a restore.
         restic-backups-garret.after = ["garret-pusher.service"];
       };

@@ -31,13 +31,17 @@ the old repository with `-r`.
     ssh -t <old>.svr.jeiang.dev sudo systemctl start restic-backups-<service>
     ```
 
+    The backup restarts the units it paused, so stop its timer too, or a
+    later backup starts the service on `<old>` again:
+
     ```sh
-    ssh -t <old>.svr.jeiang.dev sudo systemctl stop <units>
+    ssh -t <old>.svr.jeiang.dev sudo systemctl stop restic-backups-<service>.timer <units>
     ```
 
 2. Merge and wait for CI. DNS changes apply on merge.
 
-3. Deploy `<new>`. The service starts with empty state:
+3. Deploy `<new>`. The service starts with empty state, except garret,
+    which stays stopped without an index:
 
     ```sh
     just deploy <new> --skip-checks --remote-build
@@ -63,8 +67,11 @@ the old repository with `-r`.
     ssh -t <new>.svr.jeiang.dev "sudo rsync -a --delete /tmp/restore-<service>/<old-path>/ <new-path>/ && sudo chown -R <user>:<group> <new-path>"
     ```
 
-    garret's snapshot is an online database copy, not the live files: put it
-    in place with steps 2 to 7 of
+    garret's snapshot is an online database copy, not the live files, and
+    garret does not start on `<new>` until its index exists, so step 3 left
+    it stopped. Create its directory with
+    `sudo install -d -o garret -g garret -m 0750 /var/lib/garret`, then put
+    the copy in place with steps 2 to 7 of
     [`garret.md`](garret.md#restoring-the-index). A snapshot taken on peria
     holds it at `/tmp/restore-garret/mnt/garret/backup.db`.
 
@@ -78,8 +85,10 @@ the old repository with `-r`.
     ssh -t <new>.svr.jeiang.dev sudo rm -rf /tmp/restore-<service>
     ```
 
-7. Deploy `<old>` to remove the service there, and confirm the first
-    `restic-backups-<service>` run on `<new>` succeeds.
+7. Deploy `<old>` to remove the service there, and every other host whose
+    `toplevel.drvPath` changed (alda for edge upstreams, zantark for scrape
+    targets, client hosts). Confirm the first `restic-backups-<service>` run
+    on `<new>` succeeds.
 
 ## After
 

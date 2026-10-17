@@ -229,6 +229,8 @@ Without a usable copy, start from an empty cache:
 
 1. Stop both units: `ssh -t ricklent.svr.jeiang.dev sudo systemctl stop garret-puller garret-pusher`.
 2. Empty the `garret` bucket.
-3. Delete the database: `ssh -t ricklent.svr.jeiang.dev sudo rm -f /var/lib/garret/garret.db /var/lib/garret/garret.db-wal /var/lib/garret/garret.db-shm`.
+3. Replace the database with an empty one. Both units skip their start while
+    the file is missing, so a lost index never starts a sweep that empties
+    the bucket: `ssh -t ricklent.svr.jeiang.dev "sudo bash -c 'rm -f /var/lib/garret/garret.db /var/lib/garret/garret.db-wal /var/lib/garret/garret.db-shm && install -o garret -g garret -m 0660 /dev/null /var/lib/garret/garret.db'"`.
 4. Start both units again: `ssh -t ricklent.svr.jeiang.dev sudo systemctl start garret-pusher garret-puller`.
 5. Let CI push again on the next `main` run.
