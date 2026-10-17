@@ -191,7 +191,7 @@ closed until fsck has covered every restored row. See garret's
     would otherwise be replayed over it:
 
     ```bash
-    ssh -t ricklent.svr.jeiang.dev "sudo bash -c 'install -o garret -g garret -m 0660 /tmp/restore-garret/var/lib/garret/backup.db /var/lib/garret/garret.db && rm -f /var/lib/garret/garret.db-wal /var/lib/garret/garret.db-shm'"
+    ssh -t ricklent.svr.jeiang.dev "sudo bash -c 'install -d -o garret -g garret -m 0750 /var/lib/garret && install -o garret -g garret -m 0660 /tmp/restore-garret/var/lib/garret/backup.db /var/lib/garret/garret.db && rm -f /var/lib/garret/garret.db-wal /var/lib/garret/garret.db-shm'"
     ```
 
 5. Start only the Pusher, then repair:
@@ -231,6 +231,6 @@ Without a usable copy, start from an empty cache:
 2. Empty the `garret` bucket.
 3. Replace the database with an empty one. Both units skip their start while
     the file is missing, so a lost index never starts a sweep that empties
-    the bucket: `ssh -t ricklent.svr.jeiang.dev "sudo bash -c 'rm -f /var/lib/garret/garret.db /var/lib/garret/garret.db-wal /var/lib/garret/garret.db-shm && install -o garret -g garret -m 0660 /dev/null /var/lib/garret/garret.db'"`.
+    the bucket: `ssh -t ricklent.svr.jeiang.dev "sudo bash -c 'install -d -o garret -g garret -m 0750 /var/lib/garret && rm -f /var/lib/garret/garret.db /var/lib/garret/garret.db-wal /var/lib/garret/garret.db-shm && install -o garret -g garret -m 0660 /dev/null /var/lib/garret/garret.db'"`.
 4. Start both units again: `ssh -t ricklent.svr.jeiang.dev sudo systemctl start garret-pusher garret-puller`.
 5. Let CI push again on the next `main` run.
