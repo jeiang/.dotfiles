@@ -168,6 +168,7 @@ in {
       GRAFANA_URL = self.lib.grafanaMeshUrl;
       NTFY_URL = self.lib.ntfyBaseUrl;
       ATRIUM_CODEMODE_SOCKET = "/run/${codemodeDirName}/codemode.sock";
+      ICLOUD_APPLE_ID = icloudAppleId;
       ATRIUM_ACTUAL_BRIDGE = lib.getExe selfpkgs.actual-bridge;
       ATRIUM_ACTUAL_DATA = "${cacheDir}/actual";
       ACTUAL_SERVER_URL = "http://${self.lib.netbirdPeers.peria}:${toString actualPort}";
