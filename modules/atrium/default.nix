@@ -310,17 +310,6 @@ in {
       restartUnits = ["atrium-agent-scheduler.service" "atrium-notion-sync.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service" "atrium-web.service" "atrium-web-local.service"];
     };
 
-    networking.nftables.tables.atrium-web = {
-      family = "inet";
-      content = ''
-        chain input {
-          type filter hook input priority filter - 1; policy accept;
-          iifname "${config.services.netbird.clients.default.interface}" tcp dport ${toString webPort} ip saddr != ${self.lib.netbirdPeers.alda} drop
-          iifname "${config.services.netbird.clients.default.interface}" tcp dport ${toString webPort} meta nfproto ipv6 drop
-        }
-      '';
-    };
-
     systemd = {
       # Code-mode worker: one sandboxed instance per connection (the Monty interpreter is not an OS boundary).
       sockets.atrium-codemode = {
@@ -449,8 +438,8 @@ in {
           serviceConfig =
             hardening
             // {
-              # 0.0.0.0 on purpose: the nftables table above limits 8480 to alda, and binding to the
-              # NetBird address would race the interface coming up. Guard rejects any other Host.
+              # 0.0.0.0 on purpose: binding to the NetBird address would race the interface
+              # coming up. Guard rejects any Host but the public one.
               ExecStart = "${lib.getExe atrium} serve --host 0.0.0.0 --port ${toString webPort} --auth proxy --allowed-host ${atriumHostname}";
               Restart = "always";
               RestartSec = 5;
