@@ -2,6 +2,7 @@
   icloudAppleId = "aidan@aidanpinard.co";
   stateDirName = "atrium";
   stateDir = "/var/lib/${stateDirName}";
+  codemodeDirName = "atrium-codemode";
   atriumId = 880;
   cacheDir = "${stateDir}/cache";
   modelsDir = "${cacheDir}/models";
@@ -161,6 +162,7 @@ in {
       ATRIUM_TZ = self.lib.facts.timeZone;
       GRAFANA_URL = self.lib.grafanaMeshUrl;
       NTFY_URL = self.lib.ntfyBaseUrl;
+      ATRIUM_CODEMODE_SOCKET = "/run/${codemodeDirName}/codemode.sock";
     };
 
     modelsFetch = pkgs.writeShellApplication {
@@ -310,7 +312,51 @@ in {
     };
 
     systemd = {
+      # Code-mode worker: one sandboxed instance per connection (the Monty interpreter is not an OS boundary).
+      sockets.atrium-codemode = {
+        description = "atrium code-mode worker socket";
+        wantedBy = ["sockets.target"];
+        socketConfig = {
+          ListenStream = "/run/${codemodeDirName}/codemode.sock";
+          SocketUser = "atrium";
+          SocketGroup = "atrium";
+          SocketMode = "0600";
+          DirectoryMode = "0755";
+          Accept = true;
+        };
+      };
+
       services = {
+        "atrium-codemode@" = {
+          description = "atrium code-mode worker";
+          serviceConfig = {
+            ExecStart = "${lib.getExe atrium} codemode-worker";
+            StandardInput = "socket";
+            StandardOutput = "socket";
+            StandardError = "journal";
+            DynamicUser = true;
+            PrivateNetwork = true;
+            ProtectSystem = "strict";
+            ProtectHome = true;
+            PrivateTmp = true;
+            PrivateDevices = true;
+            ProtectProc = "invisible";
+            ProcSubset = "pid";
+            NoNewPrivileges = true;
+            CapabilityBoundingSet = "";
+            RestrictAddressFamilies = "AF_UNIX";
+            RestrictSUIDSGID = true;
+            LockPersonality = true;
+            ProtectKernelModules = true;
+            ProtectKernelLogs = true;
+            ProtectKernelTunables = true;
+            ProtectClock = true;
+            MemoryMax = "256M";
+            CPUQuota = "50%";
+            RuntimeMaxSec = 60;
+          };
+        };
+
         atrium-models-fetch = {
           description = "Fetch the atrium model weights";
           after = ["network-online.target"];
@@ -384,11 +430,18 @@ in {
           description = "atrium web UI";
           after = ["network-online.target"] ++ llamaUnits;
           wants = ["network-online.target"] ++ llamaUnits;
-          environment = appEnvironment // {ATRIUM_STATIC_DIR = atriumStatic;};
+          environment =
+            appEnvironment
+            // {
+              ATRIUM_STATIC_DIR = atriumStatic;
+              ATRIUM_PUBLIC_HOST = atriumHostname;
+            };
           serviceConfig =
             hardening
             // {
-              ExecStart = "${lib.getExe atrium} serve --host 0.0.0.0 --port ${toString webPort} --auth proxy";
+              # 0.0.0.0 on purpose: the nftables table above limits 8480 to alda, and binding to the
+              # NetBird address would race the interface coming up. Guard rejects any other Host.
+              ExecStart = "${lib.getExe atrium} serve --host 0.0.0.0 --port ${toString webPort} --auth proxy --allowed-host ${atriumHostname}";
               Restart = "always";
               RestartSec = 5;
             };
