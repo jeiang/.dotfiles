@@ -166,10 +166,6 @@ in {
                         title = "Apps";
                         links = [
                           {
-                            title = "Actual Budget";
-                            url = "https://budget.jeiang.dev";
-                          }
-                          {
                             title = "Bill Splitter";
                             url = "https://bill-split.jeiang.dev";
                           }
@@ -326,10 +322,6 @@ in {
                         # /healthz returns 204 No Content; the widget counts
                         # only 200 as up unless listed here.
                         alt-status-codes = [204];
-                      }
-                      {
-                        title = "Actual Budget";
-                        url = "https://budget.jeiang.dev";
                       }
                       {
                         title = "Grafana";

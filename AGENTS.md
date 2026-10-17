@@ -10,7 +10,7 @@ machine must run.
 | `alda` | NixOS | Legion server, Hetzner Cloud. Caddy edge (also fronts atrium on artemis). |
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
 | `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring. |
-| `peria` | NixOS | Legion server, Hetzner Cloud. garret, Actual Budget, atuin, ntfy, hath, glance, gatus. |
+| `peria` | NixOS | Legion server, Hetzner Cloud. garret, atuin, ntfy, hath, glance, gatus. |
 | `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer, Factorio, buildbot-nix master/worker (postgres, garret push timer), Gatus London watchdog, EU NetBird relay, qBittorrent WireGuard exit, second Blocky (mesh IP only). |
 
 Legion is the fleet's servers, whatever the provider: four run on Hetzner
@@ -271,7 +271,7 @@ behavior for its own sake.
 - Blackbox probes target private backend addresses, never public URLs.
   Probes through the edge would get the prober banned by CrowdSec.
 - Anubis gates only the static content sites. Never put it in front of a
-  machine client (substituters, OIDC, NetBird gRPC, Actual sync,
+  machine client (substituters, OIDC, NetBird gRPC,
   Prometheus). Its challenge store stays in memory.
 - Stateless by choice: Gatus stores results in memory, and tinyauth's
   database holds only sessions.

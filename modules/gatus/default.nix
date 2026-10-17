@@ -55,7 +55,6 @@
       # fallback, which says nothing about backend health.
       (https "Pocket ID" "Services" "https://auth.jeiang.dev/healthz" ["[STATUS] == 204"])
       (ok "Grafana" "Services" "https://grafana.jeiang.dev/api/health")
-      (ok "Actual Budget" "Services" "https://budget.jeiang.dev")
       # "/" falls through to the static dashboard on node1's edge Caddy
       # even when netbird-server is down; this path proxies to node2.
       (ok "NetBird" "Services" "https://netbird.jeiang.dev/oauth2/.well-known/openid-configuration")

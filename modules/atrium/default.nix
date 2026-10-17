@@ -1,9 +1,4 @@
-{
-  self,
-  config,
-  ...
-}: let
-  actualPort = config.legion.services.actual-budget.ports.app;
+{self, ...}: let
   icloudAppleId = "aidan@aidanpinard.co";
   stateDirName = "atrium";
   stateDir = "/var/lib/${stateDirName}";
@@ -57,23 +52,6 @@ in {
         dependencies = [py.anthropic py.caldav py.fastapi py.google-api-python-client py.google-auth py.httpx py.icalendar py.jinja2 py.markdown-it-py py.nh3 py.pydantic-monty py.python-multipart py.sqlite-vec py.trafilatura py.uvicorn py.vobject];
         nativeCheckInputs = [py.respx py.pytestCheckHook];
         meta.mainProgram = "atrium";
-      };
-
-      actual-bridge = pkgs.buildNpmPackage {
-        pname = "atrium-actual-bridge";
-        version = "1.0.0";
-        src = ./actual-bridge;
-        npmDepsHash = "sha256-kH8TiCSnAt8WqO6hlVXlwesTJZfNVsH86SJxZp3kO3Y=";
-        dontNpmBuild = true;
-        nativeBuildInputs = [pkgs.makeWrapper];
-        installPhase = ''
-          runHook preInstall
-          mkdir -p $out/lib/actual-bridge $out/bin
-          cp -r bridge.mjs package.json node_modules $out/lib/actual-bridge/
-          makeWrapper ${pkgs.nodejs}/bin/node $out/bin/actual-bridge --add-flags $out/lib/actual-bridge/bridge.mjs
-          runHook postInstall
-        '';
-        meta.mainProgram = "actual-bridge";
       };
 
       atrium-static = pkgs.stdenvNoCC.mkDerivation {
@@ -170,9 +148,6 @@ in {
       NTFY_TOPIC = self.lib.ntfyAtriumTopic;
       ATRIUM_CODEMODE_SOCKET = "/run/${codemodeDirName}/codemode.sock";
       ICLOUD_APPLE_ID = icloudAppleId;
-      ATRIUM_ACTUAL_BRIDGE = lib.getExe selfpkgs.actual-bridge;
-      ATRIUM_ACTUAL_DATA = "${cacheDir}/actual";
-      ACTUAL_SERVER_URL = "http://${self.lib.netbirdPeers.peria}:${toString actualPort}";
     };
 
     modelsFetch = pkgs.writeShellApplication {
