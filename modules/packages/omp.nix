@@ -16,6 +16,7 @@
           fast = "anthropic/claude-haiku-5-5:high";
           smol = "openai-codex/gpt-6-luna:high";
           researcher = "openai-codex/gpt-6-luna:max";
+          reasoning-task = "anthropic/claude-opus-5-5:medium";
           max-reasoning = "anthropic/claude-fable-5-1:high";
         };
       };
