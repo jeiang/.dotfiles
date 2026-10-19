@@ -15,10 +15,10 @@
         secrets.enabled = true;
         task.showResolvedModelBadge = true;
         task.agentModelOverrides = {
-          researcher = "@researcher";
+          researcher = "openai-codex/gpt-6-luna:max";
           security-reviewer = "@slow";
-          change-reviewer = "anthropic/claude-sonnet-5-5:high";
-          designer = "anthropic/claude-sonnet-5-5:high";
+          change-reviewer = "@task";
+          designer = "@task";
         };
         advisor.enabled = true;
         codexResets.autoRedeem = "no";
@@ -30,7 +30,6 @@
           smol = "openai-codex/gpt-6-luna:high";
           slow = "anthropic/claude-opus-5-5:medium";
           max-reasoning = "anthropic/claude-fable-5-1:medium";
-          researcher = "openai-codex/gpt-6-luna:max";
           advisor = "anthropic/claude-fable-5-1:low";
           commit = "openai-codex/gpt-6-luna:high";
           web = "openai-codex/gpt-5.6-luna";
