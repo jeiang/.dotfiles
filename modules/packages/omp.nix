@@ -6,6 +6,9 @@
       # rather than --config, which only the launch, acp and models commands take.
       settings = (pkgs.formats.yaml {}).generate "omp-config.yml" {
         tools.approvalMode = "yolo";
+        symbolPreset = "nerd";
+        theme.dark = "dark-tundra";
+        composer.shape = "band";
         display.pinnedAgents = "full";
         display.showTurnTime = true;
         startup.checkUpdate = false;
@@ -19,14 +22,20 @@
         };
         advisor.enabled = true;
         codexResets.autoRedeem = "no";
+        claudeResets.autoRedeem = "no";
         modelRoles = {
+          default = "anthropic/claude-opus-5-5:medium";
+          task = "anthropic/claude-sonnet-5-5:medium";
           fast = "anthropic/claude-haiku-5-5:high";
           smol = "openai-codex/gpt-6-luna:high";
-          researcher = "openai-codex/gpt-6-luna:max";
           slow = "anthropic/claude-opus-5-5:medium";
           max-reasoning = "anthropic/claude-fable-5-1:medium";
-          advisor = "anthropic/claude-fable-5-1:medium";
+          researcher = "openai-codex/gpt-6-luna:max";
+          advisor = "anthropic/claude-fable-5-1:low";
+          commit = "openai-codex/gpt-6-luna:high";
+          web = "openai-codex/gpt-5.6-luna";
         };
+        retry.fallbackChains.fast = ["openai-codex/gpt-6-luna:high"];
       };
     in
       inputs.wrapper-modules.lib.wrapPackage (_: {
