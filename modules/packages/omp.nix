@@ -13,15 +13,19 @@
         task.showResolvedModelBadge = true;
         task.agentModelOverrides = {
           researcher = "@researcher";
-          security-reviewer = "anthropic/claude-fable-5-1:low";
+          security-reviewer = "@slow";
+          change-reviewer = "anthropic/claude-sonnet-5-5:high";
+          designer = "anthropic/claude-sonnet-5-5:high";
         };
+        advisor.enabled = true;
+        codexResets.autoRedeem = "no";
         modelRoles = {
           fast = "anthropic/claude-haiku-5-5:high";
           smol = "openai-codex/gpt-6-luna:high";
           researcher = "openai-codex/gpt-6-luna:max";
-          slow = "anthropic/claude-opus-5-5:high";
-          reasoning-task = "anthropic/claude-opus-5-5:medium";
-          max-reasoning = "anthropic/claude-fable-5-1:high";
+          slow = "anthropic/claude-opus-5-5:medium";
+          max-reasoning = "anthropic/claude-fable-5-1:medium";
+          advisor = "anthropic/claude-fable-5-1:medium";
         };
       };
     in
