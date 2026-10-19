@@ -13,12 +13,18 @@
         display.showTurnTime = true;
         startup.checkUpdate = false;
         secrets.enabled = true;
-        task.showResolvedModelBadge = true;
-        task.agentModelOverrides = {
-          researcher = "openai-codex/gpt-6-luna:max";
-          security-reviewer = "@slow";
-          change-reviewer = "@task";
-          designer = "@task";
+        lsp.diagnosticsOnEdit = true;
+        astGrep.enabled = true;
+        providers.anthropic.serverSideFallback = true;
+        task = {
+          showResolvedModelBadge = true;
+          enableEffort = true;
+          agentModelOverrides = {
+            researcher = "openai-codex/gpt-6-luna:max";
+            security-reviewer = "@slow";
+            change-reviewer = "@task";
+            designer = "@task";
+          };
         };
         advisor.enabled = true;
         codexResets.autoRedeem = "no";
@@ -34,7 +40,11 @@
           commit = "openai-codex/gpt-6-luna:high";
           web = "openai-codex/gpt-5.6-luna";
         };
-        retry.fallbackChains.fast = ["openai-codex/gpt-6-luna:high"];
+        retry.fallbackChains = {
+          default = ["openai-codex/gpt-6.1-sol:high"];
+          task = ["openai-codex/gpt-6-luna:high"];
+          fast = ["openai-codex/gpt-6-luna:high"];
+        };
       };
     in
       inputs.wrapper-modules.lib.wrapPackage (_: {
