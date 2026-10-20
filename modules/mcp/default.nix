@@ -27,6 +27,7 @@
       settings.servers.rea = {
         command = lib.getExe self.packages.${pkgs.stdenv.hostPlatform.system}.rea;
         args = ["mcp"];
+        enabled = false;
       };
     };
 
