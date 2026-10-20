@@ -7,11 +7,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792511440,
-        "narHash": "sha256-x3qaoCS8kMzxK8ebUJ6+v4ufkFejlp5BCFuHtZzsp30=",
+        "lastModified": 1792523009,
+        "narHash": "sha256-04d6+zr8+UszK76IJNJUdJZj6EiM2InKMXQYBQ45bFY=",
         "owner": "jeiang",
         "repo": "agent-skills",
-        "rev": "7131832cf63deaa553adef8ca76902cdd75ef70e",
+        "rev": "58b0dc474c5f81b73e64b2cf5b6513f4f6f9fd09",
         "type": "github"
       },
       "original": {

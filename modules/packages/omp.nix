@@ -18,12 +18,14 @@
         providers.anthropic.serverSideFallback = true;
         task = {
           showResolvedModelBadge = true;
-          enableEffort = true;
+          enableEffort = false;
           agentModelOverrides = {
-            researcher = "openai-codex/gpt-6-luna:max";
+            researcher = "openai-codex/gpt-6-luna:xhigh";
             security-reviewer = "@slow";
             change-reviewer = "@task";
             designer = "@task";
+            scout = "@smol:medium";
+            sonic = "@smol:medium";
           };
         };
         advisor.enabled = true;
@@ -38,7 +40,7 @@
           max-reasoning = "anthropic/claude-fable-5-1:medium";
           advisor = "anthropic/claude-fable-5-1:low";
           commit = "openai-codex/gpt-6-luna:high";
-          web = "openai-codex/gpt-5.6-luna";
+          web = "openai-codex/gpt-6-luna:high";
         };
         retry.fallbackChains = {
           default = ["openai-codex/gpt-6.1-sol:high"];
