@@ -373,12 +373,11 @@ behavior for its own sake.
   (`~/.omp/agent/mcp.json`). Claude Code keeps user-scope servers in
   `~/.claude.json` and Codex in `~/.codex/config.toml`, both of which those
   clients rewrite, so the operator registers the servers there by hand.
-  Grafana is reached over the mesh, never through the edge. REA is in that
-  list with `enabled = false`, because its tool catalog would otherwise ride
-  along in every session; a reverse-engineering project turns it on with a
-  same-named `rea` entry (`"command": "rea", "args": ["mcp"]`) in its own
-  `.omp/mcp.json`, which takes precedence over the user file. Register it in
-  Claude Code and Codex at project scope only, never user scope.
+  Grafana is reached over the mesh, never through the edge. REA is not in
+  that list, because its tool catalog would ride along in every session: a
+  reverse-engineering project registers it itself, in `.omp/mcp.json`
+  (`"rea": {"command": "rea", "args": ["mcp"]}`) and at project scope in
+  Claude Code and Codex.
 - The agent CLIs come from the `llm-agents` input, which tracks upstream
   releases faster than nixpkgs. Its `nixpkgs` deliberately does not follow
   ours: `cache.numtide.com` only serves builds made against its own pin, so
