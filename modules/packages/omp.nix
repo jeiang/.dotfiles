@@ -18,7 +18,7 @@
         providers.anthropic.serverSideFallback = true;
         task = {
           showResolvedModelBadge = true;
-          enableEffort = true;
+          enableEffort = false;
           agentModelOverrides = {
             researcher = "openai-codex/gpt-6-luna:max";
             security-reviewer = "@slow";
