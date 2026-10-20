@@ -26,4 +26,5 @@ The hosts, their services, and the connections between them.
 omp's model roles and per-agent overrides are declared in
 `modules/packages/omp.nix`. The task tool does not expose per-spawn effort
 (`task.enableEffort = false`); thinking levels stay in configured model roles
-and agent definitions.
+and agent definitions. Scout and sonic use medium through per-agent role
+overrides, while the custom smol worker keeps the role's high setting.
