@@ -284,8 +284,9 @@ behavior for its own sake.
   back H@H trust and quota.
 - pumpkin (Minecraft, Java on TCP 25565 and Bedrock on UDP 19132) on
   `peria` is public at `mc.jeiang.dev`, IPv4 only, and admits only the
-  players in `/var/lib/private/pumpkin/data/whitelist.json`, which the operator
-  edits by hand before restarting the unit. Its world is on the root disk
+  players declared in `modules/pumpkin.nix`. Each service start replaces
+  `/var/lib/private/pumpkin/data/whitelist.json` with that list, so runtime
+  whitelist edits do not survive a restart. Its world is on the root disk
   with a 6-hourly restic job, which stops the server while it runs.
 - artemis and Legion back up to separate S4 buckets with separate keys, and
   one repository password covers all of Legion. A host that owns no backup
