@@ -21,7 +21,10 @@ in {
       config.allowUnfree = true;
       overlays = [
         (final: prev: {
-          cacert = prev.cacert.override {blacklist = caBlacklist;};
+          cacert =
+            if prev.stdenv.hostPlatform.isDarwin
+            then prev.cacert
+            else prev.cacert.override {blacklist = caBlacklist;};
           caddy = prev.caddy.overrideAttrs (old: {
             # Short mode avoids caddyserver/caddy#8233; buildGoModule with structuredAttrs
             # expands only the first checkFlags array member.
