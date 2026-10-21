@@ -74,6 +74,31 @@ GitHub Actions tokens are accepted only from the workflows listed in
 id, on `push` and `workflow_dispatch`. A new repository or workflow that
 pushes needs its entries there first.
 
+### Prebuild Legion
+
+From the development shell in the checkout to build:
+
+```bash
+just prebuild-legion
+```
+
+This builds every Legion system and its deploy-rs profile on
+`artemis.jeiang.vpn`, copies the completed closures back to the local Nix
+store, and pushes them with the checkout's pinned garret client and the
+local garret login. It does not copy credentials to artemis, activate a
+host, or build artemis's system. The local store needs space for the
+completed Linux closures.
+
+If garret is unavailable during provider maintenance, the built outputs
+remain in the Nix stores until garbage collection. Run the recipe again
+when garret is reachable. Deployment still requires the normal merge and
+activation procedure.
+
+Caddy's upstream tests run in `-short` mode while the
+[reload shutdown race](https://github.com/caddyserver/caddy/issues/8233)
+is unresolved. The build exception does not fix connection drops during
+reload; remove it after the pinned package contains the upstream fix.
+
 ## Operations
 
 `garret-admin` is installed on ricklent. It talks to the Pusher over its

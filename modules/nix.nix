@@ -8,11 +8,34 @@
   llmAgentsCacheKey = "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=";
   devenvCacheUrl = "https://devenv.cachix.org";
   devenvCacheKey = "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=";
+  caBlacklist = [
+    "Comodo AAA Services root"
+    "emSign ECC Root CA - G3"
+    "emSign Root CA - C1"
+    "emSign ECC Root CA - C3"
+  ];
 in {
   perSystem = {system, ...}: {
     _module.args.pkgs = import inputs.nixpkgs {
       inherit system;
       config.allowUnfree = true;
+      overlays = [
+        (final: prev: {
+          cacert = prev.cacert.override {blacklist = caBlacklist;};
+          caddy = prev.caddy.overrideAttrs (old: {
+            # Short mode avoids caddyserver/caddy#8233; buildGoModule with structuredAttrs
+            # expands only the first checkFlags array member.
+            checkFlags = builtins.concatStringsSep " " (old.checkFlags ++ ["-short"]);
+          });
+          go_1_26 = prev.go_1_26.overrideAttrs (_: {
+            version = "1.26.10";
+            src = final.fetchurl {
+              url = "https://go.dev/dl/go1.26.10.src.tar.gz";
+              hash = "sha256-/WPog7ovK/ypPBZGsx6+9j4rHk0rMXyXidl2po2B828=";
+            };
+          });
+        })
+      ];
     };
   };
 
@@ -68,6 +91,7 @@ in {
     imports = [inputs.determinate.darwinModules.default];
 
     nixpkgs.pkgs = withSystem config.nixpkgs.hostPlatform.system ({pkgs, ...}: pkgs);
+    security.pki.caCertificateBlacklist = caBlacklist;
 
     determinateNix = {
       registry.nixpkgs.flake = inputs.nixpkgs;

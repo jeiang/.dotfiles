@@ -101,6 +101,31 @@ artemis-kernel:
   )
   ssh -t "$host" "bash -c 'set -e; nix run github:jeiang/garret#garret -- login; nix run github:jeiang/garret#garret -- push $(echo $outs)'"
 
+# Build Legion systems and deploy profiles on artemis, then push their closures to garret
+prebuild-legion:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  host=artemis.jeiang.vpn
+  drvs=()
+  for node in $(nix eval --raw '.#lib.legionNodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrNames nodes)'); do
+    drvs+=("$(nix eval --raw ".#nixosConfigurations.$node.config.system.build.toplevel.drvPath")")
+    drvs+=("$(nix eval --raw ".#deploy.nodes.$node.profiles.system.path.drvPath")")
+  done
+  nix copy --derivation --to "ssh-ng://$host" "${drvs[@]}"
+  built=$(ssh "$host" bash -s -- "${drvs[@]}" <<'EOF'
+  set -euo pipefail
+  installables=()
+  for drv in "$@"; do
+    installables+=("$drv^*")
+  done
+  nix build --no-link --print-out-paths "${installables[@]}"
+  EOF
+  )
+  mapfile -t outputs <<<"$built"
+  nix copy --from "ssh-ng://$host" "${outputs[@]}"
+  rev=$(jq -r '.nodes[.nodes[.root].inputs.garret].locked.rev' flake.lock)
+  nix run "github:jeiang/garret/$rev#garret" -- push --jobs 1 "${outputs[@]}"
+
 # Generate an image with Qwen-Image 2.1 (sd-cli args, e.g. -p "..." -o out.png; add -r in.png to edit); the first run downloads 11 GB of weights to ~/.cache/qwen-image-2.1
 [no-cd, positional-arguments]
 qwen-image *args:

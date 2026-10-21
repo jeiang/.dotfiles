@@ -31,8 +31,11 @@ in {
   nixos.modules.f95-tracker = {
     config,
     lib,
+    pkgs,
     ...
-  }: {
+  }: let
+    upstreamPackage = inputs.f95-tracker.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  in {
     imports = [inputs.f95-tracker.nixosModules.default];
 
     sops.secrets = lib.genAttrs (builtins.attrValues secretNames) (_: {
@@ -42,6 +45,11 @@ in {
 
     services.f95-tracker = {
       enable = true;
+      # The input evaluates its own package set, outside the shared Go overlay.
+      package = upstreamPackage.overrideAttrs (old: {
+        nativeBuildInputs = [pkgs.go] ++ lib.remove upstreamPackage.go old.nativeBuildInputs;
+        passthru = old.passthru // {inherit (pkgs) go;};
+      });
       host = "0.0.0.0";
       inherit port stateDir;
       baseUrl = self.lib.f95TrackerUrl;

@@ -3,6 +3,8 @@
   metricsPort = 6060;
   appsecPort = 7422;
 in {
+  nixos.modules.legion.services.crowdsec.settings.config.config_paths.data_dir = "/var/lib/crowdsec/state";
+
   legion.services.crowdsec = {
     node = "alda";
     module = "crowdsec";
@@ -87,24 +89,20 @@ in {
         ];
 
         settings = {
-          # Must be in confDir (crowdsec-writable via the module's tmpfiles);
-          # the DynamicUser StateDirectory root gets permission denied, and
-          # enabling the LAPI without a path coerces null at eval.
-          lapi.credentialsFile = "/etc/crowdsec/local_api_credentials.yaml";
+          config = {
+            api.client.credentials_path = "/etc/crowdsec/local_api_credentials.yaml";
+            api.server = {
+              enable = true;
+              # 0.0.0.0: edge Caddy (loopback) and vida's bouncers
+              # (private network) both dial in; the firewall scopes it private.
+              listen_uri = "0.0.0.0:${toString lapiPort}";
+            };
 
-          general.api.server = {
-            enable = true;
-            # 0.0.0.0: edge Caddy (loopback) and vida's bouncers
-            # (private network) both dial in; the firewall scopes it private.
-            listen_uri = "0.0.0.0:${toString lapiPort}";
+            # The default loopback bind would be unreachable from zantark's
+            # cross-node scraper.
+            prometheus.listen_addr = "0.0.0.0";
           };
 
-          # The default loopback bind would be unreachable from zantark's
-          # cross-node scraper.
-          general.prometheus.listen_addr = "0.0.0.0";
-        };
-
-        localConfig = {
           acquisitions = [
             {
               # The exact file the edge module's Caddy logFormat writes.

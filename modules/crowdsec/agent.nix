@@ -53,9 +53,12 @@ in {
         ];
       };
 
-      settings.lapi.credentialsFile = config.sops.templates.${credentialsTemplate}.path;
+      settings.config.api = {
+        client.credentials_path = config.sops.templates.${credentialsTemplate}.path;
+        server.enable = false;
+      };
 
-      localConfig.acquisitions = [
+      settings.acquisitions = [
         {
           source = "journalctl";
           journalctl_filter = ["_SYSTEMD_UNIT=sshd.service"];
