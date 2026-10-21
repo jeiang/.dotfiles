@@ -76,6 +76,8 @@
     hyprland.url = "github:hyprwm/Hyprland";
     hyprland.inputs.nixpkgs.follows = "nixpkgs";
 
+    nix-minecraft.url = "github:Infinidoge/nix-minecraft";
+    nix-minecraft.inputs.nixpkgs.follows = "nixpkgs";
     website.url = "github:jeiang/website";
     website.inputs.nixpkgs.follows = "nixpkgs";
     portfolio.url = "github:joshua-noel/portfolio";

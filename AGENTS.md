@@ -10,8 +10,8 @@ machine must run.
 | `alda` | NixOS | Legion server, Hetzner Cloud. Caddy edge (also fronts atrium on artemis). |
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
 | `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring, ntfy, gatus, atuin, f95-tracker. |
-| `peria` | NixOS | Legion server, Hetzner Cloud. Lowest-priority services: pumpkin (Minecraft), hath, glance. |
-| `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer, garret behind its own Caddy (which also fronts the EU NetBird relay), Factorio, Gatus London watchdog, qBittorrent WireGuard exit, second Blocky (mesh IP only). |
+| `peria` | NixOS | Legion server, Hetzner Cloud. Lowest-priority services: hath, glance. |
+| `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer, garret behind its own Caddy (which also fronts the EU NetBird relay), Factorio, Minecraft, Gatus London watchdog, qBittorrent WireGuard exit, second Blocky (mesh IP only). |
 
 Legion is the fleet's servers, whatever the provider: four run on Hetzner
 Cloud, `ricklent` on Arct Cloud. `legionNodes.<name>.provider` (`hetzner` or
@@ -282,11 +282,17 @@ behavior for its own sake.
   zantark. zantark's `gatus` keeps alerting through Alertmanager.
 - The H@H backup keeps the full cache: a restore costs less than earning
   back H@H trust and quota.
-- pumpkin (Minecraft, Java on TCP 25565 and Bedrock on UDP 19132) on
-  `peria` is public at `mc.jeiang.dev`, IPv4 only, and admits only the
-  players in `/var/lib/private/pumpkin/data/whitelist.json`, which the operator
-  edits by hand before restarting the unit. Its world is on the root disk
-  with a 6-hourly restic job, which stops the server while it runs.
+- Minecraft (`modules/minecraft.nix`, nix-minecraft Fabric with Geyser and
+  Floodgate; Java on TCP 25565, Bedrock on TCP and UDP 19132) on `ricklent`
+  is public at `mc.jeiang.dev`, IPv4 only. The Java version follows what
+  Geyser supports for the Bedrock clients in use. Geyser runs the NetherNet
+  transport (Bedrock 26.60 drops RakNet) with built-in plain-HTTP
+  signaling, so Bedrock players see a trust prompt on first join. The
+  whitelist is declared for Java and Bedrock
+  players alike (Bedrock as Floodgate `.`-prefixed names and XUID UUIDs),
+  and each start rewrites `whitelist.json`, so runtime edits do not
+  survive. Its world is on the root disk with a 6-hourly restic job, which
+  stops the server while it runs.
 - artemis and Legion back up to separate S4 buckets with separate keys, and
   one repository password covers all of Legion. A host that owns no backup
   job is therefore not a recipient of a backups shard, and adding one back
