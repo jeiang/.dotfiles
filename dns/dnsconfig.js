@@ -83,6 +83,7 @@ D("jeiang.dev", REG_NONE,
   CNAME("sig1._domainkey", "sig1.dkim.jeiang.dev.at.icloudmailadmin.com."),
   TXT("@", "apple-domain=8AB1Gv2EQH9k61Dp", TTL(3600)),
   TXT("@", "v=spf1 include:icloud.com ~all", TTL(3600)),
+  TXT("_github-pages-challenge-jeiang", "040396bc2f5ef7498c71107fc31a86"),
   TXT("_dmarc", "v=DMARC1; p=none; rua=mailto:851edc98efe04afca1508fe551f2454f@dmarc-reports.cloudflare.net")
 );
 
