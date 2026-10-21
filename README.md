@@ -31,10 +31,10 @@ overrides, while the custom smol worker keeps the role's high setting.
 
 ## TLS trust
 
-`modules/nix.nix` applies the eMudhra and legacy AAA root distrust to
-Linux's shared nixpkgs CA package. zakkart filters its Nix-managed runtime
-bundle instead, retaining the upstream CA package to avoid a package-wide
-rebuild. Applications using another bundle are outside that mitigation.
+NixOS and zakkart filter their Nix-managed runtime CA bundles to distrust
+the eMudhra and legacy AAA roots. The shared nixpkgs CA package stays
+unchanged to avoid a package-wide rebuild. Applications using another
+bundle are outside that mitigation.
 
 Rebuilt Go applications use the patched Go 1.26 toolchain, including the
 separately packaged f95-tracker service. Remove the compiler override when
