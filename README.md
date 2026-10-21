@@ -8,6 +8,9 @@ Personal Nix flake for `artemis` (headless NixOS gaming and streaming box),
 `zakkart` (nix-darwin MacBook), and the Legion servers (`alda`, `vida`,
 `zantark`, `peria`; Hetzner Cloud).
 
+On `zakkart`, Prism Launcher includes Java 8, 17, 21, and 25 through the
+nixpkgs package. Select a runtime in Prism's Java settings.
+
 ![Network topology](docs/topology/network.svg "Network topology")
 
 The networks connecting every host.

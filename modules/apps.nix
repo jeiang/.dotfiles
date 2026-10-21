@@ -28,6 +28,7 @@
         mos
         notion-app
         obsidian
+        prismlauncher
         raycast
         telegram-desktop
         utm
