@@ -66,7 +66,7 @@ in {
         # Bedrock players are named with Floodgate's "." prefix; their UUID is
         # 00000000-0000-0000-XXXX-XXXXXXXXXXXX, the XUID in hex.
         whitelist = {
-          Jeiang = "a73ca049-08fa-42d1-84c1-4eb4f13af055";
+          jeiang_ = "9df0b3a2-034d-4b97-865e-6e8226251784";
           Wiierd = "2001e481-ca78-47e9-a7dd-bca90bf5fa85";
           jkmn = "3e63deaa-3d4e-4104-a3f6-869cd04894fe";
           Enadiz76 = "04d5bea4-1920-4f00-a3b9-5cd58181043b";
