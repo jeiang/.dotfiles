@@ -116,6 +116,10 @@ in {
       };
     };
 
+    # Geyser's NetherNet loads a bundled libdatachannel that dlopens
+    # libssl/libcrypto from the default search path, which NixOS lacks.
+    systemd.services."minecraft-server-${serverName}".environment.LD_LIBRARY_PATH = lib.makeLibraryPath [pkgs.openssl];
+
     # The root disk holds the only live copy, so the interval is the
     # play a lost node loses.
     systemd.timers."restic-backups-minecraft".timerConfig = {
