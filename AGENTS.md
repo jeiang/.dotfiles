@@ -283,11 +283,13 @@ behavior for its own sake.
 - The H@H backup keeps the full cache: a restore costs less than earning
   back H@H trust and quota.
 - pumpkin (Minecraft, Java on TCP 25565 and Bedrock on UDP 19132) on
-  `peria` is public at `mc.jeiang.dev`, IPv4 only, and admits only the
-  players declared in `modules/pumpkin.nix`. Each service start replaces
-  `/var/lib/private/pumpkin/data/whitelist.json` with that list, so runtime
-  whitelist edits do not survive a restart. Its world is on the root disk
-  with a 6-hourly restic job, which stops the server while it runs.
+  `peria` is public at `mc.jeiang.dev`, IPv4 only. Java admission uses the
+  players declared in `modules/pumpkin.nix`; the pinned Pumpkin build does
+  not check the whitelist on Bedrock login, so it does not restrict Bedrock
+  access. Each service start replaces
+  `/var/lib/private/pumpkin/data/whitelist.json` with the declared list, so
+  runtime whitelist edits do not survive a restart. Its world is on the
+  root disk with a 6-hourly restic job, which stops the server while it runs.
 - artemis and Legion back up to separate S4 buckets with separate keys, and
   one repository password covers all of Legion. A host that owns no backup
   job is therefore not a recipient of a backups shard, and adding one back
