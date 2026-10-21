@@ -72,6 +72,9 @@ in {
           Enadiz76 = "04d5bea4-1920-4f00-a3b9-5cd58181043b";
           justinmybubble = "e90cc15c-5885-4670-96c6-be196e9e73c7";
           ".FrostFire2601" = "00000000-0000-0000-0009-01f15eafad18";
+          ".Enadiz7" = "00000000-0000-0000-0009-01fb6ae2c9e6";
+          Rebecurrr = "e8bfcd6e-2544-4c3e-a8f7-774910636312";
+          Irana = "032acdbb-acd6-4e74-ae3d-01f32405e08b";
         };
 
         files."config/EssentialCommands.properties".value = {
