@@ -71,6 +71,7 @@ in {
           jkmn = "3e63deaa-3d4e-4104-a3f6-869cd04894fe";
           Enadiz76 = "04d5bea4-1920-4f00-a3b9-5cd58181043b";
           justinmybubble = "e90cc15c-5885-4670-96c6-be196e9e73c7";
+          ".FrostFire2601" = "00000000-0000-0000-0009-01f15eafad18";
         };
 
         files."config/EssentialCommands.properties".value = {
