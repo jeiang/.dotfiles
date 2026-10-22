@@ -263,6 +263,10 @@ behavior for its own sake.
   nftables bouncer, both against the LAPI on `alda` over the mesh. Its
   machine and bouncer credentials live in `modules/crowdsec/secrets.agent.yaml`,
   readable only by alda and ricklent.
+- CrowdSec keeps its database and hub under `/var/lib/crowdsec/state` on
+  alda and ricklent, not the nixpkgs default data directory. alda's local
+  API credentials stay at `/etc/crowdsec/local_api_credentials.yaml`;
+  ricklent disables its local API and uses its sops-rendered credentials.
 - `modules/netbird-invariants/` is a read-only check (never PUT/POST/DELETE)
   of the self-hosted NetBird management API: the Quad9 `jeiang.dev` group's
   `search_domains_enabled` stays off, the primary DNS group is, in order,

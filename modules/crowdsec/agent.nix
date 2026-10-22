@@ -54,21 +54,23 @@ in {
       };
 
       settings = {
-        lapi.credentialsFile = config.sops.templates.${credentialsTemplate}.path;
-        # NetBird's proxy unconditionally binds its pprof server on 6060.
-        general.prometheus.listen_port = 6061;
-      };
+        config = {
+          api.client.credentials_path = config.sops.templates.${credentialsTemplate}.path;
+          api.server.enable = false;
+          # NetBird's proxy unconditionally binds its pprof server on 6060.
+          prometheus.listen_port = 6061;
+        };
 
-      localConfig.acquisitions = [
-        {
-          source = "journalctl";
-          journalctl_filter = ["_SYSTEMD_UNIT=sshd.service"];
-          labels.type = "syslog";
-        }
-      ];
+        acquisitions = [
+          {
+            source = "journalctl";
+            journalctl_filter = ["_SYSTEMD_UNIT=sshd.service"];
+            labels.type = "syslog";
+          }
+        ];
+      };
     };
 
-    # The nixpkgs unit empties PATH, and the journalctl datasource execs journalctl.
     systemd.services.crowdsec = {
       path = lib.mkForce [config.systemd.package];
       serviceConfig.SupplementaryGroups = ["systemd-journal"];
