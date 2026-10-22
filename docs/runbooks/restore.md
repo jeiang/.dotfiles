@@ -76,6 +76,20 @@ Only after the scratch copy passes, and only to recover from data loss.
     ssh -t <node>.jeiang.dev sudo systemctl start <pause-units>
     ```
 
+## Minecraft worlds
+
+Minecraft on ricklent selects its world with `level-name` in
+`modules/minecraft.nix`. To start a fresh world, set a new, unused
+`level-name` and the requested `level-seed`, then deploy ricklent. Changing
+only the seed does not regenerate an existing world.
+
+The current world is `world-7728672820586227199`; the previous `world/`
+remains untouched under `/srv/minecraft/mc/`. Both are in the Minecraft
+backup set. The new world has fresh player inventories and progress.
+To return to a retained world, restore its `level-name` in the configuration
+and deploy. A generation rollback also restores that generation's world
+selection; it does not undo changes made inside either world.
+
 ## artemis
 
 artemis has one repository,
