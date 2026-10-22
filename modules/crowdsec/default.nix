@@ -26,6 +26,8 @@ in {
     ];
   };
 
+  nixos.modules.legion.services.crowdsec.settings.config.config_paths.data_dir = "/var/lib/crowdsec/state";
+
   nixos.modules.crowdsec = {
     config,
     lib,
@@ -89,24 +91,21 @@ in {
         ];
 
         settings = {
-          # Must be in confDir (crowdsec-writable via the module's tmpfiles);
-          # the DynamicUser StateDirectory root gets permission denied, and
-          # enabling the LAPI without a path coerces null at eval.
-          lapi.credentialsFile = "/etc/crowdsec/local_api_credentials.yaml";
+          config = {
+            api.client.credentials_path = "/etc/crowdsec/local_api_credentials.yaml";
 
-          general.api.server = {
-            enable = true;
-            # 0.0.0.0: edge Caddy (loopback) and vida's bouncers
-            # (private network) both dial in; the firewall scopes it private.
-            listen_uri = "0.0.0.0:${toString lapiPort}";
+            api.server = {
+              enable = true;
+              # 0.0.0.0: edge Caddy (loopback) and vida's bouncers
+              # (private network) both dial in; the firewall scopes it private.
+              listen_uri = "0.0.0.0:${toString lapiPort}";
+            };
+
+            # The default loopback bind would be unreachable from zantark's
+            # cross-node scraper.
+            prometheus.listen_addr = "0.0.0.0";
           };
 
-          # The default loopback bind would be unreachable from zantark's
-          # cross-node scraper.
-          general.prometheus.listen_addr = "0.0.0.0";
-        };
-
-        localConfig = {
           acquisitions = [
             {
               # The exact file the edge module's Caddy logFormat writes.
@@ -188,15 +187,13 @@ in {
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
-            # As the crowdsec user the module's cscli wrapper skips sudo, which would log the --key argument.
             User = config.services.crowdsec.user;
             LoadCredential =
               lib.mapAttrsToList (name: path: "${name}:${path}") bouncerKeys
               ++ lib.mapAttrsToList (name: path: "machine-${name}:${path}") machinePasswords;
           };
           script = let
-            # The module's cscli wrapper bakes in -c <store config>; it is only exposed via environment.systemPackages.
-            cscli = "/run/current-system/sw/bin/cscli";
+            cscli = lib.getExe' config.services.crowdsec.package "cscli";
             # Delete-then-add converges the LAPI on the key currently on disk.
             registerBouncer = name: ''
               ${cscli} bouncers delete ${lib.escapeShellArg name} || true
