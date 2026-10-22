@@ -53,7 +53,11 @@ in {
         ];
       };
 
-      settings.lapi.credentialsFile = config.sops.templates.${credentialsTemplate}.path;
+      settings = {
+        lapi.credentialsFile = config.sops.templates.${credentialsTemplate}.path;
+        # NetBird's proxy unconditionally binds its pprof server on 6060.
+        general.prometheus.listen_port = 6061;
+      };
 
       localConfig.acquisitions = [
         {

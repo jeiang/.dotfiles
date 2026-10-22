@@ -159,6 +159,24 @@ write nowhere else and never overwrites a file):
 ssh -t peria.svr.jeiang.dev sudo garret-admin backup /var/lib/garret/manual-<date>.db
 ```
 
+## Moving the live index
+
+Stop both old units before copying `garret.db` and any `garret.db-wal`.
+The WAL can remain nonempty after a clean stop; omitting it loses committed
+changes. Do not copy `garret.db-shm`; SQLite rebuilds it. Verify both copied
+files before starting either unit on the destination, and assign them to
+the destination's `garret` user and group with mode 0660.
+
+Only one host may run the Pusher against the bucket. Keep the retired
+Pusher, Puller, backup timer, and maintenance timer masked across reboots.
+On a retired NixOS host, mask symlinks in `/etc/systemd/system.control/`
+take precedence over the store-backed units. A rollback must copy the
+current index back before removing those masks; the retired index is stale.
+
+Transfer only the cache domains' existing Caddy certificates and private
+keys before changing DNS. Preserve their permissions and verify TLS against
+the destination address while public DNS still points to the old host.
+
 ## Restoring the index
 
 The copy is older than the bucket. Blobs evicted since it was taken still
