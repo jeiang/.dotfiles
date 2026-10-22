@@ -137,10 +137,10 @@ in {
         };
 
         ricklent = {
-          provider = "arct";
+          provider = "linode";
           privateIPv4 = null;
-          publicIPv4 = "51.146.56.59";
-          publicIPv6 = null;
+          publicIPv4 = "23.92.31.67";
+          publicIPv6 = "2600:3c02::2000:f4ff:fe3d:6112";
         };
       };
 
