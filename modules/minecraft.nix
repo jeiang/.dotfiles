@@ -1,40 +1,20 @@
-{inputs, ...}: let
+{
+  inputs,
+  self,
+  ...
+}: let
   javaPort = 25565;
   bedrockPort = 19132;
   serverName = "mc";
   stateDir = "/srv/minecraft/${serverName}";
 in {
-  legion.services.minecraft = {
-    node = "ricklent";
-    module = "minecraft";
-    stateful = true;
-    units = ["minecraft-server-${serverName}"];
-    ports = {
-      java = javaPort;
-      bedrock = bedrockPort;
-    };
-    firewall = [
-      {
-        port = javaPort;
-        proto = "tcp";
-        scope = "public";
-      }
-      # Geyser's NetherNet: signaling on TCP, gameplay (WebRTC) on UDP.
-      {
-        port = bedrockPort;
-        proto = "tcp";
-        scope = "public";
-      }
-      {
-        port = bedrockPort;
-        proto = "udp";
-        scope = "public";
-      }
-    ];
-    backupSet = [stateDir];
+  flake.lib = {
+    minecraftJavaPort = javaPort;
+    minecraftBedrockPort = bedrockPort;
   };
 
-  nixos.modules.minecraft = {
+  nixos.modules.artemis = {
+    config,
     lib,
     pkgs,
     ...
@@ -42,16 +22,27 @@ in {
     imports = [inputs.nix-minecraft.nixosModules.minecraft-servers];
     nixpkgs.overlays = [inputs.nix-minecraft.overlay];
 
+    persistence.directories = [
+      {
+        directory = stateDir;
+        user = config.services.minecraft-servers.user;
+        group = config.services.minecraft-servers.group;
+        mode = "0770";
+      }
+    ];
+
     services.minecraft-servers = {
       enable = true;
       eula = true;
+      openFirewall = false;
       servers.${serverName} = {
         enable = true;
         # Geyser translates Bedrock 26.50-26.52 to Java 26.3.
         # nix-minecraft's Fabric launcher defaults to nixpkgs' Java 21; 26.x needs 25.
         package = pkgs.fabricServers.fabric-26_3.override {jre_headless = pkgs.jdk25_headless;};
         # Bedrock 26.60 drops RakNet, which is still Geyser's default transport.
-        jvmOpts = "-Xms2048M -Xmx4096M -DgeyserTransport=nethernet";
+        # ICE must announce Atlanta's forwarded UDP endpoint, not artemis's home address.
+        jvmOpts = "-Xms2048M -Xmx4096M -DgeyserTransport=nethernet -DgeyserAdvertiseAddresses=${self.lib.legionNodes.ricklent.publicIPv4},${self.lib.legionNodes.ricklent.publicIPv6}";
 
         serverProperties = {
           server-port = javaPort;
@@ -103,8 +94,7 @@ in {
             url = "https://cdn.modrinth.com/data/6VdDUivB/versions/KANmt7ie/essential_commands-0.42.0-mc26.3.jar";
             sha512 = "6edda40084a85446817e1c393f8ea0a386300762c553990ee2bf613a93623f883be752824635f3d7f1d2a89c7b247cc246afd18a1e0d293ff022433b301e180e";
           };
-          # With Floodgate installed, Geyser's defaults (port 19132,
-          # floodgate auth) need no config file.
+          # Floodgate authentication and the shared Bedrock port are Geyser defaults.
           Geyser = pkgs.fetchurl {
             url = "https://cdn.modrinth.com/data/wKkoqHrH/versions/W6A5MAm6/Geyser-Fabric-2.12.0-b1267.jar";
             sha512 = "e56ca2f630f916a1846d6c3e1b5f6eebc69ba631ff5132d8c7483b4e9306e9019e50e01d8dc21639810f1bc3822f2263fb90e240e859b7f969604ecc37e0f7d2";
@@ -122,13 +112,6 @@ in {
       environment.LD_LIBRARY_PATH = lib.makeLibraryPath [pkgs.openssl];
       # libjuice's getifaddrs needs Netlink to gather NetherNet ICE candidates.
       serviceConfig.RestrictAddressFamilies = ["AF_NETLINK"];
-    };
-
-    # The root disk holds the only live copy, so the interval is the
-    # play a lost node loses.
-    systemd.timers."restic-backups-minecraft".timerConfig = {
-      OnCalendar = lib.mkForce "00/6:00";
-      RandomizedDelaySec = lib.mkForce "15m";
     };
   };
 }
