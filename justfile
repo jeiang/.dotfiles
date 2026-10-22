@@ -126,6 +126,10 @@ netbird-update:
 netbird-invariants:
   nix shell --inputs-from . nixpkgs#jq nixpkgs#curl -c ./modules/netbird-invariants/check.sh
 
+# Enroll over public root SSH after removing the old peer; setup_key_file is a root-only path on the target
+netbird-enroll node address setup_key_file identity:
+  ssh -i "{{identity}}" -o IdentitiesOnly=yes "root@{{address}}" "systemctl start netbird && netbird up --hostname '{{node}}' --setup-key-file '{{setup_key_file}}' && rm -f '{{setup_key_file}}'"
+
 # nh runs elevated commands with HOME="" on macOS, so root's nix puts its Sentry
 # database in ./.cache of the working directory; / is read-only, so none is made.
 [doc('Run nh against this flake (e.g. just nh darwin switch)')]

@@ -78,14 +78,14 @@ Only after the scratch copy passes, and only to recover from data loss.
 
 ## Minecraft worlds
 
-Minecraft on ricklent selects its world with `level-name` in
+Minecraft on artemis selects its world with `level-name` in
 `modules/minecraft.nix`. To start a fresh world, set a new, unused
-`level-name` and the requested `level-seed`, then deploy ricklent. Changing
+`level-name` and the requested `level-seed`, then deploy artemis. Changing
 only the seed does not regenerate an existing world.
 
 The current world is `world-7728672820586227199`; the previous `world/`
-remains untouched under `/srv/minecraft/mc/`. Both are in the Minecraft
-backup set. The new world has fresh player inventories and progress.
+remains untouched under `/srv/minecraft/mc/`. Both are persisted and included
+in artemis's `/persist` backup. The new world has fresh player inventories and progress.
 To return to a retained world, restore its `level-name` in the configuration
 and deploy. A generation rollback also restores that generation's world
 selection; it does not undo changes made inside either world.
@@ -124,6 +124,15 @@ ssh artemis.jeiang.vpn doas rm -rf /tmp/restore-persist
 `/persist/data/home/aidanp/...` and the path under `/home/aidanp` are the
 same files: impermanence bind-mounts one onto the other. Writing to either
 is the same write.
+
+Minecraft restores from
+`/tmp/restore-persist/persist/.backup-snapshot/srv/minecraft/mc/`;
+Factorio restores from
+`/tmp/restore-persist/persist/.backup-snapshot/var/lib/factorio/`.
+Stop the corresponding game before copying, preserve its entire state
+directory, and restore ownership as `minecraft:minecraft` or
+`factorio:factorio`. Older London snapshots remain in the
+`ricklent/minecraft` and `ricklent/factorio` Legion repositories.
 
 Rebuilding artemis from nothing reads the repository with the admin age key,
 not with anything on the host. Restore `/persist/etc/ssh` first anyway: the

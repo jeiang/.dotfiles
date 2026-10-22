@@ -183,7 +183,7 @@ in {
     backupSet =
       # Host identity: with these two a rebuilt artemis keeps its sops key and
       # its NetBird peer address, which the flake hardcodes.
-      ["etc/ssh" "var/lib/netbird" "var/lib/atrium"]
+      ["etc/ssh" "var/lib/netbird" "var/lib/atrium" "var/lib/factorio" "srv/minecraft/mc"]
       ++ map (directory: "data${home}/${directory}") [
         ".config/sunshine"
         ".gnupg"
@@ -233,8 +233,8 @@ in {
       environmentFile = config.sops.secrets."restic/s4-env".path;
       initialize = true;
       timerConfig = {
-        # Ahead of bees at 03:00, which stalls disk I/O until 09:00.
-        OnCalendar = "02:00";
+        OnCalendar = "02/6:00";
+        RandomizedDelaySec = "15m";
         Persistent = true;
       };
       pruneOpts = [];
@@ -247,9 +247,13 @@ in {
         if [ -e ${snapshot} ]; then
           ${btrfs} subvolume delete ${snapshot}
         fi
+        systemctl stop factorio.service minecraft-server-mc.service
         ${btrfs} subvolume snapshot -r /persist ${snapshot}
+        systemctl start factorio.service minecraft-server-mc.service
       '';
       backupCleanupCommand = ''
+        # nixpkgs runs cleanup through ExecStopPost, including prepare/backup failures.
+        systemctl start factorio.service minecraft-server-mc.service
         if [ -e ${snapshot} ]; then
           ${btrfs} subvolume delete ${snapshot}
         fi

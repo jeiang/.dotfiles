@@ -16,6 +16,10 @@ var ALDA_V6 = NODES["alda"].publicIPv6;
 var VIDA_V6 = NODES["vida"].publicIPv6;
 var ZANTARK_V6 = NODES["zantark"].publicIPv6;
 var PERIA_V6 = NODES["peria"].publicIPv6;
+var RICKLENT_V6 = NODES["ricklent"].publicIPv6;
+
+// Keep existing ingress in London until the destination state is verified.
+var LONDON_V4 = "51.146.56.59";
 
 // Caddy's DNS-01 issuer creates/deletes these TXT records at every renewal; a push racing a renewal must not delete a challenge mid-validation.
 var ACME = [
@@ -38,8 +42,8 @@ D("jeiang.dev", REG_NONE,
   CAA("@", "iodef", "mailto:aidan@aidanpinard.co"),
 
   // cache-push MUST stay grey-clouded: a push is one streaming PUT of a whole NAR and Cloudflare 413s bodies over 100 MB.
-  A("cache", RICKLENT_V4, CF_PROXY_OFF),
-  A("cache-push", RICKLENT_V4, CF_PROXY_OFF),
+  A("cache", LONDON_V4, CF_PROXY_OFF),
+  A("cache-push", LONDON_V4, CF_PROXY_OFF),
 
   // Long-lived subscription streams (SSE/WebSocket) stay off the Cloudflare proxy, and the client IP reaches ntfy's rate limiter.
   A("ntfy", ALDA_V4, CF_PROXY_OFF),
@@ -53,20 +57,26 @@ D("jeiang.dev", REG_NONE,
   CNAME("atrium.docs", "jeiang.github.io.", CF_PROXY_OFF),
 
   // UDP game traffic cannot pass the Cloudflare proxy, so the wildcard does not cover it.
-  A("factorio", RICKLENT_V4, CF_PROXY_OFF),
-  A("mc", RICKLENT_V4, CF_PROXY_OFF),
+  A("factorio", LONDON_V4, CF_PROXY_OFF),
+  A("mc", LONDON_V4, CF_PROXY_OFF),
 
   // NetBird control plane and STUN: long-lived gRPC/WebSocket streams and UDP, kept off the Cloudflare proxy.
   A("netbird", ALDA_V4),
   AAAA("netbird", ALDA_V6),
   A("stun.netbird", VIDA_V4),
   AAAA("stun.netbird", VIDA_V6),
-  A("relay-eu.netbird", RICKLENT_V4),
+  A("relay-eu.netbird", LONDON_V4),
+  A("relay-atl.netbird", RICKLENT_V4),
+  AAAA("relay-atl.netbird", RICKLENT_V6),
 
   A("proxy", VIDA_V4),
   AAAA("proxy", VIDA_V6),
   A("*.proxy", VIDA_V4),
   AAAA("*.proxy", VIDA_V6),
+  A("proxy-atl", RICKLENT_V4),
+  AAAA("proxy-atl", RICKLENT_V6),
+  A("*.proxy-atl", RICKLENT_V4),
+  AAAA("*.proxy-atl", RICKLENT_V6),
 
   A("alda.svr", ALDA_V4),
   AAAA("alda.svr", ALDA_V6),
@@ -76,7 +86,7 @@ D("jeiang.dev", REG_NONE,
   AAAA("zantark.svr", ZANTARK_V6),
   A("peria.svr", PERIA_V4),
   AAAA("peria.svr", PERIA_V6),
-  A("ricklent.svr", RICKLENT_V4),
+  A("ricklent.svr", LONDON_V4),
 
   MX("@", 10, "mx01.mail.icloud.com.", TTL(3600)),
   MX("@", 10, "mx02.mail.icloud.com.", TTL(3600)),

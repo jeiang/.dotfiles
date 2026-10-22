@@ -2,30 +2,26 @@ _: let
   port = 34197;
   stateDir = "/var/lib/factorio";
 in {
-  legion.services.factorio = {
-    node = "ricklent";
-    module = "factorio";
-    stateful = true;
-    units = ["factorio"];
-    ports.game = port;
-    firewall = [
-      {
-        inherit port;
-        proto = "udp";
-        scope = "public";
-      }
-    ];
-    backupSet = [stateDir];
-  };
+  flake.lib.factorioPort = port;
 
-  nixos.modules.factorio = {
+  nixos.modules.artemis = {
     config,
     lib,
     ...
   }: {
+    persistence.directories = [
+      {
+        directory = stateDir;
+        user = "factorio";
+        group = "factorio";
+        mode = "0750";
+      }
+    ];
+
     services.factorio = {
       enable = true;
       inherit port;
+      openFirewall = false;
       game-name = "cornn-flaek";
       autosave-interval = 10;
       # JSON merged into server-settings.json at start: {"game_password": "..."}.
@@ -53,13 +49,7 @@ in {
       DynamicUser = lib.mkForce false;
       User = "factorio";
       Group = "factorio";
-    };
-
-    # The root disk holds the only live copy, so the interval is the
-    # play a lost node loses.
-    systemd.timers.restic-backups-factorio.timerConfig = {
-      OnCalendar = lib.mkForce "00/6:00";
-      RandomizedDelaySec = lib.mkForce "15m";
+      StateDirectoryMode = "0750";
     };
   };
 }

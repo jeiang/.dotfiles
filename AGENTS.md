@@ -5,17 +5,17 @@ machine must run.
 
 | Host | Kind | Role |
 | --- | --- | --- |
-| `artemis` | NixOS | Headless gaming and streaming box at home. Impermanent btrfs root. Reached over NetBird with Sunshine/Moonlight and hypr-rdp. Also hosts atrium and the media stack. |
+| `artemis` | NixOS | Headless gaming and streaming box at home. Impermanent btrfs root. Sunshine/Moonlight and hypr-rdp over NetBird; atrium, media, Factorio, and Minecraft. Games enter through ricklent. |
 | `zakkart` | nix-darwin | The operator's MacBook. |
 | `alda` | NixOS | Legion server, Hetzner Cloud. Caddy edge (also fronts atrium on artemis). |
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
 | `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring, ntfy, gatus, atuin, f95-tracker. |
-| `peria` | NixOS | Legion server, Hetzner Cloud. Lowest-priority services: hath, glance. |
-| `ricklent` | NixOS | Legion server, Arct Cloud VPS in London (not Hetzner). No Volumes, no provider firewall: the host firewall is the only one. CrowdSec agent and nftables bouncer, garret behind its own Caddy (which also fronts the EU NetBird relay), Factorio, Minecraft, Gatus London watchdog, qBittorrent WireGuard exit, second Blocky (mesh IP only). |
+| `peria` | NixOS | Legion server, Hetzner Cloud. garret with its own Caddy and CrowdSec firewall bouncer, hath, and glance. |
+| `ricklent` | NixOS | Legion server, Linode VPS in Atlanta (not Hetzner). Game ingress to artemis, NetBird Atlanta relay and separate reverse proxy, qBittorrent WireGuard exit, secondary Blocky, independent Gatus, and CrowdSec agent/firewall bouncer. No Volumes or provider firewall. |
 
 Legion is the fleet's servers, whatever the provider: four run on Hetzner
-Cloud, `ricklent` on Arct Cloud. `legionNodes.<name>.provider` (`hetzner` or
-`arct`) selects the provider-specific parts.
+Cloud, `ricklent` on Linode. `legionNodes.<name>.provider` (`hetzner` or
+`linode`) selects the provider-specific parts.
 
 Backwards compatibility matters only for rollback. Flag a change that would
 break a rollback to the previous generation; otherwise do not keep old
@@ -83,8 +83,8 @@ behavior for its own sake.
   `modules/hosts/legion/default.nix` derives per-node module imports,
   firewall openings, and `backups.jobs` from it, plus (Hetzner nodes only,
   through `nixos.modules.hetzner`) Volume `fileSystems`, the private NIC,
-  and the WAN gateway config. `modules/hosts/ricklent/` holds the Arct
-  node's own disk, network, and resource settings.
+  and the WAN gateway config. `modules/hosts/ricklent/` holds the Linode
+  node's BIOS GRUB disk, DHCP/IPv6 network, and resource settings.
 - `modules/<feature>.nix`, or `modules/<feature>/` when it has sibling
   files (secrets shard, Lua, JSON, script): one flake-parts module that
   implements the feature for every class it applies to. A secret shard sits
@@ -208,7 +208,7 @@ behavior for its own sake.
   its last backup instead lives on the root disk with a `backupSet` restic
   job as its whole durability story; atuin on `zantark` is one such
   service. ricklent has no Volumes, so a stateful service there must use
-  that root-disk-plus-restic pattern (a Volume on an Arct node fails
+  that root-disk-plus-restic pattern (a Volume on a non-Hetzner node fails
   evaluation). Exactly one node owns each stateful service; moving it is an
   explicit Volume (or backup) and state migration, not a placement edit
   alone. Legion `fileSystems` entries for a Volume mount by ext4 label, not
@@ -224,10 +224,10 @@ behavior for its own sake.
   entry, and then dropped from scrape targets). ricklent's peer entry is
   added after it first enrolls, and until then its journald upload,
   CrowdSec agent, and scrape do not connect. NetBird access policies must
-  allow ricklent to alda (CrowdSec LAPI), to zantark (VictoriaLogs), and
-  zantark to ricklent (node exporter, relay-eu metrics and health, garret's
-  8081, 9091 and 9092), atuin clients to zantark (8889), and all DNS
-  clients to ricklent's Blocky (port 553, TCP and UDP).
+  allow ricklent to alda (CrowdSec LAPI), to zantark (VictoriaLogs), and to
+  artemis (game ports); zantark to ricklent (node exporter, Atlanta relay
+  metrics/health and proxy health); atuin clients to zantark (8889); and all
+  DNS clients to ricklent's Blocky (port 553, TCP and UDP).
 - Legion host firewalls are on. A `legion.services.<name>` entry's
   `scope = "private"` is documentation: `enp7s0` (Hetzner nodes) and the
   NetBird interface are trusted interfaces. On a Hetzner node a public
@@ -247,13 +247,15 @@ behavior for its own sake.
   `alda`. The host opens TCP/UDP 40000-45000 for ad hoc services,
   and the Hetzner `legion` firewall allows that range, so a port in it is
   public on any Hetzner node whose host firewall opens it.
-- `netbird-relay-eu` on `ricklent` is a second NetBird relay at
-  `relay-eu.netbird.jeiang.dev`, DNS-only, with no STUN. It listens on
-  loopback, and ricklent's Caddy (the one in front of garret) terminates its
-  TLS on public TCP 443, so the relay is down whenever that Caddy is. Its
-  auth secret is a copy of the one in `modules/netbird-server/secrets.yaml`,
-  kept in `secrets.relay-eu.yaml` so ricklent never reads the store
-  encryption key; rotate both together.
+- `netbird-relay-atl` on `ricklent` is a second NetBird relay at
+  `relay-atl.netbird.jeiang.dev`, DNS-only, with no STUN. HAProxy routes its
+  public TCP 443 SNI to loopback Caddy, which terminates TLS and proxies
+  the relay. Other TLS goes to the separate `proxy-atl.jeiang.dev` NetBird
+  proxy with PROXYv2; only loopback is trusted to supply that header.
+  DNS-01 provisions the proxy wildcard and relay certificate. The relay
+  auth secret is copied from `modules/netbird-server/secrets.yaml` into
+  `secrets.relay-atl.yaml`; rotate both together. The Atlanta proxy has its
+  own token/cluster and TCP/UDP 40000-45000; vida's proxy remains separate.
 - ricklent runs a CrowdSec agent (sshd logs from the journal) and an
   nftables bouncer, both against the LAPI on `alda` over the mesh. Its
   machine and bouncer credentials live in `modules/crowdsec/secrets.agent.yaml`,
@@ -276,23 +278,26 @@ behavior for its own sake.
   Prometheus). Its challenge store stays in memory.
 - Stateless by choice: Gatus stores results in memory, and tinyauth's
   database holds only sessions.
-- `gatus-london` on ricklent is the external watchdog: same endpoints as
-  zantark's `gatus`, alerting straight to Discord with the Alertmanager
-  webhook value (`modules/gatus/secrets.yaml`), so it does not depend on
-  zantark. zantark's `gatus` keeps alerting through Alertmanager.
+- `gatus-atl` on ricklent is the independent Atlanta watchdog: the same
+  endpoints as zantark's `gatus`, alerting straight to Discord with
+  `modules/gatus/secrets.yaml`, so it does not depend on zantark.
+  zantark's `gatus` keeps alerting through Alertmanager.
 - The H@H backup keeps the full cache: a restore costs less than earning
   back H@H trust and quota.
 - Minecraft (`modules/minecraft.nix`, nix-minecraft Fabric with Geyser and
-  Floodgate; Java on TCP 25565, Bedrock on TCP and UDP 19132) on `ricklent`
-  is public at `mc.jeiang.dev`, IPv4 only. The Java version follows what
+  Floodgate; Java on TCP 25565, Bedrock on TCP and UDP 19132) runs on
+  `artemis`. `mc.jeiang.dev` enters through ricklent's IPv4/IPv6 stream
+  proxy, never a public home firewall opening. The Java version follows what
   Geyser supports for the Bedrock clients in use. Geyser runs the NetherNet
   transport (Bedrock 26.60 drops RakNet) with built-in plain-HTTP
   signaling, so Bedrock players see a trust prompt on first join. The
   whitelist is declared for Java and Bedrock
   players alike (Bedrock as Floodgate `.`-prefixed names and XUID UUIDs),
   and each start rewrites `whitelist.json`, so runtime edits do not
-  survive. Its world is on the root disk with a 6-hourly restic job, which
-  stops the server while it runs.
+  survive. Its state and Factorio's `/var/lib/factorio` are persisted and
+  included in artemis's six-hourly `/persist` backup. Both games stop only
+  while the read-only snapshot is created. Geyser advertises Atlanta's
+  public addresses for ICE; the stream proxy does not preserve player IPs.
 - artemis and Legion back up to separate S4 buckets with separate keys, and
   one repository password covers all of Legion. A host that owns no backup
   job is therefore not a recipient of a backups shard, and adding one back
@@ -312,15 +317,14 @@ behavior for its own sake.
 - garret's Puller runs as its own user with its own GetObject-only S3 key
   (`garret/puller-s3-*`); only the Pusher holds the bucket-write key. Its backup is an online
   `garret-admin backup` copy, so a backup never stops the cache.
-- garret runs on `ricklent` because push bandwidth is its constraint, and
-  ricklent's own Caddy terminates `cache` and `cache-push` there instead of
-  alda's edge. Its SQLite index lives on the root disk with a 6-hourly
-  restic job, so a lost ricklent forgets the pushes since the last
-  snapshot. Both garret units skip their start while the index file is
+- garret runs on `peria`; its own Caddy terminates `cache` and `cache-push`
+  directly instead of alda's edge or Atlanta. Its SQLite index lives on
+  the root disk with a six-hourly restic job, so a lost peria forgets pushes
+  since the last snapshot. Both units skip their start while the index is
   missing: the Pusher would create an empty one, and its startup orphan
-  sweep would then delete every bucket object older than 24 hours. That
-  Caddy has no CrowdSec bouncer module or AppSec; ricklent's nftables
-  bouncer is its only CrowdSec protection.
+  sweep would then delete every bucket object older than 24 hours. This
+  Caddy has no bouncer module or AppSec; garret's host nftables bouncer
+  uses alda's LAPI with its own key in `modules/crowdsec/secrets.garret.yaml`.
 - The portfolio on `vida` runs whatever upstream `joshua-noel/portfolio`
   main builds: `portfolio-update` builds it as the `portfolio` user at
   00:00 UTC (and 2 minutes after activation) into
@@ -354,8 +358,10 @@ behavior for its own sake.
   `UI_CONFIG_DISABLED`, which ignores the database's copy and locks the admin
   UI's settings page: an undeclared setting takes Pocket ID's default. The SMTP
   password reaches it from sops through `services.pocket-id.credentials`.
-- NetBird peer IPs in `modules/netbird-peers.nix` change when a peer
-  enrolls again.
+- Legion enrolls with the non-ephemeral setup key in
+  `modules/hosts/legion/secrets.yaml`; artemis retains its separate permanent
+  enrollment. Preserve the addresses in `modules/netbird-peers.nix` and
+  policy references when re-enrolling.
 - Every zellij layout draws its bar with zjstatus, declared once as a plugin
   alias in `modules/packages/zellij/default.nix`: `layout_dir` is a plain
   directory, so a layout cannot name the store path itself. zellij asks for
@@ -403,7 +409,7 @@ behavior for its own sake.
 - qBittorrent runs in a network namespace on artemis whose only link besides
   loopback is a WireGuard interface to ricklent (`modules/qbittorrent/`), so
   with the tunnel down it has no route. ricklent masquerades its traffic and
-  DNATs peer port 42881 to artemis's tunnel address. The namespace resolves
+  DNATs peer port 32881 to artemis's tunnel address. The namespace resolves
   through Quad9 over the tunnel, and the Web UI reaches the host through a
   socket proxy, so qBittorrent sees every Web UI client as loopback and
   whitelists it. The tunnel endpoint is ricklent's public IP, not its name:

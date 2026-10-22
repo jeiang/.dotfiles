@@ -1,56 +1,77 @@
 {self, ...}: let
   node = self.lib.legionNodes.ricklent;
 
-  gateway = "10.255.255.1";
+  wanInterface = "eth0";
   GiB = 1024 * 1024 * 1024;
 in {
-  nixos.configurations.ricklent.module = {modulesPath, ...}: {
+  nixos.configurations.ricklent.module = {
+    lib,
+    modulesPath,
+    ...
+  }: {
     imports = [(modulesPath + "/profiles/qemu-guest.nix")];
 
-    disko.devices.disk.disk1.device = "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi0";
+    disko.devices = lib.mkForce {
+      disk.disk1 = {
+        device = "/dev/sda";
+        type = "disk";
+        content = {
+          type = "gpt";
+          partitions = {
+            boot = {
+              size = "1M";
+              type = "EF02";
+            };
+            root = {
+              size = "100%";
+              content = {
+                type = "filesystem";
+                format = "ext4";
+                mountpoint = "/";
+              };
+            };
+          };
+        };
+      };
+    };
 
     boot = {
-      loader = {
-        systemd-boot.enable = true;
-        efi.canTouchEfiVariables = true;
+      loader.grub = {
+        enable = true;
+        efiSupport = false;
+        extraConfig = ''
+          serial --unit=0 --speed=19200 --word=8 --parity=no --stop=1
+          terminal_input console serial
+          terminal_output console serial
+        '';
       };
-      initrd.availableKernelModules = ["ahci" "sd_mod"];
+      kernelParams = ["console=tty0" "console=ttyS0,19200n8" "net.ifnames=0"];
+      initrd.availableKernelModules = ["ahci" "sd_mod" "virtio_pci" "virtio_blk" "virtio_scsi"];
     };
 
     systemd.network.networks."10-wan" = {
-      matchConfig.MACAddress = "bc:24:11:d8:a9:02";
-      address = ["${node.publicIPv4}/32"];
-      routes = [
-        {
-          Destination = "${gateway}/32";
-          Scope = "link";
-        }
-        {
-          Gateway = gateway;
-          GatewayOnLink = true;
-        }
-      ];
+      matchConfig.Name = wanInterface;
+      address = ["${node.publicIPv6}/128"];
       networkConfig = {
-        DHCP = "no";
-        IPv6AcceptRA = false;
+        DHCP = "ipv4";
+        IPv6AcceptRA = true;
       };
+      dhcpV4Config.UseDNS = false;
+      ipv6AcceptRAConfig.UseDNS = false;
     };
 
-    networking.nameservers = ["9.9.9.9" "149.112.112.112"];
+    networking = {
+      nameservers = ["9.9.9.9" "149.112.112.112"];
+      firewall.filterForward = true;
+    };
 
-    # zram is the primary swap and the swapfile its overflow; min-free/max-free keep builds from filling the 75 GB disk.
-    swapDevices = [
-      {
-        device = "/var/lib/swapfile";
-        size = 4 * 1024;
-      }
-    ];
+    swapDevices = [{device = "/dev/sdb";}];
 
     nix.settings = {
-      max-jobs = 2;
-      cores = 2;
-      min-free = 8 * GiB;
-      max-free = 20 * GiB;
+      max-jobs = 1;
+      cores = 1;
+      min-free = 4 * GiB;
+      max-free = 10 * GiB;
     };
   };
 }

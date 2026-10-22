@@ -1,7 +1,7 @@
 {self, ...}: let
   webuiPort = 8081;
   filesPort = 8082;
-  torrentingPort = 42881;
+  torrentingPort = 32881;
   stateDir = "/var/lib/qbittorrent";
   downloadDir = self.lib.mediaDownloadDir;
 
@@ -195,7 +195,9 @@ in {
     };
   };
 
-  nixos.modules.qbittorrent-exit = {config, ...}: {
+  nixos.modules.qbittorrent-exit = {config, ...}: let
+    wanInterface = config.systemd.network.networks."10-wan".matchConfig.Name;
+  in {
     sops.secrets."wireguard/qbittorrent-private-key" = {
       sopsFile = ./secrets.exit.yaml;
       restartUnits = ["systemd-networkd.service"];
@@ -219,6 +221,10 @@ in {
         ];
       };
 
+      firewall.extraForwardRules = ''
+        iifname "${exitInterface}" oifname "${wanInterface}" ip saddr ${exitClientIp} accept
+      '';
+
       # The global firewall opens ports on every untrusted interface, so the
       # tunnel would reach sshd; only forwarded traffic may cross it.
       nftables.tables.qbittorrent-exit-input = {
@@ -236,12 +242,12 @@ in {
         content = ''
           chain pre {
             type nat hook prerouting priority dstnat;
-            ip daddr ${exitNode.publicIPv4} meta l4proto { tcp, udp } th dport ${toString torrentingPort} dnat to ${exitClientIp}
+            iifname "${wanInterface}" ip daddr ${exitNode.publicIPv4} meta l4proto { tcp, udp } th dport ${toString torrentingPort} dnat to ${exitClientIp}
           }
 
           chain post {
             type nat hook postrouting priority srcnat;
-            iifname "${exitInterface}" oifname != "${exitInterface}" masquerade
+            iifname "${exitInterface}" oifname "${wanInterface}" ip saddr ${exitClientIp} masquerade
           }
         '';
       };

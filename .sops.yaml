@@ -8,7 +8,7 @@ keys:
   - &server_vida age1f9t7ktuy3hny3lju3692mqx35mrc0wrfrl8mtelyeecc4lydcu0snxtm23
   - &server_zantark age1yc37qpvazdtfswa38057e73sh523q0exj75qqahzgax6kqaxeqmsq2wx9t
   - &server_peria age1a80m5fpv387njdmg63q6vvkavahepdkx7zq4gjjkg62x3lme4f7q9s5c66
-  - &server_ricklent age16lknh6g3xu8hz8wdz9fkkv26mxf7syynrth83kpgxsgkphs0c9gqza78aa
+  - &server_ricklent age1fx090xwlhgzjr9nhescyx2q3pgfw470qqqxmadzlwy4xducgtdjq43hlg6
   - &server_zakkart age1dy6m8ldy4pnqhleqhkqtej3nxvvkyu9dflzjkctrxxwl2ddj5sjqzc4j3p
 
 # One shard per consuming module, encrypted to the admin plus the hosts that run it.
@@ -97,7 +97,6 @@ creation_rules:
       - *server_vida
       - *server_zantark
       - *server_peria
-      - *server_ricklent
 
   # modules/backups/default.nix (the /persist job) -- artemis only.
   - path_regex: modules/backups/secrets\.artemis\.yaml$
@@ -143,6 +142,17 @@ creation_rules:
       - *server_alda
       - *server_ricklent
 
+  # garret's host firewall bouncer and its registration on alda.
+  - path_regex: modules/crowdsec/secrets\.garret\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_alda
+      - *server_peria
+
   # modules/netbird-server/default.nix.
   - path_regex: modules/netbird-server/secrets\.yaml$
     key_groups:
@@ -163,9 +173,19 @@ creation_rules:
       - *user_aidanp_se
       - *server_vida
 
-  # modules/netbird-server/default.nix (netbird-relay-eu on ricklent; its
+  # modules/netbird-server/default.nix (Atlanta relay; its
   # relay-auth-secret is a copy of the one in secrets.yaml).
-  - path_regex: modules/netbird-server/secrets\.relay-eu\.yaml$
+  - path_regex: modules/netbird-server/secrets\.relay-atl\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_ricklent
+
+  # Atlanta reverse proxy.
+  - path_regex: modules/netbird-server/secrets\.proxy-atl\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -232,7 +252,7 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_ricklent
+      - *server_peria
 
   # modules/atrium/default.nix -- artemis only.
   - path_regex: modules/atrium/secrets\.yaml$
@@ -252,7 +272,7 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
-      - *server_ricklent
+      - *server_artemis
 
   # modules/qbittorrent/default.nix -- artemis side of the exit tunnel.
   - path_regex: modules/qbittorrent/secrets\.yaml$

@@ -66,6 +66,8 @@ in {
       netbird-proxy = config.sops.secrets."crowdsec/bouncer-netbird-proxy-key".path;
       legion-node2-firewall = config.sops.secrets."crowdsec/bouncer-legion-node2-firewall".path;
       ricklent-firewall = config.sops.secrets."crowdsec/bouncer-ricklent-firewall".path;
+      netbird-proxy-atl = config.sops.secrets."crowdsec/bouncer-netbird-proxy-atl-key".path;
+      garret-firewall = config.sops.secrets.${self.lib.garretFirewallBouncerSecret}.path;
     };
 
     machinePasswords.ricklent = config.sops.secrets."crowdsec/machine-ricklent-password".path;
@@ -165,6 +167,14 @@ in {
         };
         "crowdsec/machine-ricklent-password" = {
           sopsFile = agentSopsFile;
+          restartUnits = ["crowdsec-bouncers.service"];
+        };
+        "crowdsec/bouncer-netbird-proxy-atl-key" = {
+          sopsFile = ./secrets.agent.yaml;
+          restartUnits = ["crowdsec-bouncers.service"];
+        };
+        ${self.lib.garretFirewallBouncerSecret} = {
+          sopsFile = ./secrets.garret.yaml;
           restartUnits = ["crowdsec-bouncers.service"];
         };
       };
