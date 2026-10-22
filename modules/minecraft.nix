@@ -56,7 +56,8 @@ in {
         serverProperties = {
           server-port = javaPort;
           motd = "Gooncraft";
-          level-seed = "888880777356331877";
+          level-name = "world-7728672820586227199";
+          level-seed = "7728672820586227199";
           # Bedrock players cannot sign chat.
           enforce-secure-profile = false;
           white-list = true;
@@ -116,9 +117,12 @@ in {
       };
     };
 
-    # Geyser's NetherNet loads a bundled libdatachannel that dlopens
-    # libssl/libcrypto from the default search path, which NixOS lacks.
-    systemd.services."minecraft-server-${serverName}".environment.LD_LIBRARY_PATH = lib.makeLibraryPath [pkgs.openssl];
+    systemd.services."minecraft-server-${serverName}" = {
+      # Geyser's bundled libdatachannel dlopens OpenSSL by library name.
+      environment.LD_LIBRARY_PATH = lib.makeLibraryPath [pkgs.openssl];
+      # libjuice's getifaddrs needs Netlink to gather NetherNet ICE candidates.
+      serviceConfig.RestrictAddressFamilies = ["AF_NETLINK"];
+    };
 
     # The root disk holds the only live copy, so the interval is the
     # play a lost node loses.
