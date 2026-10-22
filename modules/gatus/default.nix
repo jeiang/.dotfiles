@@ -72,6 +72,13 @@
         interval = "2m";
         conditions = ["[CONNECTED] == true"];
       }
+      {
+        name = "NetBird proxy Atlanta";
+        group = "Services";
+        url = "tcp://${self.lib.netbirdProxyAtlHost}:443";
+        interval = "2m";
+        conditions = ["[CONNECTED] == true"];
+      }
 
       # ntfy.jeiang.dev is grey-clouded (DNS-only), so this reads
       # Caddy's own *.jeiang.dev wildcard cert directly, not
@@ -86,7 +93,7 @@
           "[CERTIFICATE_EXPIRATION] > 240h"
         ];
       }
-      # ricklent's Caddy issues the cache and relay-eu certificates itself.
+      # The cache and regional ingress renew independently of the edge wildcard.
       {
         name = "cache.jeiang.dev certificate";
         group = "Edge";
@@ -109,6 +116,26 @@
           "[CERTIFICATE_EXPIRATION] > 240h"
         ];
       }
+      {
+        name = "${self.lib.netbirdProxyAtlHost} certificate";
+        group = "Edge";
+        url = "tls://${self.lib.netbirdProxyAtlHost}:443";
+        interval = "1h";
+        conditions = [
+          "[CONNECTED] == true"
+          "[CERTIFICATE_EXPIRATION] > 240h"
+        ];
+      }
+      {
+        name = "${self.lib.netbirdRelayAtlHost} certificate";
+        group = "Edge";
+        url = "tls://${self.lib.netbirdRelayAtlHost}:443";
+        interval = "1h";
+        conditions = [
+          "[CONNECTED] == true"
+          "[CERTIFICATE_EXPIRATION] > 240h"
+        ];
+      }
     ];
   };
 in {
@@ -119,11 +146,11 @@ in {
       module = "gatus";
     };
 
-  legion.services.gatus-london =
+  legion.services.gatus-atl =
     service
     // {
       node = "ricklent";
-      module = "gatus-london";
+      module = "gatus-atl";
     };
 
   nixos.modules.gatus = _: {
@@ -142,7 +169,7 @@ in {
   };
 
   # Alerts straight to Discord so the watchdog does not depend on zantark.
-  nixos.modules.gatus-london = {config, ...}: {
+  nixos.modules.gatus-atl = {config, ...}: {
     services.gatus = {
       enable = true;
       environmentFile = config.sops.templates."gatus.env".path;

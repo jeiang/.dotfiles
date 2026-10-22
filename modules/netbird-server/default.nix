@@ -8,13 +8,14 @@
   stunPort = 3478;
   relayPort = 8080;
   relayMetricsPort = 9091;
-  # garret's Pusher holds 9091 on ricklent.
-  relayEuMetricsPort = 9093;
+  relayAtlMetricsPort = 9093;
   relayHealthPort = 9001;
   relayTlsPort = 443;
-  relayEuHost = "relay-eu.netbird.jeiang.dev";
-  relayEuUnit = "netbird-relay-eu";
+  relayAtlHost = "relay-atl.netbird.jeiang.dev";
+  relayAtlUnit = "netbird-relay-atl";
 in {
+  flake.lib.netbirdRelayAtlHost = relayAtlHost;
+
   legion.services = {
     netbird-server = {
       node = "vida";
@@ -66,16 +67,18 @@ in {
       ];
     };
 
-    netbird-relay-eu = {
+    netbird-relay-atl = {
       node = "ricklent";
-      module = "netbird-relay-eu";
-      units = [relayEuUnit];
+      module = "netbird-relay-atl";
+      units = [relayAtlUnit "caddy" "haproxy"];
       ports = {
         relay = relayPort;
-        metrics = relayEuMetricsPort;
+        metrics = relayAtlMetricsPort;
         health = relayHealthPort;
+        tls = relayTlsPort;
+        backend-tls = 8443;
       };
-      publicHostnames = [relayEuHost];
+      publicHostnames = [relayAtlHost];
       firewall = [
         {
           port = relayTlsPort;
@@ -87,34 +90,34 @@ in {
   };
 
   nixos.modules = {
-    netbird-relay-eu = {
+    netbird-relay-atl = {
       config,
       lib,
       pkgs,
       ...
     }: let
       relayPkg = self.packages.${pkgs.stdenv.hostPlatform.system}.netbird-relay;
-      sopsFile = ./secrets.relay-eu.yaml;
-      envFile = "netbird-relay-eu.env";
+      sopsFile = ./secrets.relay-atl.yaml;
+      envFile = "netbird-relay-atl.env";
     in {
       sops = {
         secrets."netbird/relay-auth-secret" = {inherit sopsFile;};
         templates.${envFile} = {
-          restartUnits = ["${relayEuUnit}.service"];
+          restartUnits = ["${relayAtlUnit}.service"];
           content = "NB_AUTH_SECRET=${config.sops.placeholder."netbird/relay-auth-secret"}\n";
         };
       };
 
-      systemd.services.${relayEuUnit} = {
-        description = "NetBird relay (EU)";
+      systemd.services.${relayAtlUnit} = {
+        description = "NetBird relay (Atlanta)";
         after = ["network-online.target"];
         wants = ["network-online.target"];
         wantedBy = ["multi-user.target"];
         environment = {
           NB_LISTEN_ADDRESS = "127.0.0.1:${toString relayPort}";
-          NB_EXPOSED_ADDRESS = "rels://${relayEuHost}:${toString relayTlsPort}";
+          NB_EXPOSED_ADDRESS = "rels://${relayAtlHost}:${toString relayTlsPort}";
           NB_LOG_LEVEL = "info";
-          NB_METRICS_PORT = toString relayEuMetricsPort;
+          NB_METRICS_PORT = toString relayAtlMetricsPort;
           NB_HEALTH_LISTEN_ADDRESS = ":${toString relayHealthPort}";
         };
         serviceConfig = {
@@ -125,17 +128,6 @@ in {
           DynamicUser = true;
           MemoryMax = "96M";
         };
-      };
-
-      services.caddy = {
-        enable = true;
-        virtualHosts.${relayEuHost}.extraConfig = ''
-          reverse_proxy 127.0.0.1:${toString relayPort} {
-            transport http {
-              read_timeout 15m
-            }
-          }
-        '';
       };
     };
 
@@ -176,7 +168,7 @@ in {
           relays:
             addresses:
               - "rels://netbird.jeiang.dev:443"
-              - "rels://${relayEuHost}:${toString relayTlsPort}"
+              - "rels://${relayAtlHost}:${toString relayTlsPort}"
             secret: "${config.sops.placeholder."netbird/relay-auth-secret"}"
             credentialsTTL: "24h"
           disableAnonymousMetrics: false

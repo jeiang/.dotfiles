@@ -51,8 +51,6 @@ in {
     crowdsecPort = legionServices.crowdsec.ports.metrics;
     netbirdServerPort = legionServices.netbird-server.ports;
     netbirdRelayPort = legionServices.netbird-relay.ports;
-    netbirdRelayEuPort = legionServices.netbird-relay-eu.ports;
-    relayEuTargets = port: map (a: "${a}:${toString port}") (builtins.filter (a: a != null) [(self.lib.legionAddress "zantark" "ricklent")]);
     netbirdProxyPort = legionServices.netbird-proxy.ports;
     blockyPort = legionServices.blocky.ports.http;
     blockyTargets = map (a: "${a}:${toString blockyPort}") (builtins.filter (a: a != null) [node2 (self.lib.legionAddress "zantark" "ricklent")]);
@@ -195,7 +193,16 @@ in {
             job_name = "netbird-relay";
             static_configs = [
               {
-                targets = ["${node2}:${toString netbirdRelayPort.metrics}"] ++ relayEuTargets netbirdRelayEuPort.metrics;
+                targets = ["${node2}:${toString netbirdRelayPort.metrics}"] ++ at "netbird-relay-atl" "metrics" "";
+                labels.type = "netbird";
+              }
+            ];
+          }
+          {
+            job_name = "netbird-proxy-atl";
+            static_configs = [
+              {
+                targets = at "netbird-proxy-atl" "metrics" "";
                 labels.type = "netbird";
               }
             ];
@@ -289,14 +296,14 @@ in {
                 };
               }
               {
-                targets = ["http://${node2}:${toString netbirdRelayPort.health}/health"] ++ map (t: "http://${t}/health") (relayEuTargets netbirdRelayEuPort.health);
+                targets = ["http://${node2}:${toString netbirdRelayPort.health}/health"] ++ map (t: "http://${t}") (at "netbird-relay-atl" "health" "/health");
                 labels = {
                   type = "probe";
                   tier = "warning";
                 };
               }
               {
-                targets = ["http://${node2}:${toString netbirdProxyPort.health}/healthz"];
+                targets = ["http://${node2}:${toString netbirdProxyPort.health}/healthz"] ++ map (t: "http://${t}") (at "netbird-proxy-atl" "health" "/healthz");
                 labels = {
                   type = "probe";
                   tier = "warning";
