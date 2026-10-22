@@ -238,9 +238,12 @@ behavior for its own sake.
   `just hcloud-drift` (`modules/hcloud-drift/`) proves live state matches
   this for Hetzner nodes only: the expected rule set is the union of each
   Hetzner node's merged `networking.firewall`, not `legion.services` (a node
-  can open a port through another module), and it excludes ICMP. ricklent
-  has no provider firewall, so its host firewall is the only barrier and
-  every public opening is exactly what its `networking.firewall` lists.
+  can open a port through another module), and it excludes ICMP. ricklent's
+  Linode Cloud Firewall is attached to its public interface and must allow
+  the public TCP/UDP ports and ranges in its `networking.firewall`.
+- ricklent's Linode boot profile uses Direct Disk with the distro, module,
+  and devtmpfs helpers disabled. The flake partitions `/dev/sda` and
+  installs BIOS GRUB; Direct Disk boots that installed bootloader.
 - `netbird-proxy` on `vida` is public and terminates its own TLS
   (DNS-01 wildcard for `proxy.jeiang.dev`). CrowdSec IP reputation and an
   nftables bouncer protect it with decisions from the LAPI on
