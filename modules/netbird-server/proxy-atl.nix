@@ -6,10 +6,12 @@
   unit = "netbird-proxy-atl";
   domain = "proxy-atl.jeiang.dev";
   healthPort = 9002;
-  backendTlsPort = 8444;
+  # NetBird selects the TLS mapping router from its actual listening port.
+  backendTlsPort = relay.ports.tls;
   relay = config.legion.services.netbird-relay-atl;
   relayHost = self.lib.netbirdRelayAtlHost;
   crowdsecLapiPort = config.legion.services.crowdsec.ports.lapi;
+  publicNode = self.lib.legionNodes.ricklent;
 in {
   flake.lib.netbirdProxyAtlHost = domain;
 
@@ -66,7 +68,9 @@ in {
       secrets = {
         "netbird/proxy-atl-token" = {inherit sopsFile;};
         "netbird-proxy-atl/cloudflare-dns-token" = {inherit sopsFile;};
-        "crowdsec/bouncer-netbird-proxy-atl-key" = {inherit sopsFile;};
+        "crowdsec/bouncer-netbird-proxy-atl-key" = {
+          sopsFile = ../crowdsec/secrets.agent.yaml;
+        };
       };
       templates = {
         "${unit}.env" = {
@@ -110,7 +114,8 @@ in {
           timeout server 1h
 
         frontend netbird_tls
-          bind [::]:${toString relay.ports.tls} v4v6
+          bind ${publicNode.publicIPv4}:${toString relay.ports.tls}
+          bind [${publicNode.publicIPv6}]:${toString relay.ports.tls} v6only
           tcp-request inspect-delay 5s
           tcp-request content accept if { req.ssl_hello_type 1 }
           tcp-request content reject if WAIT_END
@@ -142,6 +147,10 @@ in {
     };
 
     systemd.services = {
+      haproxy = {
+        after = ["network-online.target"];
+        wants = ["network-online.target"];
+      };
       caddy = {
         after = ["acme-${domain}.service"];
         wants = ["acme-${domain}.service"];

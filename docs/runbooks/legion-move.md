@@ -75,8 +75,8 @@ the old repository with `-r`.
     garret's snapshot is an online database copy, not the live files, and
     garret does not start on `<new>` until its index exists, so step 3 left
     it stopped. Put the copy in place with steps 2 to 7 of
-    [`garret.md`](garret.md#restoring-the-index). A snapshot taken on peria
-    holds it at `/tmp/restore-garret/mnt/garret/backup.db`.
+    [`garret.md`](garret.md#restoring-the-index). Current root-disk snapshots
+    hold it at `/tmp/restore-garret/var/lib/garret/backup.db`.
 
 6. Start the service and check it answers, then delete the scratch copy:
 

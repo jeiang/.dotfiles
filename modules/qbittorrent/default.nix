@@ -1,7 +1,7 @@
 {self, ...}: let
   webuiPort = 8081;
   filesPort = 8082;
-  torrentingPort = 42881;
+  torrentingPort = 32881;
   stateDir = "/var/lib/qbittorrent";
   downloadDir = self.lib.mediaDownloadDir;
 

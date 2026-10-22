@@ -1,4 +1,9 @@
-{inputs, ...}: let
+{
+  inputs,
+  self,
+  config,
+  ...
+}: let
   # The SQLite index is the only record of what is in the S3 bucket.
   # pusher.nix's default dbPath lives in its StateDirectory.
   dataDir = "/var/lib/garret";
@@ -14,14 +19,18 @@
   pusherPort = 8082;
   pusherMetricsPort = 9091;
   pullerMetricsPort = 9092;
+  crowdsecLapiPort = config.legion.services.crowdsec.ports.lapi;
 in {
-  flake.lib.garretWatermarks = watermarks;
+  flake.lib = {
+    garretWatermarks = watermarks;
+    garretFirewallBouncerSecret = "crowdsec/bouncer-garret-firewall";
+  };
 
   legion.services.garret = {
-    node = "ricklent";
+    node = "peria";
     module = "garret";
     stateful = true;
-    units = ["garret-pusher" "garret-puller"];
+    units = ["garret-pusher" "garret-puller" "crowdsec-firewall-bouncer"];
     ports = {
       puller = pullerPort;
       pusher = pusherPort;
@@ -97,72 +106,111 @@ in {
       # build machines, not the cache host.
     ];
 
-    services.garret = {
-      pusher = {
+    services = {
+      crowdsec-firewall-bouncer = {
         enable = true;
-        listen = "0.0.0.0:${toString pusherPort}";
-        metricsListen = "0.0.0.0:${toString pusherMetricsPort}";
-        inherit s3;
-        signingKeyFiles = [config.sops.secrets."garret/signing-key".path];
-
-        # Advertised by /api/v1/discovery; without it `garret login` leaves
-        # every client's use/list/tree unconfigured.
-        pullerEndpoint = "https://cache.jeiang.dev";
-
-        quotaBytes = 268435456000;
-        inherit watermarks;
-
-        # maxInFlightBytes is the real memory bound (a process-wide
-        # semaphore over part-sized buffers); partSize must stay at or
-        # above S3's 5 MiB multipart minimum.
-        limits = {
-          maxConcurrentUploads = 16;
-          maxInFlightBytes = 402653184; # 384 MiB
-          partSize = 33554432; # 32 MiB
-          maxPartsInFlight = 2;
+        settings = {
+          mode = "nftables";
+          api_url = "http://${self.lib.legionAddress config.networking.hostName "alda"}:${toString crowdsecLapiPort}";
         };
-
-        oidc = [
-          {
-            issuer = "https://token.actions.githubusercontent.com";
-            audience = "https://cache-push.jeiang.dev/";
-            jwks_url = "https://token.actions.githubusercontent.com/.well-known/jwks";
-            # Immutable owner id, not the name: names are renameable.
-            github_owner_id = "31970261";
-            # Release tags are unprotected, so ref_protected stays unset.
-            ref_patterns = ["refs/heads/main" "refs/tags/v*"];
-            # jeiang/.dotfiles, jeiang/garret, jeiang/ripper, jeiang/renpy_proj, jeiang/atrium.
-            repository_ids = ["553667153" "1324491067" "1380302823" "1395832586" "1423661628"];
-            event_names = ["push" "workflow_dispatch"];
-            job_workflow_refs = [
-              "jeiang/.dotfiles/.github/workflows/ci.yml@refs/heads/main"
-              "jeiang/garret/.github/workflows/ci.yml@refs/heads/main"
-              "jeiang/garret/.github/workflows/ci.yml@refs/tags/v*"
-              "jeiang/ripper/.github/workflows/release.yml@refs/tags/v*"
-              "jeiang/renpy_proj/.github/workflows/garret.yml@refs/heads/main"
-              "jeiang/atrium/.github/workflows/ci.yml@refs/heads/main"
-            ];
-            allowed_groups = [];
-          }
-          # Exactly one issuer may set client_id (discovery advertises the
-          # first that does, and it must be the human one; the Puller's
-          # browseOidc submodule rejects the option entirely). Pocket ID
-          # uses the client id as the audience, hence the same value twice.
-          (pocketIdIssuer // {client_id = pocketIdAudience;})
-        ];
+        registerBouncer.enable = false;
+        secrets.apiKeyPath = config.sops.secrets.${self.lib.garretFirewallBouncerSecret}.path;
       };
 
-      puller = {
+      garret = {
+        pusher = {
+          enable = true;
+          listen = "0.0.0.0:${toString pusherPort}";
+          metricsListen = "0.0.0.0:${toString pusherMetricsPort}";
+          inherit s3;
+          signingKeyFiles = [config.sops.secrets."garret/signing-key".path];
+
+          # Advertised by /api/v1/discovery; without it `garret login` leaves
+          # every client's use/list/tree unconfigured.
+          pullerEndpoint = "https://cache.jeiang.dev";
+
+          quotaBytes = 268435456000;
+          inherit watermarks;
+
+          # maxInFlightBytes is the real memory bound (a process-wide
+          # semaphore over part-sized buffers); partSize must stay at or
+          # above S3's 5 MiB multipart minimum.
+          limits = {
+            maxConcurrentUploads = 16;
+            maxInFlightBytes = 402653184; # 384 MiB
+            partSize = 33554432; # 32 MiB
+            maxPartsInFlight = 2;
+          };
+
+          oidc = [
+            {
+              issuer = "https://token.actions.githubusercontent.com";
+              audience = "https://cache-push.jeiang.dev/";
+              jwks_url = "https://token.actions.githubusercontent.com/.well-known/jwks";
+              # Immutable owner id, not the name: names are renameable.
+              github_owner_id = "31970261";
+              # Release tags are unprotected, so ref_protected stays unset.
+              ref_patterns = ["refs/heads/main" "refs/tags/v*"];
+              # jeiang/.dotfiles, jeiang/garret, jeiang/ripper, jeiang/renpy_proj, jeiang/atrium.
+              repository_ids = ["553667153" "1324491067" "1380302823" "1395832586" "1423661628"];
+              event_names = ["push" "workflow_dispatch"];
+              job_workflow_refs = [
+                "jeiang/.dotfiles/.github/workflows/ci.yml@refs/heads/main"
+                "jeiang/garret/.github/workflows/ci.yml@refs/heads/main"
+                "jeiang/garret/.github/workflows/ci.yml@refs/tags/v*"
+                "jeiang/ripper/.github/workflows/release.yml@refs/tags/v*"
+                "jeiang/renpy_proj/.github/workflows/garret.yml@refs/heads/main"
+                "jeiang/atrium/.github/workflows/ci.yml@refs/heads/main"
+              ];
+              allowed_groups = [];
+            }
+            # Exactly one issuer may set client_id (discovery advertises the
+            # first that does, and it must be the human one; the Puller's
+            # browseOidc submodule rejects the option entirely). Pocket ID
+            # uses the client id as the audience, hence the same value twice.
+            (pocketIdIssuer // {client_id = pocketIdAudience;})
+          ];
+        };
+
+        puller = {
+          enable = true;
+          listen = "0.0.0.0:${toString pullerPort}";
+          metricsListen = "0.0.0.0:${toString pullerMetricsPort}";
+          # Its own key, limited to GetObject on the bucket: the Puller only
+          # presigns GETs, so this public-facing process cannot write or
+          # delete cache objects.
+          s3 = s3 // {credentialsFile = config.sops.templates."garret-puller-s3.env".path;};
+          # narinfo and NAR routes stay anonymous; only the browse API is
+          # gated.
+          browseOidc = pocketIdIssuer;
+        };
+      };
+
+      caddy = {
         enable = true;
-        listen = "0.0.0.0:${toString pullerPort}";
-        metricsListen = "0.0.0.0:${toString pullerMetricsPort}";
-        # Its own key, limited to GetObject on the bucket: the Puller only
-        # presigns GETs, so this public-facing process cannot write or
-        # delete cache objects.
-        s3 = s3 // {credentialsFile = config.sops.templates."garret-puller-s3.env".path;};
-        # narinfo and NAR routes stay anonymous; only the browse API is
-        # gated.
-        browseOidc = pocketIdIssuer;
+        # appsec is not available here, and clients legitimately fetch in
+        # high-volume bursts. garret closes a connection idle for 30 s, so
+        # Caddy must drop its pooled upstream connections first or reuse one
+        # mid-close (502).
+        virtualHosts."cache.jeiang.dev".extraConfig = ''
+          reverse_proxy 127.0.0.1:${toString pullerPort} {
+            transport http {
+              keepalive 20s
+            }
+          }
+        '';
+        # MUST stay DNS-only in Cloudflare: a push is one streaming PUT of a
+        # whole NAR and Cloudflare 413s bodies over 100 MB on the free plan.
+        virtualHosts."cache-push.jeiang.dev".extraConfig = ''
+          reverse_proxy 127.0.0.1:${toString pusherPort} {
+            transport http {
+              keepalive 20s
+              read_timeout 15m
+              write_timeout 15m
+              response_header_timeout 15m
+            }
+          }
+        '';
       };
     };
 
@@ -196,33 +244,6 @@ in {
       };
     };
 
-    services.caddy = {
-      enable = true;
-      # appsec is not available here, and clients legitimately fetch in
-      # high-volume bursts. garret closes a connection idle for 30 s, so
-      # Caddy must drop its pooled upstream connections first or reuse one
-      # mid-close (502).
-      virtualHosts."cache.jeiang.dev".extraConfig = ''
-        reverse_proxy 127.0.0.1:${toString pullerPort} {
-          transport http {
-            keepalive 20s
-          }
-        }
-      '';
-      # MUST stay DNS-only in Cloudflare: a push is one streaming PUT of a
-      # whole NAR and Cloudflare 413s bodies over 100 MB on the free plan.
-      virtualHosts."cache-push.jeiang.dev".extraConfig = ''
-        reverse_proxy 127.0.0.1:${toString pusherPort} {
-          transport http {
-            keepalive 20s
-            read_timeout 15m
-            write_timeout 15m
-            response_header_timeout 15m
-          }
-        }
-      '';
-    };
-
     environment.systemPackages = [garretAdmin];
 
     # An online copy, so the backup never stops the cache. The Pusher never
@@ -250,6 +271,10 @@ in {
           inherit sopsFile;
           owner = "garret";
           restartUnits = ["garret-pusher.service"];
+        };
+        ${self.lib.garretFirewallBouncerSecret} = {
+          sopsFile = ../crowdsec/secrets.garret.yaml;
+          restartUnits = ["crowdsec-firewall-bouncer.service"];
         };
       };
 

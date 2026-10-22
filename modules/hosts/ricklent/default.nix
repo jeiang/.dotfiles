@@ -38,15 +38,14 @@ in {
     boot = {
       loader.grub = {
         enable = true;
-        devices = ["/dev/sda"];
         efiSupport = false;
         extraConfig = ''
-          serial --unit=0 --speed=115200 --word=8 --parity=no --stop=1
+          serial --unit=0 --speed=19200 --word=8 --parity=no --stop=1
           terminal_input console serial
           terminal_output console serial
         '';
       };
-      kernelParams = ["console=tty0" "console=ttyS0,115200n8"];
+      kernelParams = ["console=tty0" "console=ttyS0,19200n8" "net.ifnames=0"];
       initrd.availableKernelModules = ["ahci" "sd_mod" "virtio_pci" "virtio_blk" "virtio_scsi"];
     };
 
