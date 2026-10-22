@@ -14,7 +14,7 @@
           "github.com/hslatman/caddy-crowdsec-bouncer/http@v0.14.1"
           "github.com/hslatman/caddy-crowdsec-bouncer/appsec@v0.14.1"
         ];
-        hash = "sha256-gU9PwfhdxtJOti69jrpK4pD82I4B3sJjQfJv+t5kcPk=";
+        hash = "sha256-x4E/dN1NozNMKTi/zQGi36rMXa7l3O+Dy+hVK8cWq5g=";
         # The CrowdSec bouncer's http/appsec plugins share one root go.mod, so build-info reports the parent module path and withPlugins' install check false-positives.
         doInstallCheck = false;
       };
