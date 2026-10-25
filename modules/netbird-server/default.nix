@@ -105,10 +105,12 @@ in {
           disableAnonymousMetrics: false
           disableGeoliteUpdate: false
           auth:
-            # Built-in local auth; a Pocket ID OIDC client exists but the live
-            # server config never reads it.
+            # Everyone signs in through the PocketID identity provider (set up
+            # in the management database; its Pocket ID client admits only the
+            # `netbird` group). Turning local login back on needs this set to
+            # false and a vida deploy; API tokens (nb-nix) work either way.
             issuer: "https://netbird.jeiang.dev/oauth2"
-            localAuthDisabled: false
+            localAuthDisabled: true
             signKeyRefreshEnabled: true
             sessionCookieEncryptionKey: "${config.sops.placeholder."netbird/idp-session-cookie-encryption-key"}"
             dashboardRedirectURIs:
