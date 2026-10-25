@@ -214,7 +214,9 @@ behavior for its own sake.
   alone. Legion `fileSystems` entries for a Volume mount by ext4 label, not
   by `hcloudVolumeId`: a new Volume must be formatted with its
   `legion.services.<name>` key as that label (at most 16 bytes) before the
-  deploy that mounts it.
+  deploy that mounts it. A Hetzner server disk is addressed as
+  `self.lib.hetznerServerDisk` (LUN 0 by path), never `/dev/sdX`: an
+  attached Volume can take `sda`.
 - The Hetzner private network (`172.16.0.0/12`, `enp7s0`) exists only on
   Hetzner nodes, and no NetBird route reaches it from the mesh (the one
   Networks resource is vida's Blocky address). Hetzner nodes address each
