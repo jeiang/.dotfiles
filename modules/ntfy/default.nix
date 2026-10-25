@@ -1,10 +1,8 @@
 {self, ...}: let
   port = 2586;
-  topic = "f95-tracker";
   mediaTopic = "media-releases";
   atriumTopic = "atrium";
   operator = "operator";
-  tracker = "tracker";
   atrium = "atrium";
   stateDir = "/var/lib/private/ntfy-sh";
 in {
@@ -39,8 +37,6 @@ in {
         auth-default-access = "deny-all";
         enable-login = true;
         auth-access = [
-          "${operator}:${topic}:read-only"
-          "${tracker}:${topic}:write-only"
           "${operator}:${mediaTopic}:read-only"
           "${atrium}:${mediaTopic}:write-only"
           "${operator}:${atriumTopic}:read-only"
@@ -54,16 +50,14 @@ in {
     sops = {
       secrets = {
         "ntfy/operator-password-hash" = {inherit sopsFile;};
-        "ntfy/tracker-password-hash" = {inherit sopsFile;};
-        "ntfy/tracker-token" = {inherit sopsFile;};
         "ntfy/atrium-password-hash" = {inherit sopsFile;};
         "ntfy/atrium-token" = {inherit sopsFile;};
       };
       templates."ntfy.env" = {
         restartUnits = ["ntfy-sh.service"];
         content = ''
-          NTFY_AUTH_USERS='${operator}:${secret "operator-password-hash"}:user,${tracker}:${secret "tracker-password-hash"}:user,${atrium}:${secret "atrium-password-hash"}:user'
-          NTFY_AUTH_TOKENS='${tracker}:${secret "tracker-token"}:tracker,${atrium}:${secret "atrium-token"}:atrium'
+          NTFY_AUTH_USERS='${operator}:${secret "operator-password-hash"}:user,${atrium}:${secret "atrium-password-hash"}:user'
+          NTFY_AUTH_TOKENS='${atrium}:${secret "atrium-token"}:atrium'
         '';
       };
     };

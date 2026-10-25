@@ -26,8 +26,6 @@
     hjem.inputs.nixpkgs.follows = "nixpkgs";
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
-    f95-tracker.url = "github:jeiang/f95-tracker";
-    f95-tracker.inputs.nixpkgs.follows = "nixpkgs";
     atrium.url = "github:jeiang/atrium";
     atrium.inputs.nixpkgs.follows = "nixpkgs";
     nix-darwin.url = "github:nix-darwin/nix-darwin";
@@ -88,8 +86,6 @@
     character-randomizer.inputs.nixpkgs.follows = "nixpkgs";
     markdown-table-live-editor.url = "github:jeiang/markdown-table-live-editor";
     markdown-table-live-editor.inputs.nixpkgs.follows = "nixpkgs";
-    # Deliberately no follows: life-sim builds against its own nixpkgs pin.
-    life-sim.url = "github:jeiang/life-sim";
     # Deliberately no follows: CI installs the garret client from this input's locked rev, and a different pin than garret's own cache seeding would force from-source rebuilds every run.
     garret.url = "github:jeiang/garret";
     # Deliberately no follows: ripper's release CI pushes to garret against this input's own nixpkgs pin, and a different pin here would miss that cache and rebuild from source.

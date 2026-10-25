@@ -48,10 +48,6 @@ D("jeiang.dev", REG_NONE,
   A("ntfy", ALDA_V4, CF_PROXY_OFF),
   AAAA("ntfy", ALDA_V6, CF_PROXY_OFF),
 
-  // Grey-clouded so the speed test measures ISP-to-Hetzner rather than the Cloudflare edge, and upload bodies clear the 100 MB cap.
-  A("speed", ALDA_V4, CF_PROXY_OFF),
-  AAAA("speed", ALDA_V6, CF_PROXY_OFF),
-
   // GitHub Pages for the atrium docs; grey-clouded so GitHub can issue the certificate.
   CNAME("atrium.docs", "jeiang.github.io.", CF_PROXY_OFF),
 

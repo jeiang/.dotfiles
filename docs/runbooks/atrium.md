@@ -5,7 +5,7 @@ atrium's code, module and operating procedures live in
 `modules/atrium/default.nix` wires `services.atrium` into artemis: the sops
 environment file, the llama-server units behind `chatUrl` and `embedUrl`,
 the model downloads, persistence, and the public hostname shared with alda's
-Caddy, tinyauth and Glance. The `atrium` input pins the release; bump it with
+Caddy and tinyauth. The `atrium` input pins the release; bump it with
 `nix flake update atrium` in a branch.
 
 ## Secrets

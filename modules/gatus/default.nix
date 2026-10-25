@@ -49,7 +49,6 @@
       (ok "Bill Splitter" "Web" "https://bill-split.jeiang.dev")
       (ok "Rivals Randomizer" "Web" "https://rivals.jeiang.dev")
       (ok "Markdown Table Editor" "Web" "https://mdtable.jeiang.dev")
-      (ok "Life Sim" "Web" "https://life-sim.jeiang.dev")
 
       # /healthz returns 204 No Content; 200 elsewhere is just the SPA
       # fallback, which says nothing about backend health.
