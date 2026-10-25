@@ -1,9 +1,9 @@
 {
   perSystem = {pkgs, ...}: {
     packages.rea = let
-      version = "4.1.0";
+      version = "6.8.0";
       # The commit tagged rea-agents-${version}.
-      rev = "9622b4b4cf0b2eb92305afd52fd67e932d57c753";
+      rev = "160d821ac9a0310afcb8d1fc427862dd6508add5";
     in
       pkgs.buildNpmPackage {
         pname = "rea";
@@ -13,16 +13,18 @@
         # but no lockfile; the release commit's lock pins the same dependencies.
         src = pkgs.fetchurl {
           url = "https://registry.npmjs.org/rea-agents/-/rea-agents-${version}.tgz";
-          hash = "sha512-BOig7QyPtOJLZtCa7MIVyecGdsI5C8kX0HHjp9Fo5LkotSqD3cRV91KCp0pakLqLuyF1BFl4RSyV/9F/Wk6OBQ==";
+          hash = "sha512-9QDeRnGqEDzABZyr04eLnBXBv/c6I9/TWu/6M0MD4pEfkySI/BIgwTODIbAReX3C1x6hjw9+Jlx4A2yUSPZ9ww==";
         };
         postPatch = "cp ${pkgs.fetchurl {
           url = "https://raw.githubusercontent.com/morluto/rea/${rev}/package-lock.json";
-          hash = "sha256-r9v09J6TjB6y1atz3Y0B4U/Vy/7u5nBBGsBfSMzqaYo=";
+          hash = "sha256-HY+g8zsxJdPmAeyDKxjZ01s3RT82NA3AUH8GWo3hWK0=";
         }} package-lock.json";
-        npmDepsHash = "sha256-/+797HoEwq8Qy7xojPIzAZ8+8iMY0kMtW0Lr/aXZFMA=";
+        npmDepsHash = "sha256-3WPXD+qm5WVfrTEvepKwX5RZBfbLBcPB0uDmKIx4MR8=";
 
         dontNpmBuild = true;
         npmInstallFlags = ["--omit=dev"];
+        # The optional frida dependency's install script downloads a toolchain, which the sandbox forbids; Frida instrumentation is unavailable.
+        npmFlags = ["--ignore-scripts"];
 
         # Ghidra comes from the Homebrew formula (modules/rea.nix): nixpkgs lags the exact release REA accepts.
         makeWrapperArgs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [

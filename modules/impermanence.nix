@@ -152,7 +152,7 @@
         };
       })
 
-      (lib.mkIf (cfg.enable && cfg.nukeRoot.enable && config.boot.initrd.systemd.enable) {
+      (lib.mkIf (cfg.enable && cfg.nukeRoot.enable) {
         boot.initrd.systemd = {
           initrdBin = [pkgs.btrfs-progs];
           services.rollback-root = {
@@ -170,12 +170,6 @@
             script = rollbackScript;
           };
         };
-      })
-
-      # postResumeCommands keeps the resume-before-rollback ordering in the
-      # classic initrd.
-      (lib.mkIf (cfg.enable && cfg.nukeRoot.enable && !config.boot.initrd.systemd.enable) {
-        boot.initrd.postResumeCommands = lib.mkAfter rollbackScript;
       })
     ];
   };

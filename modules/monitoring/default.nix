@@ -442,7 +442,7 @@ in {
             }
           ];
         };
-        declarativePlugins = [pkgs.grafanaPlugins.victoriametrics-logs-datasource];
+        declarativePlugins = with pkgs.grafanaPlugins; [prometheus victoriametrics-logs-datasource];
       };
 
       vmalert.instances.default = {
