@@ -41,6 +41,7 @@
           libgbm
           libva
           libxkbcommon
+          linux-pam
           mesa
           pipewire
           wayland
