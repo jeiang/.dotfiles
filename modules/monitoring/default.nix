@@ -193,7 +193,7 @@ in {
             job_name = "netbird-relay";
             static_configs = [
               {
-                targets = ["${node2}:${toString netbirdRelayPort.metrics}"] ++ at "netbird-relay-atl" "metrics" "";
+                targets = ["${node2}:${toString netbirdRelayPort.metrics}"];
                 labels.type = "netbird";
               }
             ];
@@ -289,7 +289,7 @@ in {
                 };
               }
               {
-                targets = ["http://${node2}:${toString netbirdRelayPort.health}/health"] ++ map (t: "http://${t}") (at "netbird-relay-atl" "health" "/health");
+                targets = ["http://${node2}:${toString netbirdRelayPort.health}/health"];
                 labels = {
                   type = "probe";
                   tier = "warning";
