@@ -125,16 +125,6 @@
           "[CERTIFICATE_EXPIRATION] > 240h"
         ];
       }
-      {
-        name = "${self.lib.netbirdRelayAtlHost} certificate";
-        group = "Edge";
-        url = "tls://${self.lib.netbirdRelayAtlHost}:443";
-        interval = "1h";
-        conditions = [
-          "[CONNECTED] == true"
-          "[CERTIFICATE_EXPIRATION] > 240h"
-        ];
-      }
     ];
   };
 in {

@@ -173,17 +173,6 @@ creation_rules:
       - *user_aidanp_se
       - *server_vida
 
-  # modules/netbird-server/default.nix (Atlanta relay; its
-  # relay-auth-secret is a copy of the one in secrets.yaml).
-  - path_regex: modules/netbird-server/secrets\.relay-atl\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_ricklent
-
   # Atlanta reverse proxy.
   - path_regex: modules/netbird-server/secrets\.proxy-atl\.yaml$
     key_groups:

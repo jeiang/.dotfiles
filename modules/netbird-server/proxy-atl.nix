@@ -6,28 +6,23 @@
   unit = "netbird-proxy-atl";
   domain = "proxy-atl.jeiang.dev";
   healthPort = 9002;
-  # NetBird selects the TLS mapping router from its actual listening port.
-  backendTlsPort = relay.ports.tls;
-  relay = config.legion.services.netbird-relay-atl;
-  relayHost = self.lib.netbirdRelayAtlHost;
+  tlsPort = 443;
   crowdsecLapiPort = config.legion.services.crowdsec.ports.lapi;
-  publicNode = self.lib.legionNodes.ricklent;
 in {
   flake.lib.netbirdProxyAtlHost = domain;
 
   legion.services.${unit} = {
     node = "ricklent";
     module = unit;
-    units = [unit "haproxy" "caddy" "acme-.*"];
+    units = [unit "acme-.*"];
     ports = {
       health = healthPort;
       metrics = healthPort;
-      backend-tls = backendTlsPort;
     };
     publicHostnames = [domain "*.${domain}"];
     firewall = [
       {
-        port = relay.ports.tls;
+        port = tlsPort;
         proto = "tcp";
         scope = "public";
       }
@@ -55,12 +50,11 @@ in {
       acceptTerms = true;
       defaults.email = "aidan@aidanpinard.co";
       certs.${domain} = {
-        extraDomainNames = ["*.${domain}" relayHost];
+        extraDomainNames = ["*.${domain}"];
         dnsProvider = "cloudflare";
         dnsResolver = "1.1.1.1:53";
         environmentFile = config.sops.templates."${unit}-cloudflare-dns.env".path;
         group = unit;
-        reloadServices = ["caddy.service"];
       };
     };
 
@@ -94,74 +88,17 @@ in {
           isSystemUser = true;
           group = unit;
         };
-        caddy.extraGroups = [unit];
       };
-    };
-
-    services.haproxy = {
-      enable = true;
-      config = ''
-        global
-          log stdout format raw local0
-          maxconn 2048
-
-        defaults
-          mode tcp
-          log global
-          option tcplog
-          timeout connect 5s
-          timeout client 1h
-          timeout server 1h
-
-        frontend netbird_tls
-          bind ${publicNode.publicIPv4}:${toString relay.ports.tls}
-          bind [${publicNode.publicIPv6}]:${toString relay.ports.tls} v6only
-          tcp-request inspect-delay 5s
-          tcp-request content accept if { req.ssl_hello_type 1 }
-          tcp-request content reject if WAIT_END
-          use_backend netbird_relay if { req.ssl_sni -i ${relayHost} }
-          default_backend netbird_proxy
-
-        backend netbird_relay
-          server relay 127.0.0.1:${toString relay.ports.backend-tls}
-
-        backend netbird_proxy
-          server proxy 127.0.0.1:${toString backendTlsPort} send-proxy-v2
-      '';
-    };
-
-    services.caddy = {
-      enable = true;
-      globalConfig = ''
-        auto_https off
-      '';
-      virtualHosts."https://${relayHost}:${toString relay.ports.backend-tls}".extraConfig = ''
-        bind 127.0.0.1
-        tls ${acmeCertDir}/fullchain.pem ${acmeCertDir}/key.pem
-        reverse_proxy 127.0.0.1:${toString relay.ports.relay} {
-          transport http {
-            read_timeout 15m
-          }
-        }
-      '';
     };
 
     systemd.services = {
-      haproxy = {
-        after = ["network-online.target"];
-        wants = ["network-online.target"];
-      };
-      caddy = {
-        after = ["acme-${domain}.service"];
-        wants = ["acme-${domain}.service"];
-      };
       ${unit} = {
         description = "NetBird reverse proxy (Atlanta)";
         after = ["network-online.target" "acme-${domain}.service"];
         wants = ["network-online.target" "acme-${domain}.service"];
         wantedBy = ["multi-user.target"];
         environment = {
-          NB_PROXY_ADDRESS = "127.0.0.1:${toString backendTlsPort}";
+          NB_PROXY_ADDRESS = ":${toString tlsPort}";
           NB_PROXY_DOMAIN = domain;
           # Wildcard binding tolerates mesh enrollment/reconnect; only the trusted mesh can reach this port.
           NB_PROXY_HEALTH_ADDRESS = ":${toString healthPort}";
@@ -171,9 +108,6 @@ in {
           NB_PROXY_CERTIFICATE_KEY_FILE = "key.pem";
           NB_PROXY_ACME_CERTIFICATES = "false";
           NB_PROXY_FORWARDED_PROTO = "https";
-          # HAProxy preserves TLS and the original client IP; direct custom-port clients are not trusted.
-          NB_PROXY_PROXY_PROTOCOL = "true";
-          NB_PROXY_TRUSTED_PROXIES = "127.0.0.1/32";
           NB_PROXY_SUPPORTS_CUSTOM_PORTS = "true";
           NB_PROXY_PRIVATE = "true";
           NB_PROXY_CROWDSEC_API_URL = "http://${lapiAddress}:${toString crowdsecLapiPort}";

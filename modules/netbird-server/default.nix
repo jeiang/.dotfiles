@@ -8,14 +8,8 @@
   stunPort = 3478;
   relayPort = 8080;
   relayMetricsPort = 9091;
-  relayAtlMetricsPort = 9093;
   relayHealthPort = 9001;
-  relayTlsPort = 443;
-  relayAtlHost = "relay-atl.netbird.jeiang.dev";
-  relayAtlUnit = "netbird-relay-atl";
 in {
-  flake.lib.netbirdRelayAtlHost = relayAtlHost;
-
   legion.services = {
     netbird-server = {
       node = "vida";
@@ -66,71 +60,9 @@ in {
         }
       ];
     };
-
-    netbird-relay-atl = {
-      node = "ricklent";
-      module = "netbird-relay-atl";
-      units = [relayAtlUnit "caddy" "haproxy"];
-      ports = {
-        relay = relayPort;
-        metrics = relayAtlMetricsPort;
-        health = relayHealthPort;
-        tls = relayTlsPort;
-        backend-tls = 8443;
-      };
-      publicHostnames = [relayAtlHost];
-      firewall = [
-        {
-          port = relayTlsPort;
-          proto = "tcp";
-          scope = "public";
-        }
-      ];
-    };
   };
 
   nixos.modules = {
-    netbird-relay-atl = {
-      config,
-      lib,
-      pkgs,
-      ...
-    }: let
-      relayPkg = self.packages.${pkgs.stdenv.hostPlatform.system}.netbird-relay;
-      sopsFile = ./secrets.relay-atl.yaml;
-      envFile = "netbird-relay-atl.env";
-    in {
-      sops = {
-        secrets."netbird/relay-auth-secret" = {inherit sopsFile;};
-        templates.${envFile} = {
-          restartUnits = ["${relayAtlUnit}.service"];
-          content = "NB_AUTH_SECRET=${config.sops.placeholder."netbird/relay-auth-secret"}\n";
-        };
-      };
-
-      systemd.services.${relayAtlUnit} = {
-        description = "NetBird relay (Atlanta)";
-        after = ["network-online.target"];
-        wants = ["network-online.target"];
-        wantedBy = ["multi-user.target"];
-        environment = {
-          NB_LISTEN_ADDRESS = "127.0.0.1:${toString relayPort}";
-          NB_EXPOSED_ADDRESS = "rels://${relayAtlHost}:${toString relayTlsPort}";
-          NB_LOG_LEVEL = "info";
-          NB_METRICS_PORT = toString relayAtlMetricsPort;
-          NB_HEALTH_LISTEN_ADDRESS = ":${toString relayHealthPort}";
-        };
-        serviceConfig = {
-          ExecStart = lib.getExe relayPkg;
-          EnvironmentFile = [config.sops.templates.${envFile}.path];
-          Restart = "on-failure";
-          RestartSec = 5;
-          DynamicUser = true;
-          MemoryMax = "96M";
-        };
-      };
-    };
-
     netbird-server = {
       config,
       lib,
@@ -168,7 +100,6 @@ in {
           relays:
             addresses:
               - "rels://netbird.jeiang.dev:443"
-              - "rels://${relayAtlHost}:${toString relayTlsPort}"
             secret: "${config.sops.placeholder."netbird/relay-auth-secret"}"
             credentialsTTL: "24h"
           disableAnonymousMetrics: false
