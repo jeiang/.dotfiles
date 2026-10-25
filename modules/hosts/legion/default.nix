@@ -39,10 +39,8 @@
     "garret"
     "atuin"
     "ntfy"
-    "f95-tracker"
     "hath"
     "blocky"
-    "glance"
     "tinyauth"
     "gatus"
     "monitoring"
@@ -67,7 +65,7 @@
   in
     map (o: {inherit (o) from to;}) (builtins.filter (o: o.proto == proto && o.scope == scope) openings);
 
-  fixedLegionUnits = ["netbird" "netbird-login" "systemd-journal-upload" "librespeed" "iperf3"];
+  fixedLegionUnits = ["netbird" "netbird-login" "systemd-journal-upload"];
 
   # The restic pattern matches timers too; the backup-freshness alert reads their last trigger.
   unitIncludeFor = nodeName: let
