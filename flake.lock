@@ -1394,6 +1394,44 @@
         "type": "github"
       }
     },
+    "nb-nix": {
+      "inputs": {
+        "netbird-src": "netbird-src",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792954731,
+        "narHash": "sha256-h5DrPljVXO2S46aJoFHgqe6oLTWjiOKqCZ+qJpMaZV4=",
+        "owner": "jeiang",
+        "repo": "nb-nix",
+        "rev": "3f9ff04c1aa02a23f90db08d5f168d64ebf71b91",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "nb-nix",
+        "type": "github"
+      }
+    },
+    "netbird-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1792832172,
+        "narHash": "sha256-TeogciNE+STwCaE99smcWXrgKwAkkg79LcrkSDWLpWA=",
+        "owner": "netbirdio",
+        "repo": "netbird",
+        "rev": "7e791d3e2972ddb763bb0e5c3bff4f9e14f70033",
+        "type": "github"
+      },
+      "original": {
+        "owner": "netbirdio",
+        "ref": "v0.81.4",
+        "repo": "netbird",
+        "type": "github"
+      }
+    },
     "netbird-tap": {
       "flake": false,
       "locked": {
@@ -2095,6 +2133,7 @@
         "llm-agents": "llm-agents",
         "markdown-table-live-editor": "markdown-table-live-editor",
         "mcp-servers-nix": "mcp-servers-nix",
+        "nb-nix": "nb-nix",
         "netbird-tap": "netbird-tap",
         "nix-cachyos-kernel": "nix-cachyos-kernel",
         "nix-darwin": "nix-darwin",

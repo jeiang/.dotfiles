@@ -218,18 +218,18 @@ behavior for its own sake.
   `self.lib.hetznerServerDisk` (LUN 0 by path), never `/dev/sdX`: an
   attached Volume can take `sda`.
 - The Hetzner private network (`172.16.0.0/12`, `enp7s0`) exists only on
-  Hetzner nodes, and no NetBird route reaches it from the mesh (the one
-  Networks resource is vida's Blocky address). Hetzner nodes address each
-  other by `privateIPv4`; every pair involving ricklent uses the target's
+  Hetzner nodes, and no NetBird route reaches it from the mesh. Hetzner
+  nodes address each other by `privateIPv4`; every pair involving ricklent
+  uses the target's
   mesh IP from `modules/netbird-peers.nix`, through
   `self.lib.legionAddress <from> <to>` (null until the target has a peer
   entry, and then dropped from scrape targets). ricklent's peer entry is
   added after it first enrolls, and until then its journald upload,
-  CrowdSec agent, and scrape do not connect. NetBird access policies must
-  allow ricklent to alda (CrowdSec LAPI), to zantark (VictoriaLogs), and to
-  artemis (game ports); zantark to ricklent (node exporter, Atlanta
-  proxy health); atuin clients to zantark (8889); and all
-  DNS clients to ricklent's Blocky (port 553, TCP and UDP).
+  CrowdSec agent, and scrape do not connect. Every connection between Legion
+  machines that crosses the mesh is a `meshFlows` entry in
+  `modules/netbird-management`, whose ports the `Legion Mesh` access
+  policies allow; a new one needs an entry there. NetBird DNS clients use
+  Blocky on vida and ricklent at their mesh IPs (port 553, TCP and UDP).
 - Legion host firewalls are on. A `legion.services.<name>` entry's
   `scope = "private"` is documentation: `enp7s0` (Hetzner nodes) and the
   NetBird interface are trusted interfaces. On a Hetzner node a public
@@ -268,17 +268,20 @@ behavior for its own sake.
   alda and ricklent, not the nixpkgs default data directory. alda's local
   API credentials stay at `/etc/crowdsec/local_api_credentials.yaml`;
   ricklent disables its local API and uses its sops-rendered credentials.
-- `modules/netbird-invariants/` is a read-only check (never PUT/POST/DELETE)
-  of the self-hosted NetBird management API: the Quad9 `jeiang.dev` group's
-  `search_domains_enabled` stays off, the primary DNS group is, in order,
-  Blocky on `vida`, Blocky on `ricklent` (its mesh IP), then Quad9, some
-  Networks resource for vida is enabled behind an enabled router, client
-  auto-update is disabled, and every reverse-proxy service's CrowdSec mode
-  is `enforce`.
-  `just netbird-invariants` runs it locally with
-  `NETBIRD_API_TOKEN`; `.github/workflows/netbird.yml` runs it weekly with
-  an Auditor-role token (`NETBIRD_READ_TOKEN`), since that role is
-  genuinely read-only across the whole management API.
+- `modules/netbird-management/` declares the NetBird management state
+  (groups, access policies, networks, DNS, setup key, users' groups, service
+  users and tokens, account settings) with nb-nix (`github:jeiang/nb-nix`),
+  which plans and applies it through the management API. Undeclared objects
+  are deleted, except the groups Pocket ID once synced, which only the
+  dashboard can delete. Users are matched by NetBird user ID, so no email
+  address is in this public repository. Groups come from NetBird, not Pocket
+  ID (`jwt_groups_enabled` is off); Pocket ID only decides who may sign in.
+  `just netbird-plan` previews a change and `just netbird-apply` applies that
+  plan with the nb-nix admin token in `modules/sops/secrets.admin.yaml`.
+  `.github/workflows/netbird.yml` runs the plan weekly with an Auditor-role
+  token (`NETBIRD_READ_TOKEN`) and fails on drift. nb-nix renews both tokens
+  30 days before expiry when an apply runs; `docs/runbooks/netbird.md` has
+  the procedures.
 - Blackbox probes target private backend addresses, never public URLs.
   Probes through the edge would get the prober banned by CrowdSec.
 - Anubis gates only the static content sites. Never put it in front of a
@@ -368,10 +371,11 @@ behavior for its own sake.
   `UI_CONFIG_DISABLED`, which ignores the database's copy and locks the admin
   UI's settings page: an undeclared setting takes Pocket ID's default. The SMTP
   password reaches it from sops through `services.pocket-id.credentials`.
-- Legion enrolls with the non-ephemeral setup key in
-  `modules/hosts/legion/secrets.yaml`; artemis retains its separate permanent
-  enrollment. Preserve the addresses in `modules/netbird-peers.nix` and
-  policy references when re-enrolling.
+- Legion and artemis enroll with the non-ephemeral `Legion` setup key, which
+  puts a new peer in the `Legion` group (artemis keeps it in its own
+  `modules/hosts/artemis/secrets.yaml`). A peer enrolled by a user would
+  inherit that user's groups. Preserve the addresses in
+  `modules/netbird-peers.nix` when re-enrolling; nb-nix pins them.
 - Every zellij layout draws its bar with zjstatus, declared once as a plugin
   alias in `modules/packages/zellij/default.nix`: `layout_dir` is a plain
   directory, so a layout cannot name the store path itself. zellij asks for

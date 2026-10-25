@@ -12,3 +12,6 @@ result
 
 # Git worktrees
 .worktrees/
+
+# Last `just netbird-plan` (no secrets)
+.netbird-plan.json
