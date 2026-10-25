@@ -137,7 +137,7 @@ netbird-apply *args:
   set -euo pipefail
   if [ -n "${NETBIRD_TOKEN_FILE:-}" ]; then NETBIRD_API_TOKEN=$(<"$NETBIRD_TOKEN_FILE"); else NETBIRD_API_TOKEN=$(sops -d --extract '["netbird"]["nb-nix-token"]' modules/sops/secrets.admin.yaml); fi
   export NETBIRD_API_TOKEN
-  nix run --inputs-from . nb-nix -- apply .netbird-plan.json {{args}}
+  nix run --inputs-from . nb-nix -- apply {{args}} .netbird-plan.json
 
 # Enroll over public root SSH after removing the old peer; setup_key_file is a root-only path on the target
 netbird-enroll node address setup_key_file identity:

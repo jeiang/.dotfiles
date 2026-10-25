@@ -69,6 +69,20 @@
       why = "Caddy to atrium";
     }
     {
+      from = "artemis";
+      to = "zantark";
+      proto = "tcp";
+      port = services.monitoring.ports.grafana;
+      why = "atrium and the MCP Grafana server";
+    }
+    {
+      from = "artemis";
+      to = "zantark";
+      proto = "tcp";
+      port = services.atuin.ports.app;
+      why = "atuin sync";
+    }
+    {
       from = "ricklent";
       to = "artemis";
       proto = "tcp";

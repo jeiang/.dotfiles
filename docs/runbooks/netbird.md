@@ -55,7 +55,7 @@ user.
 artemis enrolls with the `Legion` setup key, like the Legion nodes.
 
 1. Copy the key into artemis's secret, then commit and deploy artemis:
-    `sops set modules/hosts/artemis/secrets.yaml '["netbird"]["setup-key"]' "$(sops -d --extract '["netbird"]["setup-key"]' modules/hosts/legion/secrets.yaml | jq -R .)"`.
+    `sops -d --extract '["netbird"]["setup-key"]' modules/hosts/legion/secrets.yaml | jq -R . | sops set --value-stdin modules/hosts/artemis/secrets.yaml '["netbird"]["setup-key"]'`.
 2. Delete the `artemis` peer in the dashboard.
 3. From the home network (the mesh drops during this), run on artemis:
     `sudo netbird down && sudo netbird up --setup-key-file /run/secrets/netbird/setup-key`.
