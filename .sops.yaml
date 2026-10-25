@@ -173,7 +173,7 @@ creation_rules:
       - *user_aidanp_se
       - *server_vida
 
-  # Atlanta reverse proxy.
+  # ricklent's netbird-proxy replica.
   - path_regex: modules/netbird-server/secrets\.proxy-atl\.yaml$
     key_groups:
     - age:

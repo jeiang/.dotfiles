@@ -11,7 +11,7 @@ machine must run.
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
 | `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring, ntfy, gatus, atuin. |
 | `peria` | NixOS | Legion server, Hetzner Cloud. garret with its own Caddy and CrowdSec firewall bouncer, and hath. |
-| `ricklent` | NixOS | Legion server, Linode VPS in Atlanta (not Hetzner). Game ingress to artemis, separate NetBird Atlanta reverse proxy, qBittorrent WireGuard exit, secondary Blocky, independent Gatus, and CrowdSec agent/firewall bouncer. No Volumes or provider firewall. |
+| `ricklent` | NixOS | Legion server, Linode VPS in Atlanta (not Hetzner). Game ingress to artemis, second NetBird reverse proxy replica, qBittorrent WireGuard exit, secondary Blocky, independent Gatus, and CrowdSec agent/firewall bouncer. No Volumes or provider firewall. |
 
 Legion is the fleet's servers, whatever the provider: four run on Hetzner
 Cloud, `ricklent` on Linode. `legionNodes.<name>.provider` (`hetzner` or
@@ -246,18 +246,20 @@ behavior for its own sake.
 - ricklent's Linode boot profile uses Direct Disk with the distro, module,
   and devtmpfs helpers disabled. The flake partitions `/dev/sda` and
   installs BIOS GRUB; Direct Disk boots that installed bootloader.
-- `netbird-proxy` on `vida` is public and terminates its own TLS
-  (DNS-01 wildcard for `proxy.jeiang.dev`). CrowdSec IP reputation and an
-  nftables bouncer protect it with decisions from the LAPI on
-  `alda`. The host opens TCP/UDP 40000-45000 for ad hoc services,
-  and the Hetzner `legion` firewall allows that range, so a port in it is
-  public on any Hetzner node whose host firewall opens it.
-- `netbird-proxy-atl` on `ricklent` is a second NetBird reverse proxy for
-  `proxy-atl.jeiang.dev` and its wildcard. Like vida's proxy it binds public
-  TCP 443 and terminates its own TLS (DNS-01 wildcard) with no PROXY protocol
-  or trusted proxies. It has its own token/cluster and TCP/UDP 40000-45000.
-  There is no Atlanta relay, HAProxy, or Caddy on ricklent; vida's relay
-  serves every peer.
+- `netbird-proxy` (`modules/netbird-server/proxy.nix`) is one cluster,
+  `proxy.jeiang.dev`, with a replica on `vida` and one on `ricklent`
+  (`netbird-proxy-atl`). Management groups proxies by domain and sends
+  every service to every replica; DNS lists both hosts for `proxy` and
+  `*.proxy`, with no health check, so a down replica still gets about half
+  of new connections until the client retries. Each replica binds public
+  TCP 443, terminates its own TLS (DNS-01 wildcard per host) with no PROXY
+  protocol, and has its own token, Cloudflare token and CrowdSec bouncer
+  key. CrowdSec IP reputation protects both with decisions from the LAPI
+  on `alda`; vida also runs an nftables bouncer here. Each host opens
+  TCP/UDP 40000-45000 for ad hoc services, and the Hetzner `legion`
+  firewall allows that range, so a port in it is public on any Hetzner
+  node whose host firewall opens it. There is no Atlanta relay; vida's
+  relay serves every peer.
 - ricklent runs a CrowdSec agent (sshd logs from the journal) and an
   nftables bouncer, both against the LAPI on `alda` over the mesh. Its
   machine and bouncer credentials live in `modules/crowdsec/secrets.agent.yaml`,
