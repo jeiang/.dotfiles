@@ -44,92 +44,79 @@
       dashboard-subheading = "Live checks against the fleet's public endpoints";
     };
 
-    endpoints = [
-      (page "Website" "Web" "https://jeiang.dev" "Aidan Pinard - Home")
-      (page "aidanpinard.co" "Web" "https://aidanpinard.co" "Aidan Pinard - Home")
-      (page "pinard.co.tt" "Web" "https://pinard.co.tt" "Aidan Pinard - Home")
-      (page "Portfolio" "Web" "https://noelejoshua.com" "Joshua Noel")
-      (page "Portfolio blog" "Web" "https://blog.noelejoshua.com" "Writing")
-      (ok "Bill Splitter" "Web" "https://bill-split.jeiang.dev")
-      (ok "Rivals Randomizer" "Web" "https://rivals.jeiang.dev")
-      (ok "Markdown Table Editor" "Web" "https://mdtable.jeiang.dev")
+    endpoints =
+      [
+        (page "Website" "Web" "https://jeiang.dev" "Aidan Pinard - Home")
+        (page "aidanpinard.co" "Web" "https://aidanpinard.co" "Aidan Pinard - Home")
+        (page "pinard.co.tt" "Web" "https://pinard.co.tt" "Aidan Pinard - Home")
+        (page "Portfolio" "Web" "https://noelejoshua.com" "Joshua Noel")
+        (page "Portfolio blog" "Web" "https://blog.noelejoshua.com" "Writing")
+        (ok "Bill Splitter" "Web" "https://bill-split.jeiang.dev")
+        (ok "Rivals Randomizer" "Web" "https://rivals.jeiang.dev")
+        (ok "Markdown Table Editor" "Web" "https://mdtable.jeiang.dev")
 
-      # /healthz returns 204 No Content; 200 elsewhere is just the SPA
-      # fallback, which says nothing about backend health.
-      (https "Pocket ID" "Services" "https://auth.jeiang.dev/healthz" ["[STATUS] == 204"])
-      (ok "Grafana" "Services" "https://grafana.jeiang.dev/api/health")
-      # "/" falls through to the static dashboard on node1's edge Caddy
-      # even when netbird-server is down; this path proxies to node2.
-      (ok "NetBird" "Services" "https://netbird.jeiang.dev/oauth2/.well-known/openid-configuration")
-      # nix-cache-info is the first request every substituter client makes.
-      (ok "Nix cache" "Services" "https://cache.jeiang.dev/nix-cache-info")
-      (ok "tinyauth" "Services" "https://tinyauth.jeiang.dev")
-      (ok "ntfy" "Services" "${self.lib.ntfyBaseUrl}/v1/health")
+        # /healthz returns 204 No Content; 200 elsewhere is just the SPA
+        # fallback, which says nothing about backend health.
+        (https "Pocket ID" "Services" "https://auth.jeiang.dev/healthz" ["[STATUS] == 204"])
+        (ok "Grafana" "Services" "https://grafana.jeiang.dev/api/health")
+        # "/" falls through to the static dashboard on node1's edge Caddy
+        # even when netbird-server is down; this path proxies to node2.
+        (ok "NetBird" "Services" "https://netbird.jeiang.dev/oauth2/.well-known/openid-configuration")
+        # nix-cache-info is the first request every substituter client makes.
+        (ok "Nix cache" "Services" "https://cache.jeiang.dev/nix-cache-info")
+        (ok "tinyauth" "Services" "https://tinyauth.jeiang.dev")
+        (ok "ntfy" "Services" "${self.lib.ntfyBaseUrl}/v1/health")
 
-      # netbird-proxy has no stable unauthenticated HTTP response, so
-      # plain TCP reachability.
-      {
-        name = "NetBird proxy";
+        # netbird-proxy has no stable unauthenticated HTTP response, so plain
+        # TCP reachability, per replica: proxy.jeiang.dev resolves to all of them.
+      ]
+      ++ map (service: let
+        node = config.legion.services.${service}.node;
+      in {
+        name = "NetBird proxy (${node})";
         group = "Services";
-        url = "tcp://proxy.jeiang.dev:443";
+        url = "tcp://${self.lib.legionNodes.${node}.publicIPv4}:443";
         interval = "2m";
         conditions = ["[CONNECTED] == true"];
-      }
-      {
-        name = "NetBird proxy Atlanta";
-        group = "Services";
-        url = "tcp://${self.lib.netbirdProxyAtlHost}:443";
-        interval = "2m";
-        conditions = ["[CONNECTED] == true"];
-      }
-
-      # ntfy.jeiang.dev is grey-clouded (DNS-only), so this reads
-      # Caddy's own *.jeiang.dev wildcard cert directly, not
-      # Cloudflare's edge cert as a proxied hostname would.
-      {
-        name = "TLS certificate";
-        group = "Edge";
-        url = "${self.lib.ntfyBaseUrl}/v1/health";
-        interval = "1h";
-        conditions = [
-          "[STATUS] == 200"
-          "[CERTIFICATE_EXPIRATION] > 240h"
-        ];
-      }
-      # The cache and regional ingress renew independently of the edge wildcard.
-      {
-        name = "cache.jeiang.dev certificate";
-        group = "Edge";
-        url = "https://cache.jeiang.dev/nix-cache-info";
-        interval = "1h";
-        conditions = [
-          "[STATUS] == 200"
-          "[CERTIFICATE_EXPIRATION] > 240h"
-        ];
-      }
-      # proxy.jeiang.dev has its own security.acme cert, renewed
-      # separately from the edge wildcard.
-      {
-        name = "proxy.jeiang.dev certificate";
-        group = "Edge";
-        url = "tls://proxy.jeiang.dev:443";
-        interval = "1h";
-        conditions = [
-          "[CONNECTED] == true"
-          "[CERTIFICATE_EXPIRATION] > 240h"
-        ];
-      }
-      {
-        name = "${self.lib.netbirdProxyAtlHost} certificate";
-        group = "Edge";
-        url = "tls://${self.lib.netbirdProxyAtlHost}:443";
-        interval = "1h";
-        conditions = [
-          "[CONNECTED] == true"
-          "[CERTIFICATE_EXPIRATION] > 240h"
-        ];
-      }
-    ];
+      }) ["netbird-proxy" "netbird-proxy-atl"]
+      ++ [
+        # ntfy.jeiang.dev is grey-clouded (DNS-only), so this reads
+        # Caddy's own *.jeiang.dev wildcard cert directly, not
+        # Cloudflare's edge cert as a proxied hostname would.
+        {
+          name = "TLS certificate";
+          group = "Edge";
+          url = "${self.lib.ntfyBaseUrl}/v1/health";
+          interval = "1h";
+          conditions = [
+            "[STATUS] == 200"
+            "[CERTIFICATE_EXPIRATION] > 240h"
+          ];
+        }
+        # The cache and regional ingress renew independently of the edge wildcard.
+        {
+          name = "cache.jeiang.dev certificate";
+          group = "Edge";
+          url = "https://cache.jeiang.dev/nix-cache-info";
+          interval = "1h";
+          conditions = [
+            "[STATUS] == 200"
+            "[CERTIFICATE_EXPIRATION] > 240h"
+          ];
+        }
+        # proxy.jeiang.dev has its own security.acme cert on each replica,
+        # renewed separately from the edge wildcard; each run reaches one of them.
+        {
+          name = "proxy.jeiang.dev certificate";
+          group = "Edge";
+          url = "tls://proxy.jeiang.dev:443";
+          interval = "1h";
+          conditions = [
+            "[CONNECTED] == true"
+            "[CERTIFICATE_EXPIRATION] > 240h"
+          ];
+        }
+      ];
   };
 
   # The Anubis-protected sites resolve to the edge's private or mesh
