@@ -99,7 +99,7 @@ artemis-kernel:
   nix build --no-link --print-out-paths '$new^*' '$profile^*'
   EOF
   )
-  ssh -t "$host" "bash -c 'set -e; nix run github:jeiang/garret#garret -- login; nix run github:jeiang/garret#garret -- push $(echo $outs)'"
+  ssh -t "$host" "bash -c 'set -e; nix run github:jeiang/garret#garret -- login https://cache-push.jeiang.dev; nix run github:jeiang/garret#garret -- push $(echo $outs)'"
 
 # Generate an image with Qwen-Image 2.1 (sd-cli args, e.g. -p "..." -o out.png; add -r in.png to edit); the first run downloads 11 GB of weights to ~/.cache/qwen-image-2.1
 [no-cd, positional-arguments]
