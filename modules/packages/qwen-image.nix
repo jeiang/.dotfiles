@@ -14,12 +14,12 @@ in {
         rocmSupport = true;
         rocmGpuTargets = [self.lib.artemisDgpuTarget];
       })).overrideAttrs (_: rec {
-        version = "master-889-c678dfe";
+        version = "master-1014-012c7f8";
         src = pkgs.fetchFromGitHub {
           owner = "leejet";
           repo = "stable-diffusion.cpp";
           tag = version;
-          hash = "sha256-Jsh/Yn97Mvcrcztomjn4QAltuxckJBck0Up6xQcObPo=";
+          hash = "sha256-L4tfD8PIVVQhnrhODFDxB2M3QxN+vc99JnjE+/5NeBI=";
           fetchSubmodules = true;
         };
       });
