@@ -533,6 +533,7 @@ in {
 
         netbird.server.dashboard = {
           enable = true;
+          package = self.packages.${system}.netbird-dashboard;
           managementServer = "https://netbird.jeiang.dev";
           settings = {
             AUTH_AUDIENCE = "netbird-dashboard";

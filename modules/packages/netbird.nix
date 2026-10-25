@@ -15,10 +15,28 @@
       };
       vendorHash = "sha256-e6gG99OhfYcygQIqKyC9M4TajbH/6+L/IoMa3lzoq5k=";
     };
+
+    dashboardVersion = "2.95.0";
   in {
     packages =
       {
         netbird = pkgs.netbird.overrideAttrs pin;
+        netbird-dashboard = pkgs.netbird-dashboard.overrideAttrs (old: rec {
+          version = dashboardVersion;
+          src = pkgs.fetchFromGitHub {
+            owner = "netbirdio";
+            repo = "dashboard";
+            rev = "v${version}";
+            hash = "sha256-ZIX8YzRFw6aXZuQ4Vc1EH53IO8M0RjFGkxkEso4HAxs=";
+          };
+          # nixpkgs builds npmDeps from its own rec-bound src, so the override must rebuild it.
+          npmDeps = pkgs.fetchNpmDeps {
+            inherit src;
+            name = "netbird-dashboard-${version}-npm-deps";
+            hash = "sha256-icFdukw9X2XJUkREHWbwwbR4jVeVurgX2GJyphrAmoc=";
+          };
+          env = old.env // {NEXT_PUBLIC_DASHBOARD_VERSION = version;};
+        });
       }
       # Linux-only: absent on darwin rather than an eval error (no consumer there).
       // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
