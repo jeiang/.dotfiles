@@ -443,9 +443,9 @@ behavior for its own sake.
   backed up. The retired `jev-mail.db` stays on disk untouched. It sits inside the persisted
   `/var/lib/atrium`, so it needs no `persistence.*` entry of its own.
 - atrium's llama-server is `packages.llama-cpp-atrium`: nixpkgs
-  `llama-cpp-vulkan` pinned to an upstream `b*` tag, because no `v*` release
-  nor nixpkgs's 0.4.1 loads the `gemma-embedding2` architecture EmbeddingGemma 2
-  needs. Drop the override once nixpkgs ships a release that has it.
+  `llama-cpp-vulkan` pinned to an upstream release, because nixpkgs's 0.6.0
+  does not load the `gemma-embedding2` architecture EmbeddingGemma 2 needs
+  (first in v0.7.0). Drop the override once nixpkgs ships a release that has it.
 
 ## CI
 
