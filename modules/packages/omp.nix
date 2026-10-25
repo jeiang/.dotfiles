@@ -28,8 +28,20 @@
             scout = "@smol:medium";
             sonic = "@smol:medium";
           };
+          softRequestBudget = 150;
+          agentSoftRequestBudget = {
+            change-reviewer = 100;
+            reviewer = 100;
+            researcher = 80;
+            security-reviewer = 80;
+          };
+          agentCompactionThresholdOverrides.task = 200000;
         };
-        advisor.enabled = true;
+        advisor = {
+          enabled = true;
+          reviewInterval = 5;
+        };
+        compaction.thresholdTokens = 400000;
         codexResets.autoRedeem = "no";
         claudeResets.autoRedeem = "no";
         modelRoles = {
