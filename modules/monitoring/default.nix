@@ -271,13 +271,6 @@ in {
                 };
               }
               {
-                targets = map (t: "http://${t}") (at "f95-tracker" "app" "/healthz");
-                labels = {
-                  type = "probe";
-                  tier = "warning";
-                };
-              }
-              {
                 targets = map (t: "http://${t}") (at "ntfy" "app" "/v1/health");
                 labels = {
                   type = "probe";

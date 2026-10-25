@@ -26,12 +26,9 @@ in {
       "bill-split.jeiang.dev"
       "rivals.jeiang.dev"
       "mdtable.jeiang.dev"
-      "life-sim.jeiang.dev"
       "github.jeiang.dev"
       "status.jeiang.dev"
       "tinyauth.jeiang.dev"
-      "glance.jeiang.dev"
-      "speed.jeiang.dev"
       self.lib.atriumHostname
     ];
     firewall = [
@@ -76,36 +73,12 @@ in {
     billSplitter = "${inputs.bill-splitter.packages.${system}.default}/dist";
     rivalsRandomizer = inputs.character-randomizer.packages.${system}.default;
     mdTableEditor = inputs.markdown-table-live-editor.packages.${system}.default;
-    lifeSim = "${inputs.life-sim.packages.${system}.default.overrideAttrs (_: {
-      VITE_HIDDEN_CODE_HASH = "$2a$12$3QYxq0PLyCAVJVjLxrhI8eSAA.SW5LGkMd/tFh0QI6qB74uyoEjku";
-    })}/dist";
 
     # Symlink swapped atomically by rivals-heroes-sync; Caddy resolves it
     # per request, so a half-written snapshot is never visible.
     heroCacheRoot = "/var/lib/rivals-heroes/current";
     netbirdDashboard = config.services.netbird.server.dashboard.finalDrv;
     netbirdIronRDP = self.packages.${system}.netbird-ironrdp-web;
-
-    # Replaces the servers_list.js librespeed bakes for the mesh page: a
-    # https page cannot call the http mesh listeners, so the public page
-    # lists only itself.
-    speedtestServersList = pkgs.writeTextDir "servers_list.js" ''
-      function get_servers() {
-        return ${builtins.toJSON [
-        {
-          name = "alda (public)";
-          server = "//speed.jeiang.dev";
-          dlURL = "backend/garbage";
-          ulURL = "backend/empty";
-          pingURL = "backend/empty";
-          getIpURL = "backend/getIP";
-        }
-      ]};
-      }
-      function override_settings() {
-        s.setParameter("telemetry_level", "off");
-      }
-    '';
 
     # Each carries its own trailing newline + indent; callers concatenate
     # them ahead of a site block's first real directive.
@@ -363,15 +336,6 @@ in {
             ${logLine}${crowdsecLine}${appsecLine}reverse_proxy 127.0.0.1:${port "tinyauth" "app"}
           }
 
-          # Glance has no login of its own; tinyauth answers 2xx for a valid
-          # session and otherwise a redirect to its Pocket ID login.
-          glance.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}forward_auth 127.0.0.1:${port "tinyauth" "app"} {
-              uri /api/auth/caddy
-            }
-            reverse_proxy ${upstream "glance" "app"}
-          }
-
           # Only a tinyauth session in the atrium_access group is forwarded.
           # `route` keeps the written order: Caddy's default order runs
           # request_header after forward_auth, which would delete the
@@ -395,20 +359,6 @@ in {
                 reverse_proxy ${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumWebPort}
               }
             }
-          }
-
-          # Behind tinyauth so only a logged-in user can burn egress.
-          # appsec skipped: the upload test is a burst of large random
-          # POST bodies, the one shape a WAF exists to inspect.
-          speed.jeiang.dev {
-            ${logLine}${crowdsecLine}forward_auth 127.0.0.1:${port "tinyauth" "app"} {
-              uri /api/auth/caddy
-            }
-            handle /servers_list.js {
-              root * ${speedtestServersList}
-              file_server
-            }
-            reverse_proxy 127.0.0.1:${toString self.lib.speedtestPort}
           }
 
           netbird.jeiang.dev {
@@ -486,14 +436,6 @@ in {
 
           mdtable.jeiang.dev {
             ${logLine}${crowdsecLine}${appsecLine}root * ${mdTableEditor}
-            file_server
-          }
-
-          life-sim.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}root * ${lifeSim}
-            @hashed path /assets/*
-            header @hashed Cache-Control "public, max-age=31536000, immutable"
-            header ?Cache-Control no-cache
             file_server
           }
 
