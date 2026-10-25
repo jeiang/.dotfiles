@@ -1,4 +1,8 @@
-{self, ...}: let
+{
+  self,
+  config,
+  ...
+}: let
   port = 8086;
 
   service = {
@@ -127,6 +131,18 @@
       }
     ];
   };
+
+  # The Anubis-protected sites resolve to the edge's private or mesh
+  # address, which the edge serves without a challenge.
+  contentSiteHosts = hostName: {
+    ${self.lib.legionAddress hostName config.legion.services.caddy.node} = [
+      "jeiang.dev"
+      "aidanpinard.co"
+      "pinard.co.tt"
+      "noelejoshua.com"
+      "blog.noelejoshua.com"
+    ];
+  };
 in {
   legion.services.gatus =
     service
@@ -142,7 +158,9 @@ in {
       module = "gatus-atl";
     };
 
-  nixos.modules.gatus = _: {
+  nixos.modules.gatus = {config, ...}: {
+    networking.hosts = contentSiteHosts config.networking.hostName;
+
     services.gatus = {
       enable = true;
       settings =
@@ -159,6 +177,8 @@ in {
 
   # Alerts straight to Discord so the watchdog does not depend on zantark.
   nixos.modules.gatus-atl = {config, ...}: {
+    networking.hosts = contentSiteHosts config.networking.hostName;
+
     services.gatus = {
       enable = true;
       environmentFile = config.sops.templates."gatus.env".path;

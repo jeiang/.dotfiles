@@ -111,6 +111,11 @@ in {
       }
     '';
 
+    # Gatus reaches the content sites over the private network or mesh (see
+    # modules/gatus) and cannot solve a challenge. remote_ip is the TCP
+    # peer, so a forwarded header cannot claim these sources.
+    monitorSources = lib.concatMapStringsSep " " (ip: "${ip}/32") (builtins.filter (ip: ip != null) (map (s: self.lib.legionAddress config.networking.hostName legionServices.${s}.node) ["gatus" "gatus-atl"]));
+
     mkContentSite = {
       serve,
       unchallenged ? [],
@@ -119,6 +124,11 @@ in {
       then ''
         @unchallenged path /.well-known/* /robots.txt /sitemap.xml /favicon.ico /feed.xml /rss.xml /atom.xml ${lib.concatStringsSep " " unchallenged}
         handle @unchallenged {
+          ${serve}
+        }
+
+        @monitor remote_ip ${monitorSources}
+        handle @monitor {
           ${serve}
         }
 

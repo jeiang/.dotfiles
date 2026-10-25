@@ -279,7 +279,9 @@ behavior for its own sake.
   Probes through the edge would get the prober banned by CrowdSec.
 - Anubis gates only the static content sites. Never put it in front of a
   machine client (substituters, OIDC, NetBird gRPC,
-  Prometheus). Its challenge store stays in memory.
+  Prometheus). Its challenge store stays in memory. Both Gatus instances
+  resolve the content sites to the edge's private or mesh address, and the
+  edge serves exactly those two sources without a challenge.
 - Stateless by choice: Gatus stores results in memory, and tinyauth's
   database holds only sessions.
 - `gatus-atl` on ricklent is the independent Atlanta watchdog: the same
