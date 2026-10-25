@@ -11,6 +11,7 @@
         composer.shape = "band";
         display.pinnedAgents = "full";
         display.showTurnTime = true;
+        tui.completeScrollback = true;
         startup.checkUpdate = false;
         secrets.enabled = true;
         lsp.diagnosticsOnEdit = true;
