@@ -28,6 +28,8 @@
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
     atrium.url = "github:jeiang/atrium";
     atrium.inputs.nixpkgs.follows = "nixpkgs";
+    nb-nix.url = "github:jeiang/nb-nix";
+    nb-nix.inputs.nixpkgs.follows = "nixpkgs";
     nix-darwin.url = "github:nix-darwin/nix-darwin";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
     # No follows: determinate-nixd is a prebuilt binary the module fetches, not something this flake builds.

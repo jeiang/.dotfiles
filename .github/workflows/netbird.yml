@@ -1,10 +1,11 @@
 # NETBIRD_READ_TOKEN is an Auditor-role personal access token: read-only
-# across the whole management API, never a mutating call.
-name: NetBird Invariants
+# across the whole management API, never a mutating call. nb-nix renews it
+# (modules/netbird-management) and writes the new one here with `gh secret set`.
+name: NetBird Drift
 
 on:
   schedule:
-    # Weekly drift check.
+    # Weekly drift check: live NetBird state against modules/netbird-management.
     - cron: "27 6 * * 1"
   workflow_dispatch:
 
@@ -17,7 +18,7 @@ permissions:
   contents: read
 
 jobs:
-  invariants:
+  drift:
     # Fork PRs are excluded explicitly, for parity with the other read-only
     # drift checks; this workflow never triggers on pull_request itself.
     if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
@@ -34,11 +35,12 @@ jobs:
           NETBIRD_API_TOKEN: ${{ secrets.NETBIRD_READ_TOKEN }}
         run: |
           if [ -z "$NETBIRD_API_TOKEN" ]; then
-            echo "::error::NETBIRD_READ_TOKEN secret is empty; mint an Auditor-role personal access token for a NetBird service user, then: gh secret set NETBIRD_READ_TOKEN --repo jeiang/.dotfiles" >&2
+            echo "::error::NETBIRD_READ_TOKEN secret is empty; see docs/runbooks/netbird.md" >&2
             exit 1
           fi
 
-      - name: Check invariants
+      # Exit 2 means live state differs from the flake; the plan shows how.
+      - name: Plan against live state
         env:
           NETBIRD_API_TOKEN: ${{ secrets.NETBIRD_READ_TOKEN }}
-        run: nix shell --inputs-from . nixpkgs#jq nixpkgs#curl -c ./modules/netbird-invariants/check.sh
+        run: nix run --inputs-from . nb-nix -- plan -c "$(nix build --no-link --print-out-paths .#netbird-desired)" --detailed-exitcode

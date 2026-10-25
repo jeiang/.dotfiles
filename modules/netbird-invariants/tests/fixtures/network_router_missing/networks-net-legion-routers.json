@@ -1,9 +1,0 @@
-[
-  {
-    "id": "rtr-legion",
-    "peer": "peer-vida",
-    "metric": 9999,
-    "masquerade": false,
-    "enabled": false
-  }
-]
