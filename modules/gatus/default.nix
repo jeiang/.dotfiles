@@ -172,7 +172,11 @@ in {
         };
     };
 
-    systemd.services.gatus.serviceConfig.MemoryMax = "64M";
+    systemd.services.gatus = {
+      serviceConfig.MemoryMax = "64M";
+      # A running Gatus keeps resolving through the hosts table it started with.
+      restartTriggers = [(builtins.toJSON config.networking.hosts)];
+    };
   };
 
   # Alerts straight to Discord so the watchdog does not depend on zantark.
@@ -197,7 +201,10 @@ in {
         };
     };
 
-    systemd.services.gatus.serviceConfig.MemoryMax = "64M";
+    systemd.services.gatus = {
+      serviceConfig.MemoryMax = "64M";
+      restartTriggers = [(builtins.toJSON config.networking.hosts)];
+    };
 
     sops = {
       secrets."discord-webhook".sopsFile = ./secrets.yaml;
