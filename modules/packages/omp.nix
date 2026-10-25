@@ -35,6 +35,7 @@
             researcher = 80;
             security-reviewer = 80;
           };
+          agentCompactionThresholdOverrides.task = 200000;
         };
         advisor = {
           enabled = true;
