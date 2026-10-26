@@ -1,30 +1,51 @@
 {
   self,
   config,
+  lib,
   ...
 }: let
   crowdsecLapiPort = config.legion.services.crowdsec.ports.lapi;
-in {
-  legion.services.crowdsec-agent = {
-    node = "ricklent";
-    module = "crowdsec-agent";
-    units = ["crowdsec" "crowdsec-firewall-bouncer"];
+
+  # Each agent's machine password and bouncer key live in its own shard, readable by alda (which
+  # registers them) and the agent's node.
+  agents = {
+    crowdsec-agent = {
+      node = "ricklent";
+      sopsFile = ./secrets.agent.yaml;
+    };
+    crowdsec-agent-zantark = {
+      node = "zantark";
+      sopsFile = ./secrets.zantark.yaml;
+    };
   };
+in {
+  flake.lib.crowdsecAgentShards = lib.mapAttrs' (_: agent: lib.nameValuePair agent.node agent.sopsFile) agents;
+
+  legion.services =
+    builtins.mapAttrs (_: agent: {
+      inherit (agent) node;
+      module = "crowdsec-agent";
+      units = ["crowdsec" "crowdsec-firewall-bouncer"];
+    })
+    agents;
 
   nixos.modules.crowdsec-agent = {
     config,
     lib,
     ...
   }: let
-    sopsFile = ./secrets.agent.yaml;
+    host = config.networking.hostName;
+    sopsFile = self.lib.crowdsecAgentShards.${host};
+    machineSecret = "crowdsec/machine-${host}-password";
+    bouncerSecret = "crowdsec/bouncer-${host}-firewall";
 
-    lapiUrl = "http://${self.lib.legionAddress config.networking.hostName "alda"}:${toString crowdsecLapiPort}";
+    lapiUrl = "http://${self.lib.legionAddress host "alda"}:${toString crowdsecLapiPort}";
     credentialsTemplate = "crowdsec-lapi-credentials.yaml";
   in {
     sops = {
       secrets = {
-        "crowdsec/machine-ricklent-password" = {inherit sopsFile;};
-        "crowdsec/bouncer-ricklent-firewall" = {
+        ${machineSecret} = {inherit sopsFile;};
+        ${bouncerSecret} = {
           inherit sopsFile;
           restartUnits = ["crowdsec-firewall-bouncer.service"];
         };
@@ -35,8 +56,8 @@ in {
         restartUnits = ["crowdsec.service"];
         content = ''
           url: ${lapiUrl}
-          login: ${config.networking.hostName}
-          password: ${config.sops.placeholder."crowdsec/machine-ricklent-password"}
+          login: ${host}
+          password: ${config.sops.placeholder.${machineSecret}}
         '';
       };
     };
@@ -83,7 +104,7 @@ in {
         api_url = lapiUrl;
       };
       registerBouncer.enable = false;
-      secrets.apiKeyPath = config.sops.secrets."crowdsec/bouncer-ricklent-firewall".path;
+      secrets.apiKeyPath = config.sops.secrets.${bouncerSecret}.path;
     };
   };
 }

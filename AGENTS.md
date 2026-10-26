@@ -9,7 +9,7 @@ machine must run.
 | `zakkart` | nix-darwin | The operator's MacBook. |
 | `alda` | NixOS | Legion server, Hetzner Cloud. Caddy edge (also fronts atrium on artemis). |
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
-| `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring, ntfy, gatus, atuin. |
+| `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring, ntfy, gatus, atuin, and CrowdSec agent/firewall bouncer. |
 | `peria` | NixOS | Legion server, Hetzner Cloud. garret with its own Caddy and CrowdSec firewall bouncer, and hath. |
 | `ricklent` | NixOS | Legion server, Linode VPS in Atlanta (not Hetzner). Game ingress to artemis, second NetBird reverse proxy replica, qBittorrent WireGuard exit, secondary Blocky, independent Gatus, and CrowdSec agent/firewall bouncer. No Volumes or provider firewall. |
 
@@ -263,14 +263,17 @@ behavior for its own sake.
   firewall allows that range, so a port in it is public on any Hetzner
   node whose host firewall opens it. There is no Atlanta relay; vida's
   relay serves every peer.
-- ricklent runs a CrowdSec agent (sshd logs from the journal) and an
-  nftables bouncer, both against the LAPI on `alda` over the mesh. Its
-  machine and bouncer credentials live in `modules/crowdsec/secrets.agent.yaml`,
-  readable only by alda and ricklent.
+- ricklent and zantark each run a CrowdSec agent (sshd logs from the
+  journal) and an nftables bouncer against the LAPI on `alda`
+  (`modules/crowdsec/agent.nix`). Each agent's machine and bouncer
+  credentials live in its own shard (`secrets.agent.yaml` for ricklent,
+  `secrets.zantark.yaml`), readable only by alda and that node. alda reads
+  its own sshd journal and runs an nftables bouncer registered against its
+  local API, so sshd bans act on the host firewall, not only in Caddy.
 - CrowdSec keeps its database and hub under `/var/lib/crowdsec/state` on
-  alda and ricklent, not the nixpkgs default data directory. alda's local
-  API credentials stay at `/etc/crowdsec/local_api_credentials.yaml`;
-  ricklent disables its local API and uses its sops-rendered credentials.
+  every Legion node, not the nixpkgs default data directory. alda's local
+  API credentials stay at `/etc/crowdsec/local_api_credentials.yaml`; the
+  agents disable their local API and use their sops-rendered credentials.
 - `modules/netbird-management/` declares the NetBird management state
   (groups, access policies, networks, DNS, setup key, users' groups, service
   users and tokens, account settings) with nb-nix (`github:jeiang/nb-nix`),

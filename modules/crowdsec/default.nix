@@ -6,7 +6,7 @@ in {
   legion.services.crowdsec = {
     node = "alda";
     module = "crowdsec";
-    units = ["crowdsec" "crowdsec-bouncers"];
+    units = ["crowdsec" "crowdsec-bouncers" "crowdsec-firewall-bouncer"];
     ports = {
       lapi = lapiPort;
       metrics = metricsPort;
@@ -35,7 +35,8 @@ in {
     ...
   }: let
     sopsFile = ./secrets.yaml;
-    agentSopsFile = ./secrets.agent.yaml;
+    machineSecret = host: "crowdsec/machine-${host}-password";
+    bouncerSecret = host: "crowdsec/bouncer-${host}-firewall";
 
     localAppsecConfigName = "jeiang/appsec-caddy";
 
@@ -63,16 +64,17 @@ in {
             - SetRemediation("allow")
     '';
 
-    bouncerKeys = {
-      edge-caddy = config.sops.secrets."caddy/crowdsec-lapi-key".path;
-      netbird-proxy = config.sops.secrets."crowdsec/bouncer-netbird-proxy-key".path;
-      legion-node2-firewall = config.sops.secrets."crowdsec/bouncer-legion-node2-firewall".path;
-      ricklent-firewall = config.sops.secrets."crowdsec/bouncer-ricklent-firewall".path;
-      netbird-proxy-atl = config.sops.secrets."crowdsec/bouncer-netbird-proxy-atl-key".path;
-      garret-firewall = config.sops.secrets.${self.lib.garretFirewallBouncerSecret}.path;
-    };
+    bouncerKeys =
+      {
+        edge-caddy = config.sops.secrets."caddy/crowdsec-lapi-key".path;
+        netbird-proxy = config.sops.secrets."crowdsec/bouncer-netbird-proxy-key".path;
+        legion-node2-firewall = config.sops.secrets."crowdsec/bouncer-legion-node2-firewall".path;
+        netbird-proxy-atl = config.sops.secrets."crowdsec/bouncer-netbird-proxy-atl-key".path;
+        garret-firewall = config.sops.secrets.${self.lib.garretFirewallBouncerSecret}.path;
+      }
+      // lib.mapAttrs' (host: _: lib.nameValuePair "${host}-firewall" config.sops.secrets.${bouncerSecret host}.path) self.lib.crowdsecAgentShards;
 
-    machinePasswords.ricklent = config.sops.secrets."crowdsec/machine-ricklent-password".path;
+    machinePasswords = lib.mapAttrs (host: _: config.sops.secrets.${machineSecret host}.path) self.lib.crowdsecAgentShards;
   in {
     config = {
       services.crowdsec = {
@@ -81,9 +83,8 @@ in {
         hub.collections = [
           "crowdsecurity/caddy"
           "crowdsecurity/appsec-virtual-patching" # base-config + vpatch-*, referenced by the local AppSec config
+          "crowdsecurity/sshd"
         ];
-        # Base parsers caddy-logs depends on, installed directly instead of
-        # via the linux collection (which drags in sshd scenarios).
         hub.parsers = [
           "crowdsecurity/syslog-logs"
           "crowdsecurity/geoip-enrich"
@@ -120,6 +121,11 @@ in {
               appsec_config = localAppsecConfigName;
               labels.type = "appsec";
             }
+            {
+              source = "journalctl";
+              journalctl_filter = ["_SYSTEMD_UNIT=sshd.service"];
+              labels.type = "syslog";
+            }
           ];
 
           parsers.s02Enrich = [
@@ -148,34 +154,40 @@ in {
 
       # No declarative bouncer option exists upstream, so known bouncer keys
       # are registered idempotently below. The edge-caddy key is the same
-      # value Caddy sends as CROWDSEC_LAPI_KEY; the other two are consumed by
-      # vida (modules/netbird-server/proxy.nix); ricklent's bouncer and
-      # machine credentials are consumed by modules/crowdsec/agent.nix.
-      sops.secrets = {
-        "crowdsec/bouncer-netbird-proxy-key" = {
-          inherit sopsFile;
-          restartUnits = ["crowdsec-bouncers.service"];
-        };
-        "crowdsec/bouncer-legion-node2-firewall" = {
-          inherit sopsFile;
-          restartUnits = ["crowdsec-bouncers.service"];
-        };
-        "crowdsec/bouncer-ricklent-firewall" = {
-          sopsFile = agentSopsFile;
-          restartUnits = ["crowdsec-bouncers.service"];
-        };
-        "crowdsec/machine-ricklent-password" = {
-          sopsFile = agentSopsFile;
-          restartUnits = ["crowdsec-bouncers.service"];
-        };
-        "crowdsec/bouncer-netbird-proxy-atl-key" = {
-          sopsFile = ./secrets.agent.yaml;
-          restartUnits = ["crowdsec-bouncers.service"];
-        };
-        ${self.lib.garretFirewallBouncerSecret} = {
-          sopsFile = ./secrets.garret.yaml;
-          restartUnits = ["crowdsec-bouncers.service"];
-        };
+      # value Caddy sends as CROWDSEC_LAPI_KEY; the netbird-proxy keys are
+      # consumed by modules/netbird-server/proxy.nix, and each agent's bouncer
+      # and machine credentials by modules/crowdsec/agent.nix.
+      sops.secrets =
+        {
+          "crowdsec/bouncer-netbird-proxy-key" = {
+            inherit sopsFile;
+            restartUnits = ["crowdsec-bouncers.service"];
+          };
+          "crowdsec/bouncer-legion-node2-firewall" = {
+            inherit sopsFile;
+            restartUnits = ["crowdsec-bouncers.service"];
+          };
+          "crowdsec/bouncer-netbird-proxy-atl-key" = {
+            sopsFile = ./secrets.agent.yaml;
+            restartUnits = ["crowdsec-bouncers.service"];
+          };
+          ${self.lib.garretFirewallBouncerSecret} = {
+            sopsFile = ./secrets.garret.yaml;
+            restartUnits = ["crowdsec-bouncers.service"];
+          };
+        }
+        // lib.concatMapAttrs (host: sopsFile:
+          lib.genAttrs [(bouncerSecret host) (machineSecret host)] (_: {
+            inherit sopsFile;
+            restartUnits = ["crowdsec-bouncers.service"];
+          }))
+        self.lib.crowdsecAgentShards;
+
+      # Acts on this node's own decisions, sshd bans included; the edge's Caddy bouncer covers only HTTP.
+      services.crowdsec-firewall-bouncer = {
+        enable = true;
+        settings.mode = "nftables";
+        registerBouncer.enable = true;
       };
 
       systemd.services = {
@@ -208,7 +220,13 @@ in {
             + lib.concatMapStrings registerMachine (builtins.attrNames machinePasswords);
         };
 
-        crowdsec.serviceConfig.MemoryMax = "512M";
+        crowdsec = {
+          path = lib.mkForce [config.systemd.package];
+          serviceConfig = {
+            MemoryMax = "512M";
+            SupplementaryGroups = ["systemd-journal"];
+          };
+        };
 
         # wants+after, not requires: Caddy must still serve traffic with
         # crowdsec.service stopped or missing (fail-open).
