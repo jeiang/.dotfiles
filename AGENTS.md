@@ -200,9 +200,14 @@ behavior for its own sake.
 
 ## Decisions that constrain changes
 
-- The deploy user is a Nix trusted user, so it is root-equivalent. Its sudo
-  rules are for audit, not containment. Removing that trust needs a
-  signed-closure delivery design.
+- The deploy user is a Nix trusted user on every NixOS host, so it is
+  root-equivalent. Its elevation rules (sudo on Legion, doas on artemis) are
+  for audit, not containment. Removing that trust needs a signed-closure
+  delivery design.
+- `sudo`/`doas` skip the password only for a caller inside an sshd logind
+  session of the same user; sshd accepts only keys, so that session proves
+  the operator's key. gamemode stops and starts `gaming.pauseUnits` through
+  a polkit rule, not elevation.
 - Hetzner servers, Volumes, and Cloud Firewalls are provisioned outside the
   flake, and are Hetzner-only. A Volume is for state that cannot suffer loss
   if the server fails. A stateful Legion service that keeps such state uses
@@ -327,8 +332,8 @@ behavior for its own sake.
   for the function, not the implementation.
 - garret accepts pushes from a Pocket ID client and from GitHub Actions OIDC
   tokens of the workflows in its `job_workflow_refs` (`ci.yml` of
-  `jeiang/.dotfiles` and `jeiang/garret`, ripper's `release.yml`, renpy_proj's
-  `garret.yml`), pinned by
+  `jeiang/.dotfiles`, `jeiang/garret` and `jeiang/atrium`, ripper's
+  `release.yml`, renpy_proj's `garret.yml`), pinned by
   repository id, on `push` and `workflow_dispatch`, for `refs/heads/main` and
   `refs/tags/v*` (release tags, which are unprotected, so `ref_protected`
   stays unset). A new pushing repository or workflow needs its entries in
@@ -459,7 +464,8 @@ behavior for its own sake.
 - `ci.yml` evaluates `checks.x86_64-linux` and builds each check in a matrix
   job. On `main`, `.ci/garret.sh` pushes each path to garret as it is built,
   and drains the rest even when the build fails; a garret failure never
-  fails the job. zakkart builds on a macOS runner. `all-checks` is the only
+  fails the job. zakkart builds on a macOS runner, on a PR only when its
+  toplevel derivation differs from the base. `all-checks` is the only
   required status.
 - Only a `main` run pushes to garret, so a PR run cannot substitute a
   rebuilt artemis kernel and would compile the full-LTO kernel on a shared
