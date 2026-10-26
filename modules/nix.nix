@@ -24,8 +24,18 @@ in {
 
     nixpkgs.pkgs = withSystem config.nixpkgs.hostPlatform.system ({pkgs, ...}: pkgs);
 
-    # Garbage collection is determinate-nixd's automatic collector; a second collector would fight it.
     programs.nh.enable = true;
+
+    # determinate-nixd collects garbage, but every system generation is a GC root it never deletes. Prune
+    # old generations only (no store GC, which would be a second collector); the next switch drops their
+    # boot entries.
+    systemd.services.prune-generations = {
+      description = "Delete system generations beyond the newest 14";
+      startAt = "weekly";
+      serviceConfig.Type = "oneshot";
+      script = "${config.nix.package}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +14";
+    };
+    systemd.timers.prune-generations.timerConfig.Persistent = true;
 
     nix = {
       registry.nixpkgs.flake = inputs.nixpkgs;
