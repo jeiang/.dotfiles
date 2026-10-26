@@ -26,7 +26,6 @@
         iina
         moonlight-qt
         mos
-        notion-app
         obsidian
         prismlauncher
         raycast
