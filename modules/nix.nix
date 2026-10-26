@@ -24,11 +24,8 @@ in {
 
     nixpkgs.pkgs = withSystem config.nixpkgs.hostPlatform.system ({pkgs, ...}: pkgs);
 
-    programs.nh = {
-      enable = true;
-      clean.enable = true;
-      clean.extraArgs = "--keep-since 7d --keep 14";
-    };
+    # Garbage collection is determinate-nixd's automatic collector; a second collector would fight it.
+    programs.nh.enable = true;
 
     nix = {
       registry.nixpkgs.flake = inputs.nixpkgs;

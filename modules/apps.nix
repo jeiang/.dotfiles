@@ -44,7 +44,6 @@
         gh
         gnupg
         pinentry_mac
-        go
         hcloud
         imagemagick
         megatools
@@ -52,7 +51,6 @@
         nodejs
         ouch
         pkgconf
-        pnpm
         tokei
         uv
       ])
