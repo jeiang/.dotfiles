@@ -123,11 +123,14 @@ behavior for its own sake.
 
 - Legion: `<name>.svr.jeiang.dev` (`alda.svr.jeiang.dev`, ...). NetBird mesh names for
   these nodes carry collision suffixes, and mesh SSH from the Mac times out.
-  `sudo` needs a password and a TTY (`ssh -t`).
+  `sudo` asks for no password inside an SSH session, which only the
+  operator's key can open; a console session needs the password
+  (`modules/openssh.nix`).
 - artemis: `artemis.jeiang.vpn`. A bare `artemis` resolves through the
-  wildcard record and does not reach the host. `doas` is passwordless;
-  deploy-rs depends on that. When NetBird is down, `alda` reaches
-  artemis at `10.100.0.2` over the `wg-backup` WireGuard tunnel.
+  wildcard record and does not reach the host. `doas` follows the same rule
+  as Legion's `sudo`. deploy-rs logs in as the `deploy` user on every NixOS
+  host. When NetBird is down, `alda` reaches artemis at `10.100.0.2` over
+  the `wg-backup` WireGuard tunnel.
 - artemis has an EDID dummy plug on `HDMI-A-1`. The motherboard does not
   POST without a powered display, so the plug must stay in.
 

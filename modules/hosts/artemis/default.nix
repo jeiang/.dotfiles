@@ -9,7 +9,7 @@ in {
   flake.deploy.nodes.artemis = {
     # Deploys ride the NetBird mesh (no public DNS); when it's down: deploy .#artemis --hostname <LAN IP or 10.100.0.2 via the backup tunnel>.
     hostname = "artemis.jeiang.vpn";
-    sshUser = "aidanp";
+    sshUser = "deploy";
     sudo = "doas -u";
     profiles.system = {
       user = "root";

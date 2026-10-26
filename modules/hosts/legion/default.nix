@@ -153,7 +153,7 @@ in {
     deploy.nodes =
       builtins.mapAttrs (name: _: {
         hostname = nodeHostname name;
-        # Bootstrapping a node without the deploy user: deploy .#<name> --ssh-user aidanp --sudo='doas -u' --magic-rollback=false
+        # Bootstrapping a node without the deploy user: deploy .#<name> --ssh-user aidanp --magic-rollback=false
         sshUser = "deploy";
         sudo = "sudo -u";
         profiles.system = {
@@ -166,7 +166,6 @@ in {
 
   nixos = {
     modules.legion = {
-      pkgs,
       config,
       lib,
       ...
@@ -222,23 +221,6 @@ in {
         (builtins.filter (s: s.backupSet != [])
           (servicesByNode config.networking.hostName))
       );
-
-      users = {
-        groups.deploy = {};
-        users.deploy = {
-          isSystemUser = true;
-          group = "deploy";
-          home = "/var/empty";
-          createHome = false;
-          hashedPassword = "!";
-          shell = pkgs.bashInteractive;
-          openssh.authorizedKeys.keys = [
-            "restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGEDR/RgCI/ULKL6ywYbmeqvU5BfjpmMnOieuQ66XlX+ legion-deploy"
-          ];
-        };
-      };
-
-      nix.settings.trusted-users = ["deploy"];
 
       security.sudo.extraRules = [
         {
