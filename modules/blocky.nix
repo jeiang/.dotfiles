@@ -25,8 +25,12 @@
         blocking = {
           blockType = "nxDomain";
           clientGroupsBlock.default = ["ads"];
-          # Answer from the cache and upstreams while the lists download.
-          loading.strategy = "fast";
+          loading = {
+            # Answer from the cache and upstreams while the lists download.
+            strategy = "fast";
+            # hagezi's tif list is ~2M lines; the 5s default cuts it off mid-download.
+            downloads.timeout = "2m";
+          };
           denylists.ads = [
             "https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews/hosts"
             "https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/gambling-only/hosts"
