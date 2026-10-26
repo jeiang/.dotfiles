@@ -134,6 +134,28 @@
     type = "subnet";
   };
 
+  # Location tags. Each zone's group routes its own exit, "VPN via <zone>".
+  # A group, not a peer, is the router, so a router can be deleted and
+  # re-enrolled (a peer used as a router cannot be).
+  nodesOn = provider: builtins.attrNames (lib.filterAttrs (_: n: n.provider == provider) self.lib.legionNodes);
+  zones = {
+    hetzner-us-east = {
+      name = "Hetzner (us-east)";
+      peers = nodesOn "hetzner";
+      users = "vpn";
+    };
+    linode-atl = {
+      name = "Linode (Atlanta)";
+      peers = nodesOn "linode";
+      users = "vpn";
+    };
+    trinidad = {
+      name = "Trinidad";
+      peers = ["artemis"];
+      users = "infra_admin";
+    };
+  };
+
   netbird = {
     netbird = {
       server = "https://netbird.jeiang.dev";
@@ -174,21 +196,18 @@
       };
       dns_settings.disabled_management_groups = [];
 
-      groups = {
-        # Every machine in modules/netbird-peers.nix. The Legion setup key
-        # also adds new enrollments here.
-        Legion.peers = builtins.attrNames peers;
-        # Exit routers for the Legion network: the cloud nodes, not artemis.
-        legion_exit.peers = builtins.attrNames self.lib.legionNodes;
-        blocky.peers = blockyNodes;
-        # A group, not a peer, routes the home LAN, so artemis can be
-        # deleted and re-enrolled (a peer used as a router cannot be).
-        home_router.peers = ["artemis"];
-        # Assigned through users' auto_groups; members are not declared.
-        infra_admin = {};
-        vpn = {};
-        members = {};
-      };
+      groups =
+        {
+          # Every machine in modules/netbird-peers.nix. The Legion setup key
+          # also adds new enrollments here.
+          Legion.peers = builtins.attrNames peers;
+          blocky.peers = blockyNodes;
+          # Assigned through users' auto_groups; members are not declared.
+          infra_admin = {};
+          vpn = {};
+          members = {};
+        }
+        // lib.mapAttrs (_: z: {inherit (z) peers;}) zones;
 
       peers =
         lib.mapAttrs (_: ip: {
@@ -254,48 +273,43 @@
         sink.command = ["sops" "set" "--value-stdin" "modules/hosts/legion/secrets.yaml" ''["netbird"]["setup-key"]''];
       };
 
-      networks = {
-        legion-cluster = {
-          name = "Legion Cluster";
-          description = "";
-          resources.public-internet = {
-            name = "Public Internet via Legion";
-            address = "0.0.0.0/0";
+      networks =
+        {
+          home-lan = {
+            name = "Home LAN";
             description = "";
-            enabled = true;
-          };
-          routers.exit = {
-            peer_groups = ["legion_exit"];
-            masquerade = true;
-            metric = 9999;
-            enabled = true;
-          };
-        };
-        home-lan = {
-          name = "Home LAN";
-          description = "";
-          resources = {
-            home-network = {
+            resources.home-network = {
               name = "Home Network";
               address = "192.168.100.0/24";
               description = "";
               enabled = true;
             };
-            public-internet = {
-              name = "Public Internet via Artemis";
+            routers.artemis = {
+              peer_groups = ["trinidad"];
+              masquerade = true;
+              metric = 9999;
+              enabled = true;
+            };
+          };
+        }
+        // lib.mapAttrs' (group: z:
+          lib.nameValuePair "vpn-${group}" {
+            name = "VPN via ${z.name}";
+            description = "";
+            resources.public-internet = {
+              name = "VPN via ${z.name}";
               address = "0.0.0.0/0";
               description = "";
               enabled = true;
             };
-          };
-          routers.artemis = {
-            peer_groups = ["home_router"];
-            masquerade = true;
-            metric = 9999;
-            enabled = true;
-          };
-        };
-      };
+            routers.exit = {
+              peer_groups = [group];
+              masquerade = true;
+              metric = 9999;
+              enabled = true;
+            };
+          })
+        zones;
 
       nameserver_groups = {
         blocky = {
@@ -346,53 +360,52 @@
         };
       };
 
-      policies = {
-        blocky-tcp = policy "Blocky DNS Access (TCP)" {
-          sources = ["All"];
-          destinations = ["blocky"];
-          protocol = "tcp";
-          ports = [(toString blockyDnsPort)];
-        };
-        blocky-udp = policy "Blocky DNS Access (UDP)" {
-          sources = ["All"];
-          destinations = ["blocky"];
-          protocol = "udp";
-          ports = [(toString blockyDnsPort)];
-        };
-        admin-devices = policy "Admin Devices" {
-          sources = ["infra_admin"];
-          destinations = ["infra_admin"];
-          bidirectional = true;
-        };
-        admin-to-legion = policy "Admin to Legion" {
-          sources = ["infra_admin"];
-          destinations = ["Legion"];
-        };
-        legion-mesh-tcp = policy "Legion Mesh (TCP)" {
-          sources = ["Legion"];
-          destinations = ["Legion"];
-          protocol = "tcp";
-          ports = meshPorts "tcp";
-        };
-        legion-mesh-udp = policy "Legion Mesh (UDP)" {
-          sources = ["Legion"];
-          destinations = ["Legion"];
-          protocol = "udp";
-          ports = meshPorts "udp";
-        };
-        home-network = policy "Home Network Access" {
-          sources = ["infra_admin"];
-          destinationResource = resource "Home Network";
-        };
-        internet-via-artemis = policy "Public Internet via Artemis Access" {
-          sources = ["infra_admin"];
-          destinationResource = resource "Public Internet via Artemis";
-        };
-        internet-via-legion = policy "Public Internet via Legion Access" {
-          sources = ["vpn"];
-          destinationResource = resource "Public Internet via Legion";
-        };
-      };
+      policies =
+        {
+          blocky-tcp = policy "Blocky DNS Access (TCP)" {
+            sources = ["All"];
+            destinations = ["blocky"];
+            protocol = "tcp";
+            ports = [(toString blockyDnsPort)];
+          };
+          blocky-udp = policy "Blocky DNS Access (UDP)" {
+            sources = ["All"];
+            destinations = ["blocky"];
+            protocol = "udp";
+            ports = [(toString blockyDnsPort)];
+          };
+          admin-devices = policy "Admin Devices" {
+            sources = ["infra_admin"];
+            destinations = ["infra_admin"];
+            bidirectional = true;
+          };
+          admin-to-legion = policy "Admin to Legion" {
+            sources = ["infra_admin"];
+            destinations = ["Legion"];
+          };
+          legion-mesh-tcp = policy "Legion Mesh (TCP)" {
+            sources = ["Legion"];
+            destinations = ["Legion"];
+            protocol = "tcp";
+            ports = meshPorts "tcp";
+          };
+          legion-mesh-udp = policy "Legion Mesh (UDP)" {
+            sources = ["Legion"];
+            destinations = ["Legion"];
+            protocol = "udp";
+            ports = meshPorts "udp";
+          };
+          home-network = policy "Home Network Access" {
+            sources = ["infra_admin"];
+            destinationResource = resource "Home Network";
+          };
+        }
+        // lib.mapAttrs' (group: z:
+          lib.nameValuePair "vpn-${group}" (policy "VPN via ${z.name} Access" {
+            sources = [z.users];
+            destinationResource = resource "VPN via ${z.name}";
+          }))
+        zones;
     };
   };
 in {
