@@ -9,7 +9,7 @@ fmt:
 
 # Check for nix errors
 check extraArgs="":
-  nix flake check --impure --keep-going {{extraArgs}}
+  nix flake check --keep-going {{extraArgs}}
 
 # Same checks as `just check`, built in parallel; skips what the substituters already have
 fast-check extraArgs="":

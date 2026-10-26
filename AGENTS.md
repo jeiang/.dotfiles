@@ -32,16 +32,16 @@ behavior for its own sake.
   until they finish and the command exits at once.
 - Use Conventional Commits.
 - Repository tools come from the devshell: `direnv` loads `.envrc`, or run
-  `nix develop --impure -c <cmd>`.
+  `nix develop -c <cmd>`.
 - Validate with `just fmt` and `just check`. For one host, compare
   `nix eval .#nixosConfigurations.<host>.config.system.build.toplevel.drvPath`
   (or `.#darwinConfigurations.zakkart...`) before and after the change. Do
   not use `nix flake show`: it enumerates outputs that are invalid on the
   current system.
-- CI evaluates in pure mode. Never add `--impure` to CI; only the devshell
-  surfaces are impure.
-- In a new git worktree, copy the gitignored `.pre-commit-config.yaml`
-  symlink from the main checkout before the first commit.
+- Everything evaluates in pure mode, CI included. Never add `--impure`.
+- In a new git worktree, enter the devshell (or copy the gitignored
+  `.pre-commit-config.yaml` symlink from the main checkout) before the
+  first commit; the shell hook installs the git hooks.
 - Before opening a pull request for a change that touches artemis's
   configuration or updates a flake input that can affect the artemis kernel,
   run `just artemis-kernel`. If the kernel differs from `origin/main`, it
