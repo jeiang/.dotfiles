@@ -376,12 +376,6 @@ behavior for its own sake.
   `modules/hosts/artemis/secrets.yaml`). A peer enrolled by a user would
   inherit that user's groups. Preserve the addresses in
   `modules/netbird-peers.nix` when re-enrolling; nb-nix pins them.
-- Every zellij layout draws its bar with zjstatus, declared once as a plugin
-  alias in `modules/packages/zellij/default.nix`: `layout_dir` is a plain
-  directory, so a layout cannot name the store path itself. zellij asks for
-  the plugin's permissions the first time a user loads it on a host and
-  caches the answer per user, so the bar is a permission prompt until the
-  operator answers `y`.
 - Agent skills, subagents, and instructions come from the pinned
   `agent-skills` flake, installed by hjem on artemis and zakkart. The
   `<harness>-personal` package holds the tree, and `lib.entries` names its

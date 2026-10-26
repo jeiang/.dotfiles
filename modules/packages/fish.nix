@@ -55,11 +55,6 @@
 
           command -q direnv; and direnv hook fish | source
 
-          # artemis and Legion set ZELLIJ_AUTO_ATTACH; SSH_TTY is unset for the pty-less `ssh host cmd` deploy-rs and automation use.
-          if set -q ZELLIJ_AUTO_ATTACH; and set -q SSH_TTY; and not set -q ZELLIJ
-              zellij attach --create (hostname -s)
-          end
-
           alias eza 'eza --icons auto --git'
           alias l 'eza -alhgF always'
           alias la 'eza -a'
