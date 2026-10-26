@@ -187,6 +187,12 @@ in {
       };
 
       caddy = {
+        # Only TCP 443 is open here.
+        globalConfig = ''
+          servers {
+            protocols h1 h2
+          }
+        '';
         enable = true;
         # appsec is not available here, and clients legitimately fetch in
         # high-volume bursts. garret closes a connection idle for 30 s, so

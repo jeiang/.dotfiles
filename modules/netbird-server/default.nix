@@ -102,7 +102,7 @@ in {
               - "rels://netbird.jeiang.dev:443"
             secret: "${config.sops.placeholder."netbird/relay-auth-secret"}"
             credentialsTTL: "24h"
-          disableAnonymousMetrics: false
+          disableAnonymousMetrics: true
           disableGeoliteUpdate: false
           auth:
             # Everyone signs in through the PocketID identity provider (set up

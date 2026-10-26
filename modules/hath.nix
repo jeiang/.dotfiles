@@ -67,6 +67,18 @@ in {
           User = "hath";
           Group = "hath";
           PrivateTmp = true;
+          # A public-facing third-party binary: it may write only its Volume.
+          NoNewPrivileges = true;
+          ProtectSystem = "strict";
+          ReadWritePaths = [dataDir];
+          ProtectHome = true;
+          PrivateDevices = true;
+          ProtectKernelTunables = true;
+          ProtectKernelModules = true;
+          ProtectControlGroups = true;
+          RestrictSUIDSGID = true;
+          LockPersonality = true;
+          RestrictAddressFamilies = ["AF_INET" "AF_INET6" "AF_UNIX"];
           MemoryMax = "256M";
         };
       }

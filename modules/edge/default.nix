@@ -153,6 +153,16 @@ in {
     # directive a site emits zero access records.
     logLine = "log\n            ";
 
+    # Browser-facing content sites: compressed, with transport and sniffing headers.
+    contentLine = ''
+      encode zstd gzip
+                  header {
+                    Strict-Transport-Security "max-age=31536000"
+                    X-Content-Type-Options nosniff
+                    Referrer-Policy strict-origin-when-cross-origin
+                  }
+    '';
+
     # Shared by both global loggers: strip credential-bearing headers at the
     # encoder so they never reach disk or the journal; Location routinely
     # embeds OAuth authorization codes.
@@ -225,6 +235,8 @@ in {
               timeout 15s
             }
             client_ip_headers Cf-Connecting-Ip
+            # No UDP 443 is open, so advertising HTTP/3 only sends clients on a failed QUIC attempt.
+            protocols h1 h2
           }
 
           ${lib.optionalString crowdsecHere ''
@@ -284,7 +296,7 @@ in {
           # Caddy 2.10+ reuses this DNS-01 wildcard for the other jeiang.dev
           # blocks below -- none of them needs its own tls directive.
           jeiang.dev, *.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}tls {
+            ${logLine}${contentLine}${crowdsecLine}${appsecLine}tls {
               dns cloudflare {env.CLOUDFLARE_API_TOKEN}
             }
 
@@ -299,14 +311,14 @@ in {
           }
 
           aidanpinard.co {
-            ${logLine}${crowdsecLine}${appsecLine}tls {
+            ${logLine}${contentLine}${crowdsecLine}${appsecLine}tls {
               dns cloudflare {env.CLOUDFLARE_API_TOKEN}
             }
             ${mkContentSite {serve = serveRoot website;}}
           }
 
           pinard.co.tt {
-            ${logLine}${crowdsecLine}${appsecLine}tls {
+            ${logLine}${contentLine}${crowdsecLine}${appsecLine}tls {
               dns cloudflare {env.CLOUDFLARE_API_TOKEN}
             }
             ${mkContentSite {serve = serveRoot website;}}
@@ -315,7 +327,7 @@ in {
           # In its owner's Cloudflare account, proxied, so not in dns/: renews
           # via HTTP-01 rather than DNS-01.
           noelejoshua.com, blog.noelejoshua.com {
-            ${logLine}${crowdsecLine}${appsecLine}${portfolioSite}
+            ${logLine}${contentLine}${crowdsecLine}${appsecLine}${portfolioSite}
           }
 
           # Every site block from here down is deliberately NOT behind the
@@ -417,12 +429,12 @@ in {
           }
 
           bill-split.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}root * ${billSplitter}
+            ${logLine}${contentLine}${crowdsecLine}${appsecLine}root * ${billSplitter}
             file_server
           }
 
           rivals.jeiang.dev {
-            ${logLine}${crowdsecLine}# Hero data is served from the daily rivals-heroes-sync snapshot
+            ${logLine}${contentLine}${crowdsecLine}# Hero data is served from the daily rivals-heroes-sync snapshot
             # (below) so a weekly upstream refresh lands without a redeploy.
             # Portraits ride along because the app derives img/ paths from
             # heroes.json slugs. Anything the snapshot lacks -- including all
@@ -445,7 +457,7 @@ in {
           }
 
           mdtable.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}root * ${mdTableEditor}
+            ${logLine}${contentLine}${crowdsecLine}${appsecLine}root * ${mdTableEditor}
             file_server
           }
 
