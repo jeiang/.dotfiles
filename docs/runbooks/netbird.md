@@ -52,37 +52,14 @@ user.
 
 ## Re-enroll artemis
 
-artemis enrolls with the `Legion` setup key, like the Legion nodes.
+artemis enrolls with the `Legion` setup key, like the Legion nodes; its own
+secret holds a copy of the key. The mesh drops while it re-enrolls, so the
+command runs detached on artemis:
 
-1. Copy the key into artemis's secret, then commit and deploy artemis:
-    `sops -d --extract '["netbird"]["setup-key"]' modules/hosts/legion/secrets.yaml | jq -R . | sops set --value-stdin modules/hosts/artemis/secrets.yaml '["netbird"]["setup-key"]'`.
-2. Delete the `artemis` peer in the dashboard.
-3. From the home network (the mesh drops during this), run on artemis:
-    `sudo netbird down && sudo netbird up --setup-key-file /run/secrets/netbird/setup-key`.
-    It enrolls as a new `artemis` peer in `Legion` with a new address.
-4. `just netbird-plan` shows the address change back to the one in
+1. On artemis (bash):
+    `nb=$(readlink -f "$(command -v netbird)"); doas systemd-run --unit=nb-reenroll --on-active=45 /bin/sh -c "$nb down; sleep 3; $nb up --setup-key-file /run/secrets/netbird/setup-key"`.
+2. Within 45 seconds, delete the `artemis` peer in the dashboard. artemis
+    enrolls as a new `artemis` peer in `Legion` with a new address. If it
+    does not come back, reach it from `alda` at `10.100.0.2`.
+3. `just netbird-plan` shows the address change back to the one in
     `modules/netbird-peers.nix`; apply it with `--allow-risky`.
-
-## Cutover from the dashboard-managed state (one time)
-
-Run in order; steps 1 to 6 change live state.
-
-1. In Pocket ID, limit the NetBird OIDC client to the `netbird` group, and
-    confirm every NetBird user is in it.
-2. Plan and apply with the temporary admin token:
-    `NETBIRD_TOKEN_FILE=/tmp/netbird-pw just netbird-plan`, read it, then
-    `NETBIRD_TOKEN_FILE=/tmp/netbird-pw just netbird-apply --allow-risky`.
-    This turns off Pocket ID group sync, moves everyone to the new groups,
-    replaces the policies, fixes the Blocky nameservers, and creates the
-    `nb-nix` service user and token. Commit the changed
-    `modules/sops/secrets.admin.yaml`.
-3. In the dashboard, delete the groups Pocket ID synced (`netbird`,
-    `vpn_access`, `netbird_proxy`, `monitoring_admin`, and the other
-    `jwt` groups); nb-nix does not delete them.
-4. Sign in to the dashboard through Pocket ID, then deploy vida to turn off
-    local login.
-5. Re-enroll artemis (above).
-6. `just netbird-plan` now runs as `nb-nix` and deletes the `temp admin`
-    service user; apply it with `--allow-risky`, then delete
-    `/tmp/netbird-pw`.
-7. `gh workflow run netbird.yml` and confirm the drift check passes.
