@@ -41,7 +41,7 @@ jobs:
       # The substituters go straight into nix.conf so evaluation-time
       # IFD sources substitute from the cache too.
       - name: Install Nix
-        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+        uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
         with:
           extra_nix_config: |
             extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
@@ -78,7 +78,7 @@ jobs:
 
       # Baking the substituter into nix.conf here needs no client, login, or secrets: pulls are anonymous.
       - name: Install Nix
-        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+        uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
         with:
           extra_nix_config: |
             extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
@@ -124,7 +124,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Nix
-        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+        uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
         with:
           extra_nix_config: |
             extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
@@ -163,7 +163,7 @@ jobs:
         run: ./.ci/garret.sh hook
 
       - name: Install Nix
-        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+        uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
         with:
           extra_nix_config: |
             extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
