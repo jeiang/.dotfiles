@@ -62,6 +62,21 @@ in {
     pocketIdPort = legionServices.pocket-id.ports.app;
 
     blackboxPort = 9115;
+    # Each probe target becomes the exporter's ?target= and the instance label.
+    blackboxRelabel = [
+      {
+        source_labels = ["__address__"];
+        target_label = "__param_target";
+      }
+      {
+        source_labels = ["__param_target"];
+        target_label = "instance";
+      }
+      {
+        target_label = "__address__";
+        replacement = "127.0.0.1:${toString blackboxPort}";
+      }
+    ];
 
     # blackbox otherwise attempts ip6 first; every probe target is an IPv4
     # literal on the private network.
@@ -156,6 +171,15 @@ in {
               {
                 # Raw NetBird peer IP: mesh DNS doesn't resolve on Legion nodes.
                 targets = ["${self.lib.netbirdPeers.artemis}:9100"];
+                labels.type = "node";
+              }
+            ];
+          }
+          {
+            job_name = "smartctl";
+            static_configs = [
+              {
+                targets = ["${self.lib.netbirdPeers.artemis}:${toString self.nixosConfigurations.artemis.config.services.prometheus.exporters.smartctl.port}"];
                 labels.type = "node";
               }
             ];
@@ -303,20 +327,7 @@ in {
                 };
               }
             ];
-            relabel_configs = [
-              {
-                source_labels = ["__address__"];
-                target_label = "__param_target";
-              }
-              {
-                source_labels = ["__param_target"];
-                target_label = "instance";
-              }
-              {
-                target_label = "__address__";
-                replacement = "127.0.0.1:${toString blackboxPort}";
-              }
-            ];
+            relabel_configs = blackboxRelabel;
           }
           {
             job_name = "blackbox-tcp";
@@ -333,20 +344,7 @@ in {
                 };
               }
             ];
-            relabel_configs = [
-              {
-                source_labels = ["__address__"];
-                target_label = "__param_target";
-              }
-              {
-                source_labels = ["__param_target"];
-                target_label = "instance";
-              }
-              {
-                target_label = "__address__";
-                replacement = "127.0.0.1:${toString blackboxPort}";
-              }
-            ];
+            relabel_configs = blackboxRelabel;
           }
           {
             job_name = "blackbox-dns";
@@ -361,20 +359,7 @@ in {
                 };
               }
             ];
-            relabel_configs = [
-              {
-                source_labels = ["__address__"];
-                target_label = "__param_target";
-              }
-              {
-                source_labels = ["__param_target"];
-                target_label = "instance";
-              }
-              {
-                target_label = "__address__";
-                replacement = "127.0.0.1:${toString blackboxPort}";
-              }
-            ];
+            relabel_configs = blackboxRelabel;
           }
         ];
       };
@@ -483,6 +468,27 @@ in {
                 annotations = {
                   summary = "Memory usage above 90% on {{ $labels.instance }}";
                   description = "{{ $labels.instance }} has used over 90% of memory for 10 minutes.";
+                };
+              }
+              {
+                # artemis's btrfs pool is RAID0 over three NVMe drives; any of these precedes losing it.
+                alert = "DiskHealthDegraded";
+                expr = "smartctl_device_smart_status != 1 or smartctl_device_critical_warning > 0 or smartctl_device_percentage_used >= 90 or increase(smartctl_device_media_errors[1d]) > 0";
+                for = "0m";
+                labels.severity = "critical";
+                annotations = {
+                  summary = "Drive {{ $labels.device }} on {{ $labels.instance }} reports degraded health";
+                  description = "SMART on {{ $labels.device }} ({{ $labels.instance }}) shows a failed status, a critical warning, 90% wear, or new media errors.";
+                };
+              }
+              {
+                alert = "BtrfsDeviceErrors";
+                expr = "increase(node_btrfs_device_errors_total[1h]) > 0";
+                for = "0m";
+                labels.severity = "critical";
+                annotations = {
+                  summary = "btrfs device errors on {{ $labels.instance }}";
+                  description = "{{ $labels.device }} logged {{ $labels.type }} errors on {{ $labels.instance }} in the last hour.";
                 };
               }
               {

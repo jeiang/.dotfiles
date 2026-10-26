@@ -187,6 +187,8 @@ in {
           "--collector.systemd.unit-include=(netbird|netbird-login|greetd|wireguard-wg-backup|beesd@.*|sshd|qbittorrent|factorio|minecraft-server-mc|darkhttpd(-movies|-tv)?)\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)"
         ];
       };
+      # Scraped from zantark over the mesh: the btrfs pool is RAID0, so one failing drive loses it.
+      prometheus.exporters.smartctl.enable = true;
 
       # The HomeKit Wake-on-LAN Switch resolves artemis.local over mDNS before pinging it.
       avahi.enable = true;
