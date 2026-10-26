@@ -110,9 +110,47 @@ jobs:
         timeout-minutes: 30
         run: ./.ci/garret.sh drain
 
+  # A PR whose zakkart derivation matches its base skips the macOS runner;
+  # main always builds it so garret holds the closure. Any evaluation
+  # failure counts as changed.
+  darwin-changed:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.compare.outputs.changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+        with:
+          extra_nix_config: |
+            extra-substituters = ${{ env.GARRET_SUBSTITUTER }}
+            extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }}
+            max-substitution-jobs = ${{ env.MAX_SUBSTITUTION_JOBS }}
+            http-connections = ${{ env.HTTP_CONNECTIONS }}
+
+      - name: Compare the zakkart derivation with the base
+        id: compare
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          changed=true
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            attr=darwinConfigurations.zakkart.config.system.build.toplevel.drvPath
+            if new=$(nix eval --raw ".#$attr") && old=$(nix eval --raw "git+file://$PWD?rev=$BASE_SHA#$attr") && [ "$new" = "$old" ]; then
+              changed=false
+            fi
+          fi
+          echo "changed=$changed" >>"$GITHUB_OUTPUT"
+
   # Not part of the discover/build matrix: darwin builds only the fixed
   # zakkart-system attribute, so a matrix would add nothing here.
   build-macos:
+    needs: darwin-changed
+    if: needs.darwin-changed.outputs.changed == 'true'
     permissions:
       contents: read
       id-token: write
@@ -151,17 +189,28 @@ jobs:
   # Single stable required status context: `build` fans out into one context
   # per matrix leg, which branch protection can't require directly.
   all-checks:
-    needs: [discover, build, build-macos]
+    needs: [discover, build, darwin-changed, build-macos]
     # Runs even when a leg fails: a skipped required check blocks merges just like a failing one.
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Verify discovery and all matrix checks passed
+        env:
+          DISCOVER: ${{ needs.discover.result }}
+          BUILD: ${{ needs.build.result }}
+          DARWIN_CHANGED: ${{ needs.darwin-changed.result }}
+          CHANGED: ${{ needs.darwin-changed.outputs.changed }}
+          BUILD_MACOS: ${{ needs.build-macos.result }}
         run: |
-          echo "discover:    ${{ needs.discover.result }}"
-          echo "build:       ${{ needs.build.result }}"
-          echo "build-macos: ${{ needs.build-macos.result }}"
-          if [[ "${{ needs.discover.result }}" != "success" || "${{ needs.build.result }}" != "success" || "${{ needs.build-macos.result }}" != "success" ]]; then
+          echo "discover:       $DISCOVER"
+          echo "build:          $BUILD"
+          echo "darwin-changed: $DARWIN_CHANGED ($CHANGED)"
+          echo "build-macos:    $BUILD_MACOS"
+          macos_ok=false
+          if [ "$BUILD_MACOS" = success ] || { [ "$CHANGED" = false ] && [ "$BUILD_MACOS" = skipped ]; }; then
+            macos_ok=true
+          fi
+          if [ "$DISCOVER" != success ] || [ "$BUILD" != success ] || [ "$DARWIN_CHANGED" != success ] || [ "$macos_ok" != true ]; then
             echo "::error::One or more required checks did not succeed."
             exit 1
           fi

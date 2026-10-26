@@ -6,8 +6,6 @@
   flake.diskoConfigurations.artemis = let
     btrfsMountOptions = [
       "rw"
-      "ssd_spread"
-      "commit=150"
       "compress=zstd"
       "noatime"
       "discard=async"
@@ -29,7 +27,7 @@
       "/mnt/Mumei" = {
         device = "/dev/disk/by-label/Mumei";
         neededForBoot = false;
-        fsType = "ntfs-3g";
+        fsType = "ntfs3";
         # This drive isn't always attached; don't let a missing HDD drop an unattended boot to emergency mode.
         options = ["rw" "uid=1000" "nofail" "x-systemd.device-timeout=10s"];
       };
@@ -41,12 +39,20 @@
         options = btrfsMountOptions;
       };
     };
-    services.beesd.filesystems = {
-      "-" = {
-        spec = btrfsRootMount;
-        hashTableSizeMB = 4096;
-        extraOptions = ["--scan-mode" "4"];
-        verbosity = "err";
+    services = {
+      # RAID0 has no redundancy: a scrub only detects corruption, before restic copies it. Midnight on the 1st, outside the bees window.
+      btrfs.autoScrub = {
+        enable = true;
+        fileSystems = ["/persist"];
+        interval = "monthly";
+      };
+      beesd.filesystems = {
+        "-" = {
+          spec = btrfsRootMount;
+          hashTableSizeMB = 4096;
+          extraOptions = ["--scan-mode" "4"];
+          verbosity = "err";
+        };
       };
     };
     # bees holds btrfs extent locks that stall game I/O, so it runs in a nightly window; missed windows are skipped, never run late.

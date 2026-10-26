@@ -9,7 +9,7 @@ in {
   flake.deploy.nodes.artemis = {
     # Deploys ride the NetBird mesh (no public DNS); when it's down: deploy .#artemis --hostname <LAN IP or 10.100.0.2 via the backup tunnel>.
     hostname = "artemis.jeiang.vpn";
-    sshUser = "aidanp";
+    sshUser = "deploy";
     sudo = "doas -u";
     profiles.system = {
       user = "root";
@@ -51,8 +51,6 @@ in {
         "/var/lib/systemd/random-seed"
         "/etc/ssh/ssh_host_ed25519_key"
         "/etc/ssh/ssh_host_ed25519_key.pub"
-        "/etc/ssh/ssh_host_rsa_key"
-        "/etc/ssh/ssh_host_rsa_key.pub"
       ];
       directories = [
         "/var/lib/nixos"
@@ -107,7 +105,6 @@ in {
           tries = 2;
         };
       };
-      supportedFilesystems = ["ntfs"];
       kernelParams = [
         # This host streams unattended: let amdgpu attempt an engine reset instead of leaving the GPU wedged until reboot.
         "amdgpu.gpu_recovery=1"
@@ -153,16 +150,18 @@ in {
 
     nix.settings.trusted-users = ["@wheel"];
 
-    # BIOS must also be set to "Restore AC Power Loss: Power On" -- firmware setting, not expressible here.
-    systemd.settings.Manager = {
-      RuntimeWatchdogSec = "30s";
-      RebootWatchdogSec = "10min";
-    };
-    systemd.targets = {
-      sleep.enable = false;
-      suspend.enable = false;
-      hibernate.enable = false;
-      hybrid-sleep.enable = false;
+    systemd = {
+      # BIOS must also be set to "Restore AC Power Loss: Power On" -- firmware setting, not expressible here.
+      settings.Manager = {
+        RuntimeWatchdogSec = "30s";
+        RebootWatchdogSec = "10min";
+      };
+      targets = {
+        sleep.enable = false;
+        suspend.enable = false;
+        hibernate.enable = false;
+        hybrid-sleep.enable = false;
+      };
     };
 
     sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
@@ -184,9 +183,11 @@ in {
         enabledCollectors = ["systemd"];
         extraFlags = [
           # The restic pattern matches timers too; the backup-freshness alert reads their last trigger.
-          "--collector.systemd.unit-include=(netbird|netbird-login|greetd|wireguard-wg-backup|beesd@.*|sshd|qbittorrent|factorio|minecraft-server-mc|darkhttpd(-movies|-tv)?)\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)"
+          "--collector.systemd.unit-include=(netbird|netbird-login|greetd|wireguard-wg-backup|beesd@.*|btrfs-scrub@.*|sshd|qbittorrent|factorio|minecraft-server-mc|darkhttpd(-movies|-tv)?)\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)"
         ];
       };
+      # Scraped from zantark over the mesh: the btrfs pool is RAID0, so one failing drive loses it.
+      prometheus.exporters.smartctl.enable = true;
 
       # The HomeKit Wake-on-LAN Switch resolves artemis.local over mDNS before pinging it.
       avahi.enable = true;

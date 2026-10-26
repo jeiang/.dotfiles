@@ -62,6 +62,13 @@
       why = "node exporter scrape";
     }
     {
+      from = "zantark";
+      to = "artemis";
+      proto = "tcp";
+      port = self.nixosConfigurations.artemis.config.services.prometheus.exporters.smartctl.port;
+      why = "smartctl exporter scrape";
+    }
+    {
       from = "alda";
       to = "artemis";
       proto = "tcp";

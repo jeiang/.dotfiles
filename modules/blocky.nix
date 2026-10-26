@@ -25,29 +25,40 @@
         blocking = {
           blockType = "nxDomain";
           clientGroupsBlock.default = ["ads"];
+          # Answer from the cache and upstreams while the lists download.
+          loading.strategy = "fast";
           denylists.ads = [
             "https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews/hosts"
             "https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/gambling-only/hosts"
-            "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@37522026.259.33134/hosts/pro.plus.txt"
-            "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@37522026.259.33134/hosts/tif.txt"
+            # hagezi moved its hosts files to a legacy repository; the wildcard format is the one it lists for Blocky.
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro.plus.txt"
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/tif.txt"
           ];
         };
-        customDNS.mapping = {};
+        caching = {
+          prefetching = true;
+          minTime = "5m";
+        };
         prometheus.enable = true;
         ports = {
           dns = listen host dnsPort;
           http = listen host httpPort;
         };
+        # Encrypted upstreams only. The bootstrap IPs resolve their names without the host resolver, which may lead back to Blocky.
         upstreams.groups.default = [
-          "1.1.1.1"
-          "1.0.0.1"
-          "8.8.8.8"
-          "8.8.4.4"
-          "9.9.9.9"
-          "149.112.112.112"
           "tcp-tls:one.one.one.one:853"
           "tcp-tls:dns.google:853"
           "tcp-tls:dns.quad9.net:853"
+        ];
+        bootstrapDns = [
+          {
+            upstream = "tcp-tls:one.one.one.one:853";
+            ips = ["1.1.1.1" "1.0.0.1"];
+          }
+          {
+            upstream = "tcp-tls:dns.quad9.net:853";
+            ips = ["9.9.9.9" "149.112.112.112"];
+          }
         ];
         log = {
           level = "info";
@@ -60,7 +71,8 @@
       {
         after = [(config.services.netbird.clients.default.service.name + ".service")];
         wants = [(config.services.netbird.clients.default.service.name + ".service")];
-        serviceConfig.MemoryMax = "512M";
+        # The hagezi lists hold ~2.4M entries (~390 MB resident); a refresh parses the new set while the old one is live.
+        serviceConfig.MemoryMax = "1G";
       }
       (lib.mkIf (host != null) {
         # The mesh address appears only once NetBird connects; keep retrying the bind until then.

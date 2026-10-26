@@ -9,7 +9,7 @@ machine must run.
 | `zakkart` | nix-darwin | The operator's MacBook. |
 | `alda` | NixOS | Legion server, Hetzner Cloud. Caddy edge (also fronts atrium on artemis). |
 | `vida` | NixOS | Legion server, Hetzner Cloud. NetBird server/relay/proxy, Pocket ID, Blocky. |
-| `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring, ntfy, gatus, atuin. |
+| `zantark` | NixOS | Legion server, Hetzner Cloud. Monitoring, ntfy, gatus, atuin, and CrowdSec agent/firewall bouncer. |
 | `peria` | NixOS | Legion server, Hetzner Cloud. garret with its own Caddy and CrowdSec firewall bouncer, and hath. |
 | `ricklent` | NixOS | Legion server, Linode VPS in Atlanta (not Hetzner). Game ingress to artemis, second NetBird reverse proxy replica, qBittorrent WireGuard exit, secondary Blocky, independent Gatus, and CrowdSec agent/firewall bouncer. No Volumes or provider firewall. |
 
@@ -32,16 +32,16 @@ behavior for its own sake.
   until they finish and the command exits at once.
 - Use Conventional Commits.
 - Repository tools come from the devshell: `direnv` loads `.envrc`, or run
-  `nix develop --impure -c <cmd>`.
+  `nix develop -c <cmd>`.
 - Validate with `just fmt` and `just check`. For one host, compare
   `nix eval .#nixosConfigurations.<host>.config.system.build.toplevel.drvPath`
   (or `.#darwinConfigurations.zakkart...`) before and after the change. Do
   not use `nix flake show`: it enumerates outputs that are invalid on the
   current system.
-- CI evaluates in pure mode. Never add `--impure` to CI; only the devshell
-  surfaces are impure.
-- In a new git worktree, copy the gitignored `.pre-commit-config.yaml`
-  symlink from the main checkout before the first commit.
+- Everything evaluates in pure mode, CI included. Never add `--impure`.
+- In a new git worktree, enter the devshell (or copy the gitignored
+  `.pre-commit-config.yaml` symlink from the main checkout) before the
+  first commit; the shell hook installs the git hooks.
 - Before opening a pull request for a change that touches artemis's
   configuration or updates a flake input that can affect the artemis kernel,
   run `just artemis-kernel`. If the kernel differs from `origin/main`, it
@@ -123,11 +123,14 @@ behavior for its own sake.
 
 - Legion: `<name>.svr.jeiang.dev` (`alda.svr.jeiang.dev`, ...). NetBird mesh names for
   these nodes carry collision suffixes, and mesh SSH from the Mac times out.
-  `sudo` needs a password and a TTY (`ssh -t`).
+  `sudo` asks for no password inside an SSH session, which only the
+  operator's key can open; a console session needs the password
+  (`modules/openssh.nix`).
 - artemis: `artemis.jeiang.vpn`. A bare `artemis` resolves through the
-  wildcard record and does not reach the host. `doas` is passwordless;
-  deploy-rs depends on that. When NetBird is down, `alda` reaches
-  artemis at `10.100.0.2` over the `wg-backup` WireGuard tunnel.
+  wildcard record and does not reach the host. `doas` follows the same rule
+  as Legion's `sudo`. deploy-rs logs in as the `deploy` user on every NixOS
+  host. When NetBird is down, `alda` reaches artemis at `10.100.0.2` over
+  the `wg-backup` WireGuard tunnel.
 - artemis has an EDID dummy plug on `HDMI-A-1`. The motherboard does not
   POST without a powered display, so the plug must stay in.
 
@@ -197,9 +200,14 @@ behavior for its own sake.
 
 ## Decisions that constrain changes
 
-- The deploy user is a Nix trusted user, so it is root-equivalent. Its sudo
-  rules are for audit, not containment. Removing that trust needs a
-  signed-closure delivery design.
+- The deploy user is a Nix trusted user on every NixOS host, so it is
+  root-equivalent. Its elevation rules (sudo on Legion, doas on artemis) are
+  for audit, not containment. Removing that trust needs a signed-closure
+  delivery design.
+- `sudo`/`doas` skip the password only for a caller inside an sshd logind
+  session of the same user; sshd accepts only keys, so that session proves
+  the operator's key. gamemode stops and starts `gaming.pauseUnits` through
+  a polkit rule, not elevation.
 - Hetzner servers, Volumes, and Cloud Firewalls are provisioned outside the
   flake, and are Hetzner-only. A Volume is for state that cannot suffer loss
   if the server fails. A stateful Legion service that keeps such state uses
@@ -260,14 +268,17 @@ behavior for its own sake.
   firewall allows that range, so a port in it is public on any Hetzner
   node whose host firewall opens it. There is no Atlanta relay; vida's
   relay serves every peer.
-- ricklent runs a CrowdSec agent (sshd logs from the journal) and an
-  nftables bouncer, both against the LAPI on `alda` over the mesh. Its
-  machine and bouncer credentials live in `modules/crowdsec/secrets.agent.yaml`,
-  readable only by alda and ricklent.
+- ricklent and zantark each run a CrowdSec agent (sshd logs from the
+  journal) and an nftables bouncer against the LAPI on `alda`
+  (`modules/crowdsec/agent.nix`). Each agent's machine and bouncer
+  credentials live in its own shard (`secrets.agent.yaml` for ricklent,
+  `secrets.zantark.yaml`), readable only by alda and that node. alda reads
+  its own sshd journal and runs an nftables bouncer registered against its
+  local API, so sshd bans act on the host firewall, not only in Caddy.
 - CrowdSec keeps its database and hub under `/var/lib/crowdsec/state` on
-  alda and ricklent, not the nixpkgs default data directory. alda's local
-  API credentials stay at `/etc/crowdsec/local_api_credentials.yaml`;
-  ricklent disables its local API and uses its sops-rendered credentials.
+  every Legion node, not the nixpkgs default data directory. alda's local
+  API credentials stay at `/etc/crowdsec/local_api_credentials.yaml`; the
+  agents disable their local API and use their sops-rendered credentials.
 - `modules/netbird-management/` declares the NetBird management state
   (groups, access policies, networks, DNS, setup key, users' groups, service
   users and tokens, account settings) with nb-nix (`github:jeiang/nb-nix`),
@@ -321,8 +332,8 @@ behavior for its own sake.
   for the function, not the implementation.
 - garret accepts pushes from a Pocket ID client and from GitHub Actions OIDC
   tokens of the workflows in its `job_workflow_refs` (`ci.yml` of
-  `jeiang/.dotfiles` and `jeiang/garret`, ripper's `release.yml`, renpy_proj's
-  `garret.yml`), pinned by
+  `jeiang/.dotfiles`, `jeiang/garret` and `jeiang/atrium`, ripper's
+  `release.yml`, renpy_proj's `garret.yml`), pinned by
   repository id, on `push` and `workflow_dispatch`, for `refs/heads/main` and
   `refs/tags/v*` (release tags, which are unprotected, so `ref_protected`
   stays unset). A new pushing repository or workflow needs its entries in
@@ -376,12 +387,6 @@ behavior for its own sake.
   `modules/hosts/artemis/secrets.yaml`). A peer enrolled by a user would
   inherit that user's groups. Preserve the addresses in
   `modules/netbird-peers.nix` when re-enrolling; nb-nix pins them.
-- Every zellij layout draws its bar with zjstatus, declared once as a plugin
-  alias in `modules/packages/zellij/default.nix`: `layout_dir` is a plain
-  directory, so a layout cannot name the store path itself. zellij asks for
-  the plugin's permissions the first time a user loads it on a host and
-  caches the answer per user, so the bar is a permission prompt until the
-  operator answers `y`.
 - Agent skills, subagents, and instructions come from the pinned
   `agent-skills` flake, installed by hjem on artemis and zakkart. The
   `<harness>-personal` package holds the tree, and `lib.entries` names its
@@ -459,7 +464,8 @@ behavior for its own sake.
 - `ci.yml` evaluates `checks.x86_64-linux` and builds each check in a matrix
   job. On `main`, `.ci/garret.sh` pushes each path to garret as it is built,
   and drains the rest even when the build fails; a garret failure never
-  fails the job. zakkart builds on a macOS runner. `all-checks` is the only
+  fails the job. zakkart builds on a macOS runner, on a PR only when its
+  toplevel derivation differs from the base. `all-checks` is the only
   required status.
 - Only a `main` run pushes to garret, so a PR run cannot substitute a
   rebuilt artemis kernel and would compile the full-LTO kernel on a shared

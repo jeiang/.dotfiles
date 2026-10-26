@@ -26,16 +26,12 @@
     };
 
     fonts.packages = with pkgs; [
-      cm_unicode
       corefonts
-      departure-mono
-      jetbrains-mono
       nerd-fonts.departure-mono
       nerd-fonts.jetbrains-mono
       nerd-fonts.ubuntu-sans
       nerd-fonts.symbols-only
       nerd-fonts.mononoki
-      unifont
     ];
 
     time.timeZone = self.lib.facts.timeZone;
@@ -52,6 +48,6 @@
       LC_TIME = "en_US.UTF-8";
     };
 
-    hardware.enableAllFirmware = true;
+    hardware.enableRedistributableFirmware = true;
   };
 }

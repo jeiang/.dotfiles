@@ -24,11 +24,18 @@ in {
 
     nixpkgs.pkgs = withSystem config.nixpkgs.hostPlatform.system ({pkgs, ...}: pkgs);
 
-    programs.nh = {
-      enable = true;
-      clean.enable = true;
-      clean.extraArgs = "--keep-since 7d --keep 14";
+    programs.nh.enable = true;
+
+    # determinate-nixd collects garbage, but every system generation is a GC root it never deletes. Prune
+    # old generations only (no store GC, which would be a second collector); the next switch drops their
+    # boot entries.
+    systemd.services.prune-generations = {
+      description = "Delete system generations beyond the newest 14";
+      startAt = "weekly";
+      serviceConfig.Type = "oneshot";
+      script = "${config.nix.package}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +14";
     };
+    systemd.timers.prune-generations.timerConfig.Persistent = true;
 
     nix = {
       registry.nixpkgs.flake = inputs.nixpkgs;
@@ -114,12 +121,18 @@ in {
       nix-ld.enable = true;
     };
 
-    nix.settings = {
-      substituters = [devenvCacheUrl];
-      trusted-public-keys = [devenvCacheKey];
-      # for direnv GC roots
-      keep-derivations = true;
-      keep-outputs = true;
+    nix = {
+      # Builds yield to games and streaming.
+      daemonCPUSchedPolicy = "idle";
+      daemonIOSchedClass = "idle";
+
+      settings = {
+        substituters = [devenvCacheUrl];
+        trusted-public-keys = [devenvCacheKey];
+        # for direnv GC roots
+        keep-derivations = true;
+        keep-outputs = true;
+      };
     };
 
     persistence = {

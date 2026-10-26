@@ -9,7 +9,7 @@ fmt:
 
 # Check for nix errors
 check extraArgs="":
-  nix flake check --impure --keep-going {{extraArgs}}
+  nix flake check --keep-going {{extraArgs}}
 
 # Same checks as `just check`, built in parallel; skips what the substituters already have
 fast-check extraArgs="":
@@ -42,15 +42,13 @@ deploy system *args:
 sops-updatekeys:
   fd '^secrets(\.[^.]+)?\.(yaml|env|ini|json)$' modules -x sops updatekeys -y
 
-# Edit or view the secrets
-sops-edit:
+# Edit or create a secrets shard; without a path, pick one with fzf
+sops-edit path="":
   #!/usr/bin/env bash
   set -euo pipefail
-  file=$(fd "secrets.([^.]+.)?(yaml|env|ini|json)" | fzf)
+  file={{quote(path)}}
+  [ -n "$file" ] || file=$(fd "secrets.([^.]+.)?(yaml|env|ini|json)" | fzf)
   [ -n "$file" ] && sops "$file"
-
-sops-create path:
-  sops {{path}}
 
 # Regenerate dns/nodes.json from flake.lib.legionNodes; the legion-nodes-json check fails while it is stale
 dns-nodes:

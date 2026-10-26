@@ -142,6 +142,18 @@ creation_rules:
       - *server_alda
       - *server_ricklent
 
+  # modules/crowdsec/agent.nix (zantark's machine and bouncer credentials) and
+  # their LAPI registration on alda.
+  - path_regex: modules/crowdsec/secrets\.zantark\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_alda
+      - *server_zantark
+
   # garret's host firewall bouncer and its registration on alda.
   - path_regex: modules/crowdsec/secrets\.garret\.yaml$
     key_groups:

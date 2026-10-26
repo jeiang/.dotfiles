@@ -23,7 +23,6 @@
           additionalPrograms = [ffmpeg];
 
           jdks = [
-            graalvmPackages.graalvm-ce
             zulu8
             zulu17
             zulu
@@ -50,14 +49,11 @@
               gpu_device = 1;
               amd_performance_level = "high";
             };
-            # gamemoded runs this as the operator, so it rides wheel's
-            # passwordless doas (modules/doas.nix) rather than needing a doas
-            # rule of its own.
             custom = lib.mkIf (config.gaming.pauseUnits != []) (let
               units = lib.escapeShellArgs config.gaming.pauseUnits;
             in {
-              start = "doas systemctl stop ${units}";
-              end = "doas systemctl start ${units}";
+              start = "systemctl --no-ask-password stop ${units}";
+              end = "systemctl --no-ask-password start ${units}";
             });
           };
         };
@@ -70,6 +66,19 @@
           ];
         };
       };
+      # gamemoded runs the custom scripts as the operator with no terminal, so polkit grants exactly these start/stop calls.
+      security.polkit.extraConfig = lib.mkIf (config.gaming.pauseUnits != []) ''
+        polkit.addRule(function(action, subject) {
+          var units = ${builtins.toJSON config.gaming.pauseUnits};
+          var verb = action.lookup("verb");
+          if (action.id == "org.freedesktop.systemd1.manage-units"
+              && subject.user == "${config.preferences.user.name}"
+              && units.indexOf(action.lookup("unit")) >= 0
+              && (verb == "start" || verb == "stop")) {
+            return polkit.Result.YES;
+          }
+        });
+      '';
       hardware.graphics = {
         enable = true;
         enable32Bit = true;

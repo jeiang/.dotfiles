@@ -6,10 +6,7 @@
 
 Personal Nix flake for `artemis` (headless NixOS gaming and streaming box),
 `zakkart` (nix-darwin MacBook), and the Legion servers (`alda`, `vida`,
-`zantark`, `peria`; Hetzner Cloud).
-
-On `zakkart`, Prism Launcher includes Java 8, 17, 21, and 25 through the
-nixpkgs package. Select a runtime in Prism's Java settings.
+`zantark`, `peria` on Hetzner Cloud; `ricklent` on Linode).
 
 ![Network topology](docs/topology/network.svg "Network topology")
 
@@ -25,9 +22,3 @@ The hosts, their services, and the connections between them.
   zakkart bootstrap procedures.
 - [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md): project name and source
   credits.
-
-omp's model roles and per-agent overrides are declared in
-`modules/packages/omp.nix`. The task tool does not expose per-spawn effort
-(`task.enableEffort = false`); thinking levels stay in configured model roles
-and agent definitions. Scout and sonic use medium through per-agent role
-overrides, while the custom smol worker keeps the role's high setting.

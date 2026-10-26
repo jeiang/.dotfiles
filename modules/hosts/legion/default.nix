@@ -28,30 +28,8 @@
   legionServices = config.legion.services;
   servicesByNode = nodeName: builtins.filter (s: s.node == nodeName) (lib.mapAttrsToList (name: s: s // {inherit name;}) legionServices);
 
-  # Fixed import order keeps the built unit text stable; unlisted services sort last.
-  legionModuleOrder = [
-    "edge"
-    "crowdsec"
-    "anubis"
-    "netbird-server"
-    "netbird-proxy"
-    "pocket-id"
-    "garret"
-    "atuin"
-    "ntfy"
-    "hath"
-    "blocky"
-    "tinyauth"
-    "gatus"
-    "monitoring"
-    "backup-tunnel-responder"
-  ];
-
-  moduleNamesFor = nodeName: let
-    present = lib.unique (builtins.filter (m: m != null) (map (s: s.module) (servicesByNode nodeName)));
-  in
-    builtins.filter (m: builtins.elem m present) legionModuleOrder
-    ++ builtins.filter (m: !(builtins.elem m legionModuleOrder)) present;
+  # Ordered by service name (attrset order), so the built unit text stays stable.
+  moduleNamesFor = nodeName: lib.unique (builtins.filter (m: m != null) (map (s: s.module) (servicesByNode nodeName)));
 
   firewallPortsFor = nodeName: proto: scope: let
     services = servicesByNode nodeName;
@@ -153,7 +131,7 @@ in {
     deploy.nodes =
       builtins.mapAttrs (name: _: {
         hostname = nodeHostname name;
-        # Bootstrapping a node without the deploy user: deploy .#<name> --ssh-user aidanp --sudo='doas -u' --magic-rollback=false
+        # Bootstrapping a node without the deploy user: deploy .#<name> --ssh-user aidanp --magic-rollback=false
         sshUser = "deploy";
         sudo = "sudo -u";
         profiles.system = {
@@ -166,7 +144,6 @@ in {
 
   nixos = {
     modules.legion = {
-      pkgs,
       config,
       lib,
       ...
@@ -223,23 +200,6 @@ in {
           (servicesByNode config.networking.hostName))
       );
 
-      users = {
-        groups.deploy = {};
-        users.deploy = {
-          isSystemUser = true;
-          group = "deploy";
-          home = "/var/empty";
-          createHome = false;
-          hashedPassword = "!";
-          shell = pkgs.bashInteractive;
-          openssh.authorizedKeys.keys = [
-            "restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGEDR/RgCI/ULKL6ywYbmeqvU5BfjpmMnOieuQ66XlX+ legion-deploy"
-          ];
-        };
-      };
-
-      nix.settings.trusted-users = ["deploy"];
-
       security.sudo.extraRules = [
         {
           users = ["deploy"];
@@ -263,9 +223,25 @@ in {
         kernel.sysctl = {
           "net.ipv4.ip_forward" = 1;
           "net.ipv6.conf.all.forwarding" = 1;
+
+          "kernel.kptr_restrict" = 2;
+          "kernel.dmesg_restrict" = 1;
+          "kernel.unprivileged_bpf_disabled" = 1;
+          "net.ipv4.conf.all.accept_redirects" = 0;
+          "net.ipv4.conf.default.accept_redirects" = 0;
+          "net.ipv6.conf.all.accept_redirects" = 0;
+          "net.ipv6.conf.default.accept_redirects" = 0;
+          "net.ipv4.conf.all.send_redirects" = 0;
+          "net.ipv4.conf.default.send_redirects" = 0;
         };
 
         tmp.cleanOnBoot = true;
+      };
+
+      # A deploy's substitution garbage-collects instead of filling the small root disk.
+      nix.settings = {
+        min-free = 4 * 1024 * 1024 * 1024;
+        max-free = 10 * 1024 * 1024 * 1024;
       };
 
       networking.firewall = {

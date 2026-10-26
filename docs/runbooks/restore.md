@@ -2,8 +2,8 @@
 
 Restore one Legion service's backup set, or artemis's `/persist` allowlist.
 Read [`AGENTS.md`](../../AGENTS.md) first. Every Legion command runs on the
-node that owns the service and asks for the operator's sudo password, so use
-`ssh -t`. On artemis `doas` needs no password.
+node that owns the service. `sudo` (Legion) and `doas` (artemis) need no
+password inside an SSH session.
 
 ## Where the Legion backups are
 
