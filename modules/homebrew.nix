@@ -54,6 +54,7 @@
         "netbirdio/tap/netbird-ui"
         # These apps update themselves in place, which a read-only store copy under /Applications/Nix Apps cannot take.
         "claude"
+        "notion"
         "codex-app"
         # Unsigned: the first install needs `xattr -dr com.apple.quarantine /Applications/NotProton.app`.
         "notprotonnot/notproton/notproton"
