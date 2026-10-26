@@ -52,6 +52,6 @@
       LC_TIME = "en_US.UTF-8";
     };
 
-    hardware.enableAllFirmware = true;
+    hardware.enableRedistributableFirmware = true;
   };
 }
