@@ -2,7 +2,6 @@
   node = self.lib.legionNodes.ricklent;
 
   wanInterface = "eth0";
-  GiB = 1024 * 1024 * 1024;
 in {
   nixos.configurations.ricklent.module = {
     lib,
@@ -70,8 +69,6 @@ in {
     nix.settings = {
       max-jobs = 1;
       cores = 1;
-      min-free = 4 * GiB;
-      max-free = 10 * GiB;
     };
   };
 }

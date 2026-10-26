@@ -153,16 +153,20 @@ in {
 
     nix.settings.trusted-users = ["@wheel"];
 
-    # BIOS must also be set to "Restore AC Power Loss: Power On" -- firmware setting, not expressible here.
-    systemd.settings.Manager = {
-      RuntimeWatchdogSec = "30s";
-      RebootWatchdogSec = "10min";
-    };
-    systemd.targets = {
-      sleep.enable = false;
-      suspend.enable = false;
-      hibernate.enable = false;
-      hybrid-sleep.enable = false;
+    systemd = {
+      # BIOS must also be set to "Restore AC Power Loss: Power On" -- firmware setting, not expressible here.
+      settings.Manager = {
+        RuntimeWatchdogSec = "30s";
+        RebootWatchdogSec = "10min";
+      };
+      # Games, two llama-servers, Minecraft and bees share this box; oomd kills the scope under pressure instead of the kernel picking.
+      oomd.enableUserSlices = true;
+      targets = {
+        sleep.enable = false;
+        suspend.enable = false;
+        hibernate.enable = false;
+        hybrid-sleep.enable = false;
+      };
     };
 
     sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;

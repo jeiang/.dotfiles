@@ -8,6 +8,9 @@
       kernel.sysctl = {
         "net.ipv4.tcp_congestion_control" = "bbr";
         "net.ipv4.tcp_wmem" = "4096 16384 16777216";
+        "net.ipv4.tcp_rmem" = "4096 131072 16777216";
+        # Every inter-host path is a WireGuard tunnel; probing recovers from PMTU black holes.
+        "net.ipv4.tcp_mtu_probing" = 1;
       };
     };
   };

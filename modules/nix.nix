@@ -114,12 +114,18 @@ in {
       nix-ld.enable = true;
     };
 
-    nix.settings = {
-      substituters = [devenvCacheUrl];
-      trusted-public-keys = [devenvCacheKey];
-      # for direnv GC roots
-      keep-derivations = true;
-      keep-outputs = true;
+    nix = {
+      # Builds yield to games and streaming.
+      daemonCPUSchedPolicy = "idle";
+      daemonIOSchedClass = "idle";
+
+      settings = {
+        substituters = [devenvCacheUrl];
+        trusted-public-keys = [devenvCacheKey];
+        # for direnv GC roots
+        keep-derivations = true;
+        keep-outputs = true;
+      };
     };
 
     persistence = {
