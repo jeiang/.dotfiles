@@ -42,7 +42,8 @@ in {
         package = pkgs.fabricServers.fabric-26_3.override {jre_headless = pkgs.jdk25_headless;};
         # Bedrock 26.60 drops RakNet, which is still Geyser's default transport.
         # ICE must announce Atlanta's forwarded UDP endpoint, not artemis's home address.
-        jvmOpts = "-Xms2048M -Xmx4096M -DgeyserTransport=nethernet -DgeyserAdvertiseAddresses=${self.lib.legionNodes.ricklent.publicIPv4},${self.lib.legionNodes.ricklent.publicIPv6}";
+        # A fixed, pre-touched heap with ZGC (generational on JDK 25) keeps GC pauses out of the tick loop.
+        jvmOpts = "-Xms4096M -Xmx4096M -XX:+UseZGC -XX:+AlwaysPreTouch -DgeyserTransport=nethernet -DgeyserAdvertiseAddresses=${self.lib.legionNodes.ricklent.publicIPv4},${self.lib.legionNodes.ricklent.publicIPv6}";
 
         serverProperties = {
           server-port = javaPort;

@@ -29,7 +29,10 @@ _: let
       EnvironmentFile = environmentFile;
       ExecStart = [
         "${lib.getExe pkgs.restic} forget --retry-lock 2h --prune ${retention}"
-        "${lib.getExe pkgs.restic} check --retry-lock 2h --read-data-subset=5%"
+        # The ISO week picks one of 52 fixed slices, so every pack is read about once a year.
+        (toString (pkgs.writeShellScript "restic-check-${name}" ''
+          exec ${lib.getExe pkgs.restic} check --retry-lock 2h --read-data-subset="$((10#$(date +%V) % 52 + 1))/52"
+        ''))
       ];
     };
   };

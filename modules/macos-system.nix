@@ -6,6 +6,7 @@
       enable = true;
       allowSigned = true;
       allowSignedApp = true;
+      enableStealthMode = true;
     };
 
     time.timeZone = self.lib.facts.timeZone;

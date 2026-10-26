@@ -28,30 +28,8 @@
   legionServices = config.legion.services;
   servicesByNode = nodeName: builtins.filter (s: s.node == nodeName) (lib.mapAttrsToList (name: s: s // {inherit name;}) legionServices);
 
-  # Fixed import order keeps the built unit text stable; unlisted services sort last.
-  legionModuleOrder = [
-    "edge"
-    "crowdsec"
-    "anubis"
-    "netbird-server"
-    "netbird-proxy"
-    "pocket-id"
-    "garret"
-    "atuin"
-    "ntfy"
-    "hath"
-    "blocky"
-    "tinyauth"
-    "gatus"
-    "monitoring"
-    "backup-tunnel-responder"
-  ];
-
-  moduleNamesFor = nodeName: let
-    present = lib.unique (builtins.filter (m: m != null) (map (s: s.module) (servicesByNode nodeName)));
-  in
-    builtins.filter (m: builtins.elem m present) legionModuleOrder
-    ++ builtins.filter (m: !(builtins.elem m legionModuleOrder)) present;
+  # Ordered by service name (attrset order), so the built unit text stays stable.
+  moduleNamesFor = nodeName: lib.unique (builtins.filter (m: m != null) (map (s: s.module) (servicesByNode nodeName)));
 
   firewallPortsFor = nodeName: proto: scope: let
     services = servicesByNode nodeName;
