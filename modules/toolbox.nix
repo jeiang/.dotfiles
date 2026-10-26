@@ -28,7 +28,6 @@ in {
         file
         (ouch.override {enableUnfree = true;})
         procs
-        xh
       ];
     };
 
@@ -44,12 +43,9 @@ in {
         [
           self.packages.${system}.git
           self.packages.${system}.difft
-          cachix
           dig
           glow
           bandwhich
-          bingrep
-          choose
           devenv
           duf
           file
@@ -57,16 +53,11 @@ in {
           gh-dash
           hyperfine
           lazygit
-          libtree
           (ouch.override {enableUnfree = true;})
-          parallel
           procs
           rnr
           sad
-          tdf
           tokei
-          watchexec
-          xh
           ripper
         ]
         # Shadows base's yazi: this one's T and d keys shell out to rip instead
@@ -103,11 +94,9 @@ in {
         # bandwhich needs root to capture on darwin, like trippy below.
         bandwhich
         gh-dash
-        harlequin
         lazygit
         # trippy needs root on darwin; there is no security.wrappers equivalent, so `trip` is run with sudo.
         trippy
-        watchexec
       ]);
   };
 }

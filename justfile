@@ -49,9 +49,6 @@ sops-edit:
   file=$(fd "secrets.([^.]+.)?(yaml|env|ini|json)" | fzf)
   [ -n "$file" ] && sops "$file"
 
-sops-create path:
-  sops {{path}}
-
 # Regenerate dns/nodes.json from flake.lib.legionNodes; the legion-nodes-json check fails while it is stale
 dns-nodes:
   nix eval --raw '.#lib.legionNodesJson' > dns/nodes.json

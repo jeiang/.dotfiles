@@ -38,12 +38,9 @@
 
         bat
         btop
-        caligula
         defaultbrowser
         # withWhisper off: whisper-cpp's CoreML backend fails to link on this pinned aarch64-darwin toolchain. doCheck off: ffmpeg's FATE suite is impractical for a CI build.
         ((ffmpeg-full.override {withWhisper = false;}).overrideAttrs (_: {doCheck = false;}))
-        gallery-dl
-        ggshield
         gh
         gnupg
         pinentry_mac
@@ -52,17 +49,12 @@
         imagemagick
         megatools
         mole-cleaner
-        miniserve
-        nmap
         nodejs
         ouch
         pkgconf
         pnpm
         tokei
-        unbound
-        upx
         uv
-        zig
       ])
       ++ [
         wrapped.git

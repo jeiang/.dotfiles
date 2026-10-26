@@ -23,7 +23,6 @@
           additionalPrograms = [ffmpeg];
 
           jdks = [
-            graalvmPackages.graalvm-ce
             zulu8
             zulu17
             zulu

@@ -10,9 +10,6 @@
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
 
-    # Determinate's `nix flake show` reads the schemas output; lib-only flake with no nixpkgs input to follow.
-    flake-schemas.url = "github:DeterminateSystems/flake-schemas";
-
     impermanence.url = "github:nix-community/impermanence";
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs";
