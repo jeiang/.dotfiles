@@ -46,6 +46,7 @@
         "whatsapp"
         "microsoft-word"
         "microsoft-excel"
+        "microsoft-powerpoint"
         "roblox"
         "steam"
         "notion-calendar"
