@@ -71,7 +71,8 @@
       {
         after = [(config.services.netbird.clients.default.service.name + ".service")];
         wants = [(config.services.netbird.clients.default.service.name + ".service")];
-        serviceConfig.MemoryMax = "512M";
+        # The hagezi lists hold ~2.4M entries (~390 MB resident); a refresh parses the new set while the old one is live.
+        serviceConfig.MemoryMax = "1G";
       }
       (lib.mkIf (host != null) {
         # The mesh address appears only once NetBird connects; keep retrying the bind until then.

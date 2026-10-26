@@ -42,11 +42,12 @@ deploy system *args:
 sops-updatekeys:
   fd '^secrets(\.[^.]+)?\.(yaml|env|ini|json)$' modules -x sops updatekeys -y
 
-# Edit or view the secrets
-sops-edit:
+# Edit or create a secrets shard; without a path, pick one with fzf
+sops-edit path="":
   #!/usr/bin/env bash
   set -euo pipefail
-  file=$(fd "secrets.([^.]+.)?(yaml|env|ini|json)" | fzf)
+  file={{quote(path)}}
+  [ -n "$file" ] || file=$(fd "secrets.([^.]+.)?(yaml|env|ini|json)" | fzf)
   [ -n "$file" ] && sops "$file"
 
 # Regenerate dns/nodes.json from flake.lib.legionNodes; the legion-nodes-json check fails while it is stale

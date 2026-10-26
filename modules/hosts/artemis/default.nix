@@ -156,8 +156,6 @@ in {
         RuntimeWatchdogSec = "30s";
         RebootWatchdogSec = "10min";
       };
-      # Games, two llama-servers, Minecraft and bees share this box; oomd kills the scope under pressure instead of the kernel picking.
-      oomd.enableUserSlices = true;
       targets = {
         sleep.enable = false;
         suspend.enable = false;
