@@ -16,7 +16,10 @@
         secrets.enabled = true;
         lsp.diagnosticsOnEdit = true;
         astGrep.enabled = true;
-        providers.anthropic.serverSideFallback = true;
+        providers = {
+          anthropic.serverSideFallback = true;
+          maxInFlightRequests.opencode-go = 8;
+        };
         task = {
           showResolvedModelBadge = true;
           enableEffort = false;
@@ -47,18 +50,21 @@
         modelRoles = {
           default = "anthropic/claude-opus-5-5:medium";
           task = "opencode-go/deepseek-v4.1-flash:high";
-          fast = "anthropic/claude-haiku-5-5:high";
+          fast = "opencode-go/deepseek-v4.1-flash:low";
           smol = "openai-codex/gpt-6-luna:high";
           slow = "anthropic/claude-opus-5-5:medium";
           max-reasoning = "anthropic/claude-fable-5-1:medium";
-          advisor = "anthropic/claude-fable-5-1:low";
+          advisor = "openai-codex/gpt-6.1-sol:medium";
           commit = "openai-codex/gpt-6-luna:high";
           web = "openai-codex/gpt-6-luna:high";
         };
-        retry.fallbackChains = {
-          default = ["openai-codex/gpt-6.1-sol:high"];
-          task = ["openai-codex/gpt-6-luna:high"];
-          fast = ["openai-codex/gpt-6-luna:high"];
+        retry = {
+          usageAwareFallback = true;
+          fallbackChains = {
+            default = ["openai-codex/gpt-6.1-sol:high" "opencode-go/kimi-k3.1-pro:high"];
+            task = ["openai-codex/gpt-6-luna:high"];
+            fast = ["openai-codex/gpt-6-luna:high"];
+          };
         };
       };
     in
