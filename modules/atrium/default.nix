@@ -26,6 +26,7 @@
     };
   };
   llamaUnits = ["atrium-llm.service" "atrium-embed.service"];
+  enabled = false;
 in {
   flake.lib = {
     atriumWebPort = webPort;
@@ -45,6 +46,7 @@ in {
       user = "atrium";
     };
     llamaService = llamaServer.service;
+    off = names: lib.genAttrs names (_: {enable = false;});
   in {
     imports = [inputs.atrium.nixosModules.default];
 
@@ -79,7 +81,7 @@ in {
       extraEnvironment.ATRIUM_NOTION_WIKI_ROOT = "3f47a0cdb63e812c9030ffb39de864be";
     };
 
-    gaming.pauseUnits = llamaUnits;
+    gaming.pauseUnits = lib.mkIf enabled llamaUnits;
 
     persistence.directories = [
       {
@@ -96,36 +98,43 @@ in {
       restartUnits = ["atrium-agent-scheduler.service" "atrium-notion-sync.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service" "atrium-web.service" "atrium-web-local.service"];
     };
 
-    systemd.services = {
-      atrium-models-fetch = llamaServer.fetch;
+    systemd = {
+      timers = lib.mkIf (!enabled) (off ["atrium-sync" "atrium-notion-sync" "atrium-scan" "atrium-vdirsyncer-sync" "atrium-backup"]);
+      sockets = lib.mkIf (!enabled) (off ["atrium-codemode"]);
 
-      atrium-llm = llamaService "atrium-llm" {
-        description = "Qwen3.5-9B chat server for atrium";
-        model = models.chat;
-        port = chatPort;
-        args = [
-          "--ctx-size"
-          "8192"
-          "--jinja"
-          "--chat-template-kwargs"
-          (builtins.toJSON {enable_thinking = false;})
-        ];
-      };
+      services =
+        {
+          atrium-models-fetch = llamaServer.fetch;
 
-      atrium-embed = llamaService "atrium-embed" {
-        description = "EmbeddingGemma 2 embedding server for atrium";
-        model = models.embed;
-        port = embedPort;
-        args = [
-          "--embedding"
-          "--ctx-size"
-          "2048"
-          "--batch-size"
-          "2048"
-          "--ubatch-size"
-          "2048"
-        ];
-      };
+          atrium-llm = llamaService "atrium-llm" {
+            description = "Qwen3.5-9B chat server for atrium";
+            model = models.chat;
+            port = chatPort;
+            args = [
+              "--ctx-size"
+              "8192"
+              "--jinja"
+              "--chat-template-kwargs"
+              (builtins.toJSON {enable_thinking = false;})
+            ];
+          };
+
+          atrium-embed = llamaService "atrium-embed" {
+            description = "EmbeddingGemma 2 embedding server for atrium";
+            model = models.embed;
+            port = embedPort;
+            args = [
+              "--embedding"
+              "--ctx-size"
+              "2048"
+              "--batch-size"
+              "2048"
+              "--ubatch-size"
+              "2048"
+            ];
+          };
+        }
+        // lib.optionalAttrs (!enabled) (off ["atrium-llm" "atrium-embed" "atrium-watch" "atrium-agent-scheduler" "atrium-web" "atrium-web-local"]);
     };
   };
 }
