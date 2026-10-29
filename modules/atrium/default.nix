@@ -26,6 +26,7 @@
     };
   };
   llamaUnits = ["atrium-llm.service" "atrium-embed.service"];
+  enabled = false;
 in {
   flake.lib = {
     atriumWebPort = webPort;
@@ -39,73 +40,13 @@ in {
     pkgs,
     ...
   }: let
-    llama = self.packages.${pkgs.stdenv.hostPlatform.system}.llama-cpp-atrium;
-
-    modelsFetch = pkgs.writeShellApplication {
-      name = "atrium-models-fetch";
-      runtimeInputs = [pkgs.curl pkgs.coreutils];
-      text =
-        ''
-          mkdir -p "${modelsDir}"
-        ''
-        + lib.concatMapStrings (model: ''
-          if [ ! -e "${modelsDir}/${model.file}" ]; then
-            tmp="${modelsDir}/.${model.file}.part"
-            curl --fail --location --retry 3 --retry-delay 5 --continue-at - -o "$tmp" "${model.url}"
-            if ! printf '%s  %s\n' "${model.sha256}" "$tmp" | sha256sum --check --status; then
-              rm -f "$tmp"
-              exit 1
-            fi
-            mv "$tmp" "${modelsDir}/${model.file}"
-          fi
-        '')
-        (lib.attrValues models);
+    llamaServer = self.lib.llamaServer {
+      inherit lib pkgs stateDirName modelsDir models;
+      name = "atrium";
+      user = "atrium";
     };
-
-    llamaService = name: {
-      description,
-      model,
-      port,
-      args,
-    }: {
-      inherit description;
-      after = ["atrium-models-fetch.service"];
-      requires = ["atrium-models-fetch.service"];
-      wantedBy = ["multi-user.target"];
-      environment.XDG_CACHE_HOME = "/var/cache/${name}";
-      serviceConfig = {
-        ExecStart = lib.escapeShellArgs ([
-            "${llama}/bin/llama-server"
-            "--model"
-            "${modelsDir}/${model.file}"
-            "--host"
-            "127.0.0.1"
-            "--port"
-            (toString port)
-            "--n-gpu-layers"
-            "99"
-            "--parallel"
-            "1"
-          ]
-          ++ args);
-        User = "atrium";
-        Group = "atrium";
-        SupplementaryGroups = ["video" "render"];
-        CacheDirectory = name;
-        Restart = "on-failure";
-        RestartSec = 5;
-        NoNewPrivileges = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        ReadOnlyPaths = [modelsDir];
-        PrivateTmp = true;
-        ProtectKernelModules = true;
-        ProtectKernelLogs = true;
-        ProtectClock = true;
-        RestrictSUIDSGID = true;
-        LockPersonality = true;
-      };
-    };
+    llamaService = llamaServer.service;
+    off = names: lib.genAttrs names (_: {enable = false;});
   in {
     imports = [inputs.atrium.nixosModules.default];
 
@@ -140,7 +81,7 @@ in {
       extraEnvironment.ATRIUM_NOTION_WIKI_ROOT = "3f47a0cdb63e812c9030ffb39de864be";
     };
 
-    gaming.pauseUnits = llamaUnits;
+    gaming.pauseUnits = lib.mkIf enabled llamaUnits;
 
     persistence.directories = [
       {
@@ -157,55 +98,43 @@ in {
       restartUnits = ["atrium-agent-scheduler.service" "atrium-notion-sync.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service" "atrium-web.service" "atrium-web-local.service"];
     };
 
-    systemd.services = {
-      atrium-models-fetch = {
-        description = "Fetch the atrium model weights";
-        after = ["network-online.target"];
-        wants = ["network-online.target"];
-        unitConfig.ConditionPathExists = map (model: "|!${modelsDir}/${model.file}") (lib.attrValues models);
-        serviceConfig = {
-          Type = "oneshot";
-          User = "atrium";
-          Group = "atrium";
-          StateDirectory = stateDirName;
-          StateDirectoryMode = "0750";
-          UMask = "0027";
-          ExecStart = lib.getExe modelsFetch;
-          TimeoutStartSec = 0;
-          PrivateTmp = true;
-          ProtectSystem = "strict";
-          ProtectHome = true;
-          NoNewPrivileges = true;
-        };
-      };
+    systemd = {
+      timers = lib.mkIf (!enabled) (off ["atrium-sync" "atrium-notion-sync" "atrium-scan" "atrium-vdirsyncer-sync" "atrium-backup"]);
+      sockets = lib.mkIf (!enabled) (off ["atrium-codemode"]);
 
-      atrium-llm = llamaService "atrium-llm" {
-        description = "Qwen3.5-9B chat server for atrium";
-        model = models.chat;
-        port = chatPort;
-        args = [
-          "--ctx-size"
-          "8192"
-          "--jinja"
-          "--chat-template-kwargs"
-          (builtins.toJSON {enable_thinking = false;})
-        ];
-      };
+      services =
+        {
+          atrium-models-fetch = llamaServer.fetch;
 
-      atrium-embed = llamaService "atrium-embed" {
-        description = "EmbeddingGemma 2 embedding server for atrium";
-        model = models.embed;
-        port = embedPort;
-        args = [
-          "--embedding"
-          "--ctx-size"
-          "2048"
-          "--batch-size"
-          "2048"
-          "--ubatch-size"
-          "2048"
-        ];
-      };
+          atrium-llm = llamaService "atrium-llm" {
+            description = "Qwen3.5-9B chat server for atrium";
+            model = models.chat;
+            port = chatPort;
+            args = [
+              "--ctx-size"
+              "8192"
+              "--jinja"
+              "--chat-template-kwargs"
+              (builtins.toJSON {enable_thinking = false;})
+            ];
+          };
+
+          atrium-embed = llamaService "atrium-embed" {
+            description = "EmbeddingGemma 2 embedding server for atrium";
+            model = models.embed;
+            port = embedPort;
+            args = [
+              "--embedding"
+              "--ctx-size"
+              "2048"
+              "--batch-size"
+              "2048"
+              "--ubatch-size"
+              "2048"
+            ];
+          };
+        }
+        // lib.optionalAttrs (!enabled) (off ["atrium-llm" "atrium-embed" "atrium-watch" "atrium-agent-scheduler" "atrium-web" "atrium-web-local"]);
     };
   };
 }
