@@ -46,7 +46,7 @@
         claudeResets.autoRedeem = "no";
         modelRoles = {
           default = "anthropic/claude-opus-5-5:medium";
-          task = "anthropic/claude-sonnet-5-5:medium";
+          task = "opencode-go/deepseek-v4.1-flash:high";
           fast = "anthropic/claude-haiku-5-5:high";
           smol = "openai-codex/gpt-6-luna:high";
           slow = "anthropic/claude-opus-5-5:medium";
