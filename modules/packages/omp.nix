@@ -54,6 +54,7 @@
           smol = "openai-codex/gpt-6-luna:high";
           slow = "anthropic/claude-opus-5-5:medium";
           max-reasoning = "anthropic/claude-fable-5-1:medium";
+          vision = "opencode-go/deepseek-v4.1-flash:high";
           advisor = "openai-codex/gpt-6.1-sol:medium";
           commit = "openai-codex/gpt-6-luna:high";
           web = "openai-codex/gpt-6-luna:high";
