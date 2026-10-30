@@ -31,7 +31,8 @@
         # Paid OpenCode Zen models are off limits; only its free tier is used.
         enabledModels = ["anthropic/*" "openai-codex/*" "opencode-go/*" "opencode-zen/*-free"];
         prewalk.enabled = true;
-        memory.backend = "local";
+        # Only mnemopi reads the memory role; local uses the default and smol roles.
+        memory.backend = "mnemopi";
         find.enabled = "on";
         task = {
           showResolvedModelBadge = true;
