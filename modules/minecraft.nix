@@ -68,6 +68,7 @@ in {
           ".Enadiz7" = "00000000-0000-0000-0009-01fb6ae2c9e6";
           Rebecurrr = "e8bfcd6e-2544-4c3e-a8f7-774910636312";
           Irana = "032acdbb-acd6-4e74-ae3d-01f32405e08b";
+          Chae_anator101 = "9993c72e-5afc-477a-9a79-28b912df2d3f";
         };
 
         files."config/EssentialCommands.properties".value = {
