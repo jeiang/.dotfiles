@@ -17,8 +17,21 @@
         symbolPreset = "nerd";
         theme.dark = "dark-tundra";
         composer.shape = "band";
-        display.pinnedAgents = "full";
-        display.showTurnTime = true;
+        statusLine.contextLine = "off";
+        display = {
+          pinnedAgents = "full";
+          showTurnTime = true;
+          cacheMissMarker = true;
+          subagentLivePreview = true;
+        };
+        composer.tokenRate = true;
+        error.notify = "on";
+        bash.gitGuard = true;
+        github.enabled = true;
+        marketplace.autoUpdate = "off";
+        plan.autosave = true;
+        cycleOrder = ["smol" "default" "slow" "max-reasoning"];
+        tier.subagent = "none";
         tui.completeScrollback = true;
         startup.checkUpdate = false;
         secrets.enabled = true;
@@ -33,6 +46,11 @@
         prewalk.enabled = true;
         # Only mnemopi reads the memory role; local uses the default and smol roles.
         memory.backend = "mnemopi";
+        mnemopi = {
+          scoping = "per-project-tagged";
+          polyphonicRecall = true;
+          proactiveLinking = true;
+        };
         find.enabled = "on";
         task = {
           showResolvedModelBadge = true;
@@ -53,15 +71,26 @@
             researcher = 80;
             security-reviewer = 80;
           };
-          agentCompactionThresholdOverrides.task = 200000;
+          agentCompactionThresholdOverrides = {
+            task = 200000;
+            researcher = 200000;
+            reviewer = 200000;
+          };
         };
         advisor = {
           enabled = true;
-          reviewInterval = 5;
+          reviewMode = "agent-end";
+          reviewInterval = 1;
         };
         compaction.thresholdTokens = 400000;
-        codexResets.autoRedeem = "no";
-        claudeResets.autoRedeem = "no";
+        codexResets = {
+          autoRedeem = "yes";
+          keepCredits = 1;
+        };
+        claudeResets = {
+          autoRedeem = "yes";
+          keepCredits = 1;
+        };
         modelRoles = {
           default = "anthropic/claude-opus-5-5:medium";
           slow = "anthropic/claude-opus-5-5:high";
@@ -100,7 +129,7 @@
             commit = lightChain;
             widget = lightChain;
             memory = lightChain;
-            judge = [];
+            judge = ["@smol"];
             vision = [
               "opencode-go/deepseek-v4.1-flash:high"
               "openai-codex/gpt-6-luna:high"
@@ -113,7 +142,13 @@
       inputs.wrapper-modules.lib.wrapPackage (_: {
         inherit pkgs;
         package = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.omp;
-        runShell = [''export PI_CONFIG_FILES=${settings}''];
+        runShell = [
+          "export PI_CONFIG_FILES=${settings}"
+          # Deliberate retain/learn writes carry veracity "tool" (0.5), below auto-retained transcripts (0.8).
+          "export MNEMOPI_TOOL_WEIGHT=1.0"
+          # Suffix: the devshell's nil still wins inside direnv.
+          ''export PATH="$PATH:${pkgs.lib.makeBinPath [pkgs.nil]}"''
+        ];
       });
   };
 }
