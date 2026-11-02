@@ -26,7 +26,7 @@
     };
   };
   llamaUnits = ["atrium-llm.service" "atrium-embed.service"];
-  enabled = false;
+  enabled = true;
 in {
   flake.lib = {
     atriumWebPort = webPort;
