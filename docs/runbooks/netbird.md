@@ -24,6 +24,20 @@ version.
 Both use the nb-nix admin token from `modules/sops/secrets.admin.yaml`, or
 the file in `NETBIRD_TOKEN_FILE` when set.
 
+## Rex remote terminals
+
+Rex listens on each server's NetBird IPv4 address on TCP port 7297. In the
+Mac or iOS client, add `http://<mesh-address>:7297` as a remote host.
+Connections run as the operator's account. Rex does not authenticate these
+connections: the `Admin to Legion` policy must restrict access to
+`infra_admin`, and the host firewall rejects traffic from other interfaces.
+Any peer allowed to reach the port has full access to that account.
+
+The pinned Rex snapshot can change protocol compatibility when updated.
+Upgrading the server can end sessions; check the Rex client and server
+versions together. On artemis, `~/.local/state/rex` is persisted but is
+not included in the backup allowlist.
+
 ## Tokens
 
 | Service user | Role | Token | Lives in |
