@@ -109,6 +109,7 @@
         };
         retry = {
           usageAwareFallback = true;
+          fallbackOn = "usage-limit";
           fallbackChains = {
             default = strong;
             slow = strong;
