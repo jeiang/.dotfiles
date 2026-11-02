@@ -98,6 +98,8 @@
     renpy-proj.url = "github:jeiang/renpy_proj";
     erdtree.url = "github:jeiang/erdtree";
     erdtree.inputs.nixpkgs.follows = "nixpkgs";
+    rex.url = "https://pkgs.superlogical.com/rex/nix/snapshot.tar.gz";
+    rex.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);
