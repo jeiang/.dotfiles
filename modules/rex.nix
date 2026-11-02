@@ -38,4 +38,11 @@
       startLimitIntervalSec = 0;
     };
   };
+
+  nixos.modules.artemis.persistence.data.directories = [
+    {
+      directory = ".local/state/rex";
+      mode = "0700";
+    }
+  ];
 }

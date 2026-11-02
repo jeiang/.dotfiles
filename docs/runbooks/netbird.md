@@ -35,8 +35,8 @@ Any peer allowed to reach the port has full access to that account.
 
 The pinned Rex snapshot can change protocol compatibility when updated.
 Upgrading the server can end sessions; check the Rex client and server
-versions together. On artemis, Rex state under `~/.local/state/rex` is not
-persisted across reboots.
+versions together. On artemis, `~/.local/state/rex` is persisted but is
+not included in the backup allowlist.
 
 ## Tokens
 
