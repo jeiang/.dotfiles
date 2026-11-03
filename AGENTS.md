@@ -42,11 +42,16 @@ behavior for its own sake.
 - In a new git worktree, enter the devshell (or copy the gitignored
   `.pre-commit-config.yaml` symlink from the main checkout) before the
   first commit; the shell hook installs the git hooks.
-- Before opening a pull request for a change that touches artemis's
-  configuration or updates a flake input that can affect the artemis kernel,
-  run `just artemis-kernel`. If the kernel differs from `origin/main`, it
-  builds the kernel and the deploy profile path on artemis and pushes both
-  to garret; make no PR until that finishes.
+- Before opening a pull request, and after any flake input bump, run
+  `just prepush`. It builds on artemis every Linux host toplevel and deploy
+  profile path that differs from `origin/main`, builds the zakkart toplevel
+  here if it differs, and pushes the closures to garret. Make no PR until it
+  finishes: a PR run never pushes to garret, so whatever CI must compile
+  (the full-LTO artemis kernel, a source-built package such as the omp
+  override, deploy-rs after a rustc bump) builds on a shared runner against
+  its job time limit. A slow build that no host closure contains is built the
+  same way with `nix build --eval-store auto --store ssh-ng://artemis.jeiang.vpn`
+  and pushed from artemis with `garret push`.
 - A command that runs more than once becomes a `justfile` recipe.
   `just --list` is the recipe index.
 
@@ -458,6 +463,13 @@ behavior for its own sake.
   `llama-cpp-vulkan` pinned to an upstream release, because nixpkgs's 0.6.0
   does not load the `gemma-embedding2` architecture EmbeddingGemma 2 needs
   (first in v0.7.0). Drop the override once nixpkgs ships a release that has it.
+- Long builds run on artemis, not on zakkart and not on a CI runner:
+  `nix build --eval-store auto --store ssh-ng://artemis.jeiang.vpn
+  <installable>` evaluates here and builds there, over the operator's own ssh
+  agent. Artemis is not a `builders` entry on zakkart: the Nix daemon
+  connects as root, so it would need a root-readable private key for a
+  trusted user on artemis, which makes the Mac's root root-equivalent there
+  without the operator's key gate.
 
 ## CI
 
@@ -468,8 +480,9 @@ behavior for its own sake.
   toplevel derivation differs from the base. `all-checks` is the only
   required status.
 - Only a `main` run pushes to garret, so a PR run cannot substitute a
-  rebuilt artemis kernel and would compile the full-LTO kernel on a shared
-  runner against its job time limit (see Workflow for `just artemis-kernel`).
+  rebuilt artemis kernel or any other long source build and would compile it
+  on a shared runner against its job time limit (see Workflow for
+  `just prepush`).
   deploy-rs installs `deploy.nodes.<host>.profiles.system.path`, not the
   toplevel, so that path is pushed too: it carries `activate-rs`, and when a
   rustc bump drops it from the cache, `--remote-build` makes each target

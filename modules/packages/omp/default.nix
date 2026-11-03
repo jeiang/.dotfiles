@@ -57,7 +57,8 @@
         # Paid OpenCode Zen models are off limits; only its free tier is used.
         enabledModels = ["anthropic/*" "openai-codex/*" "opencode-go/*" "opencode-zen/*-free"];
         prewalk = {
-          enabled = true;
+          enabled = false;
+          auto = "suggest";
           into = "anthropic/claude-sonnet-5-5:high";
         };
         # Only mnemopi reads the memory role; local uses the default and smol roles.
@@ -106,7 +107,11 @@
           reviewMode = "agent-end";
           reviewInterval = 1;
         };
-        compaction.thresholdTokens = 400000;
+        compaction = {
+          thresholdTokens = 400000;
+          idleEnabled = true;
+          idleThresholdTokens = 250000;
+        };
         codexResets = {
           autoRedeem = "yes";
           keepCredits = 1;
@@ -128,7 +133,7 @@
           widget = light;
           vision = light;
           memory = light;
-          judge = "opencode-zen/jev-1.13-free";
+          judge = "cloudflare-workers-ai/@cf/cloudflare/clef-flash";
           web = "openai-codex/gpt-6-luna:high";
         };
         retry = {
@@ -154,7 +159,7 @@
             commit = lightChain;
             widget = lightChain;
             memory = lightChain;
-            judge = ["@smol"];
+            judge = ["opencode-zen/jev-1.13-free" "@smol"];
             vision = [
               "opencode-go/deepseek-v4.1-flash:high"
               "openai-codex/gpt-6-luna:high"

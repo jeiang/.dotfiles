@@ -76,28 +76,36 @@ persist-orphans host="artemis.jeiang.vpn":
 install system sudo="sudo":
   {{sudo}} nixos-install --flake .#{{system}}
 
-# Build an artemis kernel change that differs from origin/main on artemis, then push it and the deploy profile path to garret; run before opening a PR
-artemis-kernel:
+# Build every host toplevel and deploy profile that differs from the base (Linux hosts on artemis, zakkart here) and push the closures to garret, so PR CI substitutes instead of compiling; run before opening a PR and after an input bump
+prepush base="origin/main":
   #!/usr/bin/env bash
   set -euo pipefail
   host=artemis.jeiang.vpn
   git fetch origin main
-  main="git+file://$PWD?rev=$(git rev-parse origin/main)&shallow=1"
-  attr=nixosConfigurations.artemis.config.boot.kernelPackages.kernel.drvPath
-  old=$(nix eval --raw "$main#$attr")
-  new=$(nix eval --raw ".#$attr")
-  if [ "$old" = "$new" ]; then
-    echo "artemis kernel unchanged from origin/main"
-    exit 0
-  fi
-  profile=$(nix eval --raw ".#deploy.nodes.artemis.profiles.system.path.drvPath")
-  nix copy --derivation --to "ssh-ng://$host" "$new" "$profile"
-  outs=$(ssh "$host" bash -s <<EOF
+  main="git+file://$PWD?rev=$(git rev-parse {{base}})&shallow=1"
+  garret="github:jeiang/garret/$(jq -r .nodes.garret.locked.rev flake.lock)#garret"
+  differs() { [ "$(nix eval --raw "$main#$1")" != "$(nix eval --raw ".#$1")" ]; }
+  linux=()
+  for h in $(nix eval --json .#nixosConfigurations --apply builtins.attrNames | jq -r '.[]'); do
+    if differs "nixosConfigurations.$h.config.system.build.toplevel.drvPath"; then
+      linux+=(".#nixosConfigurations.$h.config.system.build.toplevel" ".#deploy.nodes.$h.profiles.system.path")
+    fi
+  done
+  if [ "${#linux[@]}" -gt 0 ]; then
+    outs=$(nix build --eval-store auto --store "ssh-ng://$host" --no-link --print-out-paths "${linux[@]}")
+    ssh "$host" bash -s <<EOF
   set -euo pipefail
-  nix build --no-link --print-out-paths '$new^*' '$profile^*'
+  g=\$(nix build --no-link --print-out-paths '$garret')/bin/garret
+  \$g whoami >/dev/null 2>&1 || \$g login https://cache-push.jeiang.dev
+  \$g push $(echo $outs)
   EOF
-  )
-  ssh -t "$host" "bash -c 'set -e; nix run github:jeiang/garret#garret -- login https://cache-push.jeiang.dev; nix run github:jeiang/garret#garret -- push $(echo $outs)'"
+  fi
+  if differs darwinConfigurations.zakkart.config.system.build.toplevel.drvPath; then
+    out=$(nix build --no-link --print-out-paths .#darwinConfigurations.zakkart.config.system.build.toplevel)
+    g=$(nix build --no-link --print-out-paths "$garret")/bin/garret
+    "$g" whoami >/dev/null 2>&1 || "$g" login https://cache-push.jeiang.dev
+    "$g" push "$out"
+  fi
 
 # Generate an image with Qwen-Image 2.1 (sd-cli args, e.g. -p "..." -o out.png; add -r in.png to edit); the first run downloads 11 GB of weights to ~/.cache/qwen-image-2.1
 [no-cd, positional-arguments]
