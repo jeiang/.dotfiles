@@ -1,5 +1,9 @@
 {inputs, ...}: {
-  perSystem = {pkgs, ...}: {
+  perSystem = {
+    pkgs,
+    lib,
+    ...
+  }: {
     packages.omp = let
       strong = ["opencode-go/kimi-k3.1-pro:high" "openai-codex/gpt-6.1-sol:high"];
       light = "opencode-zen/deepseek-v4.1-flash-free:high";
@@ -139,10 +143,51 @@
           };
         };
       };
+      upstream = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.omp;
+      pinned = lib.importJSON ./hashes.json;
+      src = upstream.src.override {
+        tag = "v${pinned.version}";
+        inherit (pinned) hash;
+      };
+      # omp refuses to start on a Bun runtime older than 1.4.4; nixpkgs here and in llm-agents ships 1.4.2. Built from
+      # llm-agents' nixpkgs so the embedded runtime shares ICU (Darwin) and glibc (Linux) with the rest of omp's closure.
+      bun = inputs.llm-agents.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system}.bun.overrideAttrs {
+        inherit (pinned.bun) version;
+        src = pkgs.fetchurl pinned.bun.sources.${pkgs.stdenv.hostPlatform.system};
+      };
     in
       inputs.wrapper-modules.lib.wrapPackage (_: {
         inherit pkgs;
-        package = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.omp;
+        # llm-agents lags omp's releases; ./hashes.json and ./_bun.nix supply a newer release until llm-agents catches up.
+        package =
+          if lib.versionOlder upstream.version pinned.version
+          then
+            (upstream.override (prev: {
+              inherit bun;
+              # pi-builtins requires rustc 1.99; llm-agents' nixpkgs ships 1.98.
+              inherit (pkgs) rustc cargo;
+              rustPlatform =
+                pkgs.rustPlatform
+                // {
+                  fetchCargoVendor = args:
+                    pkgs.rustPlatform.fetchCargoVendor (args
+                      // {
+                        inherit src;
+                        name = "omp-${pinned.version}-cargo-vendor";
+                        hash = pinned.cargoHash;
+                      });
+                };
+              bun2nixLib = prev.bun2nixLib // {fetchBunDeps = args: prev.bun2nixLib.fetchBunDeps (args // {bunNix = ./_bun.nix;});};
+            })).overrideAttrs (prev: {
+              inherit (pinned) version;
+              inherit src;
+              # bun2nix's hook installs node_modules with its own bun 1.4.2: bun 1.4.4 re-extracts some packages into
+              # the read-only cache and fails. bun build --compile embeds the bun that runs it, so the build runs 1.4.4.
+              preBuild = (prev.preBuild or "") + ''export PATH="${bun}/bin:$PATH"'';
+              # llm-agents' buildPhase runs build-tool-views.ts, which this release lacks: exports load a hosted viewer pinned by the committed viewer.generated.json.
+              buildPhase = lib.replaceStrings ["bun --cwd packages/collab-web scripts/build-tool-views.ts"] [""] prev.buildPhase;
+            })
+          else upstream;
         runShell = [
           "export PI_CONFIG_FILES=${settings}"
           # Deliberate retain/learn writes carry veracity "tool" (0.5), below auto-retained transcripts (0.8).
