@@ -18,7 +18,6 @@
         "homebrew/homebrew-core" = inputs.homebrew-core;
         "homebrew/homebrew-cask" = inputs.homebrew-cask;
         "k06a/homebrew-tap" = inputs.k06a-tap;
-        "netbirdio/homebrew-tap" = inputs.netbird-tap;
         "notprotonnot/homebrew-notproton" = inputs.notproton-tap;
         "omlahore/homebrew-tap" = inputs.omlahore-tap;
       };
@@ -50,8 +49,6 @@
         "roblox"
         "steam"
         "notion-calendar"
-        # The .app manages its own daemon/tunnel (a nix-managed daemon around the netbird CLI would fight it). A switch upgrades the cask but leaves the running daemon on the old build -- bump the netbird-tap input, switch, then `just netbird-update`.
-        "netbirdio/tap/netbird-ui"
         # These apps update themselves in place, which a read-only store copy under /Applications/Nix Apps cannot take.
         "claude"
         "notion"

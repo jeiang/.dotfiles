@@ -112,14 +112,14 @@ brew list --formula                     # matches `brews`
 mas list                                # Spotlight may omit Bitwarden and Wipr 2
 ```
 
-NetBird is the cask (`netbirdio/tap/netbird-ui`), not a nix-managed daemon.
-It installs and manages its own system service on first launch, and the
-`netbird` CLI comes with it as the cask's formula dependency. Open the app,
-sign in, then check:
+NetBird is nix-managed (`modules/netbird-client.nix`): nix-darwin's
+`services.netbird` runs the daemon from `packages.netbird`, and the app is
+`packages.netbird-ui`, in `/Applications/Nix Apps/NetBird.app`. Open the app
+and sign in (or run `netbird up`), then check:
 
 ```sh
-netbird status                          # Management: Connected
-sudo launchctl print system/netbird     # state = running
+netbird status                                # Management: Connected
+sudo launchctl print system/org.nixos.netbird # state = running
 ```
 
-Upgrades go through `just netbird-update`.
+Upgrades come with the netbird pin in `modules/packages/netbird.nix`.
