@@ -122,4 +122,6 @@ netbird status                                # Management: Connected
 sudo launchctl print system/org.nixos.netbird # state = running
 ```
 
-Upgrades come with the netbird pin in `modules/packages/netbird.nix`.
+The app starts at login from the `org.nixos.netbird-ui` user agent, so leave
+its own "Launch at login" setting off. Upgrades come with the netbird pin in
+`modules/packages/netbird.nix`.
