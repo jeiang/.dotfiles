@@ -133,7 +133,7 @@
           widget = light;
           vision = light;
           memory = light;
-          judge = "opencode-zen/jev-1.13-free";
+          judge = "cloudflare-workers-ai/@cf/cloudflare/clef-flash";
           web = "openai-codex/gpt-6-luna:high";
         };
         retry = {
