@@ -1082,7 +1082,7 @@
         "type": "prometheus",
         "uid": "victoriametrics"
       },
-      "description": "garret_upload_duration_seconds percentiles: whole streaming PUT, including the S3 write.",
+      "description": "garret_upload_duration_seconds percentiles for accepted uploads: whole streaming PUT, including the S3 write.",
       "gridPos": {
         "x": 8,
         "y": 30,
@@ -1133,13 +1133,13 @@
         {
           "refId": "A",
           "range": true,
-          "expr": "histogram_quantile(0.5, sum by (le) (rate(garret_upload_duration_seconds_bucket{job=\"garret\",component=\"pusher\"}[5m])))",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(garret_upload_duration_seconds_bucket{job=\"garret\",component=\"pusher\",outcome=\"accepted\"}[5m])))",
           "legendFormat": "p50"
         },
         {
           "refId": "B",
           "range": true,
-          "expr": "histogram_quantile(0.99, sum by (le) (rate(garret_upload_duration_seconds_bucket{job=\"garret\",component=\"pusher\"}[5m])))",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(garret_upload_duration_seconds_bucket{job=\"garret\",component=\"pusher\",outcome=\"accepted\"}[5m])))",
           "legendFormat": "p99"
         }
       ]
