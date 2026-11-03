@@ -1,6 +1,10 @@
 {self, ...}: {
   darwin.modules.base = {config, ...}: {
-    security.pam.services.sudo_local.touchIdAuth = true;
+    # reattach: Touch ID for sudo inside Rex/tmux, whose servers run outside the GUI session.
+    security.pam.services.sudo_local = {
+      touchIdAuth = true;
+      reattach = true;
+    };
 
     networking.applicationFirewall = {
       enable = true;
