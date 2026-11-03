@@ -53,10 +53,6 @@
       url = "github:k06a/homebrew-tap";
       flake = false;
     };
-    netbird-tap = {
-      url = "github:netbirdio/homebrew-tap";
-      flake = false;
-    };
     notproton-tap = {
       url = "github:NotProtonNot/homebrew-notproton";
       flake = false;

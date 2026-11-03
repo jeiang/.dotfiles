@@ -371,7 +371,9 @@ behavior for its own sake.
   which does not merge, so use `extra-*` keys.
 - zakkart applications come from nixpkgs first. Homebrew casks (pinned
   taps, `cleanup = "zap"`) are for applications with no working darwin
-  package or that must manage themselves (`netbird-ui` owns its daemon).
+  package or that must manage themselves. NetBird is nix-managed
+  (`modules/netbird-client.nix`): the daemon and the app are built from the
+  same pinned source, because a cask app reinstalls its own daemon.
   Bitwarden, Yubico Authenticator, Wipr 2, and Xcode come from the Mac App
   Store.
 - zakkart preferences that nix-darwin cannot express are scripted in

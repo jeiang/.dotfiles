@@ -117,17 +117,6 @@ qwen-image *args:
 icloud-media-import +paths:
   nix shell --inputs-from {{justfile_directory()}} nixpkgs#rsync -c {{justfile_directory()}}/modules/media/icloud-import.sh artemis.jeiang.vpn /var/lib/media "$@"
 
-# A formula-only brew upgrade swaps the daemon binary without restarting the
-# running launchd job, so kickstart re-bootstraps it after the upgrade.
-
-# Upgrade the NetBird brew formula and cask, then restart the launchd job
-netbird-update:
-  brew upgrade netbirdio/tap/netbird netbirdio/tap/netbird-ui
-  sudo launchctl bootout system/netbird 2>/dev/null || true
-  sudo launchctl bootstrap system /Library/LaunchDaemons/netbird.plist
-  sudo launchctl kickstart -k system/netbird
-  netbird status | grep -i version
-
 # Plan NetBird management changes (modules/netbird-management) against live state; read-only. Token: $NETBIRD_TOKEN_FILE, else the nb-nix token in the admin stash
 netbird-plan *args:
   #!/usr/bin/env bash
