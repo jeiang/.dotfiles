@@ -372,7 +372,8 @@ behavior for its own sake.
 - zakkart applications come from nixpkgs first. Homebrew casks (pinned
   taps, `cleanup = "zap"`) are for applications with no working darwin
   package or that must manage themselves (`netbird-ui` owns its daemon).
-  Bitwarden, Yubico Authenticator, and Wipr 2 come from the Mac App Store.
+  Bitwarden, Yubico Authenticator, Wipr 2, and Xcode come from the Mac App
+  Store.
 - zakkart preferences that nix-darwin cannot express are scripted in
   activation with values observed on macOS 26. Steps that depend on user
   consent warn instead of failing.

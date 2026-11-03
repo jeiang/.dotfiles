@@ -36,8 +36,8 @@
         autoUpdate = false;
         upgrade = true;
         cleanup = "zap";
-        # Spotlight does not index these App Store apps, so mas reinstalls them on every switch.
-        extraEnv.HOMEBREW_BUNDLE_MAS_SKIP = "${toString config.homebrew.masApps.Bitwarden} ${toString config.homebrew.masApps."Wipr 2"}";
+        # brew bundle never installs these; install them from the App Store by hand. Spotlight does not index Bitwarden and Wipr 2, so mas would reinstall them on every switch.
+        extraEnv.HOMEBREW_BUNDLE_MAS_SKIP = "${toString config.homebrew.masApps.Bitwarden} ${toString config.homebrew.masApps."Wipr 2"} ${toString config.homebrew.masApps.Xcode}";
       };
 
       casks = [
@@ -69,6 +69,7 @@
         Bitwarden = 1352778147;
         "Yubico Authenticator" = 1497506650;
         "Wipr 2" = 1662217862;
+        Xcode = 497799835;
       };
     };
   };
