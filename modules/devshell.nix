@@ -59,7 +59,7 @@
           jq
           just
           nh
-          nil
+          nixd
           nix-fast-build
           sops
           ssh-to-age

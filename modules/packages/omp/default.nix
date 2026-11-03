@@ -217,8 +217,8 @@
           "export PI_CONFIG_FILES=${settings}"
           # Deliberate retain/learn writes carry veracity "tool" (0.5), below auto-retained transcripts (0.8).
           "export MNEMOPI_TOOL_WEIGHT=1.0"
-          # Suffix: the devshell's nil still wins inside direnv.
-          ''export PATH="$PATH:${pkgs.lib.makeBinPath [pkgs.nil]}"''
+          # nixd, not nil: nil publishes nothing for a clean file, so omp waits out the diagnostics timeout. Suffix: the devshell's nixd still wins inside direnv.
+          ''export PATH="$PATH:${pkgs.lib.makeBinPath [pkgs.nixd]}"''
         ];
       });
   };
