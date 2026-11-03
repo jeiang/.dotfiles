@@ -17,7 +17,6 @@
       # rewrites it whenever a session changes a setting. PI_CONFIG_FILES
       # rather than --config, which only the launch, acp and models commands take.
       settings = (pkgs.formats.yaml {}).generate "omp-config.yml" {
-        tools.approvalMode = "yolo";
         symbolPreset = "nerd";
         theme.dark = "dark-tundra";
         composer.shape = "band";
@@ -27,6 +26,7 @@
           showTurnTime = true;
           cacheMissMarker = true;
           subagentLivePreview = true;
+          advisorCollapsedLines = 3;
         };
         composer.tokenRate = true;
         error.notify = "on";
@@ -34,6 +34,14 @@
         github.enabled = true;
         marketplace.autoUpdate = "off";
         plan.autosave = true;
+        btw.inject = true;
+        gc.autoCompress = true;
+        session.warnCost = 50;
+        tools = {
+          approvalMode = "yolo";
+          xdevNotices = false;
+          restrictedFolders = ["~/.ssh" "~/.gnupg" "~/.config/sops" "~/Library" "/etc"];
+        };
         cycleOrder = ["smol" "default" "slow" "max-reasoning"];
         tier.subagent = "none";
         tui.completeScrollback = true;
@@ -44,10 +52,14 @@
         providers = {
           anthropic.slowMode = "auto";
           maxInFlightRequests.opencode-go = 8;
+          openaiLiveSteering = true;
         };
         # Paid OpenCode Zen models are off limits; only its free tier is used.
         enabledModels = ["anthropic/*" "openai-codex/*" "opencode-go/*" "opencode-zen/*-free"];
-        prewalk.enabled = true;
+        prewalk = {
+          enabled = true;
+          into = "anthropic/claude-sonnet-5-5:high";
+        };
         # Only mnemopi reads the memory role; local uses the default and smol roles.
         memory.backend = "mnemopi";
         mnemopi = {
@@ -59,6 +71,14 @@
         task = {
           showResolvedModelBadge = true;
           enableEffort = false;
+          file = true;
+          perCallModel = "eval";
+          perCallModelAllow = [
+            "openai-codex/gpt-6.1-sol"
+            "openai-codex/gpt-6.1-terra"
+            "opencode-go/deepseek-v4.1-flash"
+            "anthropic/claude-sonnet-5-5"
+          ];
           agentModelOverrides = {
             researcher = "@task";
             reviewer = "@task";
