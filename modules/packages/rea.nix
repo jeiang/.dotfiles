@@ -26,14 +26,19 @@
         # The optional frida dependency's install script downloads a toolchain, which the sandbox forbids; Frida instrumentation is unavailable.
         npmFlags = ["--ignore-scripts"];
 
-        # Ghidra comes from the Homebrew formula (modules/rea.nix): nixpkgs lags the exact release REA accepts.
+        nodejs = pkgs.nodejs_26;
         makeWrapperArgs = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
-          "--set-default"
+          # The Ghidra provider compiles Swift through /usr/bin/xcrun, which fails on a Nix devshell's apple-sdk DEVELOPER_DIR/SDKROOT.
+          "--unset"
+          "DEVELOPER_DIR"
+          "--unset"
+          "SDKROOT"
+          "--set"
           "GHIDRA_INSTALL_DIR"
-          "/opt/homebrew/opt/ghidra/libexec"
-          "--set-default"
+          "${pkgs.ghidra}/lib/ghidra"
+          "--set"
           "JAVA_HOME"
-          pkgs.jdk21.home
+          pkgs.jdk25.home
         ];
 
         meta.mainProgram = "rea";
