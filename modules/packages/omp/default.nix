@@ -159,7 +159,7 @@
             commit = lightChain;
             widget = lightChain;
             memory = lightChain;
-            judge = ["@smol"];
+            judge = ["opencode-zen/jev-1.13-free" "@smol"];
             vision = [
               "opencode-go/deepseek-v4.1-flash:high"
               "openai-codex/gpt-6-luna:high"
