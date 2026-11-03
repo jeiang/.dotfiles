@@ -69,6 +69,7 @@
         Bitwarden = 1352778147;
         "Yubico Authenticator" = 1497506650;
         "Wipr 2" = 1662217862;
+        Xcode = 497799835;
       };
     };
   };
