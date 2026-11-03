@@ -57,7 +57,8 @@
         # Paid OpenCode Zen models are off limits; only its free tier is used.
         enabledModels = ["anthropic/*" "openai-codex/*" "opencode-go/*" "opencode-zen/*-free"];
         prewalk = {
-          enabled = true;
+          enabled = false;
+          auto = "suggest";
           into = "anthropic/claude-sonnet-5-5:high";
         };
         # Only mnemopi reads the memory role; local uses the default and smol roles.
