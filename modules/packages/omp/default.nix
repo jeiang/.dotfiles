@@ -106,7 +106,11 @@
           reviewMode = "agent-end";
           reviewInterval = 1;
         };
-        compaction.thresholdTokens = 400000;
+        compaction = {
+          thresholdTokens = 400000;
+          idleEnabled = true;
+          idleThresholdTokens = 250000;
+        };
         codexResets = {
           autoRedeem = "yes";
           keepCredits = 1;
