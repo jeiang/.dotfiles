@@ -621,6 +621,47 @@ in {
                 };
               }
               {
+                alert = "GarretAuthRefusals";
+                expr = "increase(garret_auth_unauthorized_total[1h]) > 0";
+                for = "0m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "garret refused a valid token from {{ $labels.issuer }} on {{ $labels.instance }}";
+                  description = "A token from {{ $labels.issuer }} validated but failed the {{ $labels.claim }} gate on {{ $labels.instance }} in the last hour: a CI ref, repository, or workflow is not in the allow list.";
+                };
+              }
+              {
+                alert = "GarretS3Errors";
+                expr = "increase(garret_s3_errors_total[15m]) > 5";
+                for = "0m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "garret S3 {{ $labels.operation }} errors on {{ $labels.instance }}";
+                  description = "{{ $value }} S3 {{ $labels.operation }} requests failed with kind {{ $labels.kind }} on {{ $labels.instance }} in the last 15 minutes.";
+                };
+              }
+              {
+                alert = "GarretUploadsShed";
+                expr = "increase(garret_uploads_shed_total[1h]) > 0";
+                for = "0m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "garret pusher shed uploads on {{ $labels.instance }}";
+                  description = "The Pusher on {{ $labels.instance }} answered 429 to uploads in the last hour: raise limits.maxConcurrentUploads or slow the senders.";
+                };
+              }
+              {
+                # The gauge holds the weekly fsck's count until the next run.
+                alert = "GarretFsckFindings";
+                expr = "garret_fsck_findings > 0";
+                for = "0m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "garret fsck found {{ $labels.kind }} rows on {{ $labels.instance }}";
+                  description = "The latest garret-admin fsck on {{ $labels.instance }} found {{ $value }} {{ $labels.kind }} rows. See docs/runbooks/garret.md before running fsck --repair.";
+                };
+              }
+              {
                 # Fires unconditionally so a dead vmalert, Alertmanager, or
                 # webhook shows up in healthchecks.io instead of going quiet.
                 alert = "Watchdog";

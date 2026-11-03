@@ -142,6 +142,9 @@ in {
             maxPartsInFlight = 2;
           };
 
+          # Read-only audit; findings alert via GarretFsckFindings.
+          fsck.calendar = "Sun 04:17";
+
           oidc = [
             {
               issuer = "https://token.actions.githubusercontent.com";
