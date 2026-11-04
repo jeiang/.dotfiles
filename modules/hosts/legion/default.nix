@@ -23,7 +23,7 @@
   legionAddress = from: to:
     if isHetzner legionNodes.${from} && isHetzner legionNodes.${to}
     then legionNodes.${to}.privateIPv4
-    else self.lib.netbirdPeers.${to} or (lib.warn "legionAddress: ${to} has no entry in modules/netbird-peers.nix, so connections from ${from} to it are dropped" null);
+    else self.lib.netbirdPeers.${to} or (lib.warn "legionAddress: ${to} has no entry in modules/netbird-peers.nix, so ${from} has no address for it" null);
 
   legionServices = config.legion.services;
   servicesByNode = nodeName: builtins.filter (s: s.node == nodeName) (lib.mapAttrsToList (name: s: s // {inherit name;}) legionServices);
