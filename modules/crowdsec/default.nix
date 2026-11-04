@@ -200,16 +200,28 @@ in {
             Type = "oneshot";
             RemainAfterExit = true;
             User = config.services.crowdsec.user;
+            StateDirectory = "crowdsec-bouncers";
+            StateDirectoryMode = "0700";
             LoadCredential =
               lib.mapAttrsToList (name: path: "${name}:${path}") bouncerKeys
               ++ lib.mapAttrsToList (name: path: "machine-${name}:${path}") machinePasswords;
           };
           script = let
             cscli = lib.getExe' config.services.crowdsec.package "cscli";
-            # Delete-then-add converges the LAPI on the key currently on disk.
-            registerBouncer = name: ''
-              ${cscli} bouncers delete ${lib.escapeShellArg name} || true
-              ${cscli} bouncers add ${lib.escapeShellArg name} --key "$(cat "$CREDENTIALS_DIRECTORY"/${lib.escapeShellArg name})" > /dev/null
+            jq = lib.getExe pkgs.jq;
+            # Delete-then-add converges the LAPI on the key currently on disk. The key is invalid
+            # between the two, so a bouncer whose key and registration are unchanged is skipped.
+            registerBouncer = name: let
+              n = lib.escapeShellArg name;
+            in ''
+              key=$(cat "$CREDENTIALS_DIRECTORY"/${n})
+              hash=$(sha256sum <<<"$key")
+              if [ "$(cat "$STATE_DIRECTORY"/${n} 2>/dev/null)" != "$hash" ] \
+                || ! ${cscli} bouncers list -o json | ${jq} -e --arg n ${n} 'any(.[]; .name == $n)' > /dev/null; then
+                ${cscli} bouncers delete ${n} || true
+                ${cscli} bouncers add ${n} --key "$key" > /dev/null
+                echo "$hash" > "$STATE_DIRECTORY"/${n}
+              fi
             '';
             # --file - keeps the dump off the local credentials file; --force replaces the machine's stored password.
             registerMachine = name: ''
