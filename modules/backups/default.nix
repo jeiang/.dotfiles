@@ -1,4 +1,4 @@
-_: let
+{self, ...}: let
   s4Endpoint = "https://s3.eu-central-1.s4.mega.io";
   retention = "--keep-daily 7 --keep-weekly 4 --keep-monthly 6";
 
@@ -80,8 +80,9 @@ in {
           type = lib.types.listOf lib.types.str;
           default = [];
           description = ''
-            systemd units to stop before the snapshot and start again after,
-            so live SQLite databases are captured consistently.
+            systemd units to stop before the snapshot, so live SQLite
+            databases are captured consistently. Only those that were
+            running start again after.
           '';
         };
         prepareCommand = lib.mkOption {
@@ -117,7 +118,9 @@ in {
       };
 
       services.restic.backups =
-        lib.mapAttrs (name: job: {
+        lib.mapAttrs (name: job: let
+          paused = self.lib.pauseUnits "/run/restic-backups-${name}.paused" job.pauseUnits;
+        in {
           inherit (job) paths;
           repository = repositoryFor name;
           passwordFile = config.sops.secrets."restic/password".path;
@@ -135,13 +138,9 @@ in {
             lib.optionalString (job.volume != null) ''
               ${pkgs.util-linux}/bin/mountpoint -q ${job.volume} || { echo "restic-backups-${name}: ${job.volume} is not mounted, refusing to back up an empty directory" >&2; exit 1; }
             ''
-            + lib.optionalString (job.pauseUnits != []) ''
-              systemctl stop ${lib.concatStringsSep " " job.pauseUnits}
-            ''
+            + lib.optionalString (job.pauseUnits != []) paused.pause
             + job.prepareCommand;
-          backupCleanupCommand = lib.optionalString (job.pauseUnits != []) ''
-            systemctl start ${lib.concatStringsSep " " job.pauseUnits}
-          '';
+          backupCleanupCommand = lib.optionalString (job.pauseUnits != []) paused.resume;
         })
         cfg.jobs;
 
@@ -181,6 +180,7 @@ in {
     # mount of its own.
     snapshot = "/persist/.backup-snapshot";
     btrfs = "${pkgs.btrfs-progs}/bin/btrfs";
+    games = self.lib.pauseUnits "/run/restic-backups-persist.paused" ["factorio.service" "minecraft-server-mc.service"];
 
     # Paths relative to /persist.
     backupSet =
@@ -250,13 +250,13 @@ in {
         if [ -e ${snapshot} ]; then
           ${btrfs} subvolume delete ${snapshot}
         fi
-        systemctl stop factorio.service minecraft-server-mc.service
+        ${games.pause}
         ${btrfs} subvolume snapshot -r /persist ${snapshot}
-        systemctl start factorio.service minecraft-server-mc.service
+        ${games.resume}
       '';
       backupCleanupCommand = ''
         # nixpkgs runs cleanup through ExecStopPost, including prepare/backup failures.
-        systemctl start factorio.service minecraft-server-mc.service
+        ${games.resume}
         if [ -e ${snapshot} ]; then
           ${btrfs} subvolume delete ${snapshot}
         fi

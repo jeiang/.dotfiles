@@ -9,7 +9,7 @@
       type = lib.types.listOf lib.types.str;
       default = [];
       description = ''
-        Units stopped while a game runs and started again when it ends.
+        Units stopped while a game runs. Those that were running start again when it ends.
       '';
     };
 
@@ -50,10 +50,15 @@
               amd_performance_level = "high";
             };
             custom = lib.mkIf (config.gaming.pauseUnits != []) (let
-              units = lib.escapeShellArgs config.gaming.pauseUnits;
+              paused = self.lib.pauseUnits "$XDG_RUNTIME_DIR/gamemode-paused" config.gaming.pauseUnits;
+              script = name: text:
+                lib.getExe (pkgs.writeShellApplication {
+                  inherit name text;
+                  runtimeInputs = [config.systemd.package pkgs.coreutils];
+                });
             in {
-              start = "systemctl --no-ask-password stop ${units}";
-              end = "systemctl --no-ask-password start ${units}";
+              start = script "gamemode-pause" paused.pause;
+              end = script "gamemode-resume" paused.resume;
             });
           };
         };
