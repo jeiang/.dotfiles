@@ -20,11 +20,18 @@
   pusherMetricsPort = 9091;
   pullerMetricsPort = 9092;
   crowdsecLapiPort = config.legion.services.crowdsec.ports.lapi;
+
+  client = {pkgs, ...}: {
+    environment.systemPackages = [inputs.garret.packages.${pkgs.stdenv.hostPlatform.system}.garret];
+  };
 in {
   flake.lib = {
     garretWatermarks = watermarks;
     garretFirewallBouncerSecret = "crowdsec/bouncer-garret-firewall";
   };
+
+  nixos.modules.artemis = client;
+  darwin.modules.base = client;
 
   legion.services.garret = {
     node = "peria";
