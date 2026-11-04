@@ -103,9 +103,10 @@ behavior for its own sake.
 - `modules/packages/`: packages and wrapped programs.
 - `dns/dnsconfig.js`: public DNS.
 - `docs/runbooks/`: procedures that recur.
-- `docs/state-machines.md`: diagrams of the implicit state machines (boot
-  counting, backups, pauses, guards, updaters). Update a diagram when its
-  machine changes.
+- `docs/state-machines.md`: diagrams of the state machines that span
+  several files or hosts (boot counting, persistence, the Volume guard, the
+  garret index, bouncer registration, mesh peer addresses). Update a diagram
+  when its machine changes.
 - `docs/topology/`: nix-topology diagrams rendered from the host
   configurations. Generated, not hand-edited: re-run `just topology` and
   commit the result when the fleet's hosts, networks, or services change.
