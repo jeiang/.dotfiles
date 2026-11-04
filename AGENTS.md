@@ -235,8 +235,8 @@ behavior for its own sake.
   nodes address each other by `privateIPv4`; every pair involving ricklent
   uses the target's
   mesh IP from `modules/netbird-peers.nix`, through
-  `self.lib.legionAddress <from> <to>` (null until the target has a peer
-  entry, and then dropped from scrape targets). ricklent's peer entry is
+  `self.lib.legionAddress <from> <to>` (null, with an evaluation warning,
+  until the target has a peer entry, and then dropped from scrape targets). ricklent's peer entry is
   added after it first enrolls, and until then its journald upload,
   CrowdSec agent, and scrape do not connect. Every connection between Legion
   machines that crosses the mesh is a `meshFlows` entry in

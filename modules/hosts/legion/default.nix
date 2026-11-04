@@ -19,11 +19,11 @@
 
   isHetzner = node: node.provider == "hetzner";
 
-  # Hetzner nodes reach each other over the private network; every other pair goes over the mesh. Null while a node is not yet in modules/netbird-peers.nix.
+  # Hetzner nodes reach each other over the private network; every other pair goes over the mesh. Null, with an evaluation warning, while a node is not yet in modules/netbird-peers.nix.
   legionAddress = from: to:
     if isHetzner legionNodes.${from} && isHetzner legionNodes.${to}
     then legionNodes.${to}.privateIPv4
-    else self.lib.netbirdPeers.${to} or null;
+    else self.lib.netbirdPeers.${to} or (lib.warn "legionAddress: ${to} has no entry in modules/netbird-peers.nix, so connections from ${from} to it are dropped" null);
 
   legionServices = config.legion.services;
   servicesByNode = nodeName: builtins.filter (s: s.node == nodeName) (lib.mapAttrsToList (name: s: s // {inherit name;}) legionServices);
