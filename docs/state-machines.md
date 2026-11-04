@@ -166,13 +166,14 @@ stateDiagram-v2
     Waiting --> Mounted: Volume attached, mounted by ext4 label
     Waiting --> Missing: 10 s device timeout, nofail
     Mounted --> Serving: ConditionPathIsMountPoint holds
-    Missing --> Skipped: service and backup refuse to start
+    Missing --> Skipped: service skipped by ConditionPathIsMountPoint
+    Missing --> BackupFailed: backup prepare exits 1, mountpoint check
 ```
 
 Sources: `modules/mount-guard.nix`, `modules/hosts/legion/default.nix`,
 `modules/backups/default.nix`.
 
-### Root-disk backup
+### Legion backup
 
 How does a Legion backup pause its service?
 
@@ -184,12 +185,13 @@ stateDiagram-v2
     Paused --> Prepared: prepareCommand, such as an online copy
     Prepared --> Uploading: restic backup
     Uploading --> Resumed: recorded units started, record removed
-    Resumed --> Maintenance: weekly forget, prune, and check after the backup
-    Maintenance --> [*]
+    Resumed --> [*]
 ```
 
 Sources: `modules/backups/default.nix`, `modules/pause-units.nix`. garret
 pauses nothing and backs up an online copy (`modules/garret/default.nix`).
+Forget, prune, and check run in `restic-maintenance-NAME`, a separate unit on
+its own weekly timer that is only ordered after the backup.
 
 ### garret index
 
@@ -367,5 +369,4 @@ stateDiagram-v2
     Filed --> [*]
 ```
 
-Sources: `modules/media/icloud-import.sh`. A second run after atrium files
-an item imports it again; the check covers `import/` only.
+Sources: `modules/media/icloud-import.sh`.

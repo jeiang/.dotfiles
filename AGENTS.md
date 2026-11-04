@@ -236,12 +236,11 @@ behavior for its own sake.
 - The Hetzner private network (`172.16.0.0/12`, `enp7s0`) exists only on
   Hetzner nodes, and no NetBird route reaches it from the mesh. Hetzner
   nodes address each other by `privateIPv4`; every pair involving ricklent
-  uses the target's
-  mesh IP from `modules/netbird-peers.nix`, through
+  uses the target's mesh IP from `modules/netbird-peers.nix`, through
   `self.lib.legionAddress <from> <to>` (null, with an evaluation warning,
-  until the target has a peer entry, and then dropped from scrape targets). ricklent's peer entry is
-  added after it first enrolls, and until then its journald upload,
-  CrowdSec agent, and scrape do not connect. Every connection between Legion
+  until the target has a peer entry, and then dropped from scrape targets).
+  ricklent's peer entry is added after it first enrolls, and until then its
+  journald upload, CrowdSec agent, and scrape do not connect. Every connection between Legion
   machines that crosses the mesh is a `meshFlows` entry in
   `modules/netbird-management`, whose ports the `Legion Mesh` access
   policies allow; a new one needs an entry there. NetBird DNS clients use
