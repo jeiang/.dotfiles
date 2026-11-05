@@ -160,9 +160,10 @@ in {
               # Immutable owner id, not the name: names are renameable.
               github_owner_id = "31970261";
               # Release tags are unprotected, so ref_protected stays unset.
-              ref_patterns = ["refs/heads/main" "refs/tags/v*"];
-              # jeiang/.dotfiles, jeiang/garret, jeiang/ripper, jeiang/renpy_proj, jeiang/atrium.
-              repository_ids = ["553667153" "1324491067" "1380302823" "1395832586" "1423661628"];
+              ref_patterns = ["refs/heads/main" "refs/heads/master" "refs/tags/v*"];
+              # jeiang/.dotfiles, jeiang/garret, jeiang/ripper, jeiang/renpy_proj,
+              # jeiang/atrium, jeiang/erdtree, jeiang/cod4-decomp.
+              repository_ids = ["553667153" "1324491067" "1380302823" "1395832586" "1423661628" "1418336240" "1407988188"];
               event_names = ["push" "workflow_dispatch"];
               job_workflow_refs = [
                 "jeiang/.dotfiles/.github/workflows/ci.yml@refs/heads/main"
@@ -171,6 +172,9 @@ in {
                 "jeiang/ripper/.github/workflows/release.yml@refs/tags/v*"
                 "jeiang/renpy_proj/.github/workflows/garret.yml@refs/heads/main"
                 "jeiang/atrium/.github/workflows/ci.yml@refs/heads/main"
+                "jeiang/ripper/.github/workflows/ci.yml@refs/heads/main"
+                "jeiang/erdtree/.github/workflows/nix.yml@refs/heads/master"
+                "jeiang/cod4-decomp/.github/workflows/nix.yml@refs/heads/main"
               ];
               allowed_groups = [];
             }

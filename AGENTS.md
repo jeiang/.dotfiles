@@ -337,9 +337,11 @@ behavior for its own sake.
   for the function, not the implementation.
 - garret accepts pushes from a Pocket ID client and from GitHub Actions OIDC
   tokens of the workflows in its `job_workflow_refs` (`ci.yml` of
-  `jeiang/.dotfiles`, `jeiang/garret` and `jeiang/atrium`, ripper's
-  `release.yml`, renpy_proj's `garret.yml`), pinned by
-  repository id, on `push` and `workflow_dispatch`, for `refs/heads/main` and
+  `jeiang/.dotfiles`, `jeiang/garret`, `jeiang/atrium` and `jeiang/ripper`,
+  ripper's `release.yml`, renpy_proj's `garret.yml`, `nix.yml` of
+  `jeiang/erdtree` and `jeiang/cod4-decomp`), pinned by
+  repository id, on `push` and `workflow_dispatch`, for `refs/heads/main`,
+  `refs/heads/master` (erdtree's default branch) and
   `refs/tags/v*` (release tags, which are unprotected, so `ref_protected`
   stays unset). A new pushing repository or workflow needs its entries in
   `modules/garret/default.nix` first.

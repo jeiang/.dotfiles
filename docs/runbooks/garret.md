@@ -71,7 +71,8 @@ login. `.ci/garret.toml` is the GitHub Actions shape and needs no login.
 
 GitHub Actions tokens are accepted only from the workflows listed in
 `job_workflow_refs` in `modules/garret/default.nix`, pinned by repository
-id, on `push` and `workflow_dispatch`. A new repository or workflow that
+id, on `push` and `workflow_dispatch`, for `refs/heads/main`,
+`refs/heads/master` and `refs/tags/v*`. A new repository or workflow that
 pushes needs its entries there first.
 
 ## Operations
