@@ -1273,6 +1273,26 @@
         "type": "github"
       }
     },
+    "nanolight": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793847650,
+        "narHash": "sha256-oOAf+JwHnXOBVHriAfRqL6vm40G+Toh80ug3H7yiK3U=",
+        "owner": "jeiang",
+        "repo": "nanolight",
+        "rev": "a773c895121bbf94a0c92d68fca934c7e2e31cbb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "nanolight",
+        "type": "github"
+      }
+    },
     "nb-nix": {
       "inputs": {
         "netbird-src": "netbird-src",
@@ -1916,6 +1936,7 @@
         "llm-agents": "llm-agents",
         "markdown-table-live-editor": "markdown-table-live-editor",
         "mcp-servers-nix": "mcp-servers-nix",
+        "nanolight": "nanolight",
         "nb-nix": "nb-nix",
         "nix-cachyos-kernel": "nix-cachyos-kernel",
         "nix-darwin": "nix-darwin",

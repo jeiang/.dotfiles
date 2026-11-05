@@ -9,7 +9,7 @@
     fonts.packages = [pkgs.nerd-fonts.mononoki];
 
     # Ghostty.app ignores the wrapper's --config-file flag when launched from
-    # the Dock or Raycast, so the same config is installed at the XDG path.
+    # the Dock or a launcher, so the same config is installed at the XDG path.
     hjem.users.${config.preferences.user.name}.files.".config/ghostty/config".source = wrapped.ghostty-config;
 
     programs.direnv = {
@@ -28,7 +28,6 @@
         mos
         obsidian
         prismlauncher
-        raycast
         telegram-desktop
         utm
         zed-editor
