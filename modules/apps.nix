@@ -1,8 +1,4 @@
-{
-  self,
-  inputs,
-  ...
-}: {
+{self, ...}: {
   darwin.modules.base = {
     config,
     pkgs,
@@ -10,16 +6,6 @@
   }: let
     wrapped = self.packages.${pkgs.stdenv.hostPlatform.system};
   in {
-    imports = [inputs.nanolight.darwinModules.default];
-
-    fonts.packages = [pkgs.nerd-fonts.mononoki];
-
-    programs.nanolight = {
-      enable = true;
-      # macos-defaults.nix already turns off Spotlight's Command-Space.
-      disableSpotlightShortcut = false;
-    };
-
     # Ghostty.app ignores the wrapper's --config-file flag when launched from
     # the Dock or a launcher, so the same config is installed at the XDG path.
     hjem.users.${config.preferences.user.name}.files.".config/ghostty/config".source = wrapped.ghostty-config;

@@ -294,3 +294,14 @@ creation_rules:
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
       - *server_ricklent
+
+  # modules/nanolight/default.nix -- the sync server on zantark and the client on zakkart.
+  - path_regex: modules/nanolight/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_zantark
+      - *server_zakkart
