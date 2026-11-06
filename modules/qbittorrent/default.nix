@@ -167,7 +167,6 @@ in {
           };
         };
 
-        # Forwards host-namespace connections to the Web UI inside the namespace.
         qbittorrent-webui = {
           description = "qBittorrent Web UI proxy";
           bindsTo = ["qbittorrent-netns.service"];

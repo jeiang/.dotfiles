@@ -42,7 +42,6 @@
           enable = true;
           settings = {
             general.renice = 10;
-            # Warning: GPU optimisations have the potential to damage hardware
             gpu = {
               apply_gpu_optimisations = "accept-responsibility";
               gpu_device = self.lib.artemisDgpuDevice.cardIndex;

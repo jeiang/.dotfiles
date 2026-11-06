@@ -24,7 +24,6 @@
     ];
 
     boot.loader.efi.canTouchEfiVariables = true;
-    # not managed by disko
     fileSystems = {
       "/mnt/Mumei" = {
         device = "/dev/disk/by-label/Mumei";
