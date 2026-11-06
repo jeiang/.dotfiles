@@ -158,7 +158,10 @@ in {
 
               # The default loopback bind would be unreachable from zantark's
               # cross-node scraper.
-              prometheus.listen_addr = "0.0.0.0";
+              prometheus = {
+                listen_addr = "0.0.0.0";
+                listen_port = metricsPort;
+              };
             };
 
             acquisitions = [

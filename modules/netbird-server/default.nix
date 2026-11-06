@@ -8,6 +8,7 @@
 
   httpPort = 80;
   serverMetricsPort = 9090;
+  serverHealthPort = 9000;
 
   stunPort = 3478;
   relayPort = 8080;
@@ -79,7 +80,7 @@ in {
           listenAddress: ":${toString httpPort}"
           exposedAddress: "https://${domain}:443"
           metricsPort: ${toString serverMetricsPort}
-          healthcheckAddress: ":9000"
+          healthcheckAddress: ":${toString serverHealthPort}"
           logLevel: "info"
           logFile: "console"
           tls:

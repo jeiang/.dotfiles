@@ -5,6 +5,7 @@
 }: let
   vmPort = 8428;
   vlPort = 9428;
+  grafanaPort = 3000;
 
   legionServices = config.legion.services;
 in {
@@ -15,7 +16,7 @@ in {
     module = "monitoring";
     units = ["grafana" "victoriametrics" "victorialogs" "vmalert-default" "alertmanager" "prometheus-blackbox-exporter"];
     ports = {
-      grafana = 3000;
+      grafana = grafanaPort;
       victoria-logs = vlPort;
     };
   };
@@ -114,6 +115,7 @@ in {
     services = {
       victoriametrics = {
         enable = true;
+        listenAddress = ":${toString vmPort}";
         inherit retentionPeriod;
         prometheusConfig.scrape_configs = [
           (scrape "node" "node" (map (ip: "${ip}:${nodeExporterPort}") legionNodeAddresses ++ ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.node.port}"]))
@@ -165,6 +167,7 @@ in {
 
       victorialogs = {
         enable = true;
+        listenAddress = ":${toString vlPort}";
         extraOptions = ["-retentionPeriod=${retentionPeriod}"];
       };
 
@@ -175,6 +178,7 @@ in {
             domain = self.lib.grafanaHostname;
             root_url = "https://${self.lib.grafanaHostname}";
             http_addr = "0.0.0.0";
+            http_port = grafanaPort;
           };
           auth = {
             disable_login_form = true;
