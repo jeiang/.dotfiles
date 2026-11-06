@@ -49,11 +49,9 @@
   legionNodes = assert lib.assertMsg (builtins.length nodeAddresses == builtins.length (lib.unique nodeAddresses))
   "Legion inventory must not reuse an IP address"; inventory;
 
-  isHetzner = node: node.provider == "hetzner";
-
   # Hetzner nodes reach each other over the private network; every other pair goes over the mesh. Null while the target has no NetBird peer entry.
   legionAddress = from: to:
-    if isHetzner legionNodes.${from} && isHetzner legionNodes.${to}
+    if self.lib.hetznerNodes ? ${from} && self.lib.hetznerNodes ? ${to}
     then legionNodes.${to}.privateIPv4
     else self.lib.netbirdPeers.${to} or null;
 

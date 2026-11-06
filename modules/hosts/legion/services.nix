@@ -109,8 +109,9 @@ in {
     description = ''
       Legion service placement, keyed by service name. Each service's own
       feature file sets its own entry; modules/hosts/legion/default.nix
-      derives per-node module imports, firewall openings, Volume
-      fileSystems and backups.jobs from this option.
+      derives per-node module imports, firewall openings and backups.jobs
+      from this option, and modules/hosts/legion/hetzner.nix its Volume
+      fileSystems.
     '';
     apply = services: let
       named = lib.mapAttrsToList (name: s: s // {inherit name;}) services;
@@ -127,7 +128,7 @@ in {
         named;
       # The Volume filesystem label is its service name; ext4 labels cap at 16 bytes.
       labelTooLong = builtins.filter (s: s.volume != null && builtins.stringLength s.name > 16) named;
-      volumeOffHetzner = builtins.filter (s: s.volume != null && self.lib.legionNodes.${s.node}.provider != "hetzner") named;
+      volumeOffHetzner = builtins.filter (s: s.volume != null && !(self.lib.hetznerNodes ? ${s.node})) named;
     in
       assert lib.assertMsg (builtins.length nodeHostnames == builtins.length (lib.unique nodeHostnames))
       "legion.services must not list a public hostname twice on one node: ${builtins.concatStringsSep ", " nodeHostnames}";
