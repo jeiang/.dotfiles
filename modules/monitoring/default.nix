@@ -116,7 +116,6 @@ in {
         enable = true;
         inherit retentionPeriod;
         prometheusConfig.scrape_configs = [
-          # Raw NetBird peer IP for artemis: mesh DNS doesn't resolve on Legion nodes.
           (scrape "node" "node" (map (ip: "${ip}:${nodeExporterPort}") legionNodeAddresses ++ ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.node.port}"]))
           (scrape "smartctl" "node" ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.smartctl.port}"])
           (scrape "caddy" "edge" (at "caddy" "metrics" ""))

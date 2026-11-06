@@ -51,7 +51,7 @@
 
   isHetzner = node: node.provider == "hetzner";
 
-  # Hetzner nodes reach each other over the private network; every other pair goes over the mesh. Null while a node is not yet in modules/netbird-peers.nix.
+  # Hetzner nodes reach each other over the private network; every other pair goes over the mesh. Null while the target has no NetBird peer entry.
   legionAddress = from: to:
     if isHetzner legionNodes.${from} && isHetzner legionNodes.${to}
     then legionNodes.${to}.privateIPv4
@@ -142,7 +142,6 @@ in {
         };
       };
 
-      # Host DNS must never use Blocky-over-NetBird as primary resolver: netbird.jeiang.dev has to resolve via public DNS before the tunnel is up.
       sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
       services = {
         prometheus.exporters.node = {

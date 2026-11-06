@@ -126,7 +126,7 @@ in {
             && lib.any (path: !(lib.hasPrefix s.volume.mountpoint path)) s.backupSet
         )
         named;
-      # The Volume filesystem label is its service name (see modules/hosts/legion/default.nix); ext4 labels cap at 16 bytes.
+      # The Volume filesystem label is its service name; ext4 labels cap at 16 bytes.
       labelTooLong = builtins.filter (s: s.volume != null && builtins.stringLength s.name > 16) named;
       volumeOffHetzner = builtins.filter (s: s.volume != null && self.lib.legionNodes.${s.node}.provider != "hetzner") named;
     in

@@ -130,8 +130,7 @@
 
       groups =
         {
-          # Every machine in modules/netbird-peers.nix. The Legion setup key
-          # also adds new enrollments here.
+          # The Legion setup key also adds new enrollments here.
           Legion.peers = builtins.attrNames peers;
           blocky.peers = blockyNodes;
           # Assigned through users' auto_groups; members are not declared.
@@ -251,6 +250,8 @@
           domains = [];
           search_domains_enabled = false;
           enabled = true;
+          # Not Legion: its hosts must resolve the NetBird domain through
+          # public DNS before their tunnel is up.
           groups = ["members"];
           # Quad9's primary address is the fallback when neither Blocky answers.
           nameservers =
