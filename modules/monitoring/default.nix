@@ -117,52 +117,54 @@ in {
         enable = true;
         listenAddress = ":${toString vmPort}";
         inherit retentionPeriod;
-        prometheusConfig.scrape_configs = [
-          (scrape "node" "node" (map (ip: "${ip}:${nodeExporterPort}") legionNodeAddresses ++ ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.node.port}"]))
-          (scrape "smartctl" "node" ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.smartctl.port}"])
-          (scrape "caddy" "edge" (at "caddy" "metrics" ""))
-          (scrape "crowdsec" "edge" (at "crowdsec" "metrics" ""))
-          (scrape "netbird-server" "netbird" (at "netbird-server" "metrics" ""))
-          (scrape "netbird-relay" "netbird" (at "netbird-relay" "metrics" ""))
-          (scrape "netbird-proxy-atl" "netbird" (at "netbird-proxy-atl" "health" ""))
-          (scrape "blocky" "dns" (at "blocky" "http" "" ++ at "blocky-ricklent" "http" ""))
-          # H@H serves /metrics on the same TLS-wrapped listener as the client
-          # itself; its hath.network cert has no SAN for this IP, hence
-          # insecure_skip_verify (transport trust is the private network).
-          (scrape "hath" "hath" (at "hath" "app" "")
-            // {
-              scheme = "https";
-              tls_config.insecure_skip_verify = true;
+        prometheusConfig.scrape_configs =
+          [
+            (scrape "node" "node" (map (ip: "${ip}:${nodeExporterPort}") legionNodeAddresses ++ ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.node.port}"]))
+            (scrape "smartctl" "node" ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.smartctl.port}"])
+            (scrape "caddy" "edge" (at "caddy" "metrics" ""))
+            (scrape "crowdsec" "edge" (at "crowdsec" "metrics" ""))
+            (scrape "netbird-server" "netbird" (at "netbird-server" "metrics" ""))
+            (scrape "netbird-relay" "netbird" (at "netbird-relay" "metrics" ""))
+          ]
+          ++ map (service: scrape service "netbird" (at service "health" "")) self.lib.netbirdProxyServices
+          ++ [
+            (scrape "blocky" "dns" (at "blocky" "http" "" ++ at "blocky-ricklent" "http" ""))
+            # H@H serves /metrics on the same TLS-wrapped listener as the client
+            # itself; its hath.network cert has no SAN for this IP, hence
+            # insecure_skip_verify (transport trust is the private network).
+            (scrape "hath" "hath" (at "hath" "app" "")
+              // {
+                scheme = "https";
+                tls_config.insecure_skip_verify = true;
+              })
+            {
+              job_name = "garret";
+              static_configs = map (component: {
+                targets = at "garret" "${component}-metrics" "";
+                labels = {
+                  type = "cache";
+                  inherit component;
+                };
+              }) ["pusher" "puller"];
+            }
+            (scrape "gatus" "probe" (at "gatus" "app" ""))
+            (probe "blackbox-http" "http_2xx" {
+              critical = http (at "pocket-id" "app" "/healthz");
+              # /ready/deep reads a byte of a real NAR through a presigned URL,
+              # so revoked S3 credentials or an S4 outage fail it; the Pusher's
+              # service port is fully token-gated, so its probe targets the
+              # metrics listener's /healthz instead.
+              warning = http (at "ntfy" "app" "/v1/health"
+                ++ at "garret" "puller" "/ready/deep"
+                ++ at "garret" "pusher-metrics" "/healthz"
+                ++ at "netbird-relay" "health" "/health"
+                ++ lib.concatMap (service: at service "health" "/healthz") self.lib.netbirdProxyServices);
             })
-          {
-            job_name = "garret";
-            static_configs = map (component: {
-              targets = at "garret" "${component}-metrics" "";
-              labels = {
-                type = "cache";
-                inherit component;
-              };
-            }) ["pusher" "puller"];
-          }
-          (scrape "gatus" "probe" (at "gatus" "app" ""))
-          (probe "blackbox-http" "http_2xx" {
-            critical = http (at "pocket-id" "app" "/healthz");
-            # /ready/deep reads a byte of a real NAR through a presigned URL,
-            # so revoked S3 credentials or an S4 outage fail it; the Pusher's
-            # service port is fully token-gated, so its probe targets the
-            # metrics listener's /healthz instead.
-            warning = http (at "ntfy" "app" "/v1/health"
-              ++ at "garret" "puller" "/ready/deep"
-              ++ at "garret" "pusher-metrics" "/healthz"
-              ++ at "netbird-relay" "health" "/health"
-              ++ at "netbird-proxy" "health" "/healthz"
-              ++ at "netbird-proxy-atl" "health" "/healthz");
-          })
-          # :80 multiplexes gRPC + the management HTTP API, so a TCP connect
-          # (not a plain GET) is the reliable liveness signal.
-          (probe "blackbox-tcp" "tcp_connect" {critical = at "netbird-server" "http" "";})
-          (probe "blackbox-dns" "dns" {warning = at "blocky" "dns" "";})
-        ];
+            # :80 multiplexes gRPC + the management HTTP API, so a TCP connect
+            # (not a plain GET) is the reliable liveness signal.
+            (probe "blackbox-tcp" "tcp_connect" {critical = at "netbird-server" "http" "";})
+            (probe "blackbox-dns" "dns" {warning = at "blocky" "dns" "";})
+          ];
       };
 
       victorialogs = {
