@@ -43,7 +43,7 @@
 
     # Only omp reads a declarative user-level MCP file; Claude Code and Codex
     # rewrite their own config, so the operator registers these there.
-    hjem.users.${config.preferences.user.name}.files.".omp/agent/mcp.json".source = servers pkgs;
+    hjem.users.${config.preferences.user.name}.files."${self.lib.agentHomes.omp}/mcp.json".source = servers pkgs;
   };
 in {
   flake.lib.grafanaMeshUrl = grafanaUrl;

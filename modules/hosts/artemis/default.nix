@@ -73,10 +73,6 @@ in {
           directory = ".ssh";
           mode = "0700";
         }
-        {
-          directory = ".claude";
-          mode = "0700";
-        }
         ".local/share/fish"
         {
           directory = ".local/share/atuin";
