@@ -57,7 +57,7 @@
         };
       };
       themes = {
-        kanabox = {
+        kanabox-dark-hard = {
           attribute = "springBlue";
           comment = "katanaGray";
           constant = "sakuraPink";
@@ -153,7 +153,7 @@
           module = "waveAqua2";
           namespace = "waveAqua2";
           operator = "autumnYellow";
-          palette = self.lib.palette.kanabox;
+          palette = self.lib.palette.kanaboxDarkHard;
           punctuation = "fujiGray";
           "punctuation.bracket" = "fujiWhite";
           "punctuation.delimiter" = "fujiGray";
@@ -248,13 +248,6 @@
           "variable.builtin" = "lightBlue";
           "variable.parameter" = "fujiWhite";
           warning = "carpYellow";
-        };
-        kanabox-dark-hard = {
-          inherits = "kanabox";
-
-          palette = {
-            inherit (self.lib.palette.kanaboxDarkHard) sumiInk0 sumiInk1 sumiInk1_5;
-          };
         };
       };
     };
