@@ -1,10 +1,9 @@
 {inputs, ...}: {
   legion.services.caddy.units = ["rivals-heroes-sync"];
 
-  # Server-side cache for the rivals hero data: stock Caddy cannot cache
-  # responses (that needs the cache-handler plugin), so a timer snapshots
-  # upstream main into a state directory once a day and Caddy serves that.
-  # A failed fetch leaves the previous snapshot in place.
+  # Stock Caddy cannot cache responses (needs the cache-handler plugin), so
+  # a daily snapshot of upstream main stands in; a failed fetch keeps the
+  # previous one.
   nixos.modules.edge = {pkgs, ...}: let
     rivalsRandomizer = inputs.character-randomizer.packages.${pkgs.stdenv.hostPlatform.system}.default;
 

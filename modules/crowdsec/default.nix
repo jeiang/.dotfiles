@@ -84,7 +84,6 @@ in {
         };
       };
 
-      # The sshd log pipeline every crowdsec engine runs, LAPI or agent.
       crowdsec-engine = {
         config,
         lib,
@@ -176,7 +175,6 @@ in {
 
             acquisitions = [
               {
-                # The exact file the edge module's Caddy logFormat writes.
                 source = "file";
                 filenames = ["${config.services.caddy.logDir}/access.log"];
                 labels.type = "caddy";
@@ -272,8 +270,7 @@ in {
           };
 
           caddy = {
-            # The file the caddy acquisition above tails; retention is short
-            # since VictoriaLogs is the searchable archive.
+            # Short retention: VictoriaLogs is the searchable archive.
             logFormat = ''
               output file ${config.services.caddy.logDir}/access.log {
                 roll_size 100mb

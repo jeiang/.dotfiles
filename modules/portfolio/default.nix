@@ -19,8 +19,8 @@ in {
     stateful = true;
     units = ["portfolio" "portfolio-update"];
     ports.app = port;
-    # SQLite database and uploads on the root disk. The backup pauses the
-    # unit, so the database is never copied mid-write.
+    # The backup pauses the unit, so the SQLite database is never copied
+    # mid-write.
     backupSet = [stateDir];
   };
 

@@ -116,7 +116,6 @@ in {
       bucket = "garret";
       endpointUrl = "https://s3.ca-montreal.megas4.com";
       region = "ca-montreal";
-      # Flip to false if MEGA S4 rejects path-style addressing.
       pathStyle = true;
       credentialsFile = config.sops.templates."garret-s3.env".path;
     };
@@ -194,7 +193,7 @@ in {
       };
 
       caddy = {
-        # Only TCP 443 is open here.
+        # No UDP 443 is open, so advertising HTTP/3 would only fail.
         globalConfig = ''
           servers {
             protocols h1 h2
@@ -212,8 +211,6 @@ in {
             }
           }
         '';
-        # MUST stay DNS-only in Cloudflare: a push is one streaming PUT of a
-        # whole NAR and Cloudflare 413s bodies over 100 MB on the free plan.
         virtualHosts.${pushHostname}.extraConfig = ''
           reverse_proxy 127.0.0.1:${toString pusherPort} {
             transport http {

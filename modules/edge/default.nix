@@ -90,9 +90,8 @@ in {
       }
     '';
 
-    # Shared by both global loggers: strip credential-bearing headers at the
-    # encoder so they never reach disk or the journal; Location routinely
-    # embeds OAuth authorization codes.
+    # Keeps credential-bearing headers off disk and out of the journal;
+    # Location routinely embeds OAuth authorization codes.
     logEncoder = ''
       format filter {
         wrap json
@@ -198,10 +197,8 @@ in {
             };
           };
 
-          # Every site from here down is deliberately NOT behind the Anubis
-          # gate: these are machine-consumed routes, and a proof-of-work
-          # interstitial in front of a non-browser client is an outage, not
-          # a trade-off.
+          # Sites below are deliberately ungated: their clients are machines,
+          # for which a proof-of-work interstitial is an outage.
 
           ${self.lib.pocketIdHostname}.config = "reverse_proxy ${upstream "pocket-id" "app"}";
 

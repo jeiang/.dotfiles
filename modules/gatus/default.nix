@@ -13,8 +13,7 @@
 
   ok = name: group: url: https name group url ["[STATUS] == 200"];
 
-  # A body assertion beside status: an empty 200 slipped past status-only
-  # checks on 2026-09-18 and nothing alerted.
+  # Status alone passes an empty 200.
   page = name: group: url: needle:
     https name group url ["[STATUS] == 200" "[BODY] == pat(*${needle}*)"];
 
@@ -48,8 +47,8 @@
         # fallback, which says nothing about backend health.
         (https "Pocket ID" "Services" "${self.lib.pocketIdUrl}/healthz" ["[STATUS] == 204"])
         (ok "Grafana" "Services" "https://${self.lib.grafanaHostname}/api/health")
-        # "/" falls through to the static dashboard on node1's edge Caddy
-        # even when netbird-server is down; this path proxies to node2.
+        # "/" is the edge's static dashboard, up even with netbird-server
+        # down; this path is served by netbird-server itself.
         (ok "NetBird" "Services" "https://${self.lib.netbirdDomain}/oauth2/.well-known/openid-configuration")
         # nix-cache-info is the first request every substituter client makes.
         (ok "Nix cache" "Services" "https://${self.lib.cacheHostname}/nix-cache-info")

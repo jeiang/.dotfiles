@@ -31,7 +31,7 @@ of a whole compressed NAR and Cloudflare rejects bodies over 100 MB on the
 free plan, so a proxied push hostname 413s on any sizeable closure.
 `cache.jeiang.dev` is a choice: NAR requests answer 302 to a presigned S3
 URL, so proxying could only ever cache narinfo, while exposing the cache to
-the shared-PoP ban behaviour that once made it unreachable from CI.
+shared-PoP bans that block CI.
 
 ## Deploy
 
@@ -69,11 +69,9 @@ from `GARRET_TOKEN`, then `oidc.client_secret_file` (client credentials,
 renewed automatically), then the GitHub Actions environment, then the stored
 login. `.ci/garret.toml` is the GitHub Actions shape and needs no login.
 
-GitHub Actions tokens are accepted only from the workflows listed in
-`job_workflow_refs` in `modules/garret/default.nix`, pinned by repository
-id, on `push` and `workflow_dispatch`, for `refs/heads/main`,
-`refs/heads/master` and `refs/tags/v*`. A new repository or workflow that
-pushes needs its entries there first.
+GitHub Actions tokens are accepted only from the repositories and workflows
+listed in `githubPushers` in `modules/garret/default.nix`. A new repository
+or workflow that pushes needs its entry there first.
 
 ## Operations
 
@@ -88,9 +86,6 @@ Pusher; it never opens the database directly.
 | Backfill signatures after adding a key (refuses rows whose existing signature does not verify) | `ssh -t peria.svr.jeiang.dev sudo garret-admin resign` |
 | Audit rows against blobs (dry run) | `ssh -t peria.svr.jeiang.dev sudo garret-admin fsck --verify-sizes` |
 | Take a database copy now | see [Backup](#backup) |
-
-Quota is 250 GiB with eviction between the 0.95 and 0.85 watermarks
-(`modules/garret/default.nix`).
 
 ### Pruning old closures
 
@@ -110,8 +105,8 @@ Negotiation and uploads pause while an applied prune runs.
 
 ### Deleting what one identity pushed
 
-For a leaked or misused push identity, first revoke it (the GitHub issuer
-allowlist in `modules/garret/default.nix`, or the Pocket ID client or user),
+For a leaked or misused push identity, first revoke it (`githubPushers` in
+`modules/garret/default.nix`, or the Pocket ID client or user),
 then list everything that subject first pushed. The subject is
 `<issuer>#<sub>`, as the browse API's `pushed_by` shows it; `--since` takes a
 UTC date or an age:

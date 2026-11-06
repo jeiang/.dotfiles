@@ -207,8 +207,6 @@ in {
       };
     };
 
-    # The dashboard is a static bundle the edge serves itself, in front of
-    # the server's API and the relay.
     edge = {
       config,
       pkgs,
