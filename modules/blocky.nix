@@ -82,8 +82,8 @@
 
     systemd.services.blocky = lib.mkMerge [
       {
-        after = [(config.services.netbird.clients.default.service.name + ".service")];
-        wants = [(config.services.netbird.clients.default.service.name + ".service")];
+        after = [self.lib.netbirdUnit];
+        wants = [self.lib.netbirdUnit];
         # The hagezi lists hold ~2.4M entries (~390 MB resident); a refresh parses the new set while the old one is live.
         serviceConfig.MemoryMax = "1G";
       }

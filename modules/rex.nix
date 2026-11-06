@@ -5,7 +5,6 @@
 }: {
   nixos.modules.base = {config, ...}: let
     user = self.lib.facts.userName;
-    netbird = "${config.services.netbird.clients.default.service.name}.service";
     meshIP = self.lib.netbirdPeers.${config.networking.hostName};
     port = "7297";
   in {
@@ -32,8 +31,8 @@
     };
 
     systemd.services.rex-login-server = {
-      after = [netbird];
-      wants = [netbird];
+      after = [self.lib.netbirdUnit];
+      wants = [self.lib.netbirdUnit];
       # The mesh address appears only once NetBird connects; keep retrying the bind until then.
       startLimitIntervalSec = 0;
     };
