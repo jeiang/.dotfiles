@@ -195,7 +195,7 @@ in {
       # it is, lies inside, or contains; null when no entry covers it.
       storedPath = path: let
         covering = lib.filter (e: e.live == path || lib.hasPrefix "${e.live}/" path || lib.hasPrefix "${path}/" e.live) config.persistence.entries;
-        roots = lib.unique (map (e: lib.removeSuffix e.live e.stored) covering);
+        roots = lib.unique (map (e: e.root) covering);
       in
         if lib.length roots == 1
         then lib.removePrefix "/persist/" (lib.head roots + path)

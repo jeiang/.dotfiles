@@ -81,8 +81,10 @@
         readOnly = true;
         internal = true;
         description = ''
-          Every persisted path as `{kind, live, stored}`, where kind is `dir` or
-          `file`. The backup assertions and the migrate-persist and
+          Every persisted path as `{kind, live, stored, root}`, where kind is
+          `dir` or `file` and root is the storage root (`stored` minus `live`).
+          User entries also carry `user` and `storedHome`, that user's home
+          under root. The backup assertions and the migrate-persist and
           persist-orphans scripts read this instead of the storage layout.
         '';
       };
@@ -109,14 +111,26 @@
       };
 
       persistence.entries = lib.concatLists (lib.mapAttrsToList (root: p: let
-        users = lib.attrValues p.users;
-        entry = kind: live: {
-          inherit kind live;
-          stored = root + live;
-        };
+        owners =
+          [(p // {extra = {};})]
+          ++ lib.mapAttrsToList (name: u:
+            u
+            // {
+              extra = {
+                user = name;
+                storedHome = root + config.users.users.${name}.home;
+              };
+            })
+          p.users;
+        entry = kind: extra: live:
+          {
+            inherit kind live root;
+            stored = root + live;
+          }
+          // extra;
       in
-        map (e: entry "dir" e.dirPath) (p.directories ++ lib.concatMap (u: u.directories) users)
-        ++ map (e: entry "file" e.filePath) (p.files ++ lib.concatMap (u: u.files) users))
+        lib.concatMap (o: map (e: entry "dir" o.extra e.dirPath) o.directories) owners
+        ++ lib.concatMap (o: map (e: entry "file" o.extra e.filePath) o.files) owners)
       config.environment.persistence);
 
       boot.initrd.systemd = {
