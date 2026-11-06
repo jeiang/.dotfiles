@@ -119,11 +119,17 @@ qwen-image *args:
 icloud-media-import +paths:
   nix shell --inputs-from {{justfile_directory()}} nixpkgs#rsync -c {{justfile_directory()}}/modules/media/icloud-import.sh artemis.jeiang.vpn /var/lib/media "$@"
 
+# The nb-nix token: $NETBIRD_TOKEN_FILE, else the one in the admin stash
+_netbird-token:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  if [ -n "${NETBIRD_TOKEN_FILE:-}" ]; then cat "$NETBIRD_TOKEN_FILE"; else sops -d --extract '["netbird"]["nb-nix-token"]' modules/sops/secrets.admin.yaml; fi
+
 # Plan NetBird management changes (modules/netbird-management) against live state; read-only. Token: $NETBIRD_TOKEN_FILE, else the nb-nix token in the admin stash
 netbird-plan *args:
   #!/usr/bin/env bash
   set -euo pipefail
-  if [ -n "${NETBIRD_TOKEN_FILE:-}" ]; then NETBIRD_API_TOKEN=$(<"$NETBIRD_TOKEN_FILE"); else NETBIRD_API_TOKEN=$(sops -d --extract '["netbird"]["nb-nix-token"]' modules/sops/secrets.admin.yaml); fi
+  NETBIRD_API_TOKEN=$({{just_executable()}} _netbird-token)
   export NETBIRD_API_TOKEN
   desired=$(nix build --no-link --print-out-paths .#netbird-desired)
   nix run --inputs-from . nb-nix -- plan -c "$desired" -o .netbird-plan.json {{args}}
@@ -132,7 +138,7 @@ netbird-plan *args:
 netbird-apply *args:
   #!/usr/bin/env bash
   set -euo pipefail
-  if [ -n "${NETBIRD_TOKEN_FILE:-}" ]; then NETBIRD_API_TOKEN=$(<"$NETBIRD_TOKEN_FILE"); else NETBIRD_API_TOKEN=$(sops -d --extract '["netbird"]["nb-nix-token"]' modules/sops/secrets.admin.yaml); fi
+  NETBIRD_API_TOKEN=$({{just_executable()}} _netbird-token)
   export NETBIRD_API_TOKEN
   nix run --inputs-from . nb-nix -- apply {{args}} .netbird-plan.json
 
@@ -169,8 +175,9 @@ legion-run *command:
   set -euo pipefail
   summary=""
   failed=0
-  for node in $(nix eval --raw '.#lib.legionNodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrNames nodes)'); do
-    if ssh "${node}.svr.jeiang.dev" -- {{command}}; then
+  for entry in $(nix eval --raw '.#lib' --apply 'lib: builtins.concatStringsSep "\n" (map (node: "${node}=${lib.nodeHostname node}") (builtins.attrNames lib.legionNodes))'); do
+    node=${entry%%=*}
+    if ssh "${entry#*=}" -- {{command}}; then
       summary+="  $node ok"$'\n'
     else
       summary+="  $node FAILED"$'\n'

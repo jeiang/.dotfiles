@@ -26,7 +26,7 @@ password inside an SSH session.
 ## List snapshots
 
 ```sh
-ssh -t <node>.jeiang.dev sudo restic-<service> snapshots
+ssh -t <node>.svr.jeiang.dev sudo restic-<service> snapshots
 ```
 
 ## Restore to a scratch directory
@@ -34,7 +34,7 @@ ssh -t <node>.jeiang.dev sudo restic-<service> snapshots
 Never restore over live data first.
 
 ```sh
-ssh -t <node>.jeiang.dev sudo restic-<service> restore <snapshot-id> --target /tmp/restore-<service>
+ssh -t <node>.svr.jeiang.dev sudo restic-<service> restore <snapshot-id> --target /tmp/restore-<service>
 ```
 
 ## Verify
@@ -43,14 +43,14 @@ ssh -t <node>.jeiang.dev sudo restic-<service> restore <snapshot-id> --target /t
 - Each SQLite database passes an integrity check:
 
   ```sh
-  ssh -t <node>.jeiang.dev "sudo nix shell nixpkgs#sqlite -c sqlite3 /tmp/restore-<service>/<path-to-db> 'PRAGMA integrity_check;'"
+  ssh -t <node>.svr.jeiang.dev "sudo nix shell nixpkgs#sqlite -c sqlite3 /tmp/restore-<service>/<path-to-db> 'PRAGMA integrity_check;'"
   ```
 
 - File counts and sizes are close to the live path.
 - Delete the scratch copy when done:
 
   ```sh
-  ssh -t <node>.jeiang.dev sudo rm -rf /tmp/restore-<service>
+  ssh -t <node>.svr.jeiang.dev sudo rm -rf /tmp/restore-<service>
   ```
 
 ## Restore over the live path
@@ -60,20 +60,20 @@ Only after the scratch copy passes, and only to recover from data loss.
 1. Stop every unit in the job's `pauseUnits`:
 
     ```sh
-    ssh -t <node>.jeiang.dev sudo systemctl stop <pause-units>
+    ssh -t <node>.svr.jeiang.dev sudo systemctl stop <pause-units>
     ```
 
 2. Restore. Do not add `--delete`: with `--target /` it deletes everything on
     the node that is not in the snapshot.
 
     ```sh
-    ssh -t <node>.jeiang.dev sudo restic-<service> restore <snapshot-id> --target / --overwrite always
+    ssh -t <node>.svr.jeiang.dev sudo restic-<service> restore <snapshot-id> --target / --overwrite always
     ```
 
 3. Start the units again and confirm the service answers:
 
     ```sh
-    ssh -t <node>.jeiang.dev sudo systemctl start <pause-units>
+    ssh -t <node>.svr.jeiang.dev sudo systemctl start <pause-units>
     ```
 
 ## Minecraft worlds
@@ -144,7 +144,8 @@ needing new recipients in `.sops.yaml`.
 The daily `restic-backups-<service>` run only backs up; it keeps every
 snapshot. A separate weekly `restic-maintenance-<service>` timer runs
 `restic forget --prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6`
-followed by `restic check --read-data-subset=5%`, both defined in
+followed by `restic check --read-data-subset=N/52`, where N comes from the
+ISO week so every pack is read about once a year, both defined in
 `modules/backups/default.nix`. Snapshots outside that policy are gone
 once a maintenance run has pruned them.
 
