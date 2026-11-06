@@ -84,23 +84,36 @@ behavior for its own sake.
 - `modules/hosts/<host>/`: host assembly, hardware, disko, facter report,
   host secrets. `modules/hosts/legion/services.nix` declares the
   `legion.services.<name>` option; each Legion service's own feature file
-  sets its own entry (node, ports, firewall, Volume, backup set), and
-  `modules/hosts/legion/default.nix` derives per-node module imports,
-  firewall openings, and `backups.jobs` from it, plus (Hetzner nodes only,
-  through `nixos.modules.hetzner`) Volume `fileSystems`, the private NIC,
-  and the WAN gateway config. `modules/hosts/ricklent/` holds the Linode
-  node's BIOS GRUB disk, DHCP/IPv6 network, and resource settings.
+  sets its own entry (node, ports, public ports, Volume, backup set, DNS-only
+  hostnames), and `modules/hosts/legion/default.nix` derives per-node module
+  imports, firewall openings, monitored units, and `backups.jobs` from it.
+  Each node also imports the module of its provider
+  (`legionNodes.<name>.provider`): `nixos.modules.hetzner`
+  (`modules/hosts/legion/hetzner.nix`: disko, Volume `fileSystems`, the
+  private NIC, the WAN gateways) or `nixos.modules.linode`
+  (`modules/hosts/ricklent/`: BIOS GRUB disk, DHCP/IPv6 network, resource
+  settings).
 - `modules/<feature>.nix`, or `modules/<feature>/` when it has sibling
   files (secrets shard, Lua, JSON, script): one flake-parts module that
   implements the feature for every class it applies to. A secret shard sits
   beside its consumer as `secrets.yaml`; a second shard in the same
   directory is `secrets.<consumer>.yaml` (`netbird-server/secrets.proxy.yaml`).
 - Features contribute to roles, not their own names: `nixos.modules.base` /
-  `darwin.modules.base` (every host of the class), `nixos.modules.artemis`,
+  `darwin.modules.base` (every host of the class), `shared.modules.base`
+  (every NixOS and darwin host) and `shared.modules.workstation` (artemis and
+  zakkart) for config valid on both classes, `nixos.modules.artemis`,
   `nixos.modules.legion`, and one kebab-case `nixos.modules.<service>` per
   Legion service. Hosts are `nixos.configurations.<host>.module` /
   `darwin.configurations.<host>.module` (`modules/configurations.nix`).
-- `modules/packages/`: packages and wrapped programs.
+- A value another module needs is a `flake.lib` name defined by the module
+  that owns it (`netbirdDomain`, `pocketIdUrl`, `cacheHostname`,
+  `deployUser`, ...). A Legion service's address comes from
+  `self.lib.serviceAddress <fromNode> <service>`; never type a node name for
+  where a service runs.
+- Every NixOS host's node exporter reports only `monitoredUnits`; each
+  module adds the units it owns (Legion services through `units`).
+- `modules/packages/`: packages and wrapped programs. A package that only
+  builds on Linux goes in `perSystem.linuxPackages`.
 - `dns/dnsconfig.js`: public DNS.
 - `docs/runbooks/`: procedures that recur.
 - `docs/topology/`: nix-topology diagrams rendered from the host
@@ -172,9 +185,10 @@ behavior for its own sake.
   the new revision, then deploy with `--boot` and reboot. After the reboot
   the old data is only in `old_roots`.
 - Persisting a path does not back it up. A backup set is an explicit
-  allowlist, and every path in it must also be a `persistence.*` path.
-  artemis backs up its allowlist (`modules/backups/default.nix`) from a
-  read-only btrfs snapshot of `/persist`, so the paths in its snapshots
+  allowlist, and every path in it must also be a `persistence.*` path: each
+  module adds its own paths, excludes and snapshot-stop units to
+  `backups.persist` next to its persistence entries. artemis backs them up
+  from a read-only btrfs snapshot of `/persist`, so the paths in its snapshots
   carry a `/persist/.backup-snapshot` prefix. A btrfs snapshot is not
   recursive: a backup path that is, or contains, a nested subvolume would
   back up as an empty directory.
@@ -183,11 +197,15 @@ behavior for its own sake.
 
 - sops-nix on every host, zakkart included. One shard per consuming module,
   encrypted to the admin key and exactly the hosts that run the consumer. A
-  host's recipient is its ed25519 host key through `ssh-to-age`. `.sops.yaml`
-  has one rule per shard, anchored on the full path. There is no `defaultSopsFile`, so a
-  secret without a shard fails evaluation.
-- `just sops-edit` adds or changes values. `just sops-updatekeys` is needed
-  only after a recipient change in `.sops.yaml`.
+  host's recipient is its ed25519 host key through `ssh-to-age`, declared in
+  `modules/sops/default.nix`. There is no `defaultSopsFile`, so a secret
+  without a shard fails evaluation.
+- `.sops.yaml` is generated from the `sops.secrets` each host declares; do
+  not edit it. To add a shard, declare the secret in its consumer, run
+  `just sops-config`, then `just sops-edit <path>`; run `just
+  sops-updatekeys` after a recipient change. The `sops-config` check fails
+  while the committed file is stale. Shard paths must match
+  `lib.sopsShardRegex`.
 - A rotated secret reaches a running process only through that secret's
   `restartUnits`.
 - On NixOS, `sops-install-secrets.service` (`useSystemdActivation`)
@@ -243,8 +261,8 @@ behavior for its own sake.
   `modules/netbird-management`, whose ports the `Legion Mesh` access
   policies allow; a new one needs an entry there. NetBird DNS clients use
   Blocky on vida and ricklent at their mesh IPs (port 553, TCP and UDP).
-- Legion host firewalls are on. A `legion.services.<name>` entry's
-  `scope = "private"` is documentation: `enp7s0` (Hetzner nodes) and the
+- Legion host firewalls are on. `legion.services.<name>.publicPorts` and
+  `publicPortRanges` are the internet openings; `enp7s0` (Hetzner nodes) and the
   NetBird interface are trusted interfaces. On a Hetzner node a public
   opening also needs a rule in `legion`, the one Hetzner Cloud Firewall the
   four Hetzner nodes share. It is attached by
@@ -266,8 +284,9 @@ behavior for its own sake.
   `*.proxy`, with no health check, so a down replica still gets about half
   of new connections until the client retries. Each replica binds public
   TCP 443, terminates its own TLS (DNS-01 wildcard per host) with no PROXY
-  protocol, and has its own token, Cloudflare token and CrowdSec bouncer
-  key. CrowdSec IP reputation protects both with decisions from the LAPI
+  protocol, and has its own proxy token and CrowdSec bouncer key; the
+  Cloudflare DNS token is the one shared shard in `modules/cloudflare`, which
+  the edge also reads. CrowdSec IP reputation protects both with decisions from the LAPI
   on `alda`; vida also runs an nftables bouncer here. Each host opens
   TCP/UDP 40000-45000 for ad hoc services, and the Hetzner `legion`
   firewall allows that range, so a port in it is public on any Hetzner
@@ -275,11 +294,13 @@ behavior for its own sake.
   relay serves every peer.
 - ricklent and zantark each run a CrowdSec agent (sshd logs from the
   journal) and an nftables bouncer against the LAPI on `alda`
-  (`modules/crowdsec/agent.nix`). Each agent's machine and bouncer
-  credentials live in its own shard (`secrets.agent.yaml` for ricklent,
-  `secrets.zantark.yaml`), readable only by alda and that node. alda reads
-  its own sshd journal and runs an nftables bouncer registered against its
-  local API, so sshd bans act on the host firewall, not only in Caddy.
+  (`modules/crowdsec/agent.nix`). Every LAPI credential is an entry in the
+  `crowdsec.bouncers` registry, which alda registers; firewall bouncers are
+  named `<node>-firewall`. A node's machine and bouncer credentials live in
+  `modules/crowdsec/secrets.<node>.yaml`, readable only by alda and that
+  node. alda reads its own sshd journal and runs an nftables bouncer
+  registered against its local API, so sshd bans act on the host firewall,
+  not only in Caddy.
 - CrowdSec keeps its database and hub under `/var/lib/crowdsec/state` on
   every Legion node, not the nixpkgs default data directory. alda's local
   API credentials stay at `/etc/crowdsec/local_api_credentials.yaml`; the
@@ -354,8 +375,8 @@ behavior for its own sake.
   since the last snapshot. Both units skip their start while the index is
   missing: the Pusher would create an empty one, and its startup orphan
   sweep would then delete every bucket object older than 24 hours. This
-  Caddy has no bouncer module or AppSec; garret's host nftables bouncer
-  uses alda's LAPI with its own key in `modules/crowdsec/secrets.garret.yaml`.
+  Caddy has no bouncer module or AppSec; peria's host nftables bouncer uses
+  alda's LAPI with its key in `modules/crowdsec/secrets.peria.yaml`.
 - The portfolio on `vida` runs whatever upstream `joshua-noel/portfolio`
   main builds: `portfolio-update` builds it as the `portfolio` user at
   00:00 UTC (and 2 minutes after activation) into
@@ -366,8 +387,12 @@ behavior for its own sake.
   module changes.
 - `dns/dnsconfig.js` is the source of truth for the Cloudflare zones. CI
   applies it on merge with full purge; only `_acme-challenge` TXT records
-  are ignored. A dashboard edit is for emergencies and must be copied back
-  into the file. `noelejoshua.com` is in its owner's Cloudflare account.
+  are ignored. The DNS-only A/AAAA records of Legion services come from each
+  `legion.services.<name>.publicHostnames` through `dns/nodes.json`, which
+  `just dns-nodes` regenerates (the `legion-nodes-json` check fails while it
+  is stale); apex, wildcard, mail, CAA and TXT records stay hand-written. A
+  dashboard edit is for emergencies and must be copied back into the file.
+  `noelejoshua.com` is in its owner's Cloudflare account.
 - Determinate Nix owns the Nix installation on every host. On zakkart
   `nix.enable = false`; settings go through `determinateNix.customSettings`,
   which does not merge, so use `extra-*` keys.
@@ -413,7 +438,7 @@ behavior for its own sake.
 - `modules/mcp/` renders one MCP server list, and only omp gets it as a file
   (`~/.omp/agent/mcp.json`). Claude Code keeps user-scope servers in
   `~/.claude.json` and Codex in `~/.codex/config.toml`, both of which those
-  clients rewrite, so the operator registers the servers there by hand.
+  clients rewrite, so `just mcp-register` copies the list into them.
   Grafana is reached over the mesh, never through the edge. REA is not in
   that list, because its tool catalog would ride along in every session: a
   reverse-engineering project registers it itself, in `.omp/mcp.json`
@@ -449,8 +474,11 @@ behavior for its own sake.
   `services.atrium` into artemis: `mode = "live"`, the sops environment file
   (`atrium/env`, which carries the IMAP, SMTP, Notion, Google and Anthropic
   credentials, so what the assistant reads leaves the house), the shared
-  hostname and ports (`flake.lib.atriumHostname`, `atriumWebPort`,
-  `atriumWebLocalPort`), the llama-server units, persistence and backup.
+  hostname and port (`flake.lib.atriumHostname`, `atriumWebPort`), the
+  llama-server units (`self.lib.llamaServer`, models from
+  `self.lib.llamaModels`, shared with cod4e-vision), persistence and backup.
+  atrium is stopped for now (`enabled = false` in `modules/atrium`); the
+  operator turns it back on.
   Bumping the input is how a code change reaches artemis.
 - The public listener (`atrium-web`, `--auth proxy`) is reached through
   alda's Caddy at `atrium.jeiang.dev` behind tinyauth (Pocket ID group

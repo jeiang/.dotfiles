@@ -1,11 +1,6 @@
 {
-  perSystem = {
-    pkgs,
-    lib,
-    ...
-  }: {
-    # Linux-only: absent on darwin rather than an eval error (no consumer there).
-    packages = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+  perSystem = {pkgs, ...}: {
+    linuxPackages = {
       caddy = pkgs.caddy.withPlugins {
         plugins = [
           "github.com/caddy-dns/cloudflare@v0.2.4"

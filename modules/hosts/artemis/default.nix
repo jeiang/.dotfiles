@@ -87,12 +87,11 @@ in {
     backups.persist.paths = let
       home = config.users.users.${config.preferences.user.name}.home;
     in
-      # Host identity: a rebuilt artemis keeps its sops key and the NetBird
-      # peer address the flake hardcodes.
-      [(dirOf self.lib.hostKeyPath) "/var/lib/netbird"]
-      ++ map (directory: "${home}/${directory}") [".gnupg" ".local/share/fish" ".password-store" ".renpy" ".ssh"];
+      # Host identity: a rebuilt artemis keeps its sops key.
+      [(dirOf self.lib.hostKeyPath)]
+      ++ map (directory: "${home}/${directory}") [".local/share/fish" ".renpy" ".ssh"];
 
-    monitoredUnits = ["netbird.service" "netbird-login.service" "sshd.service" "wireguard-wg-backup.service"];
+    monitoredUnits = ["sshd.service"];
 
     boot = {
       loader.systemd-boot = {

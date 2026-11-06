@@ -69,13 +69,6 @@
   publicPortRangesFor = nodeName: proto:
     map (o: {inherit (o) from to;}) (builtins.filter (o: o.proto == proto) (lib.concatMap (s: s.publicPortRanges) (servicesByNode nodeName)));
 
-  fixedLegionUnits = ["netbird" "netbird-login" "systemd-journal-upload"];
-
-  # The restic pattern matches timers too; the backup-freshness alert reads their last trigger.
-  unitIncludeFor = nodeName: let
-    units = lib.unique (fixedLegionUnits ++ lib.concatMap (s: s.units) (servicesByNode nodeName));
-  in "(${lib.concatStringsSep "|" units})\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)";
-
   nodeHostname = name: "${name}.svr.jeiang.dev";
 
   serviceAddress = from: service: legionAddress from legionServices.${service}.node;
@@ -143,16 +136,8 @@ in {
       };
 
       sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
+      monitoredUnits = ["systemd-journal-upload.service"] ++ map (unit: "${unit}.service") (lib.concatMap (s: s.units) (servicesByNode config.networking.hostName));
       services = {
-        prometheus.exporters.node = {
-          enable = true;
-          enabledCollectors = ["systemd"];
-          # Explicit unit-include keeps node_systemd_unit_state cardinality bounded for the memory-constrained VictoriaMetrics; the default `.+` would emit hundreds of series.
-          extraFlags = [
-            "--collector.systemd.unit-include=${unitIncludeFor config.networking.hostName}"
-          ];
-        };
-
         # systemd-journal-upload appends `/upload` itself and VictoriaLogs' route is /insert/journald/upload, so this URL must end at /insert/journald.
         journald.upload = {
           enable = true;

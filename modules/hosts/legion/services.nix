@@ -49,10 +49,9 @@
         type = lib.types.listOf lib.types.str;
         default = [];
         description = ''
-          systemd unit names (without `.service`) this service owns.
-          modules/hosts/legion/default.nix builds each node's
-          node-exporter --collector.systemd.unit-include regex from the
-          units of the services placed there.
+          systemd service names (without `.service`; `*` matches any run of
+          characters) this service owns: the placement node monitors them,
+          and a backup of the service stops them by default.
         '';
       };
 

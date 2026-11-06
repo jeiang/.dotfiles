@@ -25,6 +25,8 @@ in {
   };
 
   nixos.modules.artemis = {config, ...}: {
+    monitoredUnits = ["wireguard-wg-backup.service"];
+
     sops.secrets."wireguard/artemis-private-key" = {
       sopsFile = ./secrets.yaml;
       restartUnits = ["wireguard-wg-backup.service"];

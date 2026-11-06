@@ -1,5 +1,9 @@
 {
-  nixos.modules.artemis = {pkgs, ...}: {
+  nixos.modules.artemis = {
+    config,
+    pkgs,
+    ...
+  }: {
     programs.gnupg.agent = {
       enable = true;
       # Headless host: SSH gpg/gopass prompts must not try a Wayland dialog.
@@ -17,5 +21,7 @@
       }
       ".config/gopass"
     ];
+
+    backups.persist.paths = map (directory: "${config.users.users.${config.preferences.user.name}.home}/${directory}") [".gnupg" ".password-store"];
   };
 }

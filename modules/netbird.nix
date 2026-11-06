@@ -40,8 +40,14 @@
       networking.firewall.trustedInterfaces = [
         config.services.netbird.clients.default.interface
       ];
+
+      monitoredUnits = ["netbird.service" "netbird-login.service"];
     };
 
-    artemis.persistence.directories = ["/var/lib/netbird"];
+    # The NetBird peer keeps the address the flake hardcodes.
+    artemis = {
+      persistence.directories = ["/var/lib/netbird"];
+      backups.persist.paths = ["/var/lib/netbird"];
+    };
   };
 }

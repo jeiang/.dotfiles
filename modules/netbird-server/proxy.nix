@@ -26,19 +26,12 @@ in {
   crowdsec.bouncers = builtins.mapAttrs (_: replica: replica.node) replicas;
 
   legion.services =
-    builtins.mapAttrs (name: replica: {
+    builtins.mapAttrs (_name: replica: {
       inherit (replica) node;
       module = "netbird-proxy";
-      units = ["netbird-proxy" "acme-.*" "crowdsec-firewall-bouncer"];
-      ports = {
-        health = healthPort;
-        metrics = healthPort;
-      };
-      # Hostnames are unique across services, so the cluster's are declared once.
-      publicHostnames =
-        if name == "netbird-proxy"
-        then [domain "*.${domain}"]
-        else [];
+      units = ["netbird-proxy" "acme-*" "crowdsec-firewall-bouncer"];
+      ports.health = healthPort;
+      publicHostnames = [domain "*.${domain}"];
       publicPorts = [
         {
           port = 443;

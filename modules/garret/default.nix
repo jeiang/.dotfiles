@@ -31,8 +31,7 @@ in {
     cachePushHostname = pushHostname;
   };
 
-  nixos.modules.artemis = client;
-  darwin.modules.base = client;
+  shared.modules.workstation = client;
 
   legion.services.garret = {
     node = "peria";
