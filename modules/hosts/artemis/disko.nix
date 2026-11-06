@@ -19,6 +19,8 @@
   in {
     imports = [
       inputs.disko.nixosModules.disko
+      # The disko CLI reads only disko.devices, so this stays out of its way.
+      ({config, ...}: {fileSystems.${btrfsRootMount}.device = config.fileSystems."/".device;})
     ];
 
     boot.loader.efi.canTouchEfiVariables = true;
@@ -33,7 +35,6 @@
       };
       # for bees
       "${btrfsRootMount}" = {
-        device = "/dev/disk/by-partlabel/disk-nvme3-root";
         neededForBoot = false;
         fsType = "btrfs";
         options = btrfsMountOptions;

@@ -7,9 +7,8 @@
   inherit (config.nixos) modules;
 in {
   flake.deploy.nodes.artemis = {
-    # Deploys ride the NetBird mesh (no public DNS); when it's down: deploy .#artemis --hostname <LAN IP or 10.100.0.2 via the backup tunnel>.
     hostname = "artemis.jeiang.vpn";
-    sshUser = "deploy";
+    sshUser = self.lib.deployUser;
     sudo = "doas -u";
     profiles.system = {
       user = "root";
@@ -39,16 +38,11 @@ in {
     ];
 
     persistence = {
-      nukeRoot = {
-        device = "/dev/disk/by-partlabel/disk-nvme3-root";
-        subvolume = "rootfs";
-      };
-
       files = [
         "/etc/machine-id"
         "/var/lib/systemd/random-seed"
-        "/etc/ssh/ssh_host_ed25519_key"
-        "/etc/ssh/ssh_host_ed25519_key.pub"
+        self.lib.hostKeyPath
+        "${self.lib.hostKeyPath}.pub"
       ];
       directories = [
         "/var/lib/nixos"
@@ -90,12 +84,12 @@ in {
       ];
     };
 
-    # Host identity: with these a rebuilt artemis keeps its sops key and its
-    # NetBird peer address, which the flake hardcodes.
     backups.persist.paths = let
       home = config.users.users.${config.preferences.user.name}.home;
     in
-      ["/etc/ssh" "/var/lib/netbird"]
+      # Host identity: a rebuilt artemis keeps its sops key and the NetBird
+      # peer address the flake hardcodes.
+      [(dirOf self.lib.hostKeyPath) "/var/lib/netbird"]
       ++ map (directory: "${home}/${directory}") [".gnupg" ".local/share/fish" ".password-store" ".renpy" ".ssh"];
 
     monitoredUnits = ["netbird.service" "netbird-login.service" "sshd.service" "wireguard-wg-backup.service"];

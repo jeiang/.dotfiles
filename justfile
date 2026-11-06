@@ -72,7 +72,7 @@ migrate-persist flake="." sudo="sudo":
   {{sudo}} nix shell nixpkgs#jq nixpkgs#rsync -c ./modules/hosts/artemis/migrate-persist.sh {{flake}}
 
 # List paths in artemis's /persist that no persistence.* entry declares (read-only)
-persist-orphans host="artemis.jeiang.vpn":
+persist-orphans *host:
   ./modules/hosts/artemis/persist-orphans.sh . {{host}}
 
 install system sudo="sudo":
