@@ -246,19 +246,18 @@ in {
       };
     };
 
-    # The root disk holds the only live index, so the interval is the pushes a lost node forgets.
-    backups.jobs.garret.schedule = {
-      onCalendar = "00/6:00";
-      randomizedDelaySec = "15m";
-    };
-
     environment.systemPackages = [garretAdmin];
 
-    # An online copy, so the backup never stops the cache. The Pusher never
-    # overwrites a file, hence the rm. The Pusher is Type=notify and signals
-    # ready only once the admin socket exists, so ordering after its unit
-    # is enough.
     backups.jobs.garret = {
+      # The root disk holds the only live index, so the interval is the pushes a lost node forgets.
+      schedule = {
+        onCalendar = "00/6:00";
+        randomizedDelaySec = "15m";
+      };
+      # An online copy, so the backup never stops the cache. The Pusher never
+      # overwrites a file, hence the rm. The Pusher is Type=notify and signals
+      # ready only once the admin socket exists, so ordering after its unit
+      # is enough.
       pauseUnits = [];
       prepareCommand = let
         socket = config.services.garret.pusher.adminSocketPath;
