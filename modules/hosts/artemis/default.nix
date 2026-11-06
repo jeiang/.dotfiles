@@ -181,17 +181,6 @@ in {
 
       # No screen reader on a headless box; the graphical-desktop default pulls this in.
       speechd.enable = false;
-
-      hypr-rdp = {
-        enable = true;
-        sopsFile = ./secrets.yaml;
-        settings = {
-          bind = "0.0.0.0:3389";
-          # No `output`: hypr-rdp manages its own headless output.
-          # `auto` would quietly fall back to software H.264 if the VA-API driver ever failed to load.
-          h264_backend = "vaapi";
-        };
-      };
     };
 
     nixpkgs.hostPlatform = "x86_64-linux";
