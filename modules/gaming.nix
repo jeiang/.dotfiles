@@ -48,12 +48,12 @@
               gpu_device = self.lib.artemisDgpuDevice.cardIndex;
               amd_performance_level = "high";
             };
-            custom = lib.mkIf (config.gaming.pauseUnits != []) (let
+            custom = let
               units = lib.escapeShellArgs config.gaming.pauseUnits;
             in {
               start = "systemctl --no-ask-password stop ${units}";
               end = "systemctl --no-ask-password start ${units}";
-            });
+            };
           };
         };
         steam = {
@@ -66,7 +66,7 @@
         };
       };
       # gamemoded runs the custom scripts as the operator with no terminal, so polkit grants exactly these start/stop calls.
-      security.polkit.extraConfig = lib.mkIf (config.gaming.pauseUnits != []) ''
+      security.polkit.extraConfig = ''
         polkit.addRule(function(action, subject) {
           var units = ${builtins.toJSON config.gaming.pauseUnits};
           var verb = action.lookup("verb");
