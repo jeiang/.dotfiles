@@ -103,6 +103,17 @@
 
       cache.directories = persistenceListOption "User cache directories to persist under `/persist/cache`.";
       cache.files = persistenceListOption "User cache files to persist under `/persist/cache`.";
+
+      entries = lib.mkOption {
+        type = lib.types.listOf (lib.types.attrsOf lib.types.str);
+        readOnly = true;
+        internal = true;
+        description = ''
+          Every persisted path as `{kind, live, stored}`, where kind is `dir` or
+          `file`. The backup assertions and the migrate-persist and
+          persist-orphans scripts read this instead of the storage layout.
+        '';
+      };
     };
 
     config = {
@@ -127,6 +138,17 @@
           files = cfg.cache.files;
         };
       };
+
+      persistence.entries = lib.concatLists (lib.mapAttrsToList (root: p: let
+        users = lib.attrValues p.users;
+        entry = kind: live: {
+          inherit kind live;
+          stored = root + live;
+        };
+      in
+        map (e: entry "dir" e.dirPath) (p.directories ++ lib.concatMap (u: u.directories) users)
+        ++ map (e: entry "file" e.filePath) (p.files ++ lib.concatMap (u: u.files) users))
+      config.environment.persistence);
 
       boot.initrd.systemd = {
         initrdBin = [pkgs.btrfs-progs];

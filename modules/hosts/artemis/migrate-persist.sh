@@ -15,21 +15,9 @@ nix_eval() {
 }
 
 user=$(nix_eval --raw "${flake}#${attr}.preferences.user.name")
-home="/home/${user}"
 
-paths() {
-  nix_eval --json "${flake}#${attr}.persistence.$1" \
-    --apply 'builtins.map (e: if builtins.isString e then e else e.directory or e.file)' |
-    jq -r '.[]'
-}
-
-# Load every list first so a failed eval stops the script before anything is copied.
-dirs=$(paths directories)
-files_list=$(paths files)
-data_dirs=$(paths data.directories)
-data_files=$(paths data.files)
-cache_dirs=$(paths cache.directories)
-cache_files=$(paths cache.files)
+# Load every entry first so a failed eval stops the script before anything is copied.
+entries=$(nix_eval --json "${flake}#${attr}.persistence.entries" | jq -r '.[] | [.kind, .live, .stored] | @tsv')
 
 sync_dir() {
   local src="$1" dst="$2"
@@ -64,31 +52,14 @@ sync_file() {
   echo "synced file: $src -> $dst"
 }
 
-sync_list() {
-  local list="$1" fn="$2" src_prefix="$3" dst_prefix="$4"
-  [[ -z "$list" ]] && return 0
-  while IFS= read -r p; do
-    "$fn" "${src_prefix}${p}" "${dst_prefix}${p}"
-  done <<<"$list"
-}
-
-echo "== system directories -> /persist =="
-sync_list "$dirs" sync_dir "" "/persist"
-
-echo "== system files -> /persist =="
-sync_list "$files_list" sync_file "" "/persist"
-
-echo "== user data directories -> /persist/data/home/${user} =="
-sync_list "$data_dirs" sync_dir "${home}/" "/persist/data/home/${user}/"
-
-echo "== user data files -> /persist/data/home/${user} =="
-sync_list "$data_files" sync_file "${home}/" "/persist/data/home/${user}/"
-
-echo "== user cache directories -> /persist/cache/home/${user} =="
-sync_list "$cache_dirs" sync_dir "${home}/" "/persist/cache/home/${user}/"
-
-echo "== user cache files -> /persist/cache/home/${user} =="
-sync_list "$cache_files" sync_file "${home}/" "/persist/cache/home/${user}/"
+echo "== persisted paths -> /persist =="
+while IFS=$'\t' read -r kind live stored; do
+  if [[ "$kind" == dir ]]; then
+    sync_dir "$live" "$stored"
+  else
+    sync_file "$live" "$stored"
+  fi
+done <<<"$entries"
 
 # mkdir -p as root leaves undeclared ancestor dirs root:root and impermanence mirrors that onto $HOME at boot; fix owner:group only (mode untouched, preserving the 0700 entries).
 echo "== fixing ownership under /persist/{data,cache}/home/${user} =="
