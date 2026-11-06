@@ -21,6 +21,8 @@ in {
     };
   };
 
+  nixos.modules.artemis.services.prometheus.exporters.smartctl.enable = true;
+
   nixos.modules.monitoring = {
     config,
     lib,
