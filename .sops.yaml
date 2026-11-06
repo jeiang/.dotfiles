@@ -140,9 +140,18 @@ creation_rules:
       - *server_vida
       - *server_ricklent
 
-  # modules/crowdsec/default.nix (edge engine) and
-  # modules/netbird-server/proxy.nix (proxy bouncer client).
-  - path_regex: modules/crowdsec/secrets\.yaml$
+  # modules/crowdsec/default.nix: LAPI credentials used on each node, readable
+  # by that node and by alda, which registers them.
+  - path_regex: modules/crowdsec/secrets\.alda\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_alda
+
+  - path_regex: modules/crowdsec/secrets\.vida\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -152,9 +161,7 @@ creation_rules:
       - *server_alda
       - *server_vida
 
-  # modules/crowdsec/default.nix (LAPI registration on alda) and
-  # modules/crowdsec/agent.nix (ricklent's machine and bouncer credentials).
-  - path_regex: modules/crowdsec/secrets\.agent\.yaml$
+  - path_regex: modules/crowdsec/secrets\.ricklent\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -164,8 +171,6 @@ creation_rules:
       - *server_alda
       - *server_ricklent
 
-  # modules/crowdsec/agent.nix (zantark's machine and bouncer credentials) and
-  # their LAPI registration on alda.
   - path_regex: modules/crowdsec/secrets\.zantark\.yaml$
     key_groups:
     - age:
@@ -176,8 +181,7 @@ creation_rules:
       - *server_alda
       - *server_zantark
 
-  # garret's host firewall bouncer and its registration on alda.
-  - path_regex: modules/crowdsec/secrets\.garret\.yaml$
+  - path_regex: modules/crowdsec/secrets\.peria\.yaml$
     key_groups:
     - age:
       - *user_aidanp

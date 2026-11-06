@@ -1,9 +1,4 @@
-{
-  inputs,
-  self,
-  config,
-  ...
-}: let
+{inputs, ...}: let
   # The SQLite index is the only record of what is in the S3 bucket.
   # pusher.nix's default dbPath lives in its StateDirectory.
   dataDir = "/var/lib/garret";
@@ -19,7 +14,6 @@
   pusherPort = 8082;
   pusherMetricsPort = 9091;
   pullerMetricsPort = 9092;
-  crowdsecLapiPort = config.legion.services.crowdsec.ports.lapi;
 
   client = {pkgs, ...}: {
     environment.systemPackages = [inputs.garret.packages.${pkgs.stdenv.hostPlatform.system}.garret];
@@ -27,7 +21,6 @@
 in {
   flake.lib = {
     garretWatermarks = watermarks;
-    garretFirewallBouncerSecret = "crowdsec/bouncer-garret-firewall";
     cacheHostname = "cache.jeiang.dev";
     cachePushHostname = "cache-push.jeiang.dev";
   };
@@ -129,16 +122,6 @@ in {
     ];
 
     services = {
-      crowdsec-firewall-bouncer = {
-        enable = true;
-        settings = {
-          mode = "nftables";
-          api_url = "http://${self.lib.legionAddress config.networking.hostName "alda"}:${toString crowdsecLapiPort}";
-        };
-        registerBouncer.enable = false;
-        secrets.apiKeyPath = config.sops.secrets.${self.lib.garretFirewallBouncerSecret}.path;
-      };
-
       garret = {
         pusher = {
           enable = true;
@@ -293,10 +276,6 @@ in {
           inherit sopsFile;
           owner = "garret";
           restartUnits = ["garret-pusher.service"];
-        };
-        ${self.lib.garretFirewallBouncerSecret} = {
-          sopsFile = ../crowdsec/secrets.garret.yaml;
-          restartUnits = ["crowdsec-firewall-bouncer.service"];
         };
       };
 

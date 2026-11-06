@@ -465,10 +465,6 @@ in {
         }
         // lib.optionalAttrs crowdsecHere {
           "caddy/crowdsec-lapi-url".sopsFile = ./secrets.yaml;
-          "caddy/crowdsec-lapi-key" = {
-            sopsFile = ./secrets.yaml;
-            restartUnits = ["crowdsec-bouncers.service"];
-          };
         };
 
       sops.templates."caddy.env" = {
@@ -479,7 +475,7 @@ in {
           "CLOUDFLARE_API_TOKEN=${config.sops.placeholder.${self.lib.cloudflareDnsToken.secret}}\n"
           + lib.optionalString crowdsecHere ''
             CROWDSEC_LAPI_URL=${config.sops.placeholder."caddy/crowdsec-lapi-url"}
-            CROWDSEC_LAPI_KEY=${config.sops.placeholder."caddy/crowdsec-lapi-key"}
+            CROWDSEC_LAPI_KEY=${config.sops.placeholder.${self.lib.crowdsecBouncerSecret "edge-caddy"}}
           '';
       };
       services = {
