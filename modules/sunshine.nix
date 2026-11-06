@@ -1,6 +1,5 @@
 {self, ...}: {
   nixos.modules.artemis = {
-    config,
     lib,
     pkgs,
     ...
@@ -77,6 +76,6 @@
 
     # pairing state; without this every reboot forgets all paired clients
     persistence.data.directories = [".config/sunshine"];
-    backups.persist.paths = ["${config.users.users.${config.preferences.user.name}.home}/.config/sunshine"];
+    backups.persist.homePaths = [".config/sunshine"];
   };
 }

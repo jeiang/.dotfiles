@@ -84,12 +84,9 @@ in {
       ];
     };
 
-    backups.persist.paths = let
-      home = config.users.users.${config.preferences.user.name}.home;
-    in
-      # Host identity: a rebuilt artemis keeps its sops key.
-      [(dirOf self.lib.hostKeyPath)]
-      ++ map (directory: "${home}/${directory}") [".local/share/fish" ".renpy" ".ssh"];
+    # Host identity: a rebuilt artemis keeps its sops key.
+    backups.persist.paths = [(dirOf self.lib.hostKeyPath)];
+    backups.persist.homePaths = [".local/share/fish" ".renpy" ".ssh"];
 
     monitoredUnits = ["sshd.service"];
 

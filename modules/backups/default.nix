@@ -1,4 +1,4 @@
-_: let
+{self, ...}: let
   s4Endpoint = "https://s3.eu-central-1.s4.mega.io";
   retention = "--keep-daily 7 --keep-weekly 4 --keep-monthly 6";
 
@@ -212,6 +212,11 @@ in {
             lies inside one, or holds only persistence.* paths.
           '';
         };
+        homePaths = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [];
+          description = "Like `paths`, relative to the operator's home.";
+        };
         exclude = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           default = [];
@@ -233,6 +238,8 @@ in {
       };
 
       config = {
+        backups.persist.paths = map (path: "${config.users.users.${self.lib.facts.userName}.home}/${path}") cfg.homePaths;
+
         # A path that is not persisted is empty after a reboot, and restic would
         # fail on it rather than quietly shrink the backup.
         assertions =
@@ -271,13 +278,13 @@ in {
             if [ -e ${cfg.snapshot} ]; then
               ${btrfs} subvolume delete ${cfg.snapshot}
             fi
-            systemctl stop ${stopUnits}
+            ${lib.optionalString (cfg.stopUnits != []) "systemctl stop ${stopUnits}"}
             ${btrfs} subvolume snapshot -r /persist ${cfg.snapshot}
-            systemctl start ${stopUnits}
+            ${lib.optionalString (cfg.stopUnits != []) "systemctl start ${stopUnits}"}
           '';
           backupCleanupCommand = ''
             # nixpkgs runs cleanup through ExecStopPost, including prepare/backup failures.
-            systemctl start ${stopUnits}
+            ${lib.optionalString (cfg.stopUnits != []) "systemctl start ${stopUnits}"}
             if [ -e ${cfg.snapshot} ]; then
               ${btrfs} subvolume delete ${cfg.snapshot}
             fi
