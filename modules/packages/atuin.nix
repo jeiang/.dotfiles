@@ -4,6 +4,13 @@
   config,
   ...
 }: {
+  nixos.modules.artemis.persistence.data.directories = [
+    {
+      directory = ".local/share/atuin";
+      mode = "0700";
+    }
+  ];
+
   perSystem = {pkgs, ...}: {
     packages.atuin = inputs.wrapper-modules.lib.wrapPackage (_: {
       inherit pkgs;

@@ -44,4 +44,6 @@
       (lib.mkIf config.security.doas.enable {doas.rules.auth.ssh-session = sshSessionRule "doas";})
     ];
   };
+
+  nixos.modules.artemis.monitoredUnits = ["sshd.service"];
 }

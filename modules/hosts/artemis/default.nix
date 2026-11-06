@@ -61,34 +61,21 @@ in {
         "Music"
         "Projects"
         "Games"
-        ".renpy"
         ".local/share/Trash"
         {
           directory = ".ssh";
           mode = "0700";
         }
-        ".local/share/fish"
-        {
-          directory = ".local/share/atuin";
-          mode = "0700";
-        }
-        ".local/share/zoxide"
-        ".config/fish"
       ];
-      data.files = [".claude.json"];
       cache.directories = [
-        ".cache/claude-cli-nodejs"
         # Mesa's default (multi-file, no MESA_DISK_CACHE_DATABASE) shader cache dir.
         ".cache/mesa_shader_cache"
-        ".local/state/nix"
       ];
     };
 
     # Host identity: a rebuilt artemis keeps its sops key.
     backups.persist.paths = [(dirOf self.lib.hostKeyPath)];
-    backups.persist.homePaths = [".local/share/fish" ".renpy" ".ssh"];
-
-    monitoredUnits = ["sshd.service"];
+    backups.persist.homePaths = [".ssh"];
 
     boot = {
       loader.systemd-boot = {

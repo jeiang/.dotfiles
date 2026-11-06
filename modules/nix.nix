@@ -137,7 +137,7 @@ in {
 
     persistence = {
       data.directories = [".local/share/direnv" ".local/share/devenv"];
-      cache.directories = [".cache/devenv" ".cache/direnv" ".cache/nix-direnv"];
+      cache.directories = [".cache/devenv" ".cache/direnv" ".cache/nix-direnv" ".local/state/nix"];
     };
   };
 }

@@ -1,4 +1,9 @@
 {inputs, ...}: {
+  nixos.modules.artemis = {
+    persistence.data.directories = [".local/share/fish" ".local/share/zoxide" ".config/fish"];
+    backups.persist.homePaths = [".local/share/fish"];
+  };
+
   perSystem = {
     pkgs,
     lib,
