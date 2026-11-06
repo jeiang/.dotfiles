@@ -92,7 +92,7 @@ in {
       builtins.mapAttrs (name: _: {
         hostname = nodeHostname name;
         # Bootstrapping a node without the deploy user: deploy .#<name> --ssh-user aidanp --magic-rollback=false
-        sshUser = "deploy";
+        sshUser = self.lib.deployUser;
         sudo = "sudo -u";
         profiles.system = {
           user = "root";
@@ -160,24 +160,6 @@ in {
         (builtins.filter (s: s.backupSet != [])
           (servicesByNode config.networking.hostName))
       );
-
-      security.sudo.extraRules = [
-        {
-          users = ["deploy"];
-          runAs = "root";
-          commands = [
-            {
-              command = "/nix/store/*/activate-rs";
-              options = ["NOPASSWD"];
-            }
-            # deploy-rs magic rollback confirms via `sudo rm /tmp/deploy-rs-canary-<hash>`; without NOPASSWD the confirmation times out and every deploy rolls back.
-            {
-              command = "/run/current-system/sw/bin/rm /tmp/deploy-rs-canary-*";
-              options = ["NOPASSWD"];
-            }
-          ];
-        }
-      ];
 
       boot = {
         # Required by services.netbird's useRoutingFeatures = "both".
