@@ -81,8 +81,6 @@ in {
       };
       templates."pocket-id.env" = {
         owner = config.services.pocket-id.user;
-        # An EnvironmentFile is read once at start-up; without this a rotated
-        # key never reaches the running process.
         restartUnits = ["pocket-id.service"];
         content = ''
           ENCRYPTION_KEY=${config.sops.placeholder."pocket-id/encryption-key"}

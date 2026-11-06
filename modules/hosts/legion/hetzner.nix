@@ -123,7 +123,7 @@ in {
 
     networking.firewall.trustedInterfaces = [privateInterface];
 
-    # The label is the service name, applied once by the operator; nofail keeps a missing Volume from blocking boot, and mountGuard keeps the service off the unmounted dir.
+    # The label is the service name, applied once by the operator; nofail keeps a missing Volume from blocking boot.
     fileSystems = lib.listToAttrs (
       lib.mapAttrsToList (name: s:
         lib.nameValuePair s.volume.mountpoint {

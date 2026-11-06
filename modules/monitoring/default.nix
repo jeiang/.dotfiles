@@ -512,13 +512,13 @@ in {
               }
             ];
           };
+          # envsubst-substituted from environmentFile at service start, not
+          # Nix interpolation: no `${}` in these URLs.
           receivers = [
             {
               name = "discord-notifications";
               discord_configs = [
                 {
-                  # envsubst-substituted from environmentFile at service
-                  # start -- not Nix interpolation; no `${}` here.
                   webhook_url = "$DISCORD_WEBHOOK_URL";
                 }
               ];
@@ -527,8 +527,6 @@ in {
               name = "healthchecks";
               webhook_configs = [
                 {
-                  # envsubst-substituted from environmentFile at service
-                  # start -- not Nix interpolation; no `${}` here.
                   url = "$HEALTHCHECKS_PING_URL";
                   send_resolved = false;
                 }

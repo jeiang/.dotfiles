@@ -8,9 +8,9 @@ in {
     module = "atuin";
     stateful = true;
     units = ["atuin"];
-    ports.app = port;
-    # Mesh only: every client is a NetBird peer. The sync payload is
+    # No public port: every client is a NetBird peer, and the sync payload is
     # end-to-end encrypted under the client key.
+    ports.app = port;
     backupSet = [dataDir];
   };
 

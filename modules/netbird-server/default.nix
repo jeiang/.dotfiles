@@ -155,8 +155,6 @@ in {
 
       systemd = {
         services = {
-          # mountGuard: never silently initialize a fresh sqlite store on the
-          # root disk when the Volume is missing or late.
           ${mainUnit} =
             lib.recursiveUpdate
             {
@@ -260,9 +258,8 @@ in {
             }
           }
 
-          # IronRDP WASM bundle the nixpkgs dashboard doesn't carry
-          # (modules/packages/netbird-ironrdp.nix). Must precede the
-          # fallback handle or the module import gets index.html.
+          # IronRDP WASM bundle the nixpkgs dashboard doesn't carry. Must
+          # precede the fallback handle or the module import gets index.html.
           handle_path /ironrdp-pkg/* {
             appsec
             root * ${self.packages.${system}.netbird-ironrdp-web}

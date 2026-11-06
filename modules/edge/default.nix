@@ -231,7 +231,6 @@ in {
 
           ${self.lib.tinyauthHostname}.config = "reverse_proxy ${tinyauth}";
 
-          # Only a tinyauth session in the atrium_access group is forwarded.
           # `route` keeps the written order: Caddy's default order runs
           # request_header after forward_auth, which would delete the
           # identity headers tinyauth just copied in.

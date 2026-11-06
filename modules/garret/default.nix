@@ -192,7 +192,6 @@ in {
       };
 
       caddy = {
-        # No UDP 443 is open, so advertising HTTP/3 would only fail.
         globalConfig = ''
           servers {
             protocols h1 h2
@@ -231,8 +230,8 @@ in {
       services = let
         indexPresent = {ConditionPathExists = config.services.garret.pusher.dbPath;};
       in {
-        # garret's sizing rule (spec 10): 2 x maxInFlightBytes + per-upload decoder
-        # window and preamble = 2 x 384 MiB + 16 x 9 MiB = 912 MiB, plus headroom.
+        # garret's sizing rule: 2 x maxInFlightBytes plus a decoder window and
+        # preamble per concurrent upload, plus headroom.
         garret-pusher = {
           unitConfig = indexPresent;
           serviceConfig.MemoryMax = "960M";
@@ -273,7 +272,6 @@ in {
         "garret/s3-secret-access-key" = {inherit sopsFile;};
         "garret/puller-s3-access-key-id" = {inherit sopsFile;};
         "garret/puller-s3-secret-access-key" = {inherit sopsFile;};
-        # Signing keys are read once at start-up; a secret-only deploy leaves the unit unchanged.
         "garret/signing-key" = {
           inherit sopsFile;
           owner = "garret";
