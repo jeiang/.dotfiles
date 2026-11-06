@@ -39,7 +39,6 @@ in {
     # replies return through the proxy, without a public route into the mesh.
     services.nginx = {
       enable = true;
-      virtualHosts = lib.mkForce {};
       streamConfig =
         lib.concatMapStringsSep "\n" ({
           port,

@@ -7,7 +7,7 @@
 }: let
   inherit (config.nixos) modules;
 
-  legionNodes = {
+  inventory = {
     alda = {
       provider = "hetzner";
       privateIPv4 = "172.17.0.1";
@@ -44,10 +44,10 @@
     };
   };
 
-  nodeAddresses = builtins.filter (a: a != null) (lib.concatMap (node: [node.privateIPv4 node.publicIPv4 node.publicIPv6]) (builtins.attrValues legionNodes));
+  nodeAddresses = builtins.filter (a: a != null) (lib.concatMap (node: [node.privateIPv4 node.publicIPv4 node.publicIPv6]) (builtins.attrValues inventory));
 
-  validatedLegionNodes = assert lib.assertMsg (builtins.length nodeAddresses == builtins.length (lib.unique nodeAddresses))
-  "Legion inventory must not reuse an IP address"; legionNodes;
+  legionNodes = assert lib.assertMsg (builtins.length nodeAddresses == builtins.length (lib.unique nodeAddresses))
+  "Legion inventory must not reuse an IP address"; inventory;
 
   isHetzner = node: node.provider == "hetzner";
 
@@ -87,7 +87,7 @@ in {
       # dns/dnsconfig.js reads this through require(); `just dns-nodes` rewrites the committed dns/nodes.json.
       legionNodesJson =
         builtins.toJSON {
-          nodes = lib.mapAttrs (_: node: {inherit (node) publicIPv4 publicIPv6;}) validatedLegionNodes;
+          nodes = lib.mapAttrs (_: node: {inherit (node) publicIPv4 publicIPv6;}) legionNodes;
           hostnames = lib.zipAttrsWith (_: lib.sort lib.lessThan) (
             lib.concatMap (s: map (hostname: {${hostname} = s.node;}) s.publicHostnames) (builtins.attrValues legionServices)
           );
@@ -106,7 +106,7 @@ in {
           path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.${name};
         };
       })
-      validatedLegionNodes;
+      legionNodes;
   };
 
   nixos = {
@@ -236,6 +236,6 @@ in {
           ]
           ++ map (m: modules.${m}) (moduleNamesFor name);
       })
-      validatedLegionNodes;
+      legionNodes;
   };
 }
