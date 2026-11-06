@@ -105,6 +105,8 @@
           vars.display = {
             output = "${self.lib.artemisDisplay.output}",
             mode = "${self.lib.artemisDisplay.mode}",
+            position = "${self.lib.artemisDisplay.position}",
+            scale = "${self.lib.artemisDisplay.scale}",
           }
           vars.terminal = "${terminal}"
           vars.fileManager = "${lib.getExe' pkgs.kdePackages.dolphin "dolphin"}"

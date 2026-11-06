@@ -128,8 +128,8 @@ in {
     environment.variables = {
       AMD_VULKAN_ICD = "RADV";
       MESA_SHADER_CACHE_MAX_SIZE = "12G";
-      # Pin aquamarine to the dGPU: left alone it makes the iGPU primary and renders the whole session there. /dev/dri/egpu is the by-PCI-address symlink from ./hardware.nix; card* numbering is not boot-stable.
-      AQ_DRM_DEVICES = "/dev/dri/egpu";
+      # Pin aquamarine to the dGPU: left alone it makes the iGPU primary and renders the whole session there.
+      AQ_DRM_DEVICES = self.lib.artemisDgpuDevice.card;
     };
     networking = {
       hostName = "artemis";

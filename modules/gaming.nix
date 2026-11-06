@@ -45,8 +45,7 @@
             # Warning: GPU optimisations have the potential to damage hardware
             gpu = {
               apply_gpu_optimisations = "accept-responsibility";
-              # The iGPU's display function is pci-stubbed, so the dGPU is card1, not card0.
-              gpu_device = 1;
+              gpu_device = self.lib.artemisDgpuDevice.cardIndex;
               amd_performance_level = "high";
             };
             custom = lib.mkIf (config.gaming.pauseUnits != []) (let
