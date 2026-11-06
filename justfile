@@ -19,7 +19,7 @@ fast-check extraArgs="":
 topology:
   #!/usr/bin/env bash
   set -euo pipefail
-  system=$(nix eval --impure --raw --expr builtins.currentSystem)
+  system=$(nix config show system)
   out=$(nix build --no-link --print-out-paths ".#topology.$system.config.output")
   mkdir -p docs/topology
   rm -f docs/topology/*.svg
@@ -86,10 +86,12 @@ install system sudo="sudo":
 prepush base="origin/main":
   #!/usr/bin/env bash
   set -euo pipefail
-  host=artemis.jeiang.vpn
+  host=$(nix eval --raw .#deploy.nodes.artemis.hostname)
+  push="https://$(nix eval --raw .#lib.cachePushHostname)"
   git fetch origin main
   main="git+file://$PWD?rev=$(git rev-parse {{base}})&shallow=1"
-  garret="github:jeiang/garret/$(jq -r .nodes.garret.locked.rev flake.lock)#garret"
+  # The root input's garret, not .nodes.garret: that name can belong to another input's pin.
+  garret="github:jeiang/garret/$(jq -r '.nodes[.nodes.root.inputs.garret].locked.rev' flake.lock)#garret"
   differs() { [ "$(nix eval --raw "$main#$1")" != "$(nix eval --raw ".#$1")" ]; }
   linux=()
   for h in $(nix eval --json .#nixosConfigurations --apply builtins.attrNames | jq -r '.[]'); do
@@ -102,14 +104,14 @@ prepush base="origin/main":
     ssh "$host" bash -s <<EOF
   set -euo pipefail
   g=\$(nix build --no-link --print-out-paths '$garret')/bin/garret
-  \$g whoami >/dev/null 2>&1 || \$g login https://cache-push.jeiang.dev
+  \$g whoami >/dev/null 2>&1 || \$g login $push
   \$g push $(echo $outs)
   EOF
   fi
   if differs darwinConfigurations.zakkart.config.system.build.toplevel.drvPath; then
     out=$(nix build --no-link --print-out-paths .#darwinConfigurations.zakkart.config.system.build.toplevel)
     g=$(nix build --no-link --print-out-paths "$garret")/bin/garret
-    "$g" whoami >/dev/null 2>&1 || "$g" login https://cache-push.jeiang.dev
+    "$g" whoami >/dev/null 2>&1 || "$g" login "$push"
     "$g" push "$out"
   fi
 
@@ -185,30 +187,30 @@ legion-run *command:
   printf '%s' "$summary"
   exit "$failed"
 
-# Delete assets/wallpapers-kanabox/ outputs before re-running after a palette change; existing files are left alone.
-
 # Recolor new wallpapers from assets/wallpapers/ into assets/wallpapers-kanabox/
 wallpaper:
   @for f in assets/wallpapers/*.jpg assets/wallpapers/*.png; do [ -e "$f" ] || continue; [ -e "assets/wallpapers-kanabox/$(basename "$f")" ] && continue; nix run nixpkgs#lutgen -- apply -o "assets/wallpapers-kanabox/$(basename "$f")" "$f" -- $(nix eval --raw '.#lib.palette.kanaboxDarkHard' --apply 'p: builtins.concatStringsSep " " (map (c: builtins.substring 1 6 c) (builtins.attrValues p))'); done
 
-# Register the ~/.omp/agent/mcp.json servers with Claude Code, in user scope
+# Register the omp mcp.json servers with Claude Code, in user scope
 mcp-register-claude:
   #!/usr/bin/env bash
   set -euo pipefail
-  for s in $(jq -r '.mcpServers | keys[]' ~/.omp/agent/mcp.json); do
+  config=~/$(nix eval --raw .#lib.agentHomes.omp)/mcp.json
+  for s in $(jq -r '.mcpServers | keys[]' "$config"); do
     claude mcp remove --scope user "$s" >/dev/null 2>&1 || true
-    claude mcp add-json --scope user "$s" "$(jq -c ".mcpServers.$s" ~/.omp/agent/mcp.json)"
+    claude mcp add-json --scope user "$s" "$(jq -c ".mcpServers.$s" "$config")"
   done
 
-# Register the ~/.omp/agent/mcp.json servers with Codex
+# Register the omp mcp.json servers with Codex
 mcp-register-codex:
   #!/usr/bin/env bash
   set -euo pipefail
-  for s in $(jq -r '.mcpServers | keys[]' ~/.omp/agent/mcp.json); do
+  config=~/$(nix eval --raw .#lib.agentHomes.omp)/mcp.json
+  for s in $(jq -r '.mcpServers | keys[]' "$config"); do
     codex mcp remove "$s" >/dev/null 2>&1 || true
-    mapfile -t args < <(jq -r ".mcpServers.$s.args[]? // empty" ~/.omp/agent/mcp.json)
-    codex mcp add "$s" -- "$(jq -r ".mcpServers.$s.command" ~/.omp/agent/mcp.json)" "${args[@]}"
+    mapfile -t args < <(jq -r ".mcpServers.$s.args[]? // empty" "$config")
+    codex mcp add "$s" -- "$(jq -r ".mcpServers.$s.command" "$config")" "${args[@]}"
   done
 
-# Register the ~/.omp/agent/mcp.json servers with Claude Code and Codex
+# Register the omp mcp.json servers with Claude Code and Codex
 mcp-register: mcp-register-claude mcp-register-codex

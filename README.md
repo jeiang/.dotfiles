@@ -18,7 +18,7 @@ The hosts, their services, and the connections between them.
 
 - [`AGENTS.md`](AGENTS.md): layout, operation, and the decisions that
   constrain changes.
-- [`docs/runbooks/`](docs/runbooks/): restore, binary cache, wallpaper, and
-  zakkart bootstrap procedures.
+- [`docs/runbooks/`](docs/runbooks/): atrium, garret, Legion service moves,
+  NetBird, restore, wallpaper, and zakkart bootstrap procedures.
 - [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md): project name and source
   credits.

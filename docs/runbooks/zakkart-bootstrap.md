@@ -57,9 +57,8 @@ sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake .#zakkart \
 ```
 
 This installs Homebrew (via nix-homebrew) and its taps/casks/brews/Yubico
-Authenticator — including the NetBird desktop client cask, which installs
-its own system daemon on first run — sets the login shell, and every
-other darwin feature module.
+Authenticator, sets the login shell, and applies every other darwin feature
+module.
 
 Subsequent switches need no flags; the previous activation's config is
 already in `/etc/nix/nix.custom.conf`:
