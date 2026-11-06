@@ -61,7 +61,7 @@
           }
           {
             upstream = "tcp-tls:dns.quad9.net:853";
-            ips = ["9.9.9.9" "149.112.112.112"];
+            ips = self.lib.quad9;
           }
         ];
         log = {
@@ -86,6 +86,8 @@
     ];
   };
 in {
+  flake.lib.quad9 = ["9.9.9.9" "149.112.112.112"];
+
   legion.services = {
     blocky = service "vida" "blocky";
     blocky-ricklent = service "ricklent" "blocky-ricklent";

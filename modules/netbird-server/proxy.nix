@@ -54,18 +54,16 @@ in {
         if name == "netbird-proxy"
         then [domain "*.${domain}"]
         else [];
-      firewall = [
+      publicPorts = [
         {
           port = 443;
           proto = "tcp";
-          scope = "public";
         }
       ];
-      firewallPortRanges = map (proto: {
+      publicPortRanges = map (proto: {
         from = 40000;
         to = 45000;
         inherit proto;
-        scope = "public";
       }) ["tcp" "udp"];
     })
     replicas;

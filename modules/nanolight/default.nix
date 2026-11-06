@@ -12,10 +12,8 @@ in {
     module = "nanolight-server";
     units = ["nanolight-server"];
     ports.app = 8890;
-    # Mesh only: zakkart reaches it through the Admin to Legion policy. The
-    # state is a merge of what the clients hold, and a client's first sync
-    # with an empty server pushes its own, so it needs no backup.
-    firewall = [];
+    # The state is a merge of what the clients hold, and a client's first
+    # sync with an empty server pushes its own, so it needs no backup.
   };
 
   nixos.modules.nanolight-server = {config, ...}: {

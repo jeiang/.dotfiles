@@ -3,8 +3,6 @@ _: {
     node = "alda";
     module = "anubis";
     units = ["anubis-content"];
-    # Unix sockets only (nixpkgs module defaults); opens no TCP port on any interface.
-    firewall = [];
   };
 
   nixos.modules.anubis = {

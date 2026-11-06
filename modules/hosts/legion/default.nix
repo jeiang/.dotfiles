@@ -31,17 +31,11 @@
   # Ordered by service name (attrset order), so the built unit text stays stable.
   moduleNamesFor = nodeName: lib.unique (builtins.filter (m: m != null) (map (s: s.module) (servicesByNode nodeName)));
 
-  firewallPortsFor = nodeName: proto: scope: let
-    services = servicesByNode nodeName;
-    exactOpenings = lib.concatMap (s: s.firewall) services;
-    publishedOpenings = lib.concatMap (s: map (p: p // {scope = "public";}) s.publishedPorts) services;
-  in
-    lib.unique (map (o: o.port) (builtins.filter (o: o.proto == proto && o.scope == scope) (exactOpenings ++ publishedOpenings)));
+  publicPortsFor = nodeName: proto:
+    lib.unique (map (o: o.port) (builtins.filter (o: o.proto == proto) (lib.concatMap (s: s.publicPorts) (servicesByNode nodeName))));
 
-  firewallPortRangesFor = nodeName: proto: scope: let
-    openings = lib.concatMap (s: s.firewallPortRanges) (servicesByNode nodeName);
-  in
-    map (o: {inherit (o) from to;}) (builtins.filter (o: o.proto == proto && o.scope == scope) openings);
+  publicPortRangesFor = nodeName: proto:
+    map (o: {inherit (o) from to;}) (builtins.filter (o: o.proto == proto) (lib.concatMap (s: s.publicPortRanges) (servicesByNode nodeName)));
 
   fixedLegionUnits = ["netbird" "netbird-login" "systemd-journal-upload"];
 
@@ -51,6 +45,8 @@
   in "(${lib.concatStringsSep "|" units})\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)";
 
   nodeHostname = name: "${name}.svr.jeiang.dev";
+
+  serviceAddress = from: service: legionAddress from legionServices.${service}.node;
 
   mkWan = {
     publicIPv4,
@@ -122,7 +118,7 @@ in {
 
       hetznerNodes = lib.filterAttrs (_: isHetzner) legionNodes;
 
-      inherit legionAddress;
+      inherit legionAddress serviceAddress nodeHostname;
 
       # dns/dnsconfig.js reads this through require(); `just dns-nodes` rewrites the committed dns/nodes.json.
       legionNodesJson = builtins.toJSON (lib.mapAttrs (_: node: {inherit (node) publicIPv4 publicIPv6;}) validatedLegionNodes) + "\n";
@@ -245,10 +241,10 @@ in {
       };
 
       networking.firewall = {
-        allowedTCPPorts = firewallPortsFor config.networking.hostName "tcp" "public";
-        allowedUDPPorts = firewallPortsFor config.networking.hostName "udp" "public";
-        allowedTCPPortRanges = firewallPortRangesFor config.networking.hostName "tcp" "public";
-        allowedUDPPortRanges = firewallPortRangesFor config.networking.hostName "udp" "public";
+        allowedTCPPorts = publicPortsFor config.networking.hostName "tcp";
+        allowedUDPPorts = publicPortsFor config.networking.hostName "udp";
+        allowedTCPPortRanges = publicPortRangesFor config.networking.hostName "tcp";
+        allowedUDPPortRanges = publicPortRangesFor config.networking.hostName "udp";
       };
 
       nixpkgs.hostPlatform = "x86_64-linux";

@@ -10,7 +10,6 @@ in {
   legion.services.caddy = {
     node = "alda";
     module = "edge";
-    edge = true;
     units = ["caddy" "rivals-heroes-sync"];
     ports.metrics = metricsPort;
     publicHostnames = [
@@ -31,21 +30,14 @@ in {
       "tinyauth.jeiang.dev"
       self.lib.atriumHostname
     ];
-    firewall = [
+    publicPorts = [
       {
         port = 80;
         proto = "tcp";
-        scope = "public";
       }
       {
         port = 443;
         proto = "tcp";
-        scope = "public";
-      }
-      {
-        port = metricsPort;
-        proto = "tcp";
-        scope = "private";
       }
     ];
   };

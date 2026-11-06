@@ -4,19 +4,14 @@
   dataDir = "/mnt/pocket-id";
   appPort = 1411;
 in {
+  flake.lib.pocketIdUrl = "https://auth.jeiang.dev";
+
   legion.services.pocket-id = {
     node = "vida";
     module = "pocket-id";
     stateful = true;
     units = ["pocket-id"];
     ports.app = appPort;
-    firewall = [
-      {
-        port = appPort;
-        proto = "tcp";
-        scope = "private";
-      }
-    ];
     volume = {
       name = "legion-pocket-id";
       mountpoint = dataDir;
@@ -38,7 +33,7 @@ in {
       enable = true;
       inherit dataDir;
       settings = {
-        APP_URL = "https://auth.jeiang.dev";
+        APP_URL = self.lib.pocketIdUrl;
         TRUST_PROXY = true;
         UI_CONFIG_DISABLED = true;
         ALLOW_USER_SIGNUPS = "withToken";

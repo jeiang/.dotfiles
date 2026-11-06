@@ -10,6 +10,8 @@
 
   legionServices = config.legion.services;
 in {
+  flake.lib.grafanaHostname = "grafana.jeiang.dev";
+
   legion.services.monitoring = {
     node = "zantark";
     module = "monitoring";
@@ -20,18 +22,6 @@ in {
       victoria-logs = vlPort;
       alertmanager = alertmanagerPort;
     };
-    firewall = [
-      {
-        port = grafanaPort;
-        proto = "tcp";
-        scope = "private";
-      }
-      {
-        port = alertmanagerPort;
-        proto = "tcp";
-        scope = "private";
-      }
-    ];
   };
 
   nixos.modules.monitoring = {
@@ -373,8 +363,8 @@ in {
         enable = true;
         settings = {
           server = {
-            domain = "grafana.jeiang.dev";
-            root_url = "https://grafana.jeiang.dev";
+            domain = self.lib.grafanaHostname;
+            root_url = "https://${self.lib.grafanaHostname}";
             http_addr = "0.0.0.0";
           };
           auth = {

@@ -2,7 +2,7 @@
   mainUnit = "netbird-server";
   dataDir = "/mnt/netbird";
 
-  domain = "netbird.jeiang.dev";
+  domain = self.lib.netbirdDomain;
   # The edge's @relay route; the server advertises it and the relay announces it, so they must match.
   relayAddress = "rels://${domain}:443";
 
@@ -14,6 +14,11 @@
   relayMetricsPort = 9091;
   relayHealthPort = 9001;
 in {
+  flake.lib = {
+    netbirdDomain = "netbird.jeiang.dev";
+    netbirdDnsDomain = "jeiang.vpn";
+  };
+
   legion.services = {
     netbird-server = {
       node = "vida";
@@ -24,13 +29,6 @@ in {
         http = httpPort;
         metrics = serverMetricsPort;
       };
-      firewall = [
-        {
-          port = httpPort;
-          proto = "tcp";
-          scope = "private";
-        }
-      ];
       volume = {
         name = "legion-netbird";
         mountpoint = dataDir;
@@ -51,16 +49,10 @@ in {
         health = relayHealthPort;
       };
       publicHostnames = ["stun.${domain}"];
-      firewall = [
+      publicPorts = [
         {
           port = stunPort;
           proto = "udp";
-          scope = "public";
-        }
-        {
-          port = relayPort;
-          proto = "tcp";
-          scope = "private";
         }
       ];
     };
@@ -122,7 +114,7 @@ in {
               - "https://${domain}/nb-silent-auth"
             cliRedirectURIs:
               - "http://localhost:53000/"
-          dnsDomain: "jeiang.vpn"
+          dnsDomain: "${self.lib.netbirdDnsDomain}"
           store:
             engine: "sqlite"
             dsn: ""

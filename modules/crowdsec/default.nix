@@ -12,18 +12,6 @@ in {
       metrics = metricsPort;
       appsec = appsecPort;
     };
-    firewall = [
-      {
-        port = lapiPort;
-        proto = "tcp";
-        scope = "private";
-      }
-      {
-        port = metricsPort;
-        proto = "tcp";
-        scope = "private";
-      }
-    ];
   };
 
   nixos.modules.legion.services.crowdsec.settings.config.config_paths.data_dir = "/var/lib/crowdsec/state";

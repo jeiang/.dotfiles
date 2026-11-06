@@ -84,6 +84,16 @@ in {
             so live SQLite databases are captured consistently.
           '';
         };
+        schedule = {
+          onCalendar = lib.mkOption {
+            type = lib.types.str;
+            default = "daily";
+          };
+          randomizedDelaySec = lib.mkOption {
+            type = lib.types.str;
+            default = "4h";
+          };
+        };
         prepareCommand = lib.mkOption {
           type = lib.types.lines;
           default = "";
@@ -124,8 +134,8 @@ in {
           environmentFile = config.sops.secrets."restic/s4-env".path;
           initialize = true;
           timerConfig = {
-            OnCalendar = "daily";
-            RandomizedDelaySec = "4h";
+            OnCalendar = job.schedule.onCalendar;
+            RandomizedDelaySec = job.schedule.randomizedDelaySec;
             Persistent = true;
           };
           # An empty list makes the nixpkgs module skip forget/prune here.

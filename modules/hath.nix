@@ -8,11 +8,10 @@ in {
     stateful = true;
     units = ["hath"];
     ports.app = port;
-    firewall = [
+    publicPorts = [
       {
         inherit port;
         proto = "tcp";
-        scope = "public";
       }
     ];
     volume = {

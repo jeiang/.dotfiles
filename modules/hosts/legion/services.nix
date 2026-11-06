@@ -7,7 +7,6 @@
     options = {
       port = lib.mkOption {type = lib.types.port;};
       proto = lib.mkOption {type = lib.types.enum ["tcp" "udp"];};
-      scope = lib.mkOption {type = lib.types.enum ["public" "private"];};
     };
   };
 
@@ -15,14 +14,6 @@
     options = {
       from = lib.mkOption {type = lib.types.port;};
       to = lib.mkOption {type = lib.types.port;};
-      proto = lib.mkOption {type = lib.types.enum ["tcp" "udp"];};
-      scope = lib.mkOption {type = lib.types.enum ["public" "private"];};
-    };
-  };
-
-  publishedPortType = lib.types.submodule {
-    options = {
-      port = lib.mkOption {type = lib.types.port;};
       proto = lib.mkOption {type = lib.types.enum ["tcp" "udp"];};
     };
   };
@@ -75,12 +66,6 @@
         '';
       };
 
-      edge = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Whether this entry is the fleet's single edge-facing service.";
-      };
-
       stateful = lib.mkOption {
         type = lib.types.bool;
         default = false;
@@ -91,18 +76,14 @@
         default = [];
       };
 
-      firewall = lib.mkOption {
+      publicPorts = lib.mkOption {
         type = lib.types.listOf portType;
         default = [];
+        description = "Ports the placement node opens to the internet.";
       };
 
-      firewallPortRanges = lib.mkOption {
+      publicPortRanges = lib.mkOption {
         type = lib.types.listOf portRangeType;
-        default = [];
-      };
-
-      publishedPorts = lib.mkOption {
-        type = lib.types.listOf publishedPortType;
         default = [];
       };
 
@@ -131,7 +112,6 @@ in {
     '';
     apply = services: let
       named = lib.mapAttrsToList (name: s: s // {inherit name;}) services;
-      edgeEntries = builtins.filter (s: s.edge) named;
       publicHostnames = lib.concatMap (s: s.publicHostnames) named;
       statefulWithoutDurability = builtins.filter (s: s.stateful && s.volume == null && s.backupSet == []) named;
       backupSetViolations =
@@ -147,8 +127,6 @@ in {
       labelTooLong = builtins.filter (s: s.volume != null && builtins.stringLength s.name > 16) named;
       volumeOffHetzner = builtins.filter (s: s.volume != null && self.lib.legionNodes.${s.node}.provider != "hetzner") named;
     in
-      assert lib.assertMsg (builtins.length edgeEntries == 1)
-      "legion.services must declare exactly one edge service: ${builtins.concatStringsSep ", " (map (s: s.name) edgeEntries)}";
       assert lib.assertMsg (builtins.length publicHostnames == builtins.length (lib.unique publicHostnames))
       "legion.services must not reuse a public hostname across services: ${builtins.concatStringsSep ", " publicHostnames}";
       assert lib.assertMsg (statefulWithoutDurability == [])

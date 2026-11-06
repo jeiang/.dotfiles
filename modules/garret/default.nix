@@ -28,6 +28,8 @@ in {
   flake.lib = {
     garretWatermarks = watermarks;
     garretFirewallBouncerSecret = "crowdsec/bouncer-garret-firewall";
+    cacheHostname = "cache.jeiang.dev";
+    cachePushHostname = "cache-push.jeiang.dev";
   };
 
   nixos.modules.artemis = client;
@@ -45,31 +47,10 @@ in {
       puller-metrics = pullerMetricsPort;
     };
     publicHostnames = ["cache.jeiang.dev" "cache-push.jeiang.dev"];
-    firewall = [
-      {
-        port = pullerPort;
-        proto = "tcp";
-        scope = "private";
-      }
-      {
-        port = pusherPort;
-        proto = "tcp";
-        scope = "private";
-      }
-      {
-        port = pusherMetricsPort;
-        proto = "tcp";
-        scope = "private";
-      }
-      {
-        port = pullerMetricsPort;
-        proto = "tcp";
-        scope = "private";
-      }
+    publicPorts = [
       {
         port = 443;
         proto = "tcp";
-        scope = "public";
       }
     ];
     backupSet = [backupFile];
@@ -277,13 +258,12 @@ in {
         # Ordering only: a backup must never start a Pusher stopped for a restore.
         restic-backups-garret.after = ["garret-pusher.service"];
       };
+    };
 
-      # The root disk holds the only live index, so the interval is the
-      # pushes a lost node forgets.
-      timers.restic-backups-garret.timerConfig = {
-        OnCalendar = lib.mkForce "00/6:00";
-        RandomizedDelaySec = lib.mkForce "15m";
-      };
+    # The root disk holds the only live index, so the interval is the pushes a lost node forgets.
+    backups.jobs.garret.schedule = {
+      onCalendar = "00/6:00";
+      randomizedDelaySec = "15m";
     };
 
     environment.systemPackages = [garretAdmin];

@@ -1,11 +1,13 @@
-{
+{self, ...}: {
+  flake.lib.deployUser = "deploy";
+
   # deploy-rs's SSH user; each role grants its elevation (sudo rules on Legion, a doas rule on artemis).
   nixos.modules.base = {pkgs, ...}: {
     users = {
-      groups.deploy = {};
-      users.deploy = {
+      groups.${self.lib.deployUser} = {};
+      users.${self.lib.deployUser} = {
         isSystemUser = true;
-        group = "deploy";
+        group = self.lib.deployUser;
         home = "/var/empty";
         createHome = false;
         hashedPassword = "!";
@@ -16,6 +18,6 @@
       };
     };
 
-    nix.settings.trusted-users = ["deploy"];
+    nix.settings.trusted-users = [self.lib.deployUser];
   };
 }

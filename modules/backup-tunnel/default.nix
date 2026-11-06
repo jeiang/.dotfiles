@@ -9,11 +9,10 @@ in {
     node = "alda";
     module = "backup-tunnel-responder";
     ports.wireguard = wireguardPort;
-    firewall = [
+    publicPorts = [
       {
         port = wireguardPort;
         proto = "udp";
-        scope = "public";
       }
     ];
   };

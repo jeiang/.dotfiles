@@ -29,21 +29,18 @@ in {
       wireguard = exitWireguardPort;
       peer = torrentingPort;
     };
-    firewall = [
+    publicPorts = [
       {
         port = exitWireguardPort;
         proto = "udp";
-        scope = "public";
       }
       {
         port = torrentingPort;
         proto = "tcp";
-        scope = "public";
       }
       {
         port = torrentingPort;
         proto = "udp";
-        scope = "public";
       }
     ];
   };

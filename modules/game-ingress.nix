@@ -24,7 +24,7 @@ in {
     node = "ricklent";
     module = "game-ingress";
     units = ["nginx"];
-    publishedPorts = gamePorts;
+    publicPorts = gamePorts;
   };
 
   nixos.modules.game-ingress = {lib, ...}: {

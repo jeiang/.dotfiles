@@ -8,13 +8,6 @@
   service = {
     units = ["gatus"];
     ports.app = port;
-    firewall = [
-      {
-        inherit port;
-        proto = "tcp";
-        scope = "private";
-      }
-    ];
   };
 
   https = name: group: url: conditions: {
@@ -131,6 +124,8 @@
     ];
   };
 in {
+  flake.lib.statusHostname = "status.jeiang.dev";
+
   legion.services.gatus =
     service
     // {

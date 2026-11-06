@@ -18,7 +18,6 @@ in {
     stateful = true;
     units = ["ntfy-sh"];
     ports.app = port;
-    firewall = [];
     backupSet = [stateDir];
   };
 
