@@ -16,8 +16,7 @@ in {
   nixos.modules.tinyauth = {config, ...}: let
     appUrl = "https://${self.lib.tinyauthHostname}";
     pocketId = self.lib.pocketIdUrl;
-    # Consumed only on the edge node, so it shares the edge Secret Shard.
-    sopsFile = ./edge/secrets.yaml;
+    sopsFile = ./secrets.yaml;
   in {
     services.tinyauth = {
       enable = true;

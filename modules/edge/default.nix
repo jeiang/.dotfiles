@@ -459,16 +459,14 @@ in {
         '';
       };
 
-      sops.secrets = let
-        sopsFile = ./secrets.yaml;
-      in
+      sops.secrets =
         {
-          "caddy/cloudflare-dns-token" = {inherit sopsFile;};
+          ${self.lib.cloudflareDnsToken.secret}.sopsFile = self.lib.cloudflareDnsToken.sopsFile;
         }
         // lib.optionalAttrs crowdsecHere {
-          "caddy/crowdsec-lapi-url" = {inherit sopsFile;};
+          "caddy/crowdsec-lapi-url".sopsFile = ./secrets.yaml;
           "caddy/crowdsec-lapi-key" = {
-            inherit sopsFile;
+            sopsFile = ./secrets.yaml;
             restartUnits = ["crowdsec-bouncers.service"];
           };
         };
@@ -478,7 +476,7 @@ in {
         group = config.services.caddy.group;
         restartUnits = ["caddy.service"];
         content =
-          "CLOUDFLARE_API_TOKEN=${config.sops.placeholder."caddy/cloudflare-dns-token"}\n"
+          "CLOUDFLARE_API_TOKEN=${config.sops.placeholder.${self.lib.cloudflareDnsToken.secret}}\n"
           + lib.optionalString crowdsecHere ''
             CROWDSEC_LAPI_URL=${config.sops.placeholder."caddy/crowdsec-lapi-url"}
             CROWDSEC_LAPI_KEY=${config.sops.placeholder."caddy/crowdsec-lapi-key"}

@@ -9,14 +9,12 @@
 
   # One cluster: management groups proxies by NB_PROXY_DOMAIN and sends every
   # service to each of them, and DNS lists every replica. Each replica keeps
-  # its own token, Cloudflare token and CrowdSec bouncer key, so one can be
-  # revoked alone.
+  # its own token and CrowdSec bouncer key, so one can be revoked alone.
   replicas = {
     netbird-proxy = {
       node = "vida";
       sopsFile = ./secrets.proxy.yaml;
       tokenSecret = "netbird/proxy-token";
-      dnsTokenSecret = "netbird-proxy/cloudflare-dns-token";
       bouncerSecret = "crowdsec/bouncer-netbird-proxy-key";
       bouncerSopsFile = ../crowdsec/secrets.yaml;
       # Registered at alda's LAPI as "legion-node2-firewall"; ricklent's
@@ -27,7 +25,6 @@
       node = "ricklent";
       sopsFile = ./secrets.proxy-atl.yaml;
       tokenSecret = "netbird/proxy-atl-token";
-      dnsTokenSecret = "netbird-proxy-atl/cloudflare-dns-token";
       bouncerSecret = "crowdsec/bouncer-netbird-proxy-atl-key";
       bouncerSopsFile = ../crowdsec/secrets.agent.yaml;
       firewallBouncerSecret = null;
@@ -105,9 +102,7 @@ in {
           ${replica.tokenSecret}.sopsFile = replica.sopsFile;
           # Same key modules/crowdsec/default.nix registers at alda's LAPI.
           ${replica.bouncerSecret}.sopsFile = replica.bouncerSopsFile;
-          # Same Cloudflare DNS API token value as the edge's
-          # caddy/cloudflare-dns-token, declared per host.
-          ${replica.dnsTokenSecret}.sopsFile = replica.sopsFile;
+          ${self.lib.cloudflareDnsToken.secret}.sopsFile = self.lib.cloudflareDnsToken.sopsFile;
         }
         // lib.optionalAttrs (replica.firewallBouncerSecret != null) {
           ${replica.firewallBouncerSecret} = {
@@ -127,7 +122,7 @@ in {
         };
 
         "netbird-proxy-cloudflare-dns.env".content = ''
-          CF_DNS_API_TOKEN=${config.sops.placeholder.${replica.dnsTokenSecret}}
+          CF_DNS_API_TOKEN=${config.sops.placeholder.${self.lib.cloudflareDnsToken.secret}}
         '';
       };
     };

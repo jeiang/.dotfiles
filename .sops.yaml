@@ -108,7 +108,7 @@ creation_rules:
       - *user_aidanp_se
       - *server_artemis
 
-  # modules/edge/default.nix and modules/tinyauth.nix.
+  # modules/edge/default.nix.
   - path_regex: modules/edge/secrets\.yaml$
     key_groups:
     - age:
@@ -117,6 +117,28 @@ creation_rules:
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
       - *server_alda
+
+  # modules/tinyauth/default.nix.
+  - path_regex: modules/tinyauth/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_alda
+
+  # Cloudflare DNS API token: edge Caddy and both netbird-proxy replicas.
+  - path_regex: modules/cloudflare/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_alda
+      - *server_vida
+      - *server_ricklent
 
   # modules/crowdsec/default.nix (edge engine) and
   # modules/netbird-server/proxy.nix (proxy bouncer client).
