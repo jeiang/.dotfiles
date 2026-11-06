@@ -1,4 +1,8 @@
-{inputs, ...}: {
+{
+  inputs,
+  self,
+  ...
+}: {
   imports = [
     inputs.git-hooks-nix.flakeModule
     inputs.treefmt-nix.flakeModule
@@ -27,7 +31,11 @@
       settings = {
         package = pkgs.prek;
         hooks = {
-          editorconfig-checker.enable = true;
+          editorconfig-checker = {
+            enable = true;
+            # sops owns the shards' bytes.
+            excludes = [self.lib.sopsShardRegex];
+          };
           statix.enable = true;
           treefmt = {
             enable = true;

@@ -40,16 +40,20 @@ clean-deploy system address *args:
 deploy system *args:
   deploy .#{{system}} {{args}}
 
-# Run this after a .sops.yaml recipient change; re-keys every shard
-sops-updatekeys:
-  fd '^secrets(\.[^.]+)?\.(yaml|env|ini|json)$' modules -x sops updatekeys -y
+# Regenerate .sops.yaml from the shards each host reads; the sops-config check fails while it is stale
+sops-config:
+  nix eval --raw '.#lib.sopsConfig' > .sops.yaml.tmp && mv .sops.yaml.tmp .sops.yaml
 
-# Edit or create a secrets shard; without a path, pick one with fzf
+# Run this after `just sops-config` changes a recipient; re-keys every shard
+sops-updatekeys:
+  fd --full-path "$(nix eval --raw '.#lib.sopsShardRegex')" modules -x sops updatekeys -y
+
+# Edit or create a secrets shard; a new shard needs its consumer and `just sops-config` first. Without a path, pick one with fzf
 sops-edit path="":
   #!/usr/bin/env bash
   set -euo pipefail
   file={{quote(path)}}
-  [ -n "$file" ] || file=$(fd "secrets.([^.]+.)?(yaml|env|ini|json)" | fzf)
+  [ -n "$file" ] || file=$(fd --full-path "$(nix eval --raw '.#lib.sopsShardRegex')" | fzf)
   [ -n "$file" ] && sops "$file"
 
 # Regenerate dns/nodes.json from flake.lib.legionNodes; the legion-nodes-json check fails while it is stale
