@@ -30,26 +30,18 @@ in {
     pkgs,
     ...
   }: let
-    node1 = self.lib.legionNodes.alda.privateIPv4;
-    node2 = self.lib.legionNodes.vida.privateIPv4;
-
     sopsFile = ./secrets.yaml;
+    serviceAddress = self.lib.serviceAddress config.networking.hostName;
+    nodeExporterPort = toString config.services.prometheus.exporters.node.port;
+    artemisExporters = self.nixosConfigurations.artemis.config.services.prometheus.exporters;
     # A node outside the private network is scraped over the mesh and drops out until it has a peer entry.
-    legionNodeAddresses = builtins.filter (a: a != null) (map (self.lib.legionAddress "zantark") (builtins.attrNames self.lib.legionNodes));
+    legionNodeAddresses = builtins.filter (a: a != null) (map (self.lib.legionAddress config.networking.hostName) (builtins.attrNames self.lib.legionNodes));
 
-    caddyPort = legionServices.caddy.ports.metrics;
-    crowdsecPort = legionServices.crowdsec.ports.metrics;
-    netbirdServerPort = legionServices.netbird-server.ports;
-    netbirdRelayPort = legionServices.netbird-relay.ports;
-    netbirdProxyPort = legionServices.netbird-proxy.ports;
-    blockyPort = legionServices.blocky.ports.http;
-    blockyTargets = map (a: "${a}:${toString blockyPort}") (builtins.filter (a: a != null) [node2 (self.lib.legionAddress "zantark" "ricklent")]);
-    # Where zantark reaches a service port; empty while its node is mesh-only without a peer entry.
+    # Where this node reaches a service port; empty while its node is mesh-only without a peer entry.
     at = svc: key: path: let
-      a = self.lib.legionAddress "zantark" legionServices.${svc}.node;
+      a = serviceAddress svc;
     in
       lib.optional (a != null) "${a}:${toString legionServices.${svc}.ports.${key}}${path}";
-    pocketIdPort = legionServices.pocket-id.ports.app;
 
     blackboxPort = 9115;
     # Each probe target becomes the exporter's ?target= and the instance label.
@@ -86,7 +78,7 @@ in {
           prober = "dns";
           timeout = "5s";
           dns = {
-            query_name = "netbird.jeiang.dev";
+            query_name = self.lib.netbirdDomain;
             query_type = "A";
             valid_rcodes = ["NOERROR"];
             preferred_ip_protocol = "ip4";
@@ -155,12 +147,12 @@ in {
             job_name = "node";
             static_configs = [
               {
-                targets = map (ip: "${ip}:9100") legionNodeAddresses;
+                targets = map (ip: "${ip}:${nodeExporterPort}") legionNodeAddresses;
                 labels.type = "node";
               }
               {
                 # Raw NetBird peer IP: mesh DNS doesn't resolve on Legion nodes.
-                targets = ["${self.lib.netbirdPeers.artemis}:9100"];
+                targets = ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.node.port}"];
                 labels.type = "node";
               }
             ];
@@ -169,7 +161,7 @@ in {
             job_name = "smartctl";
             static_configs = [
               {
-                targets = ["${self.lib.netbirdPeers.artemis}:${toString self.nixosConfigurations.artemis.config.services.prometheus.exporters.smartctl.port}"];
+                targets = ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.smartctl.port}"];
                 labels.type = "node";
               }
             ];
@@ -178,7 +170,7 @@ in {
             job_name = "caddy";
             static_configs = [
               {
-                targets = ["${node1}:${toString caddyPort}"];
+                targets = at "caddy" "metrics" "";
                 labels.type = "edge";
               }
             ];
@@ -187,7 +179,7 @@ in {
             job_name = "crowdsec";
             static_configs = [
               {
-                targets = ["${node1}:${toString crowdsecPort}"];
+                targets = at "crowdsec" "metrics" "";
                 labels.type = "edge";
               }
             ];
@@ -196,7 +188,7 @@ in {
             job_name = "netbird-server";
             static_configs = [
               {
-                targets = ["${node2}:${toString netbirdServerPort.metrics}"];
+                targets = at "netbird-server" "metrics" "";
                 labels.type = "netbird";
               }
             ];
@@ -207,7 +199,7 @@ in {
             job_name = "netbird-relay";
             static_configs = [
               {
-                targets = ["${node2}:${toString netbirdRelayPort.metrics}"];
+                targets = at "netbird-relay" "metrics" "";
                 labels.type = "netbird";
               }
             ];
@@ -216,7 +208,7 @@ in {
             job_name = "netbird-proxy-atl";
             static_configs = [
               {
-                targets = at "netbird-proxy-atl" "metrics" "";
+                targets = at "netbird-proxy-atl" "health" "";
                 labels.type = "netbird";
               }
             ];
@@ -225,7 +217,7 @@ in {
             job_name = "blocky";
             static_configs = [
               {
-                targets = blockyTargets;
+                targets = at "blocky" "http" "" ++ at "blocky-ricklent" "http" "";
                 labels.type = "dns";
               }
             ];
@@ -278,7 +270,7 @@ in {
             params.module = ["http_2xx"];
             static_configs = [
               {
-                targets = ["http://${node2}:${toString pocketIdPort}/healthz"];
+                targets = map (t: "http://${t}") (at "pocket-id" "app" "/healthz");
                 labels = {
                   type = "probe";
                   tier = "critical";
@@ -303,14 +295,14 @@ in {
                 };
               }
               {
-                targets = ["http://${node2}:${toString netbirdRelayPort.health}/health"];
+                targets = map (t: "http://${t}") (at "netbird-relay" "health" "/health");
                 labels = {
                   type = "probe";
                   tier = "warning";
                 };
               }
               {
-                targets = ["http://${node2}:${toString netbirdProxyPort.health}/healthz"] ++ map (t: "http://${t}") (at "netbird-proxy-atl" "health" "/healthz");
+                targets = map (t: "http://${t}") (at "netbird-proxy" "health" "/healthz" ++ at "netbird-proxy-atl" "health" "/healthz");
                 labels = {
                   type = "probe";
                   tier = "warning";
@@ -327,7 +319,7 @@ in {
               {
                 # :80 multiplexes gRPC + the management HTTP API, so a TCP
                 # connect (not a plain GET) is the reliable liveness signal.
-                targets = ["${node2}:${toString netbirdServerPort.http}"];
+                targets = at "netbird-server" "http" "";
                 labels = {
                   type = "probe";
                   tier = "critical";
@@ -342,7 +334,7 @@ in {
             params.module = ["dns"];
             static_configs = [
               {
-                targets = ["${node2}:553"];
+                targets = at "blocky" "dns" "";
                 labels = {
                   type = "probe";
                   tier = "warning";
@@ -382,9 +374,9 @@ in {
             allow_sign_up = true;
             client_id = "a70e6d0d-360c-415f-b154-85ec7a6bc352";
             scopes = "openid profile email groups";
-            auth_url = "https://auth.jeiang.dev/authorize";
-            token_url = "https://auth.jeiang.dev/api/oidc/token";
-            api_url = "https://auth.jeiang.dev/api/oidc/userinfo";
+            auth_url = "${self.lib.pocketIdUrl}/authorize";
+            token_url = "${self.lib.pocketIdUrl}/api/oidc/token";
+            api_url = "${self.lib.pocketIdUrl}/api/oidc/userinfo";
             login_attribute_path = "preferred_username";
             name_attribute_path = "name";
             email_attribute_path = "email";

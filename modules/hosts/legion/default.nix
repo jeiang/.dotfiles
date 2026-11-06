@@ -150,7 +150,7 @@ in {
         # systemd-journal-upload appends `/upload` itself and VictoriaLogs' route is /insert/journald/upload, so this URL must end at /insert/journald.
         journald.upload = {
           enable = true;
-          settings.Upload.URL = "http://${legionAddress config.networking.hostName "zantark"}:${toString legionServices.monitoring.ports.victoria-logs}/insert/journald";
+          settings.Upload.URL = "http://${serviceAddress config.networking.hostName "monitoring"}:${toString legionServices.monitoring.ports.victoria-logs}/insert/journald";
         };
 
         journald.settings.Journal.SystemMaxUse = "1G";

@@ -7,117 +7,42 @@
 }: let
   peers = self.lib.netbirdPeers;
   services = config.legion.services;
-  nodeExporterPort = host: self.nixosConfigurations.${host}.config.services.prometheus.exporters.node.port;
-
-  # Blocky binds its DNS port on vida and on ricklent's mesh IP; the
-  # nameserver order (vida first) is the resolver preference.
+  nameserver = ip: port: {
+    inherit ip port;
+    ns_type = "udp";
+  };
+  # The nameserver order (vida first) is the resolver preference.
   blockyNodes = map (s: services.${s}.node) ["blocky" "blocky-ricklent"];
-  blockyDnsPort = self.nixosConfigurations.vida.config.services.blocky.settings.ports.dns;
+  blockyDnsPort = services.blocky.ports.dns;
 
-  # Every connection between Legion machines that crosses the mesh: Hetzner
-  # nodes reach each other on the private network, so these all involve
-  # ricklent or artemis. The policies allow their ports between any Legion
-  # machines, so a re-enrolled peer needs no policy edit.
-  meshFlows = [
-    {
-      from = "ricklent";
-      to = "alda";
+  meshOnlyNodes = builtins.attrNames (lib.filterAttrs (_: n: n.privateIPv4 == null) self.lib.legionNodes);
+  artemisExporters = self.nixosConfigurations.artemis.config.services.prometheus.exporters;
+
+  # Every port used across the mesh: Hetzner nodes reach each other on the
+  # private network, so these all involve a mesh-only node or artemis. The
+  # policies allow them between any Legion machines, so a re-enrolled peer
+  # needs no policy edit.
+  meshFlows =
+    map (port: {
       proto = "tcp";
-      port = services.crowdsec.ports.lapi;
-      why = "CrowdSec agent and Atlanta proxy bouncer to the LAPI";
-    }
-    {
-      from = "ricklent";
-      to = "zantark";
-      proto = "tcp";
-      port = services.monitoring.ports.victoria-logs;
-      why = "journald upload";
-    }
-    {
-      from = "zantark";
-      to = "ricklent";
-      proto = "tcp";
-      port = nodeExporterPort "ricklent";
-      why = "node exporter scrape";
-    }
-    {
-      from = "zantark";
-      to = "ricklent";
-      proto = "tcp";
-      port = services.blocky-ricklent.ports.http;
-      why = "Blocky metrics";
-    }
-    {
-      from = "zantark";
-      to = "ricklent";
-      proto = "tcp";
-      port = services.netbird-proxy-atl.ports.health;
-      why = "Atlanta proxy health and metrics";
-    }
-    {
-      from = "zantark";
-      to = "artemis";
-      proto = "tcp";
-      port = nodeExporterPort "artemis";
-      why = "node exporter scrape";
-    }
-    {
-      from = "zantark";
-      to = "artemis";
-      proto = "tcp";
-      port = self.nixosConfigurations.artemis.config.services.prometheus.exporters.smartctl.port;
-      why = "smartctl exporter scrape";
-    }
-    {
-      from = "alda";
-      to = "artemis";
-      proto = "tcp";
-      port = self.lib.atriumWebPort;
-      why = "Caddy to atrium";
-    }
-    {
-      from = "artemis";
-      to = "zantark";
-      proto = "tcp";
-      port = services.monitoring.ports.grafana;
-      why = "atrium and the MCP Grafana server";
-    }
-    {
-      from = "artemis";
-      to = "zantark";
-      proto = "tcp";
-      port = services.atuin.ports.app;
-      why = "atuin sync";
-    }
-    {
-      from = "ricklent";
-      to = "artemis";
-      proto = "tcp";
-      port = self.lib.minecraftJavaPort;
-      why = "game ingress";
-    }
-    {
-      from = "ricklent";
-      to = "artemis";
-      proto = "tcp";
-      port = self.lib.minecraftBedrockPort;
-      why = "game ingress";
-    }
-    {
-      from = "ricklent";
-      to = "artemis";
-      proto = "udp";
-      port = self.lib.minecraftBedrockPort;
-      why = "game ingress";
-    }
-    {
-      from = "ricklent";
-      to = "artemis";
-      proto = "udp";
-      port = self.lib.factorioPort;
-      why = "game ingress";
-    }
-  ];
+      inherit port;
+    }) (
+      [
+        services.crowdsec.ports.lapi
+        services.monitoring.ports.victoria-logs
+      ]
+      ++ map (node: self.nixosConfigurations.${node}.config.services.prometheus.exporters.node.port) meshOnlyNodes
+      ++ [
+        services.blocky-ricklent.ports.http
+        services.netbird-proxy-atl.ports.health
+        artemisExporters.node.port
+        artemisExporters.smartctl.port
+        self.lib.atriumWebPort
+        services.monitoring.ports.grafana
+        services.atuin.ports.app
+      ]
+    )
+    ++ services.game-ingress.publicPorts;
   meshPorts = proto: lib.unique (map (f: toString f.port) (builtins.filter (f: f.proto == proto) meshFlows));
 
   rule = name: r:
@@ -165,13 +90,13 @@
 
   netbird = {
     netbird = {
-      server = "https://netbird.jeiang.dev";
+      server = "https://${self.lib.netbirdDomain}";
       prune = lib.genAttrs ["posture_checks" "groups" "networks" "network_resources" "network_routers" "nameserver_groups" "policies" "setup_keys" "services" "service_users" "tokens"] (_: true);
 
       account.settings = {
         network_range = self.lib.netbirdMeshCidrv4;
         network_range_v6 = self.lib.netbirdMeshCidrv6;
-        dns_domain = "jeiang.vpn";
+        dns_domain = self.lib.netbirdDnsDomain;
         ipv6_enabled_groups = ["All"];
         # Groups are NetBird's own; Pocket ID only decides who may sign in
         # (its NetBird OIDC client is limited to the `netbird` group).
@@ -327,20 +252,10 @@
           search_domains_enabled = false;
           enabled = true;
           groups = ["members"];
+          # Quad9's primary address is the fallback when neither Blocky answers.
           nameservers =
-            map (node: {
-              ip = peers.${node};
-              ns_type = "udp";
-              port = blockyDnsPort;
-            })
-            blockyNodes
-            ++ [
-              {
-                ip = "9.9.9.9";
-                ns_type = "udp";
-                port = 53;
-              }
-            ];
+            map (node: nameserver peers.${node} blockyDnsPort) blockyNodes
+            ++ [(nameserver (builtins.head self.lib.quad9) 53)];
         };
         # Never a search domain: clients would append jeiang.dev to every
         # single-label name, and the jeiang.dev wildcard record answers them all.
@@ -352,18 +267,7 @@
           search_domains_enabled = false;
           enabled = true;
           groups = ["All"];
-          nameservers = [
-            {
-              ip = "9.9.9.9";
-              ns_type = "udp";
-              port = 53;
-            }
-            {
-              ip = "149.112.112.112";
-              ns_type = "udp";
-              port = 53;
-            }
-          ];
+          nameservers = map (ip: nameserver ip 53) self.lib.quad9;
         };
       };
 
