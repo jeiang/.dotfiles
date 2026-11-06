@@ -7,9 +7,8 @@
   inherit (config.nixos) modules;
 in {
   flake.deploy.nodes.artemis = {
-    # Deploys ride the NetBird mesh (no public DNS); when it's down: deploy .#artemis --hostname <LAN IP or 10.100.0.2 via the backup tunnel>.
     hostname = "artemis.jeiang.vpn";
-    sshUser = "deploy";
+    sshUser = self.lib.deployUser;
     sudo = "doas -u";
     profiles.system = {
       user = "root";
@@ -39,16 +38,11 @@ in {
     ];
 
     persistence = {
-      nukeRoot = {
-        device = "/dev/disk/by-partlabel/disk-nvme3-root";
-        subvolume = "rootfs";
-      };
-
       files = [
         "/etc/machine-id"
         "/var/lib/systemd/random-seed"
-        "/etc/ssh/ssh_host_ed25519_key"
-        "/etc/ssh/ssh_host_ed25519_key.pub"
+        self.lib.hostKeyPath
+        "${self.lib.hostKeyPath}.pub"
       ];
       directories = [
         "/var/lib/nixos"
@@ -90,6 +84,16 @@ in {
       ];
     };
 
+    backups.persist.paths = let
+      home = config.users.users.${config.preferences.user.name}.home;
+    in
+      # Host identity: a rebuilt artemis keeps its sops key and the NetBird
+      # peer address the flake hardcodes.
+      [(dirOf self.lib.hostKeyPath) "/var/lib/netbird"]
+      ++ map (directory: "${home}/${directory}") [".gnupg" ".local/share/fish" ".password-store" ".renpy" ".ssh"];
+
+    monitoredUnits = ["netbird.service" "netbird-login.service" "sshd.service" "wireguard-wg-backup.service"];
+
     boot = {
       loader.systemd-boot = {
         enable = true;
@@ -124,8 +128,8 @@ in {
     environment.variables = {
       AMD_VULKAN_ICD = "RADV";
       MESA_SHADER_CACHE_MAX_SIZE = "12G";
-      # Pin aquamarine to the dGPU: left alone it makes the iGPU primary and renders the whole session there. /dev/dri/egpu is the by-PCI-address symlink from ./hardware.nix; card* numbering is not boot-stable.
-      AQ_DRM_DEVICES = "/dev/dri/egpu";
+      # Pin aquamarine to the dGPU: left alone it makes the iGPU primary and renders the whole session there.
+      AQ_DRM_DEVICES = self.lib.artemisDgpuDevice.card;
     };
     networking = {
       hostName = "artemis";
@@ -172,33 +176,11 @@ in {
 
     # Grouped in one attrset: statix W20 fires on a third top-level `services.*` key.
     services = {
-      prometheus.exporters.node = {
-        enable = true;
-        enabledCollectors = ["systemd"];
-        extraFlags = [
-          # The restic pattern matches timers too; the backup-freshness alert reads their last trigger.
-          "--collector.systemd.unit-include=(netbird|netbird-login|greetd|wireguard-wg-backup|beesd@.*|btrfs-scrub@.*|sshd|qbittorrent|factorio|minecraft-server-mc|darkhttpd(-movies|-tv)?)\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)"
-        ];
-      };
-      # Scraped from zantark over the mesh: the btrfs pool is RAID0, so one failing drive loses it.
-      prometheus.exporters.smartctl.enable = true;
-
       # The HomeKit Wake-on-LAN Switch resolves artemis.local over mDNS before pinging it.
       avahi.enable = true;
 
       # No screen reader on a headless box; the graphical-desktop default pulls this in.
       speechd.enable = false;
-
-      hypr-rdp = {
-        enable = true;
-        sopsFile = ./secrets.yaml;
-        settings = {
-          bind = "0.0.0.0:3389";
-          # No `output`: hypr-rdp manages its own headless output.
-          # `auto` would quietly fall back to software H.264 if the VA-API driver ever failed to load.
-          h264_backend = "vaapi";
-        };
-      };
     };
 
     nixpkgs.hostPlatform = "x86_64-linux";

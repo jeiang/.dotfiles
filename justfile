@@ -76,7 +76,7 @@ migrate-persist flake="." sudo="sudo":
   {{sudo}} nix shell nixpkgs#jq nixpkgs#rsync -c ./modules/hosts/artemis/migrate-persist.sh {{flake}}
 
 # List paths in artemis's /persist that no persistence.* entry declares (read-only)
-persist-orphans host="artemis.jeiang.vpn":
+persist-orphans *host:
   ./modules/hosts/artemis/persist-orphans.sh . {{host}}
 
 install system sudo="sudo":
@@ -123,7 +123,7 @@ qwen-image *args:
 # Copy iCloud movie files or show folders into artemis's media import queue, one verified file at a time; deletes nothing
 [no-cd, positional-arguments]
 icloud-media-import +paths:
-  nix shell --inputs-from {{justfile_directory()}} nixpkgs#rsync -c {{justfile_directory()}}/modules/media/icloud-import.sh artemis.jeiang.vpn /var/lib/media "$@"
+  nix shell --inputs-from {{justfile_directory()}} nixpkgs#rsync -c {{justfile_directory()}}/modules/media/icloud-import.sh "$(nix eval --raw {{justfile_directory()}}#deploy.nodes.artemis.hostname)" "$(nix eval --raw {{justfile_directory()}}#lib.mediaImportDir)" "$(nix eval --raw {{justfile_directory()}}#lib.mediaIncomingDir)" "$@"
 
 # Plan NetBird management changes (modules/netbird-management) against live state; read-only. Token: $NETBIRD_TOKEN_FILE, else the nb-nix token in the admin stash
 netbird-plan *args:

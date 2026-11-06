@@ -17,11 +17,15 @@ in {
         mode = "0750";
       }
     ];
+    backups.persist = {
+      paths = [stateDir];
+      stopUnits = ["factorio.service"];
+    };
+    monitoredUnits = ["factorio.service"];
 
     services.factorio = {
       enable = true;
       inherit port;
-      openFirewall = false;
       game-name = "cornn-flaek";
       autosave-interval = 10;
       # JSON merged into server-settings.json at start: {"game_password": "..."}.

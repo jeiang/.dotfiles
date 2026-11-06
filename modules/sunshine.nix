@@ -1,5 +1,6 @@
 {self, ...}: {
   nixos.modules.artemis = {
+    config,
     lib,
     pkgs,
     ...
@@ -28,7 +29,7 @@
         echo "sunshine-stream-mode: no client resolution in env, leaving mode unchanged" >&2
         exit 0
       fi
-      hyprctl eval "hl.monitor({ output = [[$output]], mode = [[$mode]], position = [[0x0]], scale = [[1]] })" \
+      hyprctl eval "hl.monitor({ output = [[$output]], mode = [[$mode]], position = [[${self.lib.artemisDisplay.position}]], scale = [[${self.lib.artemisDisplay.scale}]] })" \
         || echo "sunshine-stream-mode: switch to $mode failed (mode may not exist on $output)" >&2
       exit 0
     '';
@@ -53,13 +54,10 @@
       enable = true;
       # for DRM/KMS capture of the Hyprland session
       capSysAdmin = true;
-      openFirewall = false;
       settings = {
         sunshine_name = "artemis";
-        # Pin the discrete GPU's stable by-path render node --
-        # /dev/dri/renderD12x numbering can swap between boots.
         encoder = "vaapi";
-        adapter_name = "/dev/dri/by-path/pci-${self.lib.artemisDgpuPci.full}-render";
+        adapter_name = self.lib.artemisDgpuDevice.render;
       };
       applications.apps = [
         {
@@ -79,5 +77,6 @@
 
     # pairing state; without this every reboot forgets all paired clients
     persistence.data.directories = [".config/sunshine"];
+    backups.persist.paths = ["${config.users.users.${config.preferences.user.name}.home}/.config/sunshine"];
   };
 }

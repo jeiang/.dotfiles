@@ -19,10 +19,11 @@
   in {
     imports = [
       inputs.disko.nixosModules.disko
+      # The disko CLI reads only disko.devices, so this stays out of its way.
+      ({config, ...}: {fileSystems.${btrfsRootMount}.device = config.fileSystems."/".device;})
     ];
 
     boot.loader.efi.canTouchEfiVariables = true;
-    # not managed by disko
     fileSystems = {
       "/mnt/Mumei" = {
         device = "/dev/disk/by-label/Mumei";
@@ -33,7 +34,6 @@
       };
       # for bees
       "${btrfsRootMount}" = {
-        device = "/dev/disk/by-partlabel/disk-nvme3-root";
         neededForBoot = false;
         fsType = "btrfs";
         options = btrfsMountOptions;
@@ -55,6 +55,7 @@
         };
       };
     };
+    monitoredUnits = ["beesd@*.service" "btrfs-scrub@*.service"];
     # bees holds btrfs extent locks that stall game I/O, so it runs in a nightly window; missed windows are skipped, never run late.
     systemd = {
       services."beesd@-".wantedBy = lib.mkForce [];

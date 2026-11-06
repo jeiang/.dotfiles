@@ -1,34 +1,31 @@
-{self, ...}: let
+{
+  self,
+  config,
+  ...
+}: let
   webuiPort = 8081;
   filesPort = 8082;
   torrentingPort = 32881;
   stateDir = "/var/lib/qbittorrent";
   downloadDir = self.lib.mediaDownloadDir;
 
-  exitNode = self.lib.legionNodes.ricklent;
+  exitNode = self.lib.legionNodes.${config.legion.services.qbittorrent-exit.node};
   exitWireguardPort = 51822;
   exitInterface = "wg-qbt";
   exitNamespace = "qbt";
   exitNamespacePath = "/run/netns/${exitNamespace}";
   exitServerIp = "10.101.0.1";
   exitClientIp = "10.101.0.2";
-  exitResolvers = ["9.9.9.9" "149.112.112.112"];
+  exitResolvers = self.lib.quad9;
 
-  artemisExitPublicKey = "m+sxbQiaqKHzsaroCGK8KUR1DOgo+oUwxSbKkySrbjI=";
-  ricklentExitPublicKey = "hIn9a8Tqq/9BMilfiiUOdP1qDFrAX3VFQslfBARfggw=";
+  exitClientPublicKey = "m+sxbQiaqKHzsaroCGK8KUR1DOgo+oUwxSbKkySrbjI=";
+  exitServerPublicKey = "hIn9a8Tqq/9BMilfiiUOdP1qDFrAX3VFQslfBARfggw=";
 in {
-  flake.lib = {
-    qbittorrentWebuiPort = webuiPort;
-    mediaFilesPort = filesPort;
-  };
+  flake.lib.qbittorrentWebuiPort = webuiPort;
 
   legion.services.qbittorrent-exit = {
     node = "ricklent";
     module = "qbittorrent-exit";
-    ports = {
-      wireguard = exitWireguardPort;
-      peer = torrentingPort;
-    };
     publicPorts = [
       {
         port = exitWireguardPort;
@@ -47,7 +44,7 @@ in {
 
   # Only the Web UI and file listing ride the NetBird interface, which is
   # already trusted (modules/netbird.nix). Peers reach qBittorrent through
-  # ricklent, never through the home network.
+  # the exit node, never through the home network.
   nixos.modules.artemis = {
     config,
     lib,
@@ -59,6 +56,7 @@ in {
     tunnelUnit = "wireguard-${exitInterface}";
   in {
     persistence.directories = [stateDir];
+    monitoredUnits = ["qbittorrent.service" "darkhttpd.service"];
 
     # Seeding would eat the uplink a remote Moonlight session needs.
     gaming.pauseUnits = ["qbittorrent.service"];
@@ -76,7 +74,7 @@ in {
       interfaceNamespace = exitNamespace;
       peers = [
         {
-          publicKey = ricklentExitPublicKey;
+          publicKey = exitServerPublicKey;
           allowedIPs = ["0.0.0.0/0"];
           # `wg` resolves the endpoint inside the namespace, where no resolver is reachable before the tunnel is up.
           endpoint = "${exitNode.publicIPv4}:${toString exitWireguardPort}";
@@ -91,7 +89,6 @@ in {
         inherit webuiPort torrentingPort;
         group = self.lib.mediaGroup;
         profileDir = stateDir;
-        openFirewall = false;
         # The unit reinstalls this file on every start, so the flake owns
         # every preference: a change made in the web UI is lost on the next
         # restart, and gamemode restarts the service for each game.
@@ -132,7 +129,7 @@ in {
     # group of ours.
     systemd = {
       tmpfiles.settings.qbittorrent-downloads.${downloadDir}.d = {
-        user = "qbittorrent";
+        inherit (config.services.qbittorrent) user;
         group = self.lib.mediaGroup;
         mode = "0755";
       };
@@ -170,7 +167,6 @@ in {
           };
         };
 
-        # Forwards host-namespace connections to the Web UI inside the namespace.
         qbittorrent-webui = {
           description = "qBittorrent Web UI proxy";
           bindsTo = ["qbittorrent-netns.service"];
@@ -212,7 +208,7 @@ in {
         privateKeyFile = config.sops.secrets."wireguard/qbittorrent-private-key".path;
         peers = [
           {
-            publicKey = artemisExitPublicKey;
+            publicKey = exitClientPublicKey;
             allowedIPs = ["${exitClientIp}/32"];
           }
         ];

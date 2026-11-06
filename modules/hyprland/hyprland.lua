@@ -3,12 +3,7 @@ require("rules")
 require("animations")
 require("keybinds")
 
-hl.monitor({
-	output = vars.display.output,
-	mode = vars.display.mode,
-	position = "0x0",
-	scale = "1",
-})
+hl.monitor(vars.display)
 hl.monitor({
 	-- empty output matches anything else that is plugged in
 	output = "",

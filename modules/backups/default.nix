@@ -182,100 +182,119 @@ in {
     pkgs,
     ...
   }: let
-    home = config.users.users.${config.preferences.user.name}.home;
+    cfg = config.backups.persist;
 
     repository = "s3:${s4Endpoint}/artemis-restic-backups/persist";
-
-    # Read-only snapshot, so restic never reads a file while it is written.
-    # It sits inside /persist, which is already mounted, so the unit needs no
-    # mount of its own.
-    snapshot = "/persist/.backup-snapshot";
     btrfs = "${pkgs.btrfs-progs}/bin/btrfs";
 
-    # Paths relative to /persist.
-    backupSet =
-      # Host identity: with these two a rebuilt artemis keeps its sops key and
-      # its NetBird peer address, which the flake hardcodes.
-      ["etc/ssh" "var/lib/netbird" "var/lib/atrium" "var/lib/factorio" "srv/minecraft/mc"]
-      ++ map (directory: "data${home}/${directory}") [
-        ".config/sunshine"
-        ".gnupg"
-        ".local/share/PrismLauncher"
-        ".local/share/fish"
-        ".password-store"
-        ".renpy"
-        ".ssh"
-      ];
-
-    persisted = map (e: lib.removePrefix "/persist/" e.stored) config.persistence.entries;
+    # A live path's place under /persist, found through the persistence entry
+    # it is, lies inside, or contains; null when no entry covers it.
+    storedPath = path: let
+      covering = lib.filter (e: e.live == path || lib.hasPrefix "${e.live}/" path || lib.hasPrefix "${path}/" e.live) config.persistence.entries;
+      roots = lib.unique (map (e: lib.removeSuffix e.live e.stored) covering);
+    in
+      if lib.length roots == 1
+      then lib.removePrefix "/persist/" (lib.head roots + path)
+      else null;
+    inSnapshot = path: "${cfg.snapshot}/${toString (storedPath path)}";
+    stopUnits = lib.concatStringsSep " " cfg.stopUnits;
   in {
-    # A path that is not persisted is empty after a reboot, and restic would
-    # fail on it rather than quietly shrink the backup.
-    assertions =
-      map (path: {
-        assertion =
-          lib.elem path persisted
-          # Either a parent of persisted entries (/persist holds nothing else)
-          # or a path inside one.
-          || lib.any (lib.hasPrefix "${path}/") persisted
-          || lib.any (entry: lib.hasPrefix "${entry}/" path) persisted;
-        message = "backups: /persist/${path} is not a persistence.* path";
-      })
-      backupSet;
-
-    sops.secrets = let
-      sopsFile = ./secrets.artemis.yaml;
-    in {
-      "restic/password" = {inherit sopsFile;};
-      "restic/s4-env" = {inherit sopsFile;};
-    };
-
-    services.restic.backups.persist = {
-      inherit repository;
-      paths = map (path: "${snapshot}/${path}") backupSet;
-      exclude = ["${snapshot}/var/lib/atrium/cache"];
-      passwordFile = config.sops.secrets."restic/password".path;
-      environmentFile = config.sops.secrets."restic/s4-env".path;
-      initialize = true;
-      timerConfig = {
-        OnCalendar = "02/6:00";
-        RandomizedDelaySec = "15m";
-        Persistent = true;
+    options.backups.persist = {
+      paths = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [];
+        description = ''
+          Live paths backed up from /persist: each is a persistence.* path,
+          lies inside one, or holds only persistence.* paths.
+        '';
       };
-      pruneOpts = [];
-      extraBackupArgs = ["--retry-lock" "2h"];
-      # Both guards are for a run that was killed before its cleanup: the
-      # snapshot outlives the unit, and deleting one that is not there would
-      # fail the unit after a successful backup.
-      backupPrepareCommand = ''
-        set -eu
-        if [ -e ${snapshot} ]; then
-          ${btrfs} subvolume delete ${snapshot}
-        fi
-        systemctl stop factorio.service minecraft-server-mc.service
-        ${btrfs} subvolume snapshot -r /persist ${snapshot}
-        systemctl start factorio.service minecraft-server-mc.service
-      '';
-      backupCleanupCommand = ''
-        # nixpkgs runs cleanup through ExecStopPost, including prepare/backup failures.
-        systemctl start factorio.service minecraft-server-mc.service
-        if [ -e ${snapshot} ]; then
-          ${btrfs} subvolume delete ${snapshot}
-        fi
-      '';
+      exclude = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [];
+        description = "Live paths inside `paths` left out of the backup.";
+      };
+      stopUnits = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [];
+        description = "Units stopped while the read-only snapshot is taken.";
+      };
+      # Read-only btrfs snapshot of /persist that restic reads, so it never
+      # reads a file while it is written.
+      snapshot = lib.mkOption {
+        type = lib.types.str;
+        default = "/persist/.backup-snapshot";
+        readOnly = true;
+        internal = true;
+      };
     };
 
-    systemd = {
-      services = {
-        restic-backups-persist.unitConfig.RequiresMountsFor = ["/persist"];
-        restic-maintenance-persist = maintenanceService {
-          inherit lib pkgs repository;
-          name = "persist";
-          passwordFile = config.sops.secrets."restic/password".path;
-          environmentFile = config.sops.secrets."restic/s4-env".path;
+    config = {
+      # A path that is not persisted is empty after a reboot, and restic would
+      # fail on it rather than quietly shrink the backup.
+      assertions =
+        map (path: {
+          assertion = storedPath path != null;
+          message = "backups: ${path} is not a persistence.* path";
+        })
+        (cfg.paths ++ cfg.exclude);
+
+      # The backup-freshness alert reads the timers' last trigger.
+      monitoredUnits = ["restic-backups-*.service" "restic-backups-*.timer" "restic-maintenance-*.service" "restic-maintenance-*.timer"];
+
+      sops.secrets = let
+        sopsFile = ./secrets.artemis.yaml;
+      in {
+        "restic/password" = {inherit sopsFile;};
+        "restic/s4-env" = {inherit sopsFile;};
+      };
+
+      services.restic.backups.persist = {
+        inherit repository;
+        paths = map inSnapshot cfg.paths;
+        exclude = map inSnapshot cfg.exclude;
+        passwordFile = config.sops.secrets."restic/password".path;
+        environmentFile = config.sops.secrets."restic/s4-env".path;
+        initialize = true;
+        timerConfig = {
+          OnCalendar = "02/6:00";
+          RandomizedDelaySec = "15m";
+          Persistent = true;
         };
+        pruneOpts = [];
+        extraBackupArgs = ["--retry-lock" "2h"];
+        # Both guards are for a run that was killed before its cleanup: the
+        # snapshot outlives the unit, and deleting one that is not there would
+        # fail the unit after a successful backup.
+        backupPrepareCommand = ''
+          set -eu
+          if [ -e ${cfg.snapshot} ]; then
+            ${btrfs} subvolume delete ${cfg.snapshot}
+          fi
+          systemctl stop ${stopUnits}
+          ${btrfs} subvolume snapshot -r /persist ${cfg.snapshot}
+          systemctl start ${stopUnits}
+        '';
+        backupCleanupCommand = ''
+          # nixpkgs runs cleanup through ExecStopPost, including prepare/backup failures.
+          systemctl start ${stopUnits}
+          if [ -e ${cfg.snapshot} ]; then
+            ${btrfs} subvolume delete ${cfg.snapshot}
+          fi
+        '';
       };
-      timers.restic-maintenance-persist = maintenanceTimer;
+
+      systemd = {
+        services = {
+          restic-backups-persist.unitConfig.RequiresMountsFor = ["/persist"];
+          restic-maintenance-persist = maintenanceService {
+            inherit lib pkgs repository;
+            name = "persist";
+            passwordFile = config.sops.secrets."restic/password".path;
+            environmentFile = config.sops.secrets."restic/s4-env".path;
+          };
+        };
+        timers.restic-maintenance-persist = maintenanceTimer;
+      };
     };
   };
 }
