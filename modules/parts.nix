@@ -32,5 +32,18 @@
       "x86_64-linux"
       "aarch64-darwin"
     ];
+
+    perSystem = {
+      config,
+      pkgs,
+      ...
+    }: {
+      # Absent on darwin rather than an eval error there.
+      options.linuxPackages = lib.mkOption {
+        type = lib.types.lazyAttrsOf lib.types.package;
+        default = {};
+      };
+      config.packages = lib.mkIf pkgs.stdenv.hostPlatform.isLinux config.linuxPackages;
+    };
   };
 }

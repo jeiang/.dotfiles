@@ -3,13 +3,8 @@
   inputs,
   ...
 }: {
-  perSystem = {
-    pkgs,
-    lib,
-    ...
-  }: {
-    # Linux-only: absent on darwin rather than an eval error.
-    packages = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+  perSystem = {pkgs, ...}: {
+    linuxPackages = {
       mangohud = inputs.wrapper-modules.lib.wrapPackage (_: {
         inherit pkgs;
         package = pkgs.mangohud;

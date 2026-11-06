@@ -4,7 +4,7 @@
     lib,
     ...
   }: let
-    inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
+    inherit (pkgs.stdenv.hostPlatform) isDarwin;
 
     # Pinned ahead of nixpkgs; one shared override for every component built from the netbird monorepo.
     pin = _:
@@ -38,6 +38,11 @@
 
     dashboardVersion = "2.95.0";
   in {
+    linuxPackages = {
+      netbird-relay = pkgs.netbird-relay.overrideAttrs pin;
+      netbird-proxy = pkgs.netbird-proxy.overrideAttrs pin;
+    };
+
     packages =
       {
         netbird = pkgs.netbird.overrideAttrs pin;
@@ -57,11 +62,6 @@
           };
           env = old.env // {NEXT_PUBLIC_DASHBOARD_VERSION = version;};
         });
-      }
-      # Linux-only: absent on darwin rather than an eval error (no consumer there).
-      // lib.optionalAttrs isLinux {
-        netbird-relay = pkgs.netbird-relay.overrideAttrs pin;
-        netbird-proxy = pkgs.netbird-proxy.overrideAttrs pin;
       }
       // lib.optionalAttrs isDarwin {
         netbird-ui =
