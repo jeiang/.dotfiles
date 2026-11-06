@@ -41,7 +41,6 @@ in {
     services.minecraft-servers = {
       enable = true;
       eula = true;
-      openFirewall = false;
       servers.${serverName} = {
         enable = true;
         # Geyser translates Bedrock 26.50-26.52 to Java 26.3.

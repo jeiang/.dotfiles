@@ -54,7 +54,6 @@
       enable = true;
       # for DRM/KMS capture of the Hyprland session
       capSysAdmin = true;
-      openFirewall = false;
       settings = {
         sunshine_name = "artemis";
         encoder = "vaapi";

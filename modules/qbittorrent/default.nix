@@ -89,7 +89,6 @@ in {
         inherit webuiPort torrentingPort;
         group = self.lib.mediaGroup;
         profileDir = stateDir;
-        openFirewall = false;
         # The unit reinstalls this file on every start, so the flake owns
         # every preference: a change made in the web UI is lost on the next
         # restart, and gamemode restarts the service for each game.
