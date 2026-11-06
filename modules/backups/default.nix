@@ -197,15 +197,7 @@ in {
         ".ssh"
       ];
 
-    entryPath = entry:
-      if builtins.isString entry
-      then entry
-      else entry.directory or entry.file;
-    persisted =
-      map (entry: lib.removePrefix "/" (entryPath entry))
-      (config.persistence.directories ++ config.persistence.files)
-      ++ map (entry: "data${home}/${entryPath entry}")
-      (config.persistence.data.directories ++ config.persistence.data.files);
+    persisted = map (e: lib.removePrefix "/persist/" e.stored) config.persistence.entries;
   in {
     # A path that is not persisted is empty after a reboot, and restic would
     # fail on it rather than quietly shrink the backup.

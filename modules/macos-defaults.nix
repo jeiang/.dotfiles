@@ -90,10 +90,6 @@ _: {
         ${asUser "defaults -currentHost write com.apple.controlcenter Weather -int 2"}
         killall -qu ${userArg} ControlCenter || true
 
-        # Spotlight hotkey: -dict-add is merge-safe; CustomUserPreferences would clobber the whole AppleSymbolicHotKeys dict.
-        ${asUser "defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 64 \"<dict><key>enabled</key><false/></dict>\""}
-        ${asUser "/System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u"} || true
-
         ${asUser "mkdir -p /Users/${config.preferences.user.name}/Pictures"}
         ${asUser "ln -sfn ${wallpapers} /Users/${config.preferences.user.name}/Pictures/Wallpapers"}
 

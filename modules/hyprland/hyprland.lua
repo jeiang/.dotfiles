@@ -4,9 +4,8 @@ require("animations")
 require("keybinds")
 
 hl.monitor({
-	-- EDID dummy plug; the board won't POST without a display attached
-	output = "HDMI-A-1",
-	mode = "1920x1080@60",
+	output = vars.display.output,
+	mode = vars.display.mode,
 	position = "0x0",
 	scale = "1",
 })

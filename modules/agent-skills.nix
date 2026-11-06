@@ -52,12 +52,11 @@ in {
   }: {
     hjem.users.${config.preferences.user.name}.files = files pkgs;
 
-    persistence.data.directories = [
-      {
-        directory = ".codex";
-        mode = "0700";
-      }
-    ];
+    # The homes hold OAuth tokens (omp's agent.db among them): persisted, never in the backup allowlist.
+    persistence.data.directories = map (directory: {
+      inherit directory;
+      mode = "0700";
+    }) (lib.attrValues homes);
   };
 
   darwin.modules.base = {

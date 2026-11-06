@@ -39,9 +39,7 @@ in {
     ];
 
     persistence = {
-      enable = true;
       nukeRoot = {
-        enable = true;
         device = "/dev/disk/by-partlabel/disk-nvme3-root";
         subvolume = "rootfs";
       };
@@ -73,10 +71,6 @@ in {
         ".local/share/Trash"
         {
           directory = ".ssh";
-          mode = "0700";
-        }
-        {
-          directory = ".claude";
           mode = "0700";
         }
         ".local/share/fish"
