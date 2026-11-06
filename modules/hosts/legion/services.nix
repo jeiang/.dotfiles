@@ -74,6 +74,11 @@
       publicHostnames = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [];
+        description = ''
+          Hostnames whose A/AAAA records point straight at this service's
+          node, DNS-only (not proxied by Cloudflare). Replicas on several
+          nodes each list the name, which gives round-robin DNS.
+        '';
       };
 
       publicPorts = lib.mkOption {
@@ -110,7 +115,7 @@ in {
     '';
     apply = services: let
       named = lib.mapAttrsToList (name: s: s // {inherit name;}) services;
-      publicHostnames = lib.concatMap (s: s.publicHostnames) named;
+      nodeHostnames = lib.concatMap (s: map (h: "${h} on ${s.node}") s.publicHostnames) named;
       statefulWithoutDurability = builtins.filter (s: s.stateful && s.volume == null && s.backupSet == []) named;
       backupSetViolations =
         builtins.filter (
@@ -125,8 +130,8 @@ in {
       labelTooLong = builtins.filter (s: s.volume != null && builtins.stringLength s.name > 16) named;
       volumeOffHetzner = builtins.filter (s: s.volume != null && self.lib.legionNodes.${s.node}.provider != "hetzner") named;
     in
-      assert lib.assertMsg (builtins.length publicHostnames == builtins.length (lib.unique publicHostnames))
-      "legion.services must not reuse a public hostname across services: ${builtins.concatStringsSep ", " publicHostnames}";
+      assert lib.assertMsg (builtins.length nodeHostnames == builtins.length (lib.unique nodeHostnames))
+      "legion.services must not list a public hostname twice on one node: ${builtins.concatStringsSep ", " nodeHostnames}";
       assert lib.assertMsg (statefulWithoutDurability == [])
       "Every stateful legion.services entry must declare a Volume or a backupSet: ${builtins.concatStringsSep ", " (map (s: s.name) statefulWithoutDurability)}";
       assert lib.assertMsg (backupSetViolations == [])

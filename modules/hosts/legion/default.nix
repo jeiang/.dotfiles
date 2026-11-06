@@ -85,7 +85,14 @@ in {
       inherit legionNodes legionAddress serviceAddress nodeHostname;
 
       # dns/dnsconfig.js reads this through require(); `just dns-nodes` rewrites the committed dns/nodes.json.
-      legionNodesJson = builtins.toJSON (lib.mapAttrs (_: node: {inherit (node) publicIPv4 publicIPv6;}) validatedLegionNodes) + "\n";
+      legionNodesJson =
+        builtins.toJSON {
+          nodes = lib.mapAttrs (_: node: {inherit (node) publicIPv4 publicIPv6;}) validatedLegionNodes;
+          hostnames = lib.zipAttrsWith (_: lib.sort lib.lessThan) (
+            lib.concatMap (s: map (hostname: {${hostname} = s.node;}) s.publicHostnames) (builtins.attrValues legionServices)
+          );
+        }
+        + "\n";
     };
 
     deploy.nodes =

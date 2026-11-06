@@ -23,6 +23,8 @@ in {
     node = "ricklent";
     module = "game-ingress";
     units = ["nginx"];
+    # UDP game traffic cannot pass the Cloudflare proxy.
+    publicHostnames = ["factorio.jeiang.dev" "mc.jeiang.dev"];
     publicPorts = gamePorts;
   };
 
