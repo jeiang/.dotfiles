@@ -68,6 +68,10 @@
           rnr
           sad
           ripper
+          # fish sources share/fish/vendor_conf.d from every XDG_DATA_DIRS entry, which includes the system profile.
+          (writeTextDir "share/fish/vendor_conf.d/trash.fish" ''
+            status is-interactive; and alias trash rip
+          '')
         ]
         # Shadows base's yazi: this one's T and d keys shell out to rip instead
         # of yazi's built-in trash crate (modules/packages/yazi/keymap.rip.toml).
