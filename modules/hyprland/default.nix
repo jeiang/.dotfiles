@@ -87,9 +87,7 @@
           mkdir -p $HOME/Pictures/Screenshots
           ${lib.getExe pkgs.grimblast} --notify copysave area "$HOME/Pictures/Screenshots/screenshot-$(date +"%Y%m%d%H%M%S").png"
         '';
-        # strip the leading "#" for hyprland's rgba()/0x color syntax
-        hex = c: builtins.substring 1 6 c;
-        p = builtins.mapAttrs (_: hex) self.lib.palette.kanaboxDarkHard;
+        p = self.lib.palette.kanaboxDarkHardHex;
       in
         # lua
         ''

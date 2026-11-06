@@ -1,4 +1,4 @@
-{
+{lib, ...}: {
   flake.lib = {
     wallpapers = ../assets/wallpapers-kanabox;
 
@@ -51,6 +51,8 @@
           sumiInk1 = "#0C0C15";
           sumiInk1_5 = "#2A2A37";
         };
+      # Without the leading "#", for rgba()/0x syntaxes and lutgen.
+      kanaboxDarkHardHex = lib.mapAttrs (_: c: lib.removePrefix "#" c) kanaboxDarkHard;
     };
 
     fonts.monospace = "Mononoki Nerd Font";
