@@ -1,34 +1,31 @@
-{self, ...}: let
+{
+  self,
+  config,
+  ...
+}: let
   webuiPort = 8081;
   filesPort = 8082;
   torrentingPort = 32881;
   stateDir = "/var/lib/qbittorrent";
   downloadDir = self.lib.mediaDownloadDir;
 
-  exitNode = self.lib.legionNodes.ricklent;
+  exitNode = self.lib.legionNodes.${config.legion.services.qbittorrent-exit.node};
   exitWireguardPort = 51822;
   exitInterface = "wg-qbt";
   exitNamespace = "qbt";
   exitNamespacePath = "/run/netns/${exitNamespace}";
   exitServerIp = "10.101.0.1";
   exitClientIp = "10.101.0.2";
-  exitResolvers = ["9.9.9.9" "149.112.112.112"];
+  exitResolvers = self.lib.quad9;
 
-  artemisExitPublicKey = "m+sxbQiaqKHzsaroCGK8KUR1DOgo+oUwxSbKkySrbjI=";
-  ricklentExitPublicKey = "hIn9a8Tqq/9BMilfiiUOdP1qDFrAX3VFQslfBARfggw=";
+  exitClientPublicKey = "m+sxbQiaqKHzsaroCGK8KUR1DOgo+oUwxSbKkySrbjI=";
+  exitServerPublicKey = "hIn9a8Tqq/9BMilfiiUOdP1qDFrAX3VFQslfBARfggw=";
 in {
-  flake.lib = {
-    qbittorrentWebuiPort = webuiPort;
-    mediaFilesPort = filesPort;
-  };
+  flake.lib.qbittorrentWebuiPort = webuiPort;
 
   legion.services.qbittorrent-exit = {
     node = "ricklent";
     module = "qbittorrent-exit";
-    ports = {
-      wireguard = exitWireguardPort;
-      peer = torrentingPort;
-    };
     publicPorts = [
       {
         port = exitWireguardPort;
@@ -77,7 +74,7 @@ in {
       interfaceNamespace = exitNamespace;
       peers = [
         {
-          publicKey = ricklentExitPublicKey;
+          publicKey = exitServerPublicKey;
           allowedIPs = ["0.0.0.0/0"];
           # `wg` resolves the endpoint inside the namespace, where no resolver is reachable before the tunnel is up.
           endpoint = "${exitNode.publicIPv4}:${toString exitWireguardPort}";
@@ -213,7 +210,7 @@ in {
         privateKeyFile = config.sops.secrets."wireguard/qbittorrent-private-key".path;
         peers = [
           {
-            publicKey = artemisExitPublicKey;
+            publicKey = exitClientPublicKey;
             allowedIPs = ["${exitClientIp}/32"];
           }
         ];

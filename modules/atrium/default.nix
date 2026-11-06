@@ -30,7 +30,6 @@
 in {
   flake.lib = {
     atriumWebPort = webPort;
-    atriumWebLocalPort = webLocalPort;
     inherit atriumHostname;
   };
 
