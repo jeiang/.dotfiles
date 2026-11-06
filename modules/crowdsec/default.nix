@@ -242,9 +242,9 @@ in {
                 ${cscli} bouncers delete ${lib.escapeShellArg name} || true
                 ${cscli} bouncers add ${lib.escapeShellArg name} --key "$(cat "$CREDENTIALS_DIRECTORY"/${lib.escapeShellArg name})" > /dev/null
               '';
-              # --file - keeps the dump off the local credentials file; --force replaces the machine's stored password.
+              # cscli prints a `--file -` dump (credentials included) to stderr, which the journal keeps; /dev/null discards it. --force replaces the machine's stored password.
               registerMachine = name: ''
-                ${cscli} machines add ${lib.escapeShellArg name} --password "$(cat "$CREDENTIALS_DIRECTORY"/machine-${lib.escapeShellArg name})" --file - --force > /dev/null
+                ${cscli} machines add ${lib.escapeShellArg name} --password "$(cat "$CREDENTIALS_DIRECTORY"/machine-${lib.escapeShellArg name})" --file /dev/null --force > /dev/null
               '';
             in
               lib.concatMapStrings registerBouncer (builtins.attrNames bouncers)
