@@ -2,14 +2,26 @@
   self,
   inputs,
   config,
+  lib,
   ...
 }: let
   legionServices = config.legion.services;
   metricsPort = 2020;
   apex = "jeiang.dev";
   websiteHostnames = [apex "aidanpinard.co" "pinard.co.tt"];
+  toolSites =
+    lib.mapAttrs (name: title: {
+      hostname = "${name}.${apex}";
+      inherit title;
+    }) {
+      bill-split = "Bill Splitter";
+      mdtable = "Markdown Table Editor";
+      rivals = "Rivals Randomizer";
+    };
 in {
-  flake.lib.websiteHostnames = websiteHostnames;
+  flake.lib = {
+    inherit websiteHostnames toolSites;
+  };
 
   legion.services.caddy = {
     node = "alda";
@@ -244,12 +256,12 @@ in {
             }
           '';
 
-          "bill-split.jeiang.dev" = {
+          ${toolSites.bill-split.hostname} = {
             content = true;
             config = serveRoot "${inputs.bill-splitter.packages.${system}.default}/dist";
           };
 
-          "mdtable.jeiang.dev" = {
+          ${toolSites.mdtable.hostname} = {
             content = true;
             config = serveRoot inputs.markdown-table-live-editor.packages.${system}.default;
           };

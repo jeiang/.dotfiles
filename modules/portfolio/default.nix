@@ -57,8 +57,14 @@ in {
       adminPasswordHashFile = config.sops.secrets."portfolio/admin-password-hash".path;
     };
 
-    # Starting portfolio-update after a snapshot would rebuild needlessly.
-    backups.jobs.portfolio.pauseUnits = ["portfolio.service"];
+    backups.jobs.portfolio = {
+      # Starting portfolio-update after a snapshot would rebuild needlessly.
+      pauseUnits = ["portfolio.service"];
+      schedule = {
+        onCalendar = "00/12:00";
+        randomizedDelaySec = "1h";
+      };
+    };
 
     systemd = {
       # The build runs unprivileged, so third-party flake evaluation never
@@ -98,12 +104,6 @@ in {
           OnActiveSec = "2m";
         };
       };
-    };
-
-    # The root disk holds the only live copy, so the interval is the writing a lost node loses.
-    backups.jobs.portfolio.schedule = {
-      onCalendar = "00/12:00";
-      randomizedDelaySec = "1h";
     };
   };
 }

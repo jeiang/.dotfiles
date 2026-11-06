@@ -114,7 +114,6 @@ in {
       };
     };
 
-    # The root disk holds the only live copy, so the interval is the history a lost node loses.
     backups.jobs.atuin.schedule = {
       onCalendar = "hourly";
       randomizedDelaySec = "5m";

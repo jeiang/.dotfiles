@@ -18,9 +18,15 @@
   bouncerSecret = name: "crowdsec/bouncer-${name}";
   machineSecret = node: "crowdsec/machine-${node}-password";
 
-  nodesWhere = pred: lib.unique (map (s: s.node) (builtins.filter pred (builtins.attrValues legionServices)));
-  agentNodes = nodesWhere (s: s.module == "crowdsec-agent");
-  firewallNodes = nodesWhere (s: s.node != crowdsecNode && builtins.elem "crowdsec-firewall-bouncer" s.units);
+  agentPlacement = {
+    crowdsec-agent = "ricklent";
+    crowdsec-agent-zantark = "zantark";
+  };
+  agentNodes = builtins.attrValues agentPlacement;
+
+  # Every Legion node runs a firewall bouncer; the crowdsec node's registers itself against its local LAPI.
+  firewallBouncerUnit = "crowdsec-firewall-bouncer.service";
+  firewallNodes = lib.remove crowdsecNode nodeNames;
 
   bouncers = config.crowdsec.bouncers // lib.genAttrs' firewallNodes (node: lib.nameValuePair "${node}-firewall" node);
   engineModule = config.nixos.modules.crowdsec-engine;
@@ -30,9 +36,8 @@ in {
     default = {};
     description = ''
       Application bouncers registered at the LAPI, each mapped to the node
-      that holds its key. Every node running a crowdsec-firewall-bouncer unit
-      other than the crowdsec node gets a `<node>-firewall` bouncer without
-      an entry here.
+      that holds its key. Every Legion node other than the crowdsec node
+      gets a `<node>-firewall` bouncer without an entry here.
     '';
   };
 
@@ -43,16 +48,25 @@ in {
       crowdsecLapiUrl = from: "http://${self.lib.serviceAddress from "crowdsec"}:${toString lapiPort}";
     };
 
-    # Edge Caddy reaches the LAPI and AppSec over loopback.
-    legion.services.crowdsec = {
-      inherit (legionServices.caddy) node;
-      module = "crowdsec";
-      units = ["crowdsec" "crowdsec-bouncers" "crowdsec-firewall-bouncer"];
-      ports = {
-        lapi = lapiPort;
-        metrics = metricsPort;
-      };
-    };
+    legion.services =
+      {
+        # Edge Caddy reaches the LAPI and AppSec over loopback.
+        crowdsec = {
+          inherit (legionServices.caddy) node;
+          module = "crowdsec";
+          units = ["crowdsec" "crowdsec-bouncers"];
+          ports = {
+            lapi = lapiPort;
+            metrics = metricsPort;
+          };
+        };
+      }
+      // builtins.mapAttrs (_: node: {
+        inherit node;
+        module = "crowdsec-agent";
+        units = ["crowdsec"];
+      })
+      agentPlacement;
 
     crowdsec.bouncers.edge-caddy = legionServices.caddy.node;
 
@@ -60,11 +74,13 @@ in {
       legion = {config, ...}: let
         host = config.networking.hostName;
       in {
+        monitoredUnits = [firewallBouncerUnit];
+
         sops.secrets =
           lib.mapAttrs' (name: _:
             lib.nameValuePair (bouncerSecret name) {
               sopsFile = shard host;
-              restartUnits = lib.optional (name == "${host}-firewall") "crowdsec-firewall-bouncer.service";
+              restartUnits = lib.optional (name == "${host}-firewall") firewallBouncerUnit;
             })
           (lib.filterAttrs (_: node: node == host) bouncers)
           // lib.optionalAttrs (builtins.elem host agentNodes) {
@@ -84,11 +100,7 @@ in {
         };
       };
 
-      crowdsec-engine = {
-        config,
-        lib,
-        ...
-      }: {
+      crowdsec-engine = {lib, ...}: {
         services.crowdsec = {
           enable = true;
           hub = {
@@ -111,10 +123,7 @@ in {
           };
         };
 
-        systemd.services.crowdsec = {
-          path = lib.mkForce [config.systemd.package];
-          serviceConfig.SupplementaryGroups = ["systemd-journal"];
-        };
+        systemd.services.crowdsec.serviceConfig.SupplementaryGroups = ["systemd-journal"];
       };
 
       crowdsec = {
@@ -126,8 +135,7 @@ in {
         localAppsecConfigName = "jeiang/appsec-caddy";
 
         # Local AppSec config: inband vpatch only (out-of-band CRS false-positives
-        # on NetBird traffic), with an allow-rule so NetBird's gRPC/WebSocket
-        # routes are never blocked. Delivered via tmpfiles, not environment.etc:
+        # on NetBird traffic). Delivered via tmpfiles, not environment.etc:
         # an etc entry makes appsec-configs/ root-owned and blocks cscli's hub
         # symlink install with "permission denied".
         appsecConfigFile = pkgs.writeText "jeiang-appsec-caddy.yaml" ''
@@ -136,17 +144,6 @@ in {
           inband_rules:
             - crowdsecurity/base-config
             - crowdsecurity/vpatch-*
-          on_match:
-            - filter: >-
-                req.Host == "${self.lib.netbirdDomain}" &&
-                (req.URL.Path startsWith "/signalexchange.SignalExchange/" ||
-                req.URL.Path startsWith "/management.ManagementService/" ||
-                req.URL.Path startsWith "/management.ProxyService/" ||
-                req.URL.Path startsWith "/ws-proxy/")
-              apply:
-                - CancelEvent()
-                - CancelAlert()
-                - SetRemediation("allow")
         '';
       in {
         imports = [engineModule];
@@ -170,7 +167,10 @@ in {
 
               # The default loopback bind would be unreachable from zantark's
               # cross-node scraper.
-              prometheus.listen_addr = "0.0.0.0";
+              prometheus = {
+                listen_addr = "0.0.0.0";
+                listen_port = metricsPort;
+              };
             };
 
             acquisitions = [

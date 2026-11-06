@@ -1,9 +1,12 @@
-{config, ...}: {
+{config, ...}: let
+  instance = "content";
+  unit = "anubis-${instance}";
+in {
   # Edge Caddy reaches Anubis and its origin listener over loopback.
   legion.services.anubis = {
     inherit (config.legion.services.caddy) node;
     module = "anubis";
-    units = ["anubis-content"];
+    units = [unit];
   };
 
   nixos.modules.anubis = {
@@ -11,7 +14,6 @@
     lib,
     ...
   }: let
-    instance = "content";
     # Must not collide with Caddy's admin API (2019) or its metrics site
     # (2020): site blocks sharing a port merge into one listener.
     originPort = 8129;
@@ -76,13 +78,13 @@
       users.users.${config.services.caddy.user}.extraGroups = [config.services.anubis.defaultOptions.group];
 
       systemd.services = {
-        "anubis-${instance}".serviceConfig.MemoryMax = "128M";
+        ${unit}.serviceConfig.MemoryMax = "128M";
 
         # wants, not requires: a broken Anubis must not stop the edge from
         # serving routes that do not pass through it.
         caddy = {
-          after = ["anubis-${instance}.service"];
-          wants = ["anubis-${instance}.service"];
+          after = ["${unit}.service"];
+          wants = ["${unit}.service"];
         };
       };
     };
