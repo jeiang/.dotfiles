@@ -232,7 +232,7 @@ in {
       };
 
       # appsec only on the dashboard handles: @grpc/@backend/@relay are
-      # long-lived streams the local AppSec config would allow anyway.
+      # long-lived gRPC/WebSocket streams kept out of AppSec.
       edge.sites.${domain} = {
         appsec = false;
         config = ''

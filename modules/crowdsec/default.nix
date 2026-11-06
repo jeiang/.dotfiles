@@ -126,8 +126,7 @@ in {
         localAppsecConfigName = "jeiang/appsec-caddy";
 
         # Local AppSec config: inband vpatch only (out-of-band CRS false-positives
-        # on NetBird traffic), with an allow-rule so NetBird's gRPC/WebSocket
-        # routes are never blocked. Delivered via tmpfiles, not environment.etc:
+        # on NetBird traffic). Delivered via tmpfiles, not environment.etc:
         # an etc entry makes appsec-configs/ root-owned and blocks cscli's hub
         # symlink install with "permission denied".
         appsecConfigFile = pkgs.writeText "jeiang-appsec-caddy.yaml" ''
@@ -136,17 +135,6 @@ in {
           inband_rules:
             - crowdsecurity/base-config
             - crowdsecurity/vpatch-*
-          on_match:
-            - filter: >-
-                req.Host == "${self.lib.netbirdDomain}" &&
-                (req.URL.Path startsWith "/signalexchange.SignalExchange/" ||
-                req.URL.Path startsWith "/management.ManagementService/" ||
-                req.URL.Path startsWith "/management.ProxyService/" ||
-                req.URL.Path startsWith "/ws-proxy/")
-              apply:
-                - CancelEvent()
-                - CancelAlert()
-                - SetRemediation("allow")
         '';
       in {
         imports = [engineModule];
