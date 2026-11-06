@@ -1,4 +1,4 @@
-{
+{self, ...}: {
   nixos.modules.artemis = {pkgs, ...}: {
     security = {
       sudo.enable = false;
@@ -12,7 +12,7 @@
             persist = true;
           }
           {
-            users = ["deploy"];
+            users = [self.lib.deployUser];
             runAs = "root";
             noPass = true;
           }

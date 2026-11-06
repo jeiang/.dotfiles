@@ -1,6 +1,8 @@
 {
   # Single source of truth for the kanabox colorscheme; `just wallpaper`
   # regenerates the wallpaper recolor from it.
+  flake.lib.wallpapers = ../assets/wallpapers-kanabox;
+
   flake.lib.palette = rec {
     kanabox = {
       autumnGreen = "#76946A";

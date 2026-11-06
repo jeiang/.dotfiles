@@ -1,4 +1,8 @@
-{inputs, ...}: {
+{
+  inputs,
+  self,
+  ...
+}: {
   perSystem = {
     pkgs,
     lib,
@@ -8,7 +12,7 @@
     settings = {
       user = {
         name = "Aidan Pinard";
-        email = "aidan@aidanpinard.co";
+        inherit (self.lib.facts) email;
         signingKey = "C48B088F4FFBBDF0";
       };
       init.defaultBranch = "main";

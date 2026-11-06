@@ -1,5 +1,5 @@
 # What system.defaults can express faithfully lives there; the rest is scripted as idempotent user-context activation steps.
-_: {
+{self, ...}: {
   darwin.modules.base = {
     config,
     lib,
@@ -8,11 +8,9 @@ _: {
   }: let
     userArg = lib.escapeShellArg config.preferences.user.name;
     asUser = cmd: ''launchctl asuser "$(id -u -- ${userArg})" sudo --user=${userArg} -- ${cmd}'';
-    # Rotation is macOS' own folder wallpaper (Settings > Wallpaper, set once
-    # by hand: docs/runbooks/zakkart-bootstrap.md); nothing scriptable
-    # reaches it, so this just keeps the store directory at a stable path by
-    # symlinking it into ~/Pictures.
-    wallpapers = ../assets/wallpapers-kanabox;
+    # Rotation is macOS' own folder wallpaper, set once by hand; nothing
+    # scriptable reaches it, so this keeps the store directory at a stable path.
+    pictures = "${config.users.users.${config.preferences.user.name}.home}/Pictures";
     defaultbrowser = lib.getExe pkgs.defaultbrowser;
     # IINA takes every type QuickTime Player defaults to, plus m4v, webm and mkv.
     iinaTypes = [
@@ -90,8 +88,8 @@ _: {
         ${asUser "defaults -currentHost write com.apple.controlcenter Weather -int 2"}
         killall -qu ${userArg} ControlCenter || true
 
-        ${asUser "mkdir -p /Users/${config.preferences.user.name}/Pictures"}
-        ${asUser "ln -sfn ${wallpapers} /Users/${config.preferences.user.name}/Pictures/Wallpapers"}
+        ${asUser "mkdir -p ${pictures}"}
+        ${asUser "ln -sfn ${self.lib.wallpapers} ${pictures}/Wallpapers"}
 
         if ! ${asUser defaultbrowser} | grep -q '^\* helium$'; then
           ${asUser "${defaultbrowser} helium"} \
