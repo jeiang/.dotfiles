@@ -7,7 +7,7 @@
   javaPort = 25565;
   bedrockPort = 19132;
   serverName = "mc";
-  stateDir = "/srv/minecraft/${serverName}";
+  unit = "minecraft-server-${serverName}";
   ingress = self.lib.legionNodes.${config.legion.services.game-ingress.node};
 in {
   flake.lib = {
@@ -20,7 +20,9 @@ in {
     lib,
     pkgs,
     ...
-  }: {
+  }: let
+    stateDir = "${config.services.minecraft-servers.dataDir}/${serverName}";
+  in {
     imports = [inputs.nix-minecraft.nixosModules.minecraft-servers];
     nixpkgs.overlays = [inputs.nix-minecraft.overlay];
 
@@ -34,9 +36,9 @@ in {
     ];
     backups.persist = {
       paths = [stateDir];
-      stopUnits = ["minecraft-server-${serverName}.service"];
+      stopUnits = ["${unit}.service"];
     };
-    monitoredUnits = ["minecraft-server-${serverName}.service"];
+    monitoredUnits = ["${unit}.service"];
 
     services.minecraft-servers = {
       enable = true;
@@ -115,7 +117,7 @@ in {
       };
     };
 
-    systemd.services."minecraft-server-${serverName}" = {
+    systemd.services.${unit} = {
       # Geyser's bundled libdatachannel dlopens OpenSSL by library name.
       environment.LD_LIBRARY_PATH = lib.makeLibraryPath [pkgs.openssl];
       # libjuice's getifaddrs needs Netlink to gather NetherNet ICE candidates.

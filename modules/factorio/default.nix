@@ -1,6 +1,8 @@
 _: let
   port = 34197;
-  stateDir = "/var/lib/factorio";
+  user = "factorio";
+  unit = "factorio.service";
+  stateMode = "0750";
 in {
   flake.lib.factorioPort = port;
 
@@ -8,20 +10,22 @@ in {
     config,
     lib,
     ...
-  }: {
+  }: let
+    stateDir = "/var/lib/${config.services.factorio.stateDirName}";
+  in {
     persistence.directories = [
       {
         directory = stateDir;
-        user = "factorio";
-        group = "factorio";
-        mode = "0750";
+        inherit user;
+        group = user;
+        mode = stateMode;
       }
     ];
     backups.persist = {
       paths = [stateDir];
-      stopUnits = ["factorio.service"];
+      stopUnits = [unit];
     };
-    monitoredUnits = ["factorio.service"];
+    monitoredUnits = [unit];
 
     services.factorio = {
       enable = true;
@@ -34,15 +38,15 @@ in {
 
     sops.secrets."factorio/settings" = {
       sopsFile = ./secrets.yaml;
-      owner = "factorio";
-      restartUnits = ["factorio.service"];
+      owner = user;
+      restartUnits = [unit];
     };
 
     users = {
-      groups.factorio = {};
-      users.factorio = {
+      groups.${user} = {};
+      users.${user} = {
         isSystemUser = true;
-        group = "factorio";
+        group = user;
       };
     };
 
@@ -51,9 +55,9 @@ in {
     # symlink.
     systemd.services.factorio.serviceConfig = {
       DynamicUser = lib.mkForce false;
-      User = "factorio";
-      Group = "factorio";
-      StateDirectoryMode = "0750";
+      User = user;
+      Group = user;
+      StateDirectoryMode = stateMode;
     };
   };
 }
