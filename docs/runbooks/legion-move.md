@@ -14,11 +14,10 @@ the old repository with `-r`.
 
 ## Before merge
 
-1. Change `.sops.yaml` so every shard the service reads, and
-    `modules/backups/secrets.yaml`, has `<new>` as a recipient. Drop `<old>`
-    only from the service's own shard, and from the backups shard only when
-    `<old>` keeps no backup job. Run `just sops-updatekeys` and commit the
-    re-keyed shards to the branch.
+1. The placement edit changes each shard's recipients: `<new>` gains every
+    shard the service reads, and `<old>` loses the ones it no longer reads.
+    Run `just sops-config`, then `just sops-updatekeys`, and commit
+    `.sops.yaml` and the re-keyed shards to the branch.
 2. If the service has a public port on a Hetzner node, add it to the
     `legion` Cloud Firewall before deploying (`just hcloud-drift` shows the
     difference).

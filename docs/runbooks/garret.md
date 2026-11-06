@@ -136,11 +136,24 @@ nix run github:jeiang/garret#garret-admin -- key show ./key
 `signingKeyFiles` is a list precisely so a rotation can overlap: add the new
 key to `modules/garret/secrets.yaml` alongside the old, with the same
 `owner = "garret"` and no `mode` or `group` (sops-nix's 0400), since a
-group-readable key is one the Puller can read. Deploy, run
-`garret-admin resign` to backfill signatures, add the new public key to every
-consumer's `trusted-public-keys` (`modules/nix.nix`,
-`.github/workflows/ci.yml`, `zakkart-bootstrap.md`), and only
-then drop the old one from both places.
+group-readable key is one the Puller can read. Deploy and run
+`garret-admin resign` to backfill signatures; from then on every path
+carries both signatures.
+
+The public key lives in three places:
+
+- `cacheKey` in `modules/facts.nix`, which `modules/nix.nix` reads into
+  every host's `trusted-public-keys`. It holds one key, so for the overlap
+  add a second `caches` entry in `modules/nix.nix` with
+  `url = self.lib.facts.cacheUrl` and the new key, and deploy every host.
+- `GARRET_PUBLIC_KEY` in `.github/actions/install-nix/action.yml`. It holds
+  one key (`.ci/garret.sh` writes it as the hook's only public key); replace
+  it once `resign` has run.
+- `extra-trusted-public-keys` in `zakkart-bootstrap.md`; replace it too.
+
+Only after every host trusts the new key, set `cacheKey` to it, remove the
+extra `caches` entry, deploy, and drop the old key from
+`modules/garret/secrets.yaml` and `signingKeyFiles`.
 
 ## Backup
 

@@ -141,8 +141,9 @@ needing new recipients in `.sops.yaml`.
 
 ## Retention
 
-The daily `restic-backups-<service>` run only backs up; it keeps every
-snapshot. A separate weekly `restic-maintenance-<service>` timer runs
+Each `restic-backups-<service>` run, on its job's own schedule, only backs
+up; it keeps every snapshot. A separate weekly
+`restic-maintenance-<service>` timer runs
 `restic forget --prune --keep-daily 7 --keep-weekly 4 --keep-monthly 6`
 followed by `restic check --read-data-subset=N/52`, where N comes from the
 ISO week so every pack is read about once a year, both defined in
