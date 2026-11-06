@@ -25,6 +25,7 @@ topology:
   rm -f docs/topology/*.svg
   install -m 644 "$out"/*.svg docs/topology/
 
+# Install a host from scratch over root SSH with nixos-anywhere (wipes its disks); passes the host's facter report when one exists
 clean-deploy system address *args:
   #!/usr/bin/env bash
   set -euo pipefail
@@ -37,6 +38,7 @@ clean-deploy system address *args:
   fi
   nix run github:nix-community/nixos-anywhere/1.13.0 -- ${facter[@]+"${facter[@]}"} --flake .#{{system}} --target-host root@{{address}} {{args}}
 
+# Deploy one host with deploy-rs (e.g. just deploy artemis --remote-build)
 deploy system *args:
   deploy .#{{system}} {{args}}
 
@@ -53,12 +55,12 @@ sops-edit path="":
   #!/usr/bin/env bash
   set -euo pipefail
   file={{quote(path)}}
-  [ -n "$file" ] || file=$(fd --full-path "$(nix eval --raw '.#lib.sopsShardRegex')" | fzf)
+  [ -n "$file" ] || file=$(fd --full-path "$(nix eval --raw '.#lib.sopsShardRegex')" modules | fzf)
   [ -n "$file" ] && sops "$file"
 
 # Regenerate dns/nodes.json from flake.lib.legionNodes; the legion-nodes-json check fails while it is stale
 dns-nodes:
-  nix eval --raw '.#lib.legionNodesJson' > dns/nodes.json
+  nix eval --raw '.#lib.legionNodesJson' > dns/nodes.json.tmp && mv dns/nodes.json.tmp dns/nodes.json
 
 # Preview dns/dnsconfig.js against live Cloudflare; read-only — the push happens in CI on merge to main
 dns-preview *args:
@@ -68,6 +70,7 @@ dns-preview *args:
 hcloud-drift:
   ./modules/hcloud-drift/check.sh
 
+# Run from the installer: wipe, partition, format and mount the host's disks per its disko config
 disko-format system sudo="sudo":
   {{sudo}} disko -f .#{{system}} --mode destroy,format,mount
 
@@ -79,17 +82,18 @@ migrate-persist flake="." sudo="sudo":
 persist-orphans *host:
   ./modules/hosts/artemis/persist-orphans.sh . {{host}}
 
+# Run from the installer after disko-format: install the host's configuration
 install system sudo="sudo":
   {{sudo}} nixos-install --flake .#{{system}}
 
-# Build every host toplevel and deploy profile that differs from the base (Linux hosts on artemis, zakkart here) and push the closures to garret, so PR CI substitutes instead of compiling; run before opening a PR and after an input bump
-prepush base="origin/main":
+# Build every host toplevel and deploy profile that differs from origin/main (Linux hosts on artemis, zakkart here) and push the closures to garret, so PR CI substitutes instead of compiling; run before opening a PR and after an input bump
+prepush:
   #!/usr/bin/env bash
   set -euo pipefail
   host=$(nix eval --raw .#deploy.nodes.artemis.hostname)
   push="https://$(nix eval --raw .#lib.cachePushHostname)"
   git fetch origin main
-  main="git+file://$PWD?rev=$(git rev-parse {{base}})&shallow=1"
+  main="git+file://$PWD?rev=$(git rev-parse origin/main)&shallow=1"
   # The root input's garret, not .nodes.garret: that name can belong to another input's pin.
   garret="github:jeiang/garret/$(jq -r '.nodes[.nodes.root.inputs.garret].locked.rev' flake.lock)#garret"
   differs() { [ "$(nix eval --raw "$main#$1")" != "$(nix eval --raw ".#$1")" ]; }
@@ -165,7 +169,7 @@ deploy-legion *args:
   summary=""
   failed=0
   for node in $(nix eval --raw '.#lib.legionNodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrNames nodes)'); do
-    if just deploy "$node" --skip-checks {{args}}; then
+    if {{just_executable()}} deploy "$node" --skip-checks {{args}}; then
       summary+="  $node ok"$'\n'
     else
       summary+="  $node FAILED"$'\n'
@@ -176,6 +180,7 @@ deploy-legion *args:
   printf '%s' "$summary"
   exit "$failed"
 
+# Run a command over SSH on every Legion node; prints a per-node summary and fails if any node failed
 legion-run *command:
   #!/usr/bin/env bash
   set -euo pipefail
@@ -216,7 +221,9 @@ mcp-register-codex:
   for s in $(jq -r '.mcpServers | keys[]' "$config"); do
     codex mcp remove "$s" >/dev/null 2>&1 || true
     mapfile -t args < <(jq -r ".mcpServers.$s.args[]? // empty" "$config")
-    codex mcp add "$s" -- "$(jq -r ".mcpServers.$s.command" "$config")" "${args[@]}"
+    envs=()
+    while IFS= read -r kv; do envs+=(--env "$kv"); done < <(jq -r ".mcpServers.$s.env // {} | to_entries[] | \"\(.key)=\(.value)\"" "$config")
+    codex mcp add "$s" "${envs[@]}" -- "$(jq -r ".mcpServers.$s.command" "$config")" "${args[@]}"
   done
 
 # Register the omp mcp.json servers with Claude Code and Codex
