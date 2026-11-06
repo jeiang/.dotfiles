@@ -6,11 +6,8 @@
   dgpuPci = "0000:03:00.0";
 in {
   flake.lib = {
-    artemisDgpuPci = {
-      full = dgpuPci;
-      # MangoHud's own pci_dev format drops the domain's leading zeros.
-      short = "0:03:00.0";
-    };
+    # MangoHud's own pci_dev format drops the domain's leading zeros.
+    artemisDgpuPci.short = lib.removePrefix "000" dgpuPci;
     artemisDgpuTarget = "gfx1201";
     artemisDgpuDevice = {
       # card* and renderD* numbering is not boot-stable, so consumers that take

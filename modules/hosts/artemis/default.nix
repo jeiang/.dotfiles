@@ -7,7 +7,7 @@
   inherit (config.nixos) modules;
 in {
   flake.deploy.nodes.artemis = {
-    hostname = "artemis.jeiang.vpn";
+    hostname = "artemis.${self.lib.netbirdDnsDomain}";
     sshUser = self.lib.deployUser;
     sudo = "doas -u";
     profiles.system = {
