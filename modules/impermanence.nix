@@ -64,14 +64,9 @@
     ];
 
     options.persistence = {
-      enable = lib.mkEnableOption "persistent storage mounts";
-
       nukeRoot = {
-        enable = lib.mkEnableOption "rolling the btrfs root subvolume back to an empty subvolume on every boot";
-
         device = lib.mkOption {
           type = lib.types.str;
-          default = "";
           example = "/dev/disk/by-partlabel/disk-nvme3-root";
           description = ''
             Block device (or `/dev/disk/by-*` path) belonging to the btrfs
@@ -110,67 +105,46 @@
       cache.files = persistenceListOption "User cache files to persist under `/persist/cache`.";
     };
 
-    config = lib.mkMerge [
-      {
-        assertions = [
-          {
-            assertion = !cfg.nukeRoot.enable || cfg.enable;
-            message = "persistence.nukeRoot.enable requires persistence.enable";
-          }
-          {
-            assertion = !cfg.nukeRoot.enable || cfg.nukeRoot.device != "";
-            message = "persistence.nukeRoot.device must be set when root rollback is enabled";
-          }
-          {
-            assertion = !cfg.nukeRoot.enable || cfg.nukeRoot.subvolume != "";
-            message = "persistence.nukeRoot.subvolume must be set when root rollback is enabled";
-          }
-        ];
-      }
+    config = {
+      fileSystems."/persist".neededForBoot = true;
 
-      (lib.mkIf cfg.enable {
-        fileSystems."/persist".neededForBoot = true;
+      sops.age.sshKeyPaths = ["/persist/etc/ssh/ssh_host_ed25519_key"];
 
-        sops.age.sshKeyPaths = ["/persist/etc/ssh/ssh_host_ed25519_key"];
-
-        # impermanence never migrates existing data: run `just migrate-persist`
-        # on artemis before deploying a persistence.* change.
-        environment.persistence = {
-          "/persist" = {
-            inherit (cfg) directories files;
-          };
-
-          "/persist/data".users.${user} = {
-            directories = cfg.data.directories;
-            files = cfg.data.files;
-          };
-
-          "/persist/cache".users.${user} = {
-            directories = cfg.cache.directories;
-            files = cfg.cache.files;
-          };
+      # impermanence never migrates existing data: run `just migrate-persist`
+      # on artemis before deploying a persistence.* change.
+      environment.persistence = {
+        "/persist" = {
+          inherit (cfg) directories files;
         };
-      })
 
-      (lib.mkIf (cfg.enable && cfg.nukeRoot.enable) {
-        boot.initrd.systemd = {
-          initrdBin = [pkgs.btrfs-progs];
-          services.rollback-root = {
-            description = "Roll back btrfs root subvolume to an empty subvolume";
-            unitConfig.DefaultDependencies = false;
-            serviceConfig.Type = "oneshot";
-            requiredBy = ["initrd.target"];
-            before = ["sysroot.mount"];
-            requires = [rootDeviceUnit];
-            after = [
-              rootDeviceUnit
-              # let hibernation resume consume the pre-rollback root first
-              "local-fs-pre.target"
-            ];
-            script = rollbackScript;
-          };
+        "/persist/data".users.${user} = {
+          directories = cfg.data.directories;
+          files = cfg.data.files;
         };
-      })
-    ];
+
+        "/persist/cache".users.${user} = {
+          directories = cfg.cache.directories;
+          files = cfg.cache.files;
+        };
+      };
+
+      boot.initrd.systemd = {
+        initrdBin = [pkgs.btrfs-progs];
+        services.rollback-root = {
+          description = "Roll back btrfs root subvolume to an empty subvolume";
+          unitConfig.DefaultDependencies = false;
+          serviceConfig.Type = "oneshot";
+          requiredBy = ["initrd.target"];
+          before = ["sysroot.mount"];
+          requires = [rootDeviceUnit];
+          after = [
+            rootDeviceUnit
+            # let hibernation resume consume the pre-rollback root first
+            "local-fs-pre.target"
+          ];
+          script = rollbackScript;
+        };
+      };
+    };
   };
 }

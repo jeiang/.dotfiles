@@ -39,9 +39,7 @@ in {
     ];
 
     persistence = {
-      enable = true;
       nukeRoot = {
-        enable = true;
         device = "/dev/disk/by-partlabel/disk-nvme3-root";
         subvolume = "rootfs";
       };
