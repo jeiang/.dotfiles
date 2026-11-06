@@ -1,0 +1,32 @@
+name: Install Nix
+description: Install Nix with garret as a substituter, and optionally garret's post-build hook.
+
+inputs:
+  garret-hook:
+    description: Install garret's post-build hook, for jobs that push to garret.
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Export garret's public key
+      shell: bash
+      run: echo "GARRET_PUBLIC_KEY=cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA=" >>"$GITHUB_ENV"
+
+    # Before Nix is installed, because nix.conf names the hook.
+    - name: Write garret's post-build hook
+      if: inputs.garret-hook == 'true'
+      shell: bash
+      run: ./.ci/garret.sh hook
+
+    # The substituter goes straight into nix.conf so evaluation-time IFD sources substitute too.
+    # High job counts: a warm-cache build is substituter round-trips, not CPU.
+    - name: Install Nix
+      uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
+      with:
+        extra_nix_config: |
+          extra-substituters = https://cache.jeiang.dev
+          extra-trusted-public-keys = ${{ env.GARRET_PUBLIC_KEY }}
+          max-substitution-jobs = 32
+          http-connections = 64
+          ${{ inputs.garret-hook == 'true' && format('post-build-hook = {0}/garret-hook', runner.temp) || '' }}

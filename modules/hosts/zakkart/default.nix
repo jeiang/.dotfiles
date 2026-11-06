@@ -1,12 +1,13 @@
 {config, ...}: let
   inherit (config.darwin) modules;
+  name = "zakkart";
 in {
-  darwin.configurations.zakkart.module = {
+  darwin.configurations.${name}.module = {
     imports = [modules.base];
 
     networking = {
-      hostName = "zakkart";
-      computerName = "zakkart";
+      hostName = name;
+      computerName = name;
     };
 
     nixpkgs.hostPlatform = "aarch64-darwin";

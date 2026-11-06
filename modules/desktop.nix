@@ -9,20 +9,16 @@
       '';
       systemPackages = with pkgs; [
         btop-rocm
-        self.packages.${pkgs.stdenv.hostPlatform.system}.ghostty
-        gopass
         kdePackages.dolphin
         # needed for dolphin's file associations
         kdePackages.kservice
-        pwvucontrol
-        umu-launcher
       ];
     };
 
     fonts.fontconfig.defaultFonts = {
       serif = ["UbuntuSans Nerd Font"];
       sansSerif = ["UbuntuSans Nerd Font"];
-      monospace = ["Mononoki Nerd Font Mono"];
+      monospace = ["${self.lib.fonts.monospace} Mono"];
     };
 
     fonts.packages = with pkgs; [
@@ -31,22 +27,9 @@
       nerd-fonts.jetbrains-mono
       nerd-fonts.ubuntu-sans
       nerd-fonts.symbols-only
-      nerd-fonts.mononoki
     ];
 
-    time.timeZone = self.lib.facts.timeZone;
     i18n.defaultLocale = "en_US.UTF-8";
-    i18n.extraLocaleSettings = {
-      LC_ADDRESS = "en_US.UTF-8";
-      LC_IDENTIFICATION = "en_US.UTF-8";
-      LC_MEASUREMENT = "en_US.UTF-8";
-      LC_MONETARY = "en_US.UTF-8";
-      LC_NAME = "en_US.UTF-8";
-      LC_NUMERIC = "en_US.UTF-8";
-      LC_PAPER = "en_US.UTF-8";
-      LC_TELEPHONE = "en_US.UTF-8";
-      LC_TIME = "en_US.UTF-8";
-    };
 
     hardware.enableRedistributableFirmware = true;
   };

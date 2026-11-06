@@ -3,36 +3,25 @@
   config,
   ...
 }: let
-  grafanaPort = 3000;
   vmPort = 8428;
   vlPort = 9428;
-  alertmanagerPort = 9093;
+  grafanaPort = 3000;
 
   legionServices = config.legion.services;
 in {
+  flake.lib.grafanaHostname = "grafana.jeiang.dev";
+
   legion.services.monitoring = {
     node = "zantark";
     module = "monitoring";
     units = ["grafana" "victoriametrics" "victorialogs" "vmalert-default" "alertmanager" "prometheus-blackbox-exporter"];
     ports = {
       grafana = grafanaPort;
-      victoria-metrics = vmPort;
       victoria-logs = vlPort;
-      alertmanager = alertmanagerPort;
     };
-    firewall = [
-      {
-        port = grafanaPort;
-        proto = "tcp";
-        scope = "private";
-      }
-      {
-        port = alertmanagerPort;
-        proto = "tcp";
-        scope = "private";
-      }
-    ];
   };
+
+  nixos.modules.artemis.services.prometheus.exporters.smartctl.enable = true;
 
   nixos.modules.monitoring = {
     config,
@@ -40,43 +29,60 @@ in {
     pkgs,
     ...
   }: let
-    node1 = self.lib.legionNodes.alda.privateIPv4;
-    node2 = self.lib.legionNodes.vida.privateIPv4;
-
     sopsFile = ./secrets.yaml;
+    serviceAddress = self.lib.serviceAddress config.networking.hostName;
+    nodeExporterPort = toString config.services.prometheus.exporters.node.port;
+    artemisExporters = self.nixosConfigurations.artemis.config.services.prometheus.exporters;
     # A node outside the private network is scraped over the mesh and drops out until it has a peer entry.
-    legionNodeAddresses = builtins.filter (a: a != null) (map (self.lib.legionAddress "zantark") (builtins.attrNames self.lib.legionNodes));
+    legionNodeAddresses = builtins.filter (a: a != null) (map (self.lib.legionAddress config.networking.hostName) (builtins.attrNames self.lib.legionNodes));
 
-    caddyPort = legionServices.caddy.ports.metrics;
-    crowdsecPort = legionServices.crowdsec.ports.metrics;
-    netbirdServerPort = legionServices.netbird-server.ports;
-    netbirdRelayPort = legionServices.netbird-relay.ports;
-    netbirdProxyPort = legionServices.netbird-proxy.ports;
-    blockyPort = legionServices.blocky.ports.http;
-    blockyTargets = map (a: "${a}:${toString blockyPort}") (builtins.filter (a: a != null) [node2 (self.lib.legionAddress "zantark" "ricklent")]);
-    # Where zantark reaches a service port; empty while its node is mesh-only without a peer entry.
+    # Where this node reaches a service port; empty while its node is mesh-only without a peer entry.
     at = svc: key: path: let
-      a = self.lib.legionAddress "zantark" legionServices.${svc}.node;
+      a = serviceAddress svc;
     in
       lib.optional (a != null) "${a}:${toString legionServices.${svc}.ports.${key}}${path}";
-    pocketIdPort = legionServices.pocket-id.ports.app;
 
-    blackboxPort = 9115;
+    http = map (t: "http://${t}");
+
+    scrape = job_name: type: targets: {
+      inherit job_name;
+      static_configs = [
+        {
+          inherit targets;
+          labels.type = type;
+        }
+      ];
+    };
+
     # Each probe target becomes the exporter's ?target= and the instance label.
-    blackboxRelabel = [
-      {
-        source_labels = ["__address__"];
-        target_label = "__param_target";
-      }
-      {
-        source_labels = ["__param_target"];
-        target_label = "instance";
-      }
-      {
-        target_label = "__address__";
-        replacement = "127.0.0.1:${toString blackboxPort}";
-      }
-    ];
+    probe = job_name: module: groups: {
+      inherit job_name;
+      metrics_path = "/probe";
+      params.module = [module];
+      static_configs =
+        lib.mapAttrsToList (tier: targets: {
+          inherit targets;
+          labels = {
+            type = "probe";
+            inherit tier;
+          };
+        })
+        groups;
+      relabel_configs = [
+        {
+          source_labels = ["__address__"];
+          target_label = "__param_target";
+        }
+        {
+          source_labels = ["__param_target"];
+          target_label = "instance";
+        }
+        {
+          target_label = "__address__";
+          replacement = "127.0.0.1:${toString config.services.prometheus.exporters.blackbox.port}";
+        }
+      ];
+    };
 
     # blackbox otherwise attempts ip6 first; every probe target is an IPv4
     # literal on the private network.
@@ -96,7 +102,7 @@ in {
           prober = "dns";
           timeout = "5s";
           dns = {
-            query_name = "netbird.jeiang.dev";
+            query_name = self.lib.netbirdDomain;
             query_type = "A";
             valid_rcodes = ["NOERROR"];
             preferred_ip_protocol = "ip4";
@@ -107,265 +113,65 @@ in {
 
     # "1" = one month; unsuffixed retentionPeriod values count months.
     retentionPeriod = "1";
-
-    dashboardsDir = pkgs.linkFarm "grafana-dashboards" [
-      {
-        name = "crowdsec.json";
-        path = ./crowdsec-dashboard.json;
-      }
-      {
-        # Vendored grafana.com dashboard #1860.
-        name = "node-exporter-full.json";
-        path = ./node-exporter-full.json;
-      }
-      {
-        name = "fleet-overview.json";
-        path = ./fleet-overview.json;
-      }
-      {
-        name = "caddy.json";
-        path = ./caddy.json;
-      }
-      {
-        # Vendored grafana.com dashboard #13768 rev 8, adapted for file
-        # provisioning.
-        name = "blocky.json";
-        path = ./blocky.json;
-      }
-      {
-        name = "netbird-server.json";
-        path = ./netbird-server.json;
-      }
-      {
-        name = "hath.json";
-        path = ./hath.json;
-      }
-      {
-        name = "garret.json";
-        path = ./garret.json;
-      }
-      {
-        # Vendored grafana.com dashboard #7587 rev 3, adapted for file
-        # provisioning.
-        name = "blackbox.json";
-        path = ./blackbox.json;
-      }
-      {
-        name = "logs.json";
-        path = ./logs.json;
-      }
-    ];
   in {
     services = {
       victoriametrics = {
         enable = true;
+        listenAddress = ":${toString vmPort}";
         inherit retentionPeriod;
-        prometheusConfig.scrape_configs = [
-          {
-            job_name = "node";
-            static_configs = [
-              {
-                targets = map (ip: "${ip}:9100") legionNodeAddresses;
-                labels.type = "node";
-              }
-              {
-                # Raw NetBird peer IP: mesh DNS doesn't resolve on Legion nodes.
-                targets = ["${self.lib.netbirdPeers.artemis}:9100"];
-                labels.type = "node";
-              }
-            ];
-          }
-          {
-            job_name = "smartctl";
-            static_configs = [
-              {
-                targets = ["${self.lib.netbirdPeers.artemis}:${toString self.nixosConfigurations.artemis.config.services.prometheus.exporters.smartctl.port}"];
-                labels.type = "node";
-              }
-            ];
-          }
-          {
-            job_name = "caddy";
-            static_configs = [
-              {
-                targets = ["${node1}:${toString caddyPort}"];
-                labels.type = "edge";
-              }
-            ];
-          }
-          {
-            job_name = "crowdsec";
-            static_configs = [
-              {
-                targets = ["${node1}:${toString crowdsecPort}"];
-                labels.type = "edge";
-              }
-            ];
-          }
-          {
-            job_name = "netbird-server";
-            static_configs = [
-              {
-                targets = ["${node2}:${toString netbirdServerPort.metrics}"];
-                labels.type = "netbird";
-              }
-            ];
-          }
-          {
-            # NB_METRICS_PORT is set on the relay to avoid colliding with
-            # netbird-server's own metrics listener on port 9090.
-            job_name = "netbird-relay";
-            static_configs = [
-              {
-                targets = ["${node2}:${toString netbirdRelayPort.metrics}"];
-                labels.type = "netbird";
-              }
-            ];
-          }
-          {
-            job_name = "netbird-proxy-atl";
-            static_configs = [
-              {
-                targets = at "netbird-proxy-atl" "metrics" "";
-                labels.type = "netbird";
-              }
-            ];
-          }
-          {
-            job_name = "blocky";
-            static_configs = [
-              {
-                targets = blockyTargets;
-                labels.type = "dns";
-              }
-            ];
-          }
-          {
-            # H@H serves /metrics on the same TLS-wrapped listener as the
-            # client itself; its hath.network cert has no SAN for this IP,
-            # hence insecure_skip_verify (transport trust is enp7s0).
-            job_name = "hath";
-            scheme = "https";
-            tls_config.insecure_skip_verify = true;
-            static_configs = [
-              {
-                targets = at "hath" "app" "";
-                labels.type = "hath";
-              }
-            ];
-          }
-          {
-            job_name = "garret";
-            static_configs = [
-              {
-                targets = at "garret" "pusher-metrics" "";
+        prometheusConfig.scrape_configs =
+          [
+            (scrape "node" "node" (map (ip: "${ip}:${nodeExporterPort}") legionNodeAddresses ++ ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.node.port}"]))
+            (scrape "smartctl" "node" ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.smartctl.port}"])
+            (scrape "caddy" "edge" (at "caddy" "metrics" ""))
+            (scrape "crowdsec" "edge" (at "crowdsec" "metrics" ""))
+            (scrape "netbird-server" "netbird" (at "netbird-server" "metrics" ""))
+            (scrape "netbird-relay" "netbird" (at "netbird-relay" "metrics" ""))
+          ]
+          ++ map (service: scrape service "netbird" (at service "health" "")) self.lib.netbirdProxyServices
+          ++ [
+            (scrape "blocky" "dns" (at "blocky" "http" "" ++ at "blocky-ricklent" "http" ""))
+            # H@H serves /metrics on the same TLS-wrapped listener as the client
+            # itself; its hath.network cert has no SAN for this IP, hence
+            # insecure_skip_verify (transport trust is the private network).
+            (scrape "hath" "hath" (at "hath" "app" "")
+              // {
+                scheme = "https";
+                tls_config.insecure_skip_verify = true;
+              })
+            {
+              job_name = "garret";
+              static_configs = map (component: {
+                targets = at "garret" "${component}-metrics" "";
                 labels = {
                   type = "cache";
-                  component = "pusher";
+                  inherit component;
                 };
-              }
-              {
-                targets = at "garret" "puller-metrics" "";
-                labels = {
-                  type = "cache";
-                  component = "puller";
-                };
-              }
-            ];
-          }
-          {
-            job_name = "gatus";
-            static_configs = [
-              {
-                targets = at "gatus" "app" "";
-                labels.type = "probe";
-              }
-            ];
-          }
-          {
-            job_name = "blackbox-http";
-            metrics_path = "/probe";
-            params.module = ["http_2xx"];
-            static_configs = [
-              {
-                targets = ["http://${node2}:${toString pocketIdPort}/healthz"];
-                labels = {
-                  type = "probe";
-                  tier = "critical";
-                };
-              }
-              {
-                targets = map (t: "http://${t}") (at "ntfy" "app" "/v1/health");
-                labels = {
-                  type = "probe";
-                  tier = "warning";
-                };
-              }
-              {
-                # /ready/deep reads a byte of a real NAR through a presigned
-                # URL, so revoked S3 credentials or an S4 outage fail it; the
-                # Pusher's service port is fully token-gated, so its probe
-                # targets the metrics listener's /healthz instead.
-                targets = map (t: "http://${t}") (at "garret" "puller" "/ready/deep" ++ at "garret" "pusher-metrics" "/healthz");
-                labels = {
-                  type = "probe";
-                  tier = "warning";
-                };
-              }
-              {
-                targets = ["http://${node2}:${toString netbirdRelayPort.health}/health"];
-                labels = {
-                  type = "probe";
-                  tier = "warning";
-                };
-              }
-              {
-                targets = ["http://${node2}:${toString netbirdProxyPort.health}/healthz"] ++ map (t: "http://${t}") (at "netbird-proxy-atl" "health" "/healthz");
-                labels = {
-                  type = "probe";
-                  tier = "warning";
-                };
-              }
-            ];
-            relabel_configs = blackboxRelabel;
-          }
-          {
-            job_name = "blackbox-tcp";
-            metrics_path = "/probe";
-            params.module = ["tcp_connect"];
-            static_configs = [
-              {
-                # :80 multiplexes gRPC + the management HTTP API, so a TCP
-                # connect (not a plain GET) is the reliable liveness signal.
-                targets = ["${node2}:${toString netbirdServerPort.http}"];
-                labels = {
-                  type = "probe";
-                  tier = "critical";
-                };
-              }
-            ];
-            relabel_configs = blackboxRelabel;
-          }
-          {
-            job_name = "blackbox-dns";
-            metrics_path = "/probe";
-            params.module = ["dns"];
-            static_configs = [
-              {
-                targets = ["${node2}:553"];
-                labels = {
-                  type = "probe";
-                  tier = "warning";
-                };
-              }
-            ];
-            relabel_configs = blackboxRelabel;
-          }
-        ];
+              }) ["pusher" "puller"];
+            }
+            (scrape "gatus" "probe" (at "gatus" "app" ""))
+            (probe "blackbox-http" "http_2xx" {
+              critical = http (at "pocket-id" "app" "/healthz");
+              # /ready/deep reads a byte of a real NAR through a presigned URL,
+              # so revoked S3 credentials or an S4 outage fail it; the Pusher's
+              # service port is fully token-gated, so its probe targets the
+              # metrics listener's /healthz instead.
+              warning = http (at "ntfy" "app" "/v1/health"
+                ++ at "garret" "puller" "/ready/deep"
+                ++ at "garret" "pusher-metrics" "/healthz"
+                ++ at "netbird-relay" "health" "/health"
+                ++ lib.concatMap (service: at service "health" "/healthz") self.lib.netbirdProxyServices);
+            })
+            # :80 multiplexes gRPC + the management HTTP API, so a TCP connect
+            # (not a plain GET) is the reliable liveness signal.
+            (probe "blackbox-tcp" "tcp_connect" {critical = at "netbird-server" "http" "";})
+            (probe "blackbox-dns" "dns" {warning = at "blocky" "dns" "";})
+          ];
       };
 
       victorialogs = {
         enable = true;
+        listenAddress = ":${toString vlPort}";
         extraOptions = ["-retentionPeriod=${retentionPeriod}"];
       };
 
@@ -373,9 +179,10 @@ in {
         enable = true;
         settings = {
           server = {
-            domain = "grafana.jeiang.dev";
-            root_url = "https://grafana.jeiang.dev";
+            domain = self.lib.grafanaHostname;
+            root_url = "https://${self.lib.grafanaHostname}";
             http_addr = "0.0.0.0";
+            http_port = grafanaPort;
           };
           auth = {
             disable_login_form = true;
@@ -392,9 +199,9 @@ in {
             allow_sign_up = true;
             client_id = "a70e6d0d-360c-415f-b154-85ec7a6bc352";
             scopes = "openid profile email groups";
-            auth_url = "https://auth.jeiang.dev/authorize";
-            token_url = "https://auth.jeiang.dev/api/oidc/token";
-            api_url = "https://auth.jeiang.dev/api/oidc/userinfo";
+            auth_url = "${self.lib.pocketIdUrl}/authorize";
+            token_url = "${self.lib.pocketIdUrl}/api/oidc/token";
+            api_url = "${self.lib.pocketIdUrl}/api/oidc/userinfo";
             login_attribute_path = "preferred_username";
             name_attribute_path = "name";
             email_attribute_path = "email";
@@ -423,7 +230,7 @@ in {
           dashboards.settings.providers = [
             {
               name = "default";
-              options.path = dashboardsDir;
+              options.path = ./dashboards;
             }
           ];
         };
@@ -434,7 +241,7 @@ in {
         enable = true;
         settings = {
           "datasource.url" = "http://127.0.0.1:${toString vmPort}";
-          "notifier.url" = ["http://127.0.0.1:${toString alertmanagerPort}"];
+          "notifier.url" = ["http://127.0.0.1:${toString config.services.prometheus.alertmanager.port}"];
         };
         rules.groups = [
           {
@@ -560,7 +367,7 @@ in {
                 # GC evicts on its next tick once usage passes the high
                 # watermark, so staying above it means eviction is stuck.
                 alert = "GarretOverHighWatermark";
-                expr = "garret_gc_usage_bytes / garret_gc_quota_bytes > ${toString self.lib.garretWatermarks.high}";
+                expr = "garret_gc_usage_bytes / garret_gc_quota_bytes > ${toString self.lib.garretHighWatermark}";
                 for = "30m";
                 labels.severity = "warning";
                 annotations = {
@@ -677,7 +484,6 @@ in {
 
       prometheus.exporters.blackbox = {
         enable = true;
-        port = blackboxPort;
         # Loopback-only: keeps the /probe handler (an SSRF-shaped
         # `GET /probe?target=` primitive) off the network.
         listenAddress = "127.0.0.1";
@@ -706,13 +512,13 @@ in {
               }
             ];
           };
+          # envsubst-substituted from environmentFile at service start, not
+          # Nix interpolation: no `${}` in these URLs.
           receivers = [
             {
               name = "discord-notifications";
               discord_configs = [
                 {
-                  # envsubst-substituted from environmentFile at service
-                  # start -- not Nix interpolation; no `${}` here.
                   webhook_url = "$DISCORD_WEBHOOK_URL";
                 }
               ];
@@ -721,8 +527,6 @@ in {
               name = "healthchecks";
               webhook_configs = [
                 {
-                  # envsubst-substituted from environmentFile at service
-                  # start -- not Nix interpolation; no `${}` here.
                   url = "$HEALTHCHECKS_PING_URL";
                   send_resolved = false;
                 }

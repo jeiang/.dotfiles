@@ -1,4 +1,8 @@
-{inputs, ...}: {
+{
+  inputs,
+  self,
+  ...
+}: {
   nixos.modules.artemis = {
     config,
     lib,
@@ -7,7 +11,7 @@
     ...
   }: let
     cfg = config.persistence;
-    user = config.preferences.user.name;
+    user = self.lib.facts.userName;
     persistenceEntryType = lib.types.either lib.types.str (lib.types.attrsOf lib.types.anything);
     persistenceListOption = description:
       lib.mkOption {
@@ -16,24 +20,24 @@
         description = "${description} Entries may be strings or impermanence-compatible attribute sets.";
       };
 
-    rootDeviceUnit = "${utils.escapeSystemdPath cfg.nukeRoot.device}.device";
+    rootFs = config.fileSystems."/";
+    rootDevice = rootFs.device;
+    rootSubvolume = lib.removePrefix "subvol=/" (lib.findFirst (lib.hasPrefix "subvol=/") (throw "persistence: / is not a btrfs subvolume") rootFs.options);
+    rootDeviceUnit = "${utils.escapeSystemdPath rootDevice}.device";
 
-    # Moves the current root subvolume aside under /old_roots (pruning
-    # entries older than maxAge) and recreates it empty; sibling subvolumes
-    # (/persist, /nix, /log) are never touched.
     rollbackScript = ''
       mkdir /btrfs_tmp
-      mount -o subvolid=5 ${cfg.nukeRoot.device} /btrfs_tmp
+      mount -o subvolid=5 ${rootDevice} /btrfs_tmp
       mkdir -p /btrfs_tmp/old_roots
 
       this_boot=$(date +%Y-%m-%dT%H%M%S)
-      if [[ -e /btrfs_tmp/${cfg.nukeRoot.subvolume} ]]; then
-          mv "/btrfs_tmp/${cfg.nukeRoot.subvolume}" "/btrfs_tmp/old_roots/$this_boot"
+      if [[ -e /btrfs_tmp/${rootSubvolume} ]]; then
+          mv "/btrfs_tmp/${rootSubvolume}" "/btrfs_tmp/old_roots/$this_boot"
       fi
 
       # Create root before pruning, so a failed prune never leaves no root to mount.
-      if [[ ! -e /btrfs_tmp/${cfg.nukeRoot.subvolume} ]]; then
-          btrfs subvolume create "/btrfs_tmp/${cfg.nukeRoot.subvolume}"
+      if [[ ! -e /btrfs_tmp/${rootSubvolume} ]]; then
+          btrfs subvolume create "/btrfs_tmp/${rootSubvolume}"
       fi
 
       delete_subvolume_recursively() {
@@ -45,7 +49,7 @@
       }
 
       # Age by name: a moved subvolume keeps the previous boot's mtime.
-      cutoff=$(date --date="-${toString cfg.nukeRoot.maxAge} days" +%Y-%m-%dT%H%M%S)
+      cutoff=$(date --date="-30 days" +%Y-%m-%dT%H%M%S)
       for i in /btrfs_tmp/old_roots/*; do
           [[ -e "$i" ]] || continue
           name=$(basename "$i")
@@ -64,37 +68,6 @@
     ];
 
     options.persistence = {
-      nukeRoot = {
-        device = lib.mkOption {
-          type = lib.types.str;
-          example = "/dev/disk/by-partlabel/disk-nvme3-root";
-          description = ''
-            Block device (or `/dev/disk/by-*` path) belonging to the btrfs
-            filesystem whose top-level subvolume (`subvolid=5`) is mounted
-            in the initrd to perform the rollback. For a multi-device btrfs
-            filesystem, any one of its member devices works.
-          '';
-        };
-
-        subvolume = lib.mkOption {
-          type = lib.types.str;
-          default = "rootfs";
-          description = ''
-            Name of the top-level btrfs subvolume that is mounted as `/`
-            and gets moved aside and recreated empty on every boot.
-          '';
-        };
-
-        maxAge = lib.mkOption {
-          type = lib.types.ints.unsigned;
-          default = 30;
-          description = ''
-            Age in days after which old roots under `/old_roots` on the
-            rollback device are deleted.
-          '';
-        };
-      };
-
       directories = persistenceListOption "System directories to persist under `/persist`.";
       files = persistenceListOption "System files to persist under `/persist`.";
 
@@ -102,15 +75,16 @@
       data.files = persistenceListOption "User data files to persist under `/persist/data`.";
 
       cache.directories = persistenceListOption "User cache directories to persist under `/persist/cache`.";
-      cache.files = persistenceListOption "User cache files to persist under `/persist/cache`.";
 
       entries = lib.mkOption {
         type = lib.types.listOf (lib.types.attrsOf lib.types.str);
         readOnly = true;
         internal = true;
         description = ''
-          Every persisted path as `{kind, live, stored}`, where kind is `dir` or
-          `file`. The backup assertions and the migrate-persist and
+          Every persisted path as `{kind, live, stored, root}`, where kind is
+          `dir` or `file` and root is the storage root (`stored` minus `live`).
+          User entries also carry `user` and `storedHome`, that user's home
+          under root. The backup assertions and the migrate-persist and
           persist-orphans scripts read this instead of the storage layout.
         '';
       };
@@ -119,7 +93,7 @@
     config = {
       fileSystems."/persist".neededForBoot = true;
 
-      sops.age.sshKeyPaths = ["/persist/etc/ssh/ssh_host_ed25519_key"];
+      sops.age.sshKeyPaths = ["/persist${self.lib.hostKeyPath}"];
 
       # impermanence never migrates existing data: run `just migrate-persist`
       # on artemis before deploying a persistence.* change.
@@ -133,21 +107,30 @@
           files = cfg.data.files;
         };
 
-        "/persist/cache".users.${user} = {
-          directories = cfg.cache.directories;
-          files = cfg.cache.files;
-        };
+        "/persist/cache".users.${user}.directories = cfg.cache.directories;
       };
 
       persistence.entries = lib.concatLists (lib.mapAttrsToList (root: p: let
-        users = lib.attrValues p.users;
-        entry = kind: live: {
-          inherit kind live;
-          stored = root + live;
-        };
+        owners =
+          [(p // {extra = {};})]
+          ++ lib.mapAttrsToList (name: u:
+            u
+            // {
+              extra = {
+                user = name;
+                storedHome = root + config.users.users.${name}.home;
+              };
+            })
+          p.users;
+        entry = kind: extra: live:
+          {
+            inherit kind live root;
+            stored = root + live;
+          }
+          // extra;
       in
-        map (e: entry "dir" e.dirPath) (p.directories ++ lib.concatMap (u: u.directories) users)
-        ++ map (e: entry "file" e.filePath) (p.files ++ lib.concatMap (u: u.files) users))
+        lib.concatMap (o: map (e: entry "dir" o.extra e.dirPath) o.directories) owners
+        ++ lib.concatMap (o: map (e: entry "file" o.extra e.filePath) o.files) owners)
       config.environment.persistence);
 
       boot.initrd.systemd = {
@@ -159,11 +142,7 @@
           requiredBy = ["initrd.target"];
           before = ["sysroot.mount"];
           requires = [rootDeviceUnit];
-          after = [
-            rootDeviceUnit
-            # let hibernation resume consume the pre-rollback root first
-            "local-fs-pre.target"
-          ];
+          after = [rootDeviceUnit "local-fs-pre.target"];
           script = rollbackScript;
         };
       };

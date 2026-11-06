@@ -8,12 +8,9 @@ in {
     module = "atuin";
     stateful = true;
     units = ["atuin"];
+    # No public port: every client is a NetBird peer, and the sync payload is
+    # end-to-end encrypted under the client key.
     ports.app = port;
-    # Mesh only: every client is a NetBird peer and that interface is
-    # already trusted, so the server needs no firewall opening, no edge
-    # vhost and no DNS record. The sync payload is end-to-end encrypted
-    # under the client key either way.
-    firewall = [];
     backupSet = [dataDir];
   };
 
@@ -115,13 +112,11 @@ in {
           };
         };
       };
+    };
 
-      # The root disk holds the only live copy, so the snapshot interval is
-      # the history that a lost node loses. An hour is the budget.
-      timers.restic-backups-atuin.timerConfig = {
-        OnCalendar = lib.mkForce "hourly";
-        RandomizedDelaySec = lib.mkForce "5m";
-      };
+    backups.jobs.atuin.schedule = {
+      onCalendar = "hourly";
+      randomizedDelaySec = "5m";
     };
   };
 }

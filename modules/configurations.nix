@@ -3,36 +3,38 @@
   lib,
   config,
   ...
-}: {
+}: let
+  modulesOption = lib.mkOption {
+    type = lib.types.lazyAttrsOf lib.types.deferredModule;
+    default = {};
+  };
+  configurationsOption = lib.mkOption {
+    type = lib.types.lazyAttrsOf (lib.types.submodule {
+      options.module = lib.mkOption {
+        type = lib.types.deferredModule;
+      };
+    });
+    default = {};
+  };
+in {
   options = {
-    nixos.modules = lib.mkOption {
-      type = lib.types.lazyAttrsOf lib.types.deferredModule;
-      default = {};
-    };
-    nixos.configurations = lib.mkOption {
-      type = lib.types.lazyAttrsOf (lib.types.submodule {
-        options.module = lib.mkOption {
-          type = lib.types.deferredModule;
-        };
-      });
-      default = {};
-    };
-
-    darwin.modules = lib.mkOption {
-      type = lib.types.lazyAttrsOf lib.types.deferredModule;
-      default = {};
-    };
-    darwin.configurations = lib.mkOption {
-      type = lib.types.lazyAttrsOf (lib.types.submodule {
-        options.module = lib.mkOption {
-          type = lib.types.deferredModule;
-        };
-      });
-      default = {};
-    };
+    nixos.modules = modulesOption;
+    nixos.configurations = configurationsOption;
+    darwin.modules = modulesOption;
+    darwin.configurations = configurationsOption;
+    shared.modules = modulesOption;
   };
 
   config = {
+    nixos.modules = {
+      base.imports = [config.shared.modules.base];
+      artemis.imports = [config.shared.modules.workstation];
+    };
+    darwin.modules.base.imports = [
+      config.shared.modules.base
+      config.shared.modules.workstation
+    ];
+
     flake.nixosConfigurations =
       lib.mapAttrs (
         _: cfg:

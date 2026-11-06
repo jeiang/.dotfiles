@@ -1,4 +1,8 @@
-{inputs, ...}: {
+{
+  inputs,
+  self,
+  ...
+}: {
   imports = [
     inputs.git-hooks-nix.flakeModule
     inputs.treefmt-nix.flakeModule
@@ -10,16 +14,11 @@
     self',
     ...
   }: {
-    treefmt.config = {
-      projectRootFile = "flake.nix";
-      programs = {
-        alejandra.enable = true;
-        deadnix.enable = true;
-        stylua.enable = true;
-      };
-      flakeCheck = true;
+    treefmt.config.programs = {
+      alejandra.enable = true;
+      deadnix.enable = true;
+      stylua.enable = true;
     };
-    formatter = config.treefmt.build.wrapper;
 
     pre-commit = {
       # statix and treefmt already run as their own flake checks.
@@ -27,7 +26,11 @@
       settings = {
         package = pkgs.prek;
         hooks = {
-          editorconfig-checker.enable = true;
+          editorconfig-checker = {
+            enable = true;
+            # sops owns the shards' bytes.
+            excludes = [self.lib.sopsShardRegex];
+          };
           statix.enable = true;
           treefmt = {
             enable = true;
@@ -64,7 +67,6 @@
           sops
           ssh-to-age
           statix
-          watchexec
         ]
         ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [
           # hyprland

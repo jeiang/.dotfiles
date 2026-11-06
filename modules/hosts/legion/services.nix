@@ -7,7 +7,6 @@
     options = {
       port = lib.mkOption {type = lib.types.port;};
       proto = lib.mkOption {type = lib.types.enum ["tcp" "udp"];};
-      scope = lib.mkOption {type = lib.types.enum ["public" "private"];};
     };
   };
 
@@ -15,14 +14,6 @@
     options = {
       from = lib.mkOption {type = lib.types.port;};
       to = lib.mkOption {type = lib.types.port;};
-      proto = lib.mkOption {type = lib.types.enum ["tcp" "udp"];};
-      scope = lib.mkOption {type = lib.types.enum ["public" "private"];};
-    };
-  };
-
-  publishedPortType = lib.types.submodule {
-    options = {
-      port = lib.mkOption {type = lib.types.port;};
       proto = lib.mkOption {type = lib.types.enum ["tcp" "udp"];};
     };
   };
@@ -58,10 +49,9 @@
         type = lib.types.listOf lib.types.str;
         default = [];
         description = ''
-          systemd unit names (without `.service`) this service owns.
-          modules/hosts/legion/default.nix builds each node's
-          node-exporter --collector.systemd.unit-include regex from the
-          units of the services placed there.
+          systemd service names (without `.service`; `*` matches any run of
+          characters) this service owns: the placement node monitors them,
+          and a backup of the service stops them by default.
         '';
       };
 
@@ -75,12 +65,6 @@
         '';
       };
 
-      edge = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = "Whether this entry is the fleet's single edge-facing service.";
-      };
-
       stateful = lib.mkOption {
         type = lib.types.bool;
         default = false;
@@ -89,20 +73,21 @@
       publicHostnames = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [];
+        description = ''
+          Hostnames whose A/AAAA records point straight at this service's
+          node, DNS-only (not proxied by Cloudflare). Replicas on several
+          nodes each list the name, which gives round-robin DNS.
+        '';
       };
 
-      firewall = lib.mkOption {
+      publicPorts = lib.mkOption {
         type = lib.types.listOf portType;
         default = [];
+        description = "Ports the placement node opens to the internet.";
       };
 
-      firewallPortRanges = lib.mkOption {
+      publicPortRanges = lib.mkOption {
         type = lib.types.listOf portRangeType;
-        default = [];
-      };
-
-      publishedPorts = lib.mkOption {
-        type = lib.types.listOf publishedPortType;
         default = [];
       };
 
@@ -118,21 +103,19 @@
     };
   };
 in {
-  config.flake.lib.hetznerPrivateCidr = "172.16.0.0/12";
-
   options.legion.services = lib.mkOption {
     type = lib.types.attrsOf serviceType;
     default = {};
     description = ''
       Legion service placement, keyed by service name. Each service's own
       feature file sets its own entry; modules/hosts/legion/default.nix
-      derives per-node module imports, firewall openings, Volume
-      fileSystems and backups.jobs from this option.
+      derives per-node module imports, firewall openings and backups.jobs
+      from this option, and modules/hosts/legion/hetzner.nix its Volume
+      fileSystems.
     '';
     apply = services: let
       named = lib.mapAttrsToList (name: s: s // {inherit name;}) services;
-      edgeEntries = builtins.filter (s: s.edge) named;
-      publicHostnames = lib.concatMap (s: s.publicHostnames) named;
+      nodeHostnames = lib.concatMap (s: map (h: "${h} on ${s.node}") s.publicHostnames) named;
       statefulWithoutDurability = builtins.filter (s: s.stateful && s.volume == null && s.backupSet == []) named;
       backupSetViolations =
         builtins.filter (
@@ -143,14 +126,12 @@ in {
             && lib.any (path: !(lib.hasPrefix s.volume.mountpoint path)) s.backupSet
         )
         named;
-      # The Volume filesystem label is its service name (see modules/hosts/legion/default.nix); ext4 labels cap at 16 bytes.
+      # The Volume filesystem label is its service name; ext4 labels cap at 16 bytes.
       labelTooLong = builtins.filter (s: s.volume != null && builtins.stringLength s.name > 16) named;
-      volumeOffHetzner = builtins.filter (s: s.volume != null && self.lib.legionNodes.${s.node}.provider != "hetzner") named;
+      volumeOffHetzner = builtins.filter (s: s.volume != null && !(self.lib.hetznerNodes ? ${s.node})) named;
     in
-      assert lib.assertMsg (builtins.length edgeEntries == 1)
-      "legion.services must declare exactly one edge service: ${builtins.concatStringsSep ", " (map (s: s.name) edgeEntries)}";
-      assert lib.assertMsg (builtins.length publicHostnames == builtins.length (lib.unique publicHostnames))
-      "legion.services must not reuse a public hostname across services: ${builtins.concatStringsSep ", " publicHostnames}";
+      assert lib.assertMsg (builtins.length nodeHostnames == builtins.length (lib.unique nodeHostnames))
+      "legion.services must not list a public hostname twice on one node: ${builtins.concatStringsSep ", " nodeHostnames}";
       assert lib.assertMsg (statefulWithoutDurability == [])
       "Every stateful legion.services entry must declare a Volume or a backupSet: ${builtins.concatStringsSep ", " (map (s: s.name) statefulWithoutDurability)}";
       assert lib.assertMsg (backupSetViolations == [])

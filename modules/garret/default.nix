@@ -1,7 +1,6 @@
 {
-  inputs,
   self,
-  config,
+  inputs,
   ...
 }: let
   # The SQLite index is the only record of what is in the S3 bucket.
@@ -18,58 +17,39 @@
   pullerPort = 8081;
   pusherPort = 8082;
   pusherMetricsPort = 9091;
+  hostname = "cache.jeiang.dev";
+  pushHostname = "cache-push.jeiang.dev";
   pullerMetricsPort = 9092;
-  crowdsecLapiPort = config.legion.services.crowdsec.ports.lapi;
 
   client = {pkgs, ...}: {
     environment.systemPackages = [inputs.garret.packages.${pkgs.stdenv.hostPlatform.system}.garret];
   };
 in {
   flake.lib = {
-    garretWatermarks = watermarks;
-    garretFirewallBouncerSecret = "crowdsec/bouncer-garret-firewall";
+    garretHighWatermark = watermarks.high;
+    cacheHostname = hostname;
+    cachePushHostname = pushHostname;
   };
 
-  nixos.modules.artemis = client;
-  darwin.modules.base = client;
+  shared.modules.workstation = client;
 
   legion.services.garret = {
     node = "peria";
     module = "garret";
     stateful = true;
-    units = ["garret-pusher" "garret-puller" "crowdsec-firewall-bouncer"];
+    units = ["garret-pusher" "garret-puller"];
     ports = {
       puller = pullerPort;
-      pusher = pusherPort;
       pusher-metrics = pusherMetricsPort;
       puller-metrics = pullerMetricsPort;
     };
-    publicHostnames = ["cache.jeiang.dev" "cache-push.jeiang.dev"];
-    firewall = [
-      {
-        port = pullerPort;
-        proto = "tcp";
-        scope = "private";
-      }
-      {
-        port = pusherPort;
-        proto = "tcp";
-        scope = "private";
-      }
-      {
-        port = pusherMetricsPort;
-        proto = "tcp";
-        scope = "private";
-      }
-      {
-        port = pullerMetricsPort;
-        proto = "tcp";
-        scope = "private";
-      }
+    # cache-push takes one streaming PUT of a whole NAR; Cloudflare rejects
+    # bodies over 100 MB.
+    publicHostnames = [hostname pushHostname];
+    publicPorts = [
       {
         port = 443;
         proto = "tcp";
-        scope = "public";
       }
     ];
     backupSet = [backupFile];
@@ -91,9 +71,9 @@ in {
     # push; the real gate is Pocket ID's per-client group restriction,
     # hence the empty allowed_groups.
     pocketIdIssuer = {
-      issuer = "https://auth.jeiang.dev";
+      issuer = self.lib.pocketIdUrl;
       audience = pocketIdAudience;
-      jwks_url = "https://auth.jeiang.dev/.well-known/jwks.json";
+      jwks_url = "${self.lib.pocketIdUrl}/.well-known/jwks.json";
       allowed_groups = [];
     };
 
@@ -135,7 +115,6 @@ in {
       bucket = "garret";
       endpointUrl = "https://s3.ca-montreal.megas4.com";
       region = "ca-montreal";
-      # Flip to false if MEGA S4 rejects path-style addressing.
       pathStyle = true;
       credentialsFile = config.sops.templates."garret-s3.env".path;
     };
@@ -148,16 +127,6 @@ in {
     ];
 
     services = {
-      crowdsec-firewall-bouncer = {
-        enable = true;
-        settings = {
-          mode = "nftables";
-          api_url = "http://${self.lib.legionAddress config.networking.hostName "alda"}:${toString crowdsecLapiPort}";
-        };
-        registerBouncer.enable = false;
-        secrets.apiKeyPath = config.sops.secrets.${self.lib.garretFirewallBouncerSecret}.path;
-      };
-
       garret = {
         pusher = {
           enable = true;
@@ -168,7 +137,7 @@ in {
 
           # Advertised by /api/v1/discovery; without it `garret login` leaves
           # every client's use/list/tree unconfigured.
-          pullerEndpoint = "https://cache.jeiang.dev";
+          pullerEndpoint = "https://${hostname}";
 
           quotaBytes = 268435456000;
           inherit watermarks;
@@ -189,7 +158,7 @@ in {
           oidc = [
             {
               issuer = "https://token.actions.githubusercontent.com";
-              audience = "https://cache-push.jeiang.dev/";
+              audience = "https://${pushHostname}/";
               jwks_url = "https://token.actions.githubusercontent.com/.well-known/jwks";
               # Immutable owner id, not the name: names are renameable.
               github_owner_id = "31970261";
@@ -223,7 +192,6 @@ in {
       };
 
       caddy = {
-        # Only TCP 443 is open here.
         globalConfig = ''
           servers {
             protocols h1 h2
@@ -234,16 +202,14 @@ in {
         # high-volume bursts. garret closes a connection idle for 30 s, so
         # Caddy must drop its pooled upstream connections first or reuse one
         # mid-close (502).
-        virtualHosts."cache.jeiang.dev".extraConfig = ''
+        virtualHosts.${hostname}.extraConfig = ''
           reverse_proxy 127.0.0.1:${toString pullerPort} {
             transport http {
               keepalive 20s
             }
           }
         '';
-        # MUST stay DNS-only in Cloudflare: a push is one streaming PUT of a
-        # whole NAR and Cloudflare 413s bodies over 100 MB on the free plan.
-        virtualHosts."cache-push.jeiang.dev".extraConfig = ''
+        virtualHosts.${pushHostname}.extraConfig = ''
           reverse_proxy 127.0.0.1:${toString pusherPort} {
             transport http {
               keepalive 20s
@@ -264,8 +230,8 @@ in {
       services = let
         indexPresent = {ConditionPathExists = config.services.garret.pusher.dbPath;};
       in {
-        # garret's sizing rule (spec 10): 2 x maxInFlightBytes + per-upload decoder
-        # window and preamble = 2 x 384 MiB + 16 x 9 MiB = 912 MiB, plus headroom.
+        # garret's sizing rule: 2 x maxInFlightBytes plus a decoder window and
+        # preamble per concurrent upload, plus headroom.
         garret-pusher = {
           unitConfig = indexPresent;
           serviceConfig.MemoryMax = "960M";
@@ -277,22 +243,20 @@ in {
         # Ordering only: a backup must never start a Pusher stopped for a restore.
         restic-backups-garret.after = ["garret-pusher.service"];
       };
-
-      # The root disk holds the only live index, so the interval is the
-      # pushes a lost node forgets.
-      timers.restic-backups-garret.timerConfig = {
-        OnCalendar = lib.mkForce "00/6:00";
-        RandomizedDelaySec = lib.mkForce "15m";
-      };
     };
 
     environment.systemPackages = [garretAdmin];
 
-    # An online copy, so the backup never stops the cache. The Pusher never
-    # overwrites a file, hence the rm. The Pusher is Type=notify and signals
-    # ready only once the admin socket exists, so ordering after its unit
-    # is enough.
     backups.jobs.garret = {
+      # The root disk holds the only live index, so the interval is the pushes a lost node forgets.
+      schedule = {
+        onCalendar = "00/6:00";
+        randomizedDelaySec = "15m";
+      };
+      # An online copy, so the backup never stops the cache. The Pusher never
+      # overwrites a file, hence the rm. The Pusher is Type=notify and signals
+      # ready only once the admin socket exists, so ordering after its unit
+      # is enough.
       pauseUnits = [];
       prepareCommand = let
         socket = config.services.garret.pusher.adminSocketPath;
@@ -308,15 +272,10 @@ in {
         "garret/s3-secret-access-key" = {inherit sopsFile;};
         "garret/puller-s3-access-key-id" = {inherit sopsFile;};
         "garret/puller-s3-secret-access-key" = {inherit sopsFile;};
-        # Signing keys are read once at start-up; a secret-only deploy leaves the unit unchanged.
         "garret/signing-key" = {
           inherit sopsFile;
           owner = "garret";
           restartUnits = ["garret-pusher.service"];
-        };
-        ${self.lib.garretFirewallBouncerSecret} = {
-          sopsFile = ../crowdsec/secrets.garret.yaml;
-          restartUnits = ["crowdsec-firewall-bouncer.service"];
         };
       };
 

@@ -3,20 +3,19 @@
   # to ${dataDir}/data/*.
   dataDir = "/mnt/pocket-id";
   appPort = 1411;
+  hostname = "auth.jeiang.dev";
 in {
+  flake.lib = {
+    pocketIdHostname = hostname;
+    pocketIdUrl = "https://${hostname}";
+  };
+
   legion.services.pocket-id = {
     node = "vida";
     module = "pocket-id";
     stateful = true;
     units = ["pocket-id"];
     ports.app = appPort;
-    firewall = [
-      {
-        port = appPort;
-        proto = "tcp";
-        scope = "private";
-      }
-    ];
     volume = {
       name = "legion-pocket-id";
       mountpoint = dataDir;
@@ -38,7 +37,7 @@ in {
       enable = true;
       inherit dataDir;
       settings = {
-        APP_URL = "https://auth.jeiang.dev";
+        APP_URL = self.lib.pocketIdUrl;
         TRUST_PROXY = true;
         UI_CONFIG_DISABLED = true;
         ALLOW_USER_SIGNUPS = "withToken";
@@ -82,8 +81,6 @@ in {
       };
       templates."pocket-id.env" = {
         owner = config.services.pocket-id.user;
-        # An EnvironmentFile is read once at start-up; without this a rotated
-        # key never reaches the running process.
         restartUnits = ["pocket-id.service"];
         content = ''
           ENCRYPTION_KEY=${config.sops.placeholder."pocket-id/encryption-key"}

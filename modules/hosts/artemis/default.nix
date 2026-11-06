@@ -7,9 +7,8 @@
   inherit (config.nixos) modules;
 in {
   flake.deploy.nodes.artemis = {
-    # Deploys ride the NetBird mesh (no public DNS); when it's down: deploy .#artemis --hostname <LAN IP or 10.100.0.2 via the backup tunnel>.
-    hostname = "artemis.jeiang.vpn";
-    sshUser = "deploy";
+    hostname = "artemis.${self.lib.netbirdDnsDomain}";
+    sshUser = self.lib.deployUser;
     sudo = "doas -u";
     profiles.system = {
       user = "root";
@@ -39,16 +38,11 @@ in {
     ];
 
     persistence = {
-      nukeRoot = {
-        device = "/dev/disk/by-partlabel/disk-nvme3-root";
-        subvolume = "rootfs";
-      };
-
       files = [
         "/etc/machine-id"
         "/var/lib/systemd/random-seed"
-        "/etc/ssh/ssh_host_ed25519_key"
-        "/etc/ssh/ssh_host_ed25519_key.pub"
+        self.lib.hostKeyPath
+        "${self.lib.hostKeyPath}.pub"
       ];
       directories = [
         "/var/lib/nixos"
@@ -67,28 +61,21 @@ in {
         "Music"
         "Projects"
         "Games"
-        ".renpy"
         ".local/share/Trash"
         {
           directory = ".ssh";
           mode = "0700";
         }
-        ".local/share/fish"
-        {
-          directory = ".local/share/atuin";
-          mode = "0700";
-        }
-        ".local/share/zoxide"
-        ".config/fish"
       ];
-      data.files = [".claude.json"];
       cache.directories = [
-        ".cache/claude-cli-nodejs"
         # Mesa's default (multi-file, no MESA_DISK_CACHE_DATABASE) shader cache dir.
         ".cache/mesa_shader_cache"
-        ".local/state/nix"
       ];
     };
+
+    # Host identity: a rebuilt artemis keeps its sops key.
+    backups.persist.paths = [(dirOf self.lib.hostKeyPath)];
+    backups.persist.homePaths = [".ssh"];
 
     boot = {
       loader.systemd-boot = {
@@ -124,8 +111,8 @@ in {
     environment.variables = {
       AMD_VULKAN_ICD = "RADV";
       MESA_SHADER_CACHE_MAX_SIZE = "12G";
-      # Pin aquamarine to the dGPU: left alone it makes the iGPU primary and renders the whole session there. /dev/dri/egpu is the by-PCI-address symlink from ./hardware.nix; card* numbering is not boot-stable.
-      AQ_DRM_DEVICES = "/dev/dri/egpu";
+      # Pin aquamarine to the dGPU: left alone it makes the iGPU primary and renders the whole session there.
+      AQ_DRM_DEVICES = self.lib.artemisDgpuDevice.card;
     };
     networking = {
       hostName = "artemis";
@@ -140,7 +127,7 @@ in {
     };
     # facter detects the board's Bluetooth controller and defaults this on; nothing pairs to it.
     hardware.bluetooth.enable = false;
-    users.users.${config.preferences.user.name}.extraGroups = ["networkmanager"];
+    users.users.${self.lib.facts.userName}.extraGroups = ["networkmanager"];
 
     nix.settings.trusted-users = ["@wheel"];
 
@@ -163,8 +150,8 @@ in {
     # gopass autosync push key; the public half must be registered as a write-access deploy key on github.com:jeiang/pass.
     sops.secrets."gopass/github-ssh-key" = {
       sopsFile = ./secrets.yaml;
-      owner = config.preferences.user.name;
-      path = "${config.users.users.${config.preferences.user.name}.home}/.ssh/id_ed25519";
+      owner = self.lib.facts.userName;
+      path = "${config.users.users.${self.lib.facts.userName}.home}/.ssh/id_ed25519";
       mode = "0600";
     };
     # Pinned so the first unattended push never stalls on an interactive known-hosts prompt.
@@ -172,33 +159,11 @@ in {
 
     # Grouped in one attrset: statix W20 fires on a third top-level `services.*` key.
     services = {
-      prometheus.exporters.node = {
-        enable = true;
-        enabledCollectors = ["systemd"];
-        extraFlags = [
-          # The restic pattern matches timers too; the backup-freshness alert reads their last trigger.
-          "--collector.systemd.unit-include=(netbird|netbird-login|greetd|wireguard-wg-backup|beesd@.*|btrfs-scrub@.*|sshd|qbittorrent|factorio|minecraft-server-mc|darkhttpd(-movies|-tv)?)\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)"
-        ];
-      };
-      # Scraped from zantark over the mesh: the btrfs pool is RAID0, so one failing drive loses it.
-      prometheus.exporters.smartctl.enable = true;
-
       # The HomeKit Wake-on-LAN Switch resolves artemis.local over mDNS before pinging it.
       avahi.enable = true;
 
       # No screen reader on a headless box; the graphical-desktop default pulls this in.
       speechd.enable = false;
-
-      hypr-rdp = {
-        enable = true;
-        sopsFile = ./secrets.yaml;
-        settings = {
-          bind = "0.0.0.0:3389";
-          # No `output`: hypr-rdp manages its own headless output.
-          # `auto` would quietly fall back to software H.264 if the VA-API driver ever failed to load.
-          h264_backend = "vaapi";
-        };
-      };
     };
 
     nixpkgs.hostPlatform = "x86_64-linux";

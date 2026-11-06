@@ -1,4 +1,4 @@
-_: {
+{self, ...}: {
   nixos.modules.artemis = {
     config,
     lib,
@@ -11,7 +11,7 @@ _: {
       wants = ["network-online.target"];
       after = [
         "network-online.target"
-        "${config.services.netbird.clients.default.service.name}.service"
+        self.lib.netbirdUnit
         "sshd.service"
       ];
       unitConfig = {

@@ -4,13 +4,12 @@
   ...
 }: {
   nixos.modules.artemis = {
-    config,
     pkgs,
     lib,
     ...
   }: let
     cursor = "rose-pine-hyprcursor";
-    user = config.preferences.user.name;
+    user = self.lib.facts.userName;
     selfpkgs = self.packages.${pkgs.stdenv.hostPlatform.system};
     terminal = lib.getExe selfpkgs.ghostty;
   in {
@@ -25,7 +24,6 @@
       };
     };
 
-    security.polkit.enable = true;
     services = {
       greetd = {
         enable = true;
@@ -40,6 +38,7 @@
         };
       };
     };
+    monitoredUnits = ["greetd.service"];
 
     # hjem-activate@ has no ordering relative to greetd; with impermanence
     # relinking /home every boot, Hyprland can start before its config exists.
@@ -53,6 +52,7 @@
       hyprpolkitagent
       hyprpaper
       fuzzel
+      selfpkgs.ghostty
     ];
 
     environment.variables = rec {
@@ -73,7 +73,7 @@
 
         wallpaper {
             monitor =
-            path = ${../../assets/wallpapers-kanabox}
+            path = ${self.lib.wallpapers}
             fit_mode = cover
             timeout = 1800
             order = random
@@ -87,9 +87,7 @@
           mkdir -p $HOME/Pictures/Screenshots
           ${lib.getExe pkgs.grimblast} --notify copysave area "$HOME/Pictures/Screenshots/screenshot-$(date +"%Y%m%d%H%M%S").png"
         '';
-        # strip the leading "#" for hyprland's rgba()/0x color syntax
-        hex = c: builtins.substring 1 6 c;
-        p = builtins.mapAttrs (_: hex) self.lib.palette.kanaboxDarkHard;
+        p = self.lib.palette.kanaboxDarkHardHex;
       in
         # lua
         ''
@@ -104,6 +102,8 @@
           vars.display = {
             output = "${self.lib.artemisDisplay.output}",
             mode = "${self.lib.artemisDisplay.mode}",
+            position = "${self.lib.artemisDisplay.position}",
+            scale = "${self.lib.artemisDisplay.scale}",
           }
           vars.terminal = "${terminal}"
           vars.fileManager = "${lib.getExe' pkgs.kdePackages.dolphin "dolphin"}"

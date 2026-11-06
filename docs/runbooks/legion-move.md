@@ -14,18 +14,19 @@ the old repository with `-r`.
 
 ## Before merge
 
-1. Change `.sops.yaml` so every shard the service reads, and
-    `modules/backups/secrets.yaml`, has `<new>` as a recipient. Drop `<old>`
-    only from the service's own shard, and from the backups shard only when
-    `<old>` keeps no backup job. Run `just sops-updatekeys` and commit the
-    re-keyed shards to the branch.
+1. The placement edit changes each shard's recipients: `<new>` gains every
+    shard the service reads, and `<old>` loses the ones it no longer reads.
+    Run `just sops-config`, then `just sops-updatekeys`, and commit
+    `.sops.yaml` and the re-keyed shards to the branch.
 2. If the service has a public port on a Hetzner node, add it to the
     `legion` Cloud Firewall before deploying (`just hcloud-drift` shows the
     difference).
-3. In the NetBird dashboard, check that the access policies let `<new>`'s
-    clients reach it (zantark's scraper, and peers that use the service), and
-    retarget any reverse-proxy service on `proxy.jeiang.dev` that names
-    `<old>`. The flake declares neither.
+3. The NetBird policies in `modules/netbird-management` open the ports in
+    its `meshFlows` between any Legion machines. If the move makes a port
+    cross the mesh (one end off the Hetzner private network), add it there;
+    `just netbird-plan` shows the change.
+4. If the service has `publicHostnames`, run `just dns-nodes` and commit
+    `dns/nodes.json`; the `legion-nodes-json` check fails until it matches.
 
 ## Cut over
 

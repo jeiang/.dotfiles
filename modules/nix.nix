@@ -1,28 +1,62 @@
 {
   inputs,
+  lib,
   withSystem,
   self,
   ...
 }: let
-  llmAgentsCacheUrl = "https://cache.numtide.com";
-  llmAgentsCacheKey = "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=";
-  devenvCacheUrl = "https://devenv.cachix.org";
-  devenvCacheKey = "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=";
+  nixpkgsConfig.allowUnfree = true;
+
+  caches = [
+    {
+      url = self.lib.facts.cacheUrl;
+      key = self.lib.facts.cacheKey;
+    }
+    {
+      url = "https://cache.numtide.com";
+      key = "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=";
+    }
+  ];
+  workstationCaches = [
+    {
+      url = "https://devenv.cachix.org";
+      key = "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=";
+    }
+  ];
+  urls = map (c: c.url);
+  keys = map (c: c.key);
+
+  # Self-hosted cache; do not let an outage stall deploys
+  settings = {
+    connect-timeout = 5;
+    fallback = true;
+  };
+  # for direnv GC roots
+  workstationSettings = {
+    keep-derivations = true;
+    keep-outputs = true;
+  };
 in {
   perSystem = {system, ...}: {
     _module.args.pkgs = import inputs.nixpkgs {
       inherit system;
-      config.allowUnfree = true;
+      config = nixpkgsConfig;
     };
   };
+
+  shared.modules.base = {config, ...}: {
+    nixpkgs.pkgs = withSystem config.nixpkgs.hostPlatform.system ({pkgs, ...}: pkgs);
+
+    hjem.users.${self.lib.facts.userName}.files.".config/nixpkgs/config.nix".text = lib.generators.toPretty {} nixpkgsConfig + "\n";
+  };
+
+  shared.modules.workstation.programs.direnv.enable = true;
 
   nixos.modules.base = {config, ...}: {
     imports = [
       # Determinate keeps the stock nix.* options and renders them to /etc/nix/nix.custom.conf.
       inputs.determinate.nixosModules.default
     ];
-
-    nixpkgs.pkgs = withSystem config.nixpkgs.hostPlatform.system ({pkgs, ...}: pkgs);
 
     programs.nh.enable = true;
 
@@ -39,70 +73,43 @@ in {
 
     nix = {
       registry.nixpkgs.flake = inputs.nixpkgs;
-      # set the path for channels compat
       nixPath = ["nixpkgs=flake:nixpkgs"];
 
-      settings = {
-        auto-optimise-store = true;
-        builders-use-substitutes = true;
-        experimental-features = [
-          "nix-command"
-          "flakes"
-        ];
-        flake-registry = "/etc/nix/registry.json";
-
-        # Self-hosted cache; do not let an outage stall deploys
-        connect-timeout = 5;
-        fallback = true;
-
-        substituters = [
-          self.lib.facts.cacheUrl
-          llmAgentsCacheUrl
-        ];
-        trusted-public-keys = [
-          self.lib.facts.cacheKey
-          llmAgentsCacheKey
-        ];
-        trusted-users = ["root"];
-      };
+      settings =
+        settings
+        // {
+          auto-optimise-store = true;
+          builders-use-substitutes = true;
+          experimental-features = [
+            "nix-command"
+            "flakes"
+          ];
+          flake-registry = "/etc/nix/registry.json";
+          substituters = urls caches;
+          trusted-public-keys = keys caches;
+          trusted-users = ["root"];
+        };
     };
-
-    hjem.users.${config.preferences.user.name}.files.".config/nixpkgs/config.nix".text = self.lib.facts.allowUnfreeConfigNix;
   };
 
   # Determinate Nix forces nix.enable = false, so every nix.settings equivalent must go through determinateNix.customSettings.
-  darwin.modules.base = {config, ...}: {
+  darwin.modules.base = {
     imports = [inputs.determinate.darwinModules.default];
-
-    nixpkgs.pkgs = withSystem config.nixpkgs.hostPlatform.system ({pkgs, ...}: pkgs);
 
     determinateNix = {
       registry.nixpkgs.flake = inputs.nixpkgs;
 
-      customSettings = {
-        connect-timeout = 5;
-        fallback = true;
-
-        keep-derivations = true;
-        keep-outputs = true;
-
-        # extra-, not the bare keys: customSettings does no NixOS-style merging, so bare substituters/trusted-public-keys would replace Determinate's defaults and drop cache.nixos.org.
-        extra-substituters = [
-          self.lib.facts.cacheUrl
-          llmAgentsCacheUrl
-          devenvCacheUrl
-        ];
-        extra-trusted-public-keys = [
-          self.lib.facts.cacheKey
-          llmAgentsCacheKey
-          devenvCacheKey
-        ];
-        # @admin, not @wheel: macOS's wheel group has no members besides root.
-        extra-trusted-users = ["@admin"];
-      };
+      customSettings =
+        settings
+        // workstationSettings
+        // {
+          # extra-, not the bare keys: customSettings does no NixOS-style merging, so bare substituters/trusted-public-keys would replace Determinate's defaults and drop cache.nixos.org.
+          extra-substituters = urls (caches ++ workstationCaches);
+          extra-trusted-public-keys = keys (caches ++ workstationCaches);
+          # @admin, not @wheel: macOS's wheel group has no members besides root.
+          extra-trusted-users = ["@admin"];
+        };
     };
-
-    hjem.users.${config.preferences.user.name}.files.".config/nixpkgs/config.nix".text = self.lib.facts.allowUnfreeConfigNix;
   };
 
   nixos.modules.artemis = {
@@ -112,12 +119,6 @@ in {
 
     programs = {
       nix-index-database.comma.enable = true;
-      direnv = {
-        enable = true;
-        silent = false;
-        loadInNixShell = true;
-        nix-direnv.enable = true;
-      };
       nix-ld.enable = true;
     };
 
@@ -126,18 +127,17 @@ in {
       daemonCPUSchedPolicy = "idle";
       daemonIOSchedClass = "idle";
 
-      settings = {
-        substituters = [devenvCacheUrl];
-        trusted-public-keys = [devenvCacheKey];
-        # for direnv GC roots
-        keep-derivations = true;
-        keep-outputs = true;
-      };
+      settings =
+        workstationSettings
+        // {
+          substituters = urls workstationCaches;
+          trusted-public-keys = keys workstationCaches;
+        };
     };
 
     persistence = {
       data.directories = [".local/share/direnv" ".local/share/devenv"];
-      cache.directories = [".cache/devenv" ".cache/direnv" ".cache/nix-direnv"];
+      cache.directories = [".cache/devenv" ".cache/direnv" ".cache/nix-direnv" ".local/state/nix"];
     };
   };
 }

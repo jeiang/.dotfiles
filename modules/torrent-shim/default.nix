@@ -1,9 +1,9 @@
 {self, ...}: let
-  bundleId = "dev.jeiang.send-to-artemis";
+  exe = "send-to-artemis";
+  bundleId = "dev.jeiang.${exe}";
   name = "Send to atrium";
 in {
   darwin.modules.base = {
-    config,
     lib,
     pkgs,
     ...
@@ -12,7 +12,7 @@ in {
     infoPlist = pkgs.writeText "Info.plist" (lib.generators.toPlist {escape = true;} {
       CFBundleIdentifier = bundleId;
       CFBundleName = name;
-      CFBundleExecutable = "send-to-artemis";
+      CFBundleExecutable = exe;
       CFBundlePackageType = "APPL";
       CFBundleShortVersionString = "1.0";
       CFBundleVersion = "1";
@@ -42,27 +42,29 @@ in {
       ];
     });
     app = pkgs.stdenv.mkDerivation {
-      pname = "send-to-artemis";
+      pname = exe;
       version = "1.0";
-      src = ./.;
+      src = lib.fileset.toSource {
+        root = ./.;
+        fileset = ./main.swift;
+      };
       nativeBuildInputs = [pkgs.swift];
       buildPhase = ''
         runHook preBuild
-        swiftc -O -o send-to-artemis main.swift
+        swiftc -O -o ${exe} main.swift
         runHook postBuild
       '';
       installPhase = ''
         runHook preInstall
         contents="$out/Applications/${name}.app/Contents"
-        install -Dm755 send-to-artemis "$contents/MacOS/send-to-artemis"
+        install -Dm755 ${exe} "$contents/MacOS/${exe}"
         install -Dm644 ${infoPlist} "$contents/Info.plist"
         runHook postInstall
       '';
     };
-    user = config.preferences.user.name;
-    asUser = cmd: ''launchctl asuser "$(id -u -- ${lib.escapeShellArg user})" sudo --user=${lib.escapeShellArg user} -- ${cmd}'';
+    asUser = self.lib.darwinAsUser;
     lsregister = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister";
-    handlers = pkgs.writeText "send-to-artemis.duti" ''
+    handlers = pkgs.writeText "${exe}.duti" ''
       ${bundleId} magnet
       ${bundleId} ${torrentUti} viewer
     '';

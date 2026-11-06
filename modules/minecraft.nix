@@ -1,12 +1,14 @@
 {
   inputs,
   self,
+  config,
   ...
 }: let
   javaPort = 25565;
   bedrockPort = 19132;
   serverName = "mc";
-  stateDir = "/srv/minecraft/${serverName}";
+  unit = "minecraft-server-${serverName}";
+  ingress = self.lib.legionNodes.${config.legion.services.game-ingress.node};
 in {
   flake.lib = {
     minecraftJavaPort = javaPort;
@@ -18,7 +20,9 @@ in {
     lib,
     pkgs,
     ...
-  }: {
+  }: let
+    stateDir = "${config.services.minecraft-servers.dataDir}/${serverName}";
+  in {
     imports = [inputs.nix-minecraft.nixosModules.minecraft-servers];
     nixpkgs.overlays = [inputs.nix-minecraft.overlay];
 
@@ -30,20 +34,23 @@ in {
         mode = "0770";
       }
     ];
+    backups.persist = {
+      paths = [stateDir];
+      stopUnits = ["${unit}.service"];
+    };
+    monitoredUnits = ["${unit}.service"];
 
     services.minecraft-servers = {
       enable = true;
       eula = true;
-      openFirewall = false;
       servers.${serverName} = {
         enable = true;
-        # Geyser translates Bedrock 26.50-26.52 to Java 26.3.
         # nix-minecraft's Fabric launcher defaults to nixpkgs' Java 21; 26.x needs 25.
         package = pkgs.fabricServers.fabric-26_3.override {jre_headless = pkgs.jdk25_headless;};
         # Bedrock 26.60 drops RakNet, which is still Geyser's default transport.
-        # ICE must announce Atlanta's forwarded UDP endpoint, not artemis's home address.
+        # ICE must announce the game ingress's forwarded UDP endpoint, not artemis's home address.
         # A fixed, pre-touched heap with ZGC (generational on JDK 25) keeps GC pauses out of the tick loop.
-        jvmOpts = "-Xms4096M -Xmx4096M -XX:+UseZGC -XX:+AlwaysPreTouch -DgeyserTransport=nethernet -DgeyserAdvertiseAddresses=${self.lib.legionNodes.ricklent.publicIPv4},${self.lib.legionNodes.ricklent.publicIPv6}";
+        jvmOpts = "-Xms4096M -Xmx4096M -XX:+UseZGC -XX:+AlwaysPreTouch -DgeyserTransport=nethernet -DgeyserAdvertiseAddresses=${ingress.publicIPv4},${ingress.publicIPv6}";
 
         serverProperties = {
           server-port = javaPort;
@@ -109,7 +116,7 @@ in {
       };
     };
 
-    systemd.services."minecraft-server-${serverName}" = {
+    systemd.services.${unit} = {
       # Geyser's bundled libdatachannel dlopens OpenSSL by library name.
       environment.LD_LIBRARY_PATH = lib.makeLibraryPath [pkgs.openssl];
       # libjuice's getifaddrs needs Netlink to gather NetherNet ICE candidates.

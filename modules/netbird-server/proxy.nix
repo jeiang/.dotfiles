@@ -5,204 +5,164 @@
 }: let
   domain = "proxy.jeiang.dev";
   healthPort = 9002;
-  crowdsecLapiPort = config.legion.services.crowdsec.ports.lapi;
 
   # One cluster: management groups proxies by NB_PROXY_DOMAIN and sends every
   # service to each of them, and DNS lists every replica. Each replica keeps
-  # its own token, Cloudflare token and CrowdSec bouncer key, so one can be
-  # revoked alone.
+  # its own token and CrowdSec bouncer key, so one can be revoked alone.
   replicas = {
     netbird-proxy = {
       node = "vida";
       sopsFile = ./secrets.proxy.yaml;
       tokenSecret = "netbird/proxy-token";
-      dnsTokenSecret = "netbird-proxy/cloudflare-dns-token";
-      bouncerSecret = "crowdsec/bouncer-netbird-proxy-key";
-      bouncerSopsFile = ../crowdsec/secrets.yaml;
-      # Registered at alda's LAPI as "legion-node2-firewall"; ricklent's
-      # firewall bouncer lives in modules/crowdsec/agent.nix.
-      firewallBouncerSecret = "crowdsec/bouncer-legion-node2-firewall";
     };
     netbird-proxy-atl = {
       node = "ricklent";
       sopsFile = ./secrets.proxy-atl.yaml;
       tokenSecret = "netbird/proxy-atl-token";
-      dnsTokenSecret = "netbird-proxy-atl/cloudflare-dns-token";
-      bouncerSecret = "crowdsec/bouncer-netbird-proxy-atl-key";
-      bouncerSopsFile = ../crowdsec/secrets.agent.yaml;
-      firewallBouncerSecret = null;
     };
   };
+
+  serverNode = config.legion.services.netbird-server.node;
 in {
+  flake.lib = {
+    netbirdProxyDomain = domain;
+    netbirdProxyServices = builtins.attrNames replicas;
+  };
+
+  crowdsec.bouncers = builtins.mapAttrs (_: replica: replica.node) replicas;
+
   legion.services =
     builtins.mapAttrs (name: replica: {
       inherit (replica) node;
-      module = "netbird-proxy";
-      units =
-        ["netbird-proxy" "acme-.*"]
-        ++ (
-          if replica.firewallBouncerSecret != null
-          then ["crowdsec-firewall-bouncer"]
-          else []
-        );
-      ports = {
-        health = healthPort;
-        metrics = healthPort;
-      };
-      # Hostnames are unique across services, so the cluster's are declared once.
-      publicHostnames =
-        if name == "netbird-proxy"
-        then [domain "*.${domain}"]
-        else [];
-      firewall = [
+      module = name;
+      units = ["netbird-proxy" "acme-*"];
+      ports.health = healthPort;
+      publicHostnames = [domain "*.${domain}"];
+      publicPorts = [
         {
           port = 443;
           proto = "tcp";
-          scope = "public";
         }
       ];
-      firewallPortRanges = map (proto: {
+      publicPortRanges = map (proto: {
         from = 40000;
         to = 45000;
         inherit proto;
-        scope = "public";
       }) ["tcp" "udp"];
     })
     replicas;
 
-  nixos.modules.netbird-proxy = {
-    config,
-    lib,
-    pkgs,
-    ...
-  }: let
-    replica = lib.findFirst (r: r.node == config.networking.hostName) (throw "no netbird-proxy replica on ${config.networking.hostName}") (builtins.attrValues replicas);
-    proxyPkg = self.packages.${pkgs.stdenv.hostPlatform.system}.netbird-proxy;
-    lapiUrl = "http://${self.lib.legionAddress config.networking.hostName "alda"}:${toString crowdsecLapiPort}";
+  nixos.modules =
+    builtins.mapAttrs (replicaName: replica: {
+      config,
+      lib,
+      pkgs,
+      ...
+    }: let
+      bouncerSecret = self.lib.crowdsecBouncerSecret replicaName;
+      serverUnits = lib.optional (replica.node == serverNode) "netbird-server.service";
+      proxyPkg = self.packages.${pkgs.stdenv.hostPlatform.system}.netbird-proxy;
 
-    # Static-cert mode: security.acme provisions the DNS-01 wildcard and the
-    # proxy's own file watcher picks up renewals, so no reloadServices hook
-    # is wired and the built-in ACME path is unused.
-    acmeCertDir = config.security.acme.certs.${domain}.directory;
-  in {
-    security.acme = {
-      acceptTerms = true;
-      defaults.email = "aidan@aidanpinard.co";
+      # Static-cert mode: security.acme provisions the DNS-01 wildcard and the
+      # proxy's own file watcher picks up renewals, so no reloadServices hook
+      # is wired and the built-in ACME path is unused.
+      acmeCertDir = config.security.acme.certs.${domain}.directory;
+    in {
+      security.acme = {
+        acceptTerms = true;
+        defaults.email = self.lib.facts.email;
 
-      certs.${domain} = {
-        extraDomainNames = ["*.${domain}"];
-        dnsProvider = "cloudflare";
-        # The system resolver sends jeiang.dev through NetBird DNS, which never
-        # returns the fresh challenge TXT, so propagation checks time out.
-        dnsResolver = "1.1.1.1:53";
-        environmentFile = config.sops.templates."netbird-proxy-cloudflare-dns.env".path;
-        group = "netbird-proxy";
+        certs.${domain} = {
+          extraDomainNames = ["*.${domain}"];
+          dnsProvider = "cloudflare";
+          # The system resolver sends jeiang.dev through NetBird DNS, which never
+          # returns the fresh challenge TXT, so propagation checks time out.
+          dnsResolver = "1.1.1.1:53";
+          environmentFile = config.sops.templates."netbird-proxy-cloudflare-dns.env".path;
+          group = "netbird-proxy";
+        };
       };
-    };
 
-    sops = {
-      secrets =
-        {
+      sops = {
+        secrets = {
           # Generated by `netbird-server token create` against the management server.
           ${replica.tokenSecret}.sopsFile = replica.sopsFile;
-          # Same key modules/crowdsec/default.nix registers at alda's LAPI.
-          ${replica.bouncerSecret}.sopsFile = replica.bouncerSopsFile;
-          # Same Cloudflare DNS API token value as the edge's
-          # caddy/cloudflare-dns-token, declared per host.
-          ${replica.dnsTokenSecret}.sopsFile = replica.sopsFile;
-        }
-        // lib.optionalAttrs (replica.firewallBouncerSecret != null) {
-          ${replica.firewallBouncerSecret} = {
-            sopsFile = replica.bouncerSopsFile;
-            restartUnits = ["crowdsec-firewall-bouncer.service"];
-          };
+          ${self.lib.cloudflareDnsToken.secret}.sopsFile = self.lib.cloudflareDnsToken.sopsFile;
         };
 
-      templates = {
-        "netbird-proxy.env" = {
-          owner = "netbird-proxy";
-          restartUnits = ["netbird-proxy.service"];
-          content = ''
-            NB_PROXY_TOKEN=${config.sops.placeholder.${replica.tokenSecret}}
-            NB_PROXY_CROWDSEC_API_KEY=${config.sops.placeholder.${replica.bouncerSecret}}
+        templates = {
+          "netbird-proxy.env" = {
+            owner = "netbird-proxy";
+            restartUnits = ["netbird-proxy.service"];
+            content = ''
+              NB_PROXY_TOKEN=${config.sops.placeholder.${replica.tokenSecret}}
+              NB_PROXY_CROWDSEC_API_KEY=${config.sops.placeholder.${bouncerSecret}}
+            '';
+          };
+
+          "netbird-proxy-cloudflare-dns.env".content = ''
+            CF_DNS_API_TOKEN=${config.sops.placeholder.${self.lib.cloudflareDnsToken.secret}}
           '';
         };
-
-        "netbird-proxy-cloudflare-dns.env".content = ''
-          CF_DNS_API_TOKEN=${config.sops.placeholder.${replica.dnsTokenSecret}}
-        '';
       };
-    };
 
-    users.groups.netbird-proxy = {};
-    users.users.netbird-proxy = {
-      isSystemUser = true;
-      group = "netbird-proxy";
-    };
+      users.groups.netbird-proxy = {};
+      users.users.netbird-proxy = {
+        isSystemUser = true;
+        group = "netbird-proxy";
+      };
 
-    systemd.services.netbird-proxy = {
-      description = "NetBird reverse proxy";
-      # Wants, not Requires: the proxy must not go down when the server
-      # restarts (on vida); the acme ordering is first-issuance only and
-      # renewals never restart this unit.
-      after = ["network-online.target" "netbird-server.service" "acme-${domain}.service"];
-      wants = ["network-online.target" "netbird-server.service" "acme-${domain}.service"];
-      wantedBy = ["multi-user.target"];
-      environment = {
-        NB_PROXY_ADDRESS = ":443";
-        NB_PROXY_DOMAIN = domain;
-        # The default localhost:8080 collides with the relay's WS port on
-        # vida. The wildcard bind lets blackbox on zantark probe it over the
-        # private network or mesh; the port is not open publicly.
-        NB_PROXY_HEALTH_ADDRESS = ":${toString healthPort}";
-        # The management connection MUST be TLS (gRPC refuses per-RPC
-        # credentials over plaintext) and the local server is plain :80, so
-        # this hairpins through the edge's TLS-terminating @grpc route.
-        NB_PROXY_MANAGEMENT_ADDRESS = "https://netbird.jeiang.dev";
-        NB_PROXY_CERTIFICATE_DIRECTORY = acmeCertDir;
-        NB_PROXY_CERTIFICATE_FILE = "fullchain.pem";
-        NB_PROXY_CERTIFICATE_KEY_FILE = "key.pem";
-        # NB_PROXY_PROXY_PROTOCOL/NB_PROXY_TRUSTED_PROXIES must stay unset:
-        # clients connect directly, so no upstream sends the header.
-        NB_PROXY_ACME_CERTIFICATES = "false";
-        # Serves private services on the embedded peer's tunnel listener,
-        # which is what makes the cluster advertise the Private capability
-        # the dashboard's NetBird-Only Access option requires.
-        NB_PROXY_PRIVATE = "true";
-        # Enforcement is per-service in the NetBird dashboard; `observe`
-        # (or unset) always fails open, only `enforce` fails closed on an
-        # unreachable LAPI -- start new services in observe.
-        NB_PROXY_CROWDSEC_API_URL = lapiUrl;
-        NB_PROXY_LOG_LEVEL = "info";
-        # The default /var/lib/netbird/geolocation is the server's directory,
-        # which this user cannot write; without the GeoLite2 database every
-        # service with a country restriction denies all requests.
-        NB_PROXY_GEO_DATA_DIR = "/var/cache/netbird-proxy";
+      systemd.services.netbird-proxy = {
+        description = "NetBird reverse proxy";
+        # Wants, not Requires: the proxy must not go down when the server
+        # restarts; the acme ordering is first-issuance only and renewals
+        # never restart this unit.
+        after = ["network-online.target"] ++ serverUnits ++ ["acme-${domain}.service"];
+        wants = ["network-online.target"] ++ serverUnits ++ ["acme-${domain}.service"];
+        wantedBy = ["multi-user.target"];
+        environment = {
+          NB_PROXY_ADDRESS = ":443";
+          NB_PROXY_DOMAIN = domain;
+          # The default localhost:8080 collides with the relay's WS port on
+          # vida. The wildcard bind lets blackbox on zantark probe it over the
+          # private network or mesh; the port is not open publicly.
+          NB_PROXY_HEALTH_ADDRESS = ":${toString healthPort}";
+          # The management connection MUST be TLS (gRPC refuses per-RPC
+          # credentials over plaintext) and the local server is plain :80, so
+          # this hairpins through the edge's TLS-terminating @grpc route.
+          NB_PROXY_MANAGEMENT_ADDRESS = "https://${self.lib.netbirdDomain}";
+          NB_PROXY_CERTIFICATE_DIRECTORY = acmeCertDir;
+          NB_PROXY_CERTIFICATE_FILE = "fullchain.pem";
+          NB_PROXY_CERTIFICATE_KEY_FILE = "key.pem";
+          # NB_PROXY_PROXY_PROTOCOL/NB_PROXY_TRUSTED_PROXIES must stay unset:
+          # clients connect directly, so no upstream sends the header.
+          NB_PROXY_ACME_CERTIFICATES = "false";
+          # Serves private services on the embedded peer's tunnel listener,
+          # which is what makes the cluster advertise the Private capability
+          # the dashboard's NetBird-Only Access option requires.
+          NB_PROXY_PRIVATE = "true";
+          # Enforcement is per-service in the NetBird dashboard; `observe`
+          # (or unset) always fails open, only `enforce` fails closed on an
+          # unreachable LAPI -- start new services in observe.
+          NB_PROXY_CROWDSEC_API_URL = self.lib.crowdsecLapiUrl config.networking.hostName;
+          NB_PROXY_LOG_LEVEL = "info";
+          # The default /var/lib/netbird/geolocation is the server's directory,
+          # which this user cannot write; without the GeoLite2 database every
+          # service with a country restriction denies all requests.
+          NB_PROXY_GEO_DATA_DIR = "/var/cache/netbird-proxy";
+        };
+        serviceConfig = {
+          ExecStart = lib.getExe proxyPkg;
+          EnvironmentFile = [config.sops.templates."netbird-proxy.env".path];
+          Restart = "on-failure";
+          RestartSec = 5;
+          User = "netbird-proxy";
+          Group = "netbird-proxy";
+          AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
+          CacheDirectory = "netbird-proxy";
+          MemoryMax = "256M";
+        };
       };
-      serviceConfig = {
-        ExecStart = lib.getExe proxyPkg;
-        EnvironmentFile = [config.sops.templates."netbird-proxy.env".path];
-        Restart = "on-failure";
-        RestartSec = 5;
-        User = "netbird-proxy";
-        Group = "netbird-proxy";
-        AmbientCapabilities = ["CAP_NET_BIND_SERVICE"];
-        CacheDirectory = "netbird-proxy";
-        MemoryMax = "256M";
-      };
-    };
-
-    # Whole-node nftables remediation, alongside the per-service app-level
-    # bouncer above.
-    services.crowdsec-firewall-bouncer = lib.mkIf (replica.firewallBouncerSecret != null) {
-      enable = true;
-      settings = {
-        mode = "nftables";
-        api_url = lapiUrl;
-      };
-      # Not registerBouncer.enable: that registers against a local crowdsec
-      # service this node doesn't run; registration lives on alda.
-      secrets.apiKeyPath = config.sops.secrets.${replica.firewallBouncerSecret}.path;
-    };
-  };
+    })
+    replicas;
 }

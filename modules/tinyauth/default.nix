@@ -1,23 +1,26 @@
-{self, ...}: let
+{
+  self,
+  config,
+  ...
+}: let
   port = 3000;
 in {
   legion.services.tinyauth = {
-    node = "alda";
+    inherit (config.legion.services.caddy) node;
     module = "tinyauth";
     units = ["tinyauth"];
     ports.app = port;
-    # Loopback only; Caddy fronts it.
-    firewall = [];
   };
+
+  flake.lib.tinyauthHostname = "tinyauth.jeiang.dev";
 
   # Forward-auth gate for edge vhosts that have no login of their own; logs
   # in through Pocket ID. Colocated with Caddy so forward_auth stays on
   # loopback.
   nixos.modules.tinyauth = {config, ...}: let
-    appUrl = "https://tinyauth.jeiang.dev";
-    pocketId = "https://auth.jeiang.dev";
-    # Consumed only on the edge node, so it shares the edge Secret Shard.
-    sopsFile = ./edge/secrets.yaml;
+    appUrl = "https://${self.lib.tinyauthHostname}";
+    pocketId = self.lib.pocketIdUrl;
+    sopsFile = ./secrets.yaml;
   in {
     services.tinyauth = {
       enable = true;

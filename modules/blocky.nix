@@ -6,7 +6,10 @@
   service = node: module: {
     inherit node module;
     units = ["blocky"];
-    ports.http = httpPort;
+    ports = {
+      http = httpPort;
+      dns = dnsPort;
+    };
   };
 
   listen = host: port:
@@ -14,11 +17,17 @@
     then port
     else "${host}:${toString port}";
 
-  mkBlocky = host: {
+  # meshOnly binds the node's NetBird address instead of every interface.
+  mkBlocky = meshOnly: {
     config,
     lib,
     ...
-  }: {
+  }: let
+    host =
+      if meshOnly
+      then self.lib.netbirdPeers.${config.networking.hostName}
+      else null;
+  in {
     services.blocky = {
       enable = true;
       settings = {
@@ -61,7 +70,7 @@
           }
           {
             upstream = "tcp-tls:dns.quad9.net:853";
-            ips = ["9.9.9.9" "149.112.112.112"];
+            ips = self.lib.quad9;
           }
         ];
         log = {
@@ -73,12 +82,12 @@
 
     systemd.services.blocky = lib.mkMerge [
       {
-        after = [(config.services.netbird.clients.default.service.name + ".service")];
-        wants = [(config.services.netbird.clients.default.service.name + ".service")];
+        after = [self.lib.netbirdUnit];
+        wants = [self.lib.netbirdUnit];
         # The hagezi lists hold ~2.4M entries (~390 MB resident); a refresh parses the new set while the old one is live.
         serviceConfig.MemoryMax = "1G";
       }
-      (lib.mkIf (host != null) {
+      (lib.mkIf meshOnly {
         # The mesh address appears only once NetBird connects; keep retrying the bind until then.
         startLimitIntervalSec = 0;
         serviceConfig.RestartSec = 5;
@@ -86,13 +95,15 @@
     ];
   };
 in {
+  flake.lib.quad9 = ["9.9.9.9" "149.112.112.112"];
+
   legion.services = {
     blocky = service "vida" "blocky";
     blocky-ricklent = service "ricklent" "blocky-ricklent";
   };
 
   nixos.modules = {
-    blocky = mkBlocky null;
-    blocky-ricklent = mkBlocky self.lib.netbirdPeers.ricklent;
+    blocky = mkBlocky false;
+    blocky-ricklent = mkBlocky true;
   };
 }

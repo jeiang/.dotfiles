@@ -2,19 +2,29 @@
   mainUnit = "netbird-server";
   dataDir = "/mnt/netbird";
 
-  domain = "netbird.jeiang.dev";
+  domain = self.lib.netbirdDomain;
   # The edge's @relay route; the server advertises it and the relay announces it, so they must match.
   relayAddress = "rels://${domain}:443";
 
   httpPort = 80;
   serverMetricsPort = 9090;
+  serverHealthPort = 9000;
 
   stunPort = 3478;
   relayPort = 8080;
   relayMetricsPort = 9091;
   relayHealthPort = 9001;
 in {
+  flake.lib = {
+    netbirdDomain = "netbird.jeiang.dev";
+    netbirdDnsDomain = "jeiang.vpn";
+  };
+
   legion.services = {
+    # The edge serves the dashboard and fronts the API; long-lived
+    # gRPC/WebSocket streams stay off the Cloudflare proxy.
+    caddy.publicHostnames = [domain];
+
     netbird-server = {
       node = "vida";
       module = "netbird-server";
@@ -24,13 +34,6 @@ in {
         http = httpPort;
         metrics = serverMetricsPort;
       };
-      firewall = [
-        {
-          port = httpPort;
-          proto = "tcp";
-          scope = "private";
-        }
-      ];
       volume = {
         name = "legion-netbird";
         mountpoint = dataDir;
@@ -45,22 +48,15 @@ in {
       node = "vida";
       units = ["netbird-relay"];
       ports = {
-        stun = stunPort;
         relay = relayPort;
         metrics = relayMetricsPort;
         health = relayHealthPort;
       };
       publicHostnames = ["stun.${domain}"];
-      firewall = [
+      publicPorts = [
         {
           port = stunPort;
           proto = "udp";
-          scope = "public";
-        }
-        {
-          port = relayPort;
-          proto = "tcp";
-          scope = "private";
         }
       ];
     };
@@ -84,7 +80,7 @@ in {
           listenAddress: ":${toString httpPort}"
           exposedAddress: "https://${domain}:443"
           metricsPort: ${toString serverMetricsPort}
-          healthcheckAddress: ":9000"
+          healthcheckAddress: ":${toString serverHealthPort}"
           logLevel: "info"
           logFile: "console"
           tls:
@@ -122,7 +118,7 @@ in {
               - "https://${domain}/nb-silent-auth"
             cliRedirectURIs:
               - "http://localhost:53000/"
-          dnsDomain: "jeiang.vpn"
+          dnsDomain: "${self.lib.netbirdDnsDomain}"
           store:
             engine: "sqlite"
             dsn: ""
@@ -159,8 +155,6 @@ in {
 
       systemd = {
         services = {
-          # mountGuard: never silently initialize a fresh sqlite store on the
-          # root disk when the Volume is missing or late.
           ${mainUnit} =
             lib.recursiveUpdate
             {
@@ -209,6 +203,79 @@ in {
             };
           };
         };
+      };
+    };
+
+    edge = {
+      config,
+      pkgs,
+      ...
+    }: let
+      system = pkgs.stdenv.hostPlatform.system;
+      server = self.lib.serviceAddress config.networking.hostName "netbird-server";
+      dashboard = config.services.netbird.server.dashboard.finalDrv;
+    in {
+      services.netbird.server.dashboard = {
+        enable = true;
+        package = self.packages.${system}.netbird-dashboard;
+        managementServer = "https://${domain}";
+        settings = {
+          AUTH_AUDIENCE = "netbird-dashboard";
+          AUTH_CLIENT_ID = "netbird-dashboard";
+          AUTH_AUTHORITY = "https://${domain}/oauth2";
+          AUTH_SUPPORTED_SCOPES = "openid profile email groups";
+          AUTH_REDIRECT_URI = "/nb-auth";
+          AUTH_SILENT_REDIRECT_URI = "/nb-silent-auth";
+          USE_AUTH0 = false;
+        };
+      };
+
+      # appsec only on the dashboard handles: @grpc/@backend/@relay are
+      # long-lived gRPC/WebSocket streams kept out of AppSec.
+      edge.sites.${domain} = {
+        appsec = false;
+        config = ''
+          @grpc path /signalexchange.SignalExchange/* /management.ManagementService/* /management.ProxyService/*
+          handle @grpc {
+            reverse_proxy h2c://${server}:${toString httpPort}
+          }
+
+          @backend path /api/* /oauth2/* /ws-proxy/*
+          handle @backend {
+            reverse_proxy ${server}:${toString httpPort} {
+              transport http {
+                read_timeout 15m
+              }
+            }
+          }
+
+          @relay path /relay*
+          handle @relay {
+            reverse_proxy ${self.lib.serviceAddress config.networking.hostName "netbird-relay"}:${toString relayPort} {
+              transport http {
+                read_timeout 15m
+              }
+            }
+          }
+
+          # IronRDP WASM bundle the nixpkgs dashboard doesn't carry. Must
+          # precede the fallback handle or the module import gets index.html.
+          handle_path /ironrdp-pkg/* {
+            appsec
+            root * ${self.packages.${system}.netbird-ironrdp-web}
+            file_server
+          }
+
+          # Next.js `output: "export"` build: the {path}.html candidate is
+          # what makes a direct /networks hit resolve; without it deep
+          # links hydrate the wrong route tree and hard-reload forever.
+          handle {
+            appsec
+            root * ${dashboard}
+            try_files {path} {path}.html {path}/index.html /index.html
+            file_server
+          }
+        '';
       };
     };
   };

@@ -1,4 +1,5 @@
 {self, ...}: let
+  hostname = "ntfy.jeiang.dev";
   port = 2586;
   mediaTopic = "media-releases";
   atriumTopic = "atrium";
@@ -7,7 +8,8 @@
   stateDir = "/var/lib/private/ntfy-sh";
 in {
   flake.lib = {
-    ntfyBaseUrl = "https://ntfy.jeiang.dev";
+    ntfyHostname = hostname;
+    ntfyBaseUrl = "https://${hostname}";
     ntfyMediaTopic = mediaTopic;
     ntfyAtriumTopic = atriumTopic;
   };
@@ -18,7 +20,6 @@ in {
     stateful = true;
     units = ["ntfy-sh"];
     ports.app = port;
-    firewall = [];
     backupSet = [stateDir];
   };
 

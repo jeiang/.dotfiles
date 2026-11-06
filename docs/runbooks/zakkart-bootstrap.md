@@ -26,12 +26,12 @@ It owns the daemon and `/etc/nix/nix.conf` from here on; nix-darwin's own
 
 ## 3. Sign into the App Store
 
-Sign in before the first activation. Install Bitwarden and Wipr 2 from the
-App Store manually: Spotlight does not index them on this Mac, so `mas` would
-reinstall them on every switch. They remain in `homebrew.masApps` to keep
-Homebrew cleanup from uninstalling them, but activation skips their installation
-and leaves updates to the App Store. Yubico Authenticator is installed by
-activation.
+Sign in before the first activation. Install Bitwarden, Wipr 2 and Xcode from
+the App Store manually. Spotlight does not index Bitwarden and Wipr 2 on this
+Mac, so `mas` would reinstall them on every switch. All three remain in
+`homebrew.masApps` to keep Homebrew cleanup from uninstalling them, but
+activation skips their installation and leaves updates to the App Store.
+Yubico Authenticator is installed by activation.
 
 ## 4. Clone the repo
 
@@ -57,15 +57,14 @@ sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake .#zakkart \
 ```
 
 This installs Homebrew (via nix-homebrew) and its taps/casks/brews/Yubico
-Authenticator — including the NetBird desktop client cask, which installs
-its own system daemon on first run — sets the login shell, and every
-other darwin feature module.
+Authenticator, sets the login shell, and applies every other darwin feature
+module.
 
 Subsequent switches need no flags; the previous activation's config is
 already in `/etc/nix/nix.custom.conf`:
 
 ```sh
-nh darwin switch .
+just nh darwin switch
 ```
 
 Don't reach for `brew trust` by hand. Homebrew >= 6.0 requires unofficial
@@ -109,7 +108,7 @@ dscl . -read /Users/aidanp UserShell   # should end in .../bin/fish (the wrapped
 echo $SSH_AUTH_SOCK                     # .../Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock
 brew list --cask                        # matches modules/homebrew.nix's `casks`
 brew list --formula                     # matches `brews`
-mas list                                # Spotlight may omit Bitwarden and Wipr 2
+mas list                                # Yubico Authenticator and Xcode; Spotlight may omit Bitwarden and Wipr 2
 ```
 
 NetBird is nix-managed (`modules/netbird-client.nix`): nix-darwin's

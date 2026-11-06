@@ -1,6 +1,6 @@
 {
   perSystem = {pkgs, ...}: {
-    packages.zeiger = pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
+    darwinPackages.zeiger = pkgs.stdenvNoCC.mkDerivation (finalAttrs: {
       pname = "zeiger";
       version = "0.2.0";
 

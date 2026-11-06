@@ -14,7 +14,7 @@
     };
 
     config = {
-      users.users.${config.preferences.user.name}.extraGroups = ["gamemode"];
+      users.users.${self.lib.facts.userName}.extraGroups = ["gamemode"];
 
       environment.systemPackages = with pkgs; [
         self.packages.${pkgs.stdenv.hostPlatform.system}.mangohud
@@ -35,6 +35,7 @@
               gamemode
             ];
         })
+        umu-launcher
       ];
       programs = {
         gamescope.enable = true;
@@ -42,19 +43,17 @@
           enable = true;
           settings = {
             general.renice = 10;
-            # Warning: GPU optimisations have the potential to damage hardware
             gpu = {
               apply_gpu_optimisations = "accept-responsibility";
-              # The iGPU's display function is pci-stubbed, so the dGPU is card1, not card0.
-              gpu_device = 1;
+              gpu_device = self.lib.artemisDgpuDevice.cardIndex;
               amd_performance_level = "high";
             };
-            custom = lib.mkIf (config.gaming.pauseUnits != []) (let
+            custom = let
               units = lib.escapeShellArgs config.gaming.pauseUnits;
             in {
               start = "systemctl --no-ask-password stop ${units}";
               end = "systemctl --no-ask-password start ${units}";
-            });
+            };
           };
         };
         steam = {
@@ -67,12 +66,12 @@
         };
       };
       # gamemoded runs the custom scripts as the operator with no terminal, so polkit grants exactly these start/stop calls.
-      security.polkit.extraConfig = lib.mkIf (config.gaming.pauseUnits != []) ''
+      security.polkit.extraConfig = ''
         polkit.addRule(function(action, subject) {
           var units = ${builtins.toJSON config.gaming.pauseUnits};
           var verb = action.lookup("verb");
           if (action.id == "org.freedesktop.systemd1.manage-units"
-              && subject.user == "${config.preferences.user.name}"
+              && subject.user == "${self.lib.facts.userName}"
               && units.indexOf(action.lookup("unit")) >= 0
               && (verb == "start" || verb == "stop")) {
             return polkit.Result.YES;
@@ -110,6 +109,7 @@
           ".cache/protontricks"
         ];
       };
+      backups.persist.homePaths = [".local/share/PrismLauncher"];
     };
   };
 }

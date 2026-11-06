@@ -1,4 +1,6 @@
-{
+{self, ...}: {
+  flake.lib.hostKeyPath = "/etc/ssh/ssh_host_ed25519_key";
+
   nixos.modules.base = {
     config,
     lib,
@@ -26,14 +28,14 @@
       hostKeys = [
         {
           type = "ed25519";
-          path = "/etc/ssh/ssh_host_ed25519_key";
+          path = self.lib.hostKeyPath;
         }
       ];
       settings = {
         PasswordAuthentication = false;
         KbdInteractiveAuthentication = false;
         PermitRootLogin = "no";
-        AllowUsers = [config.preferences.user.name "deploy"];
+        AllowUsers = [self.lib.facts.userName self.lib.deployUser];
       };
     };
 
@@ -42,4 +44,6 @@
       (lib.mkIf config.security.doas.enable {doas.rules.auth.ssh-session = sshSessionRule "doas";})
     ];
   };
+
+  nixos.modules.artemis.monitoredUnits = ["sshd.service"];
 }

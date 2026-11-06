@@ -8,11 +8,10 @@ in {
     stateful = true;
     units = ["hath"];
     ports.app = port;
-    firewall = [
+    publicPorts = [
       {
         inherit port;
         proto = "tcp";
-        scope = "public";
       }
     ];
     volume = {
@@ -29,9 +28,7 @@ in {
     lib,
     pkgs,
     ...
-  }: let
-    hathPkg = pkgs.hath-rust;
-  in {
+  }: {
     users.groups.hath = {};
     users.users.hath = {
       isSystemUser = true;
@@ -47,7 +44,7 @@ in {
         wantedBy = ["multi-user.target"];
         serviceConfig = {
           ExecStart = lib.escapeShellArgs [
-            (lib.getExe hathPkg)
+            (lib.getExe pkgs.hath-rust)
             "--port"
             (toString port)
             "--cache-dir"

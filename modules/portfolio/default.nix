@@ -1,14 +1,16 @@
 {
   self,
   inputs,
-  config,
   ...
 }: let
   port = 4321;
   stateDir = "/var/lib/portfolio";
   buildDir = "/var/lib/portfolio-update";
-  edge = self.lib.legionNodes.${config.legion.services.caddy.node}.privateIPv4;
+  siteHostname = "noelejoshua.com";
+  blogHostname = "blog.noelejoshua.com";
 in {
+  flake.lib.portfolioHostnames = [siteHostname blogHostname];
+
   legion.services.portfolio = {
     # Off the edge node: alda has no restic credentials, and this is
     # the node with the most memory headroom.
@@ -17,15 +19,8 @@ in {
     stateful = true;
     units = ["portfolio" "portfolio-update"];
     ports.app = port;
-    firewall = [
-      {
-        inherit port;
-        proto = "tcp";
-        scope = "private";
-      }
-    ];
-    # SQLite database and uploads on the root disk. The backup pauses the
-    # unit, so the database is never copied mid-write.
+    # The backup pauses the unit, so the SQLite database is never copied
+    # mid-write.
     backupSet = [stateDir];
   };
 
@@ -52,18 +47,24 @@ in {
         fi
         exec ${lib.getExe pinned}
       '';
-      # Reached from Caddy on alda; the firewall keeps it off the
+      # Reached from Caddy on the edge node; the firewall keeps it off the
       # public interface.
       host = "0.0.0.0";
       inherit port stateDir;
-      trustedProxies = [edge];
-      siteUrl = "https://noelejoshua.com";
-      blogUrl = "https://blog.noelejoshua.com";
+      trustedProxies = [(self.lib.serviceAddress config.networking.hostName "caddy")];
+      siteUrl = "https://${siteHostname}";
+      blogUrl = "https://${blogHostname}";
       adminPasswordHashFile = config.sops.secrets."portfolio/admin-password-hash".path;
     };
 
-    # Starting portfolio-update after a snapshot would rebuild needlessly.
-    backups.jobs.portfolio.pauseUnits = ["portfolio.service"];
+    backups.jobs.portfolio = {
+      # Starting portfolio-update after a snapshot would rebuild needlessly.
+      pauseUnits = ["portfolio.service"];
+      schedule = {
+        onCalendar = "00/12:00";
+        randomizedDelaySec = "1h";
+      };
+    };
 
     systemd = {
       # The build runs unprivileged, so third-party flake evaluation never
@@ -102,13 +103,6 @@ in {
           Persistent = true;
           OnActiveSec = "2m";
         };
-      };
-
-      # The root disk holds the only live copy, so the interval is the
-      # writing a lost node loses.
-      timers.restic-backups-portfolio.timerConfig = {
-        OnCalendar = lib.mkForce "00/12:00";
-        RandomizedDelaySec = lib.mkForce "1h";
       };
     };
   };

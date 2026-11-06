@@ -1,11 +1,7 @@
 {
-  perSystem = {
-    pkgs,
-    lib,
-    ...
-  }: {
+  perSystem = {pkgs, ...}: {
     # Packaged here instead of upstream's flake: its cargoHash is stale, and building against this flake's nixpkgs matches libva to artemis' Mesa (upstream's pin silently dropped VA-API to software H.264).
-    packages = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+    linuxPackages = {
       hypr-rdp = pkgs.rustPlatform.buildRustPackage rec {
         pname = "hypr-rdp";
         version = "0.1.7";

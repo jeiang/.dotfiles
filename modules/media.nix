@@ -1,5 +1,7 @@
-_: let
+{self, ...}: let
   mediaDir = "/var/lib/media";
+  importDir = "${mediaDir}/import";
+  incomingDir = "${mediaDir}/.incoming";
   group = "media";
   # One darkhttpd per library root, so the URL path is the library path.
   libraryServers = {
@@ -13,10 +15,11 @@ in {
     mediaTvPort = libraryServers.tv;
     mediaGroup = group;
     mediaDownloadDir = "${mediaDir}/downloads";
+    mediaImportDir = importDir;
+    mediaIncomingDir = incomingDir;
   };
 
   nixos.modules.artemis = {
-    config,
     lib,
     pkgs,
     ...
@@ -27,15 +30,16 @@ in {
         inherit group;
       }
     ];
+    monitoredUnits = map (library: "darkhttpd-${library}.service") (lib.attrNames libraryServers);
 
     # The operator copies files into the library and tidies it by hand.
     users = {
       groups.${group} = {};
-      users.${config.preferences.user.name}.extraGroups = [group];
+      users.${self.lib.facts.userName}.extraGroups = [group];
     };
 
     # setgid keeps every file in the media group; the tree is world-readable.
-    systemd.tmpfiles.settings.media = lib.genAttrs (map (d: "${mediaDir}${d}") ["" "/import" "/movies" "/tv"]) (_: {
+    systemd.tmpfiles.settings.media = lib.genAttrs ([mediaDir importDir] ++ map (library: "${mediaDir}/${library}") (lib.attrNames libraryServers)) (_: {
       d = {
         user = "root";
         inherit group;
@@ -46,7 +50,7 @@ in {
     # Read-only direct links over the mesh, listening on every interface but in
     # no allowedTCPPorts: only the trusted NetBird interface reaches them. The
     # nixpkgs darkhttpd module runs a single instance, hence plain units.
-    # `--ipv6` with `::` also takes IPv4 (see modules/qbittorrent).
+    # `--ipv6` with `::` also takes IPv4.
     systemd.services = lib.mapAttrs' (library: port:
       lib.nameValuePair "darkhttpd-${library}" {
         description = "Dark HTTPd for the ${library} library";

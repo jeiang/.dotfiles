@@ -2,11 +2,9 @@
   perSystem = {
     config,
     pkgs,
-    lib,
     ...
   }: {
-    # Linux-only: absent on darwin rather than an eval error (no consumer there).
-    packages = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+    linuxPackages = {
       # nixpkgs' netbird has no "combined" (unified server) component and its componentName switch is a closed set, so build that subpackage as an overrideAttrs layer on the pinned netbird derivation.
       netbird-server = config.packages.netbird.overrideAttrs (_: {
         pname = "netbird-server";

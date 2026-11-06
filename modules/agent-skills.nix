@@ -1,4 +1,5 @@
 {
+  self,
   inputs,
   lib,
   ...
@@ -45,25 +46,13 @@
 in {
   flake.lib.agentHomes = homes;
 
-  nixos.modules.artemis = {
-    config,
-    pkgs,
-    ...
-  }: {
-    hjem.users.${config.preferences.user.name}.files = files pkgs;
-
-    # The homes hold OAuth tokens (omp's agent.db among them): persisted, never in the backup allowlist.
-    persistence.data.directories = map (directory: {
-      inherit directory;
-      mode = "0700";
-    }) (lib.attrValues homes);
+  shared.modules.workstation = {pkgs, ...}: {
+    hjem.users.${self.lib.facts.userName}.files = files pkgs;
   };
 
-  darwin.modules.base = {
-    config,
-    pkgs,
-    ...
-  }: {
-    hjem.users.${config.preferences.user.name}.files = files pkgs;
-  };
+  # The homes hold OAuth tokens (omp's agent.db among them): persisted, never in the backup allowlist.
+  nixos.modules.artemis.persistence.data.directories = map (directory: {
+    inherit directory;
+    mode = "0700";
+  }) (lib.attrValues homes);
 }

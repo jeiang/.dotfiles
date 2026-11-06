@@ -1,8 +1,10 @@
-{inputs, ...}: let
-  claudeCode = {pkgs, ...}: {
+{inputs, ...}: {
+  shared.modules.workstation = {pkgs, ...}: {
     environment.systemPackages = [inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code];
   };
-in {
-  nixos.modules.artemis = claudeCode;
-  darwin.modules.base = claudeCode;
+
+  nixos.modules.artemis.persistence = {
+    data.files = [".claude.json"];
+    cache.directories = [".cache/claude-cli-nodejs"];
+  };
 }

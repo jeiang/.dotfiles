@@ -8,9 +8,6 @@
     pkgs,
     ...
   }: {
-    # Exposed separately because the macOS .app bundle is launched by
-    # LaunchServices, never through the wrapper's --config-file flag; the
-    # darwin apps module installs this file where Ghostty.app reads it.
     packages.ghostty-config = pkgs.writeTextFile {
       name = "ghostty-config";
       # The ANSI 16 mapping follows kanagawa.nvim's "wave" terminal colors.
@@ -36,7 +33,7 @@
         ];
         palette = builtins.concatStringsSep "\n" (inputs.nixpkgs.lib.imap0 (i: c: "palette = ${toString i}=${c}") ansi);
       in ''
-        font-family = Mononoki Nerd Font
+        font-family = ${self.lib.fonts.monospace}
         font-size = 13
         background = ${p.sumiInk1}
         foreground = ${p.fujiWhite}

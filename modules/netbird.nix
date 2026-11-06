@@ -1,4 +1,8 @@
-{self, ...}: {
+{self, ...}: let
+  service = "netbird";
+in {
+  flake.lib.netbirdUnit = "${service}.service";
+
   nixos.modules = {
     base = {
       config,
@@ -9,39 +13,48 @@
         enable = true;
         package = self.packages.${pkgs.stdenv.hostPlatform.system}.netbird;
         useRoutingFeatures = "both";
-        clients.default.config = let
-          urlConfig = {
-            Scheme = "https";
-            Opaque = "";
-            User = null;
-            Host = "netbird.jeiang.dev:443";
-            Path = "";
-            RawPath = "";
-            OmitHost = false;
-            ForceQuery = false;
-            RawQuery = "";
-            Fragment = "";
-            RawFragment = "";
+        clients.default = {
+          service.name = service;
+          config = let
+            urlConfig = {
+              Scheme = "https";
+              Opaque = "";
+              User = null;
+              Host = "${self.lib.netbirdDomain}:443";
+              Path = "";
+              RawPath = "";
+              OmitHost = false;
+              ForceQuery = false;
+              RawQuery = "";
+              Fragment = "";
+              RawFragment = "";
+            };
+          in {
+            ManagementURL = urlConfig;
+            AdminUrl = urlConfig;
+            # Off so mesh :22 reaches the real sshd: netbird's embedded SSH
+            # server has a crippled PATH/env that breaks deploy-rs remote builds.
+            ServerSSHAllowed = false;
           };
-        in {
-          ManagementURL = urlConfig;
-          AdminUrl = urlConfig;
-          # Off so mesh :22 reaches the real sshd: netbird's embedded SSH
-          # server has a crippled PATH/env that breaks deploy-rs remote builds.
-          ServerSSHAllowed = false;
-        };
 
-        clients.default.login = {
-          enable = true;
-          setupKeyFile = config.sops.secrets."netbird/setup-key".path;
+          login = {
+            enable = true;
+            setupKeyFile = config.sops.secrets."netbird/setup-key".path;
+          };
         };
       };
 
       networking.firewall.trustedInterfaces = [
         config.services.netbird.clients.default.interface
       ];
+
+      monitoredUnits = [self.lib.netbirdUnit "${service}-login.service"];
     };
 
-    artemis.persistence.directories = ["/var/lib/netbird"];
+    # The NetBird peer keeps the address the flake hardcodes.
+    artemis = {
+      persistence.directories = ["/var/lib/netbird"];
+      backups.persist.paths = ["/var/lib/netbird"];
+    };
   };
 }

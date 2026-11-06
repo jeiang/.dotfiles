@@ -1,4 +1,4 @@
-_: let
+{self, ...}: let
   s4Endpoint = "https://s3.eu-central-1.s4.mega.io";
   retention = "--keep-daily 7 --keep-weekly 4 --keep-monthly 6";
 
@@ -46,226 +46,264 @@ _: let
     };
   };
 in {
-  nixos.modules.legion = {
-    config,
-    lib,
-    pkgs,
-    ...
-  }: let
-    cfg = config.backups;
+  nixos.modules = {
+    # The backup-freshness alert reads the timers' last trigger.
+    base.monitoredUnits = ["restic-backups-*.service" "restic-backups-*.timer" "restic-maintenance-*.service" "restic-maintenance-*.timer"];
 
-    s4Bucket = "legion-restic-backups";
-    repositoryFor = name: "s3:${s4Endpoint}/${s4Bucket}/${config.networking.hostName}/${name}";
+    legion = {
+      config,
+      lib,
+      pkgs,
+      ...
+    }: let
+      cfg = config.backups;
 
-    jobType = lib.types.submodule {
-      options = {
+      s4Bucket = "legion-restic-backups";
+      repositoryFor = name: "s3:${s4Endpoint}/${s4Bucket}/${config.networking.hostName}/${name}";
+
+      jobType = lib.types.submodule {
+        options = {
+          paths = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            description = ''
+              Explicit allowlist of paths to back up, inside the service's
+              Volume mountpoint when it has one.
+            '';
+          };
+          volume = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+            description = ''
+              Mountpoint of the Volume the job's paths live on. Guards the
+              backup against running while the Volume is not mounted. Null
+              for a service that keeps its state on the root disk, where the
+              repository is the only copy of it.
+            '';
+          };
+          pauseUnits = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [];
+            description = ''
+              systemd units to stop before the snapshot and start again after,
+              so live SQLite databases are captured consistently.
+            '';
+          };
+          schedule = {
+            onCalendar = lib.mkOption {
+              type = lib.types.str;
+              default = "daily";
+            };
+            randomizedDelaySec = lib.mkOption {
+              type = lib.types.str;
+              default = "4h";
+            };
+          };
+          prepareCommand = lib.mkOption {
+            type = lib.types.lines;
+            default = "";
+            description = ''
+              Shell run before the snapshot, after the Volume check, such as
+              an online copy of a live database into one of the paths.
+            '';
+          };
+        };
+      };
+    in {
+      options.backups.jobs = lib.mkOption {
+        type = lib.types.attrsOf jobType;
+        default = {};
+        description = ''
+          Per-service Restic backup jobs, keyed by service name. Legion nodes
+          populate them from each `legion.services` entry's backupSet and
+          units (modules/hosts/legion/default.nix); by default a backup
+          pauses the service's own units.
+        '';
+      };
+
+      config = lib.mkIf (cfg.jobs != {}) {
+        # Create both with `just sops-edit` before a node with any backupSet
+        # entry deploys.
+        sops.secrets = let
+          sopsFile = ./secrets.yaml;
+        in {
+          "restic/password" = {inherit sopsFile;};
+          "restic/s4-env" = {inherit sopsFile;};
+        };
+
+        services.restic.backups =
+          lib.mapAttrs (name: job: {
+            inherit (job) paths;
+            repository = repositoryFor name;
+            passwordFile = config.sops.secrets."restic/password".path;
+            environmentFile = config.sops.secrets."restic/s4-env".path;
+            initialize = true;
+            timerConfig = {
+              OnCalendar = job.schedule.onCalendar;
+              RandomizedDelaySec = job.schedule.randomizedDelaySec;
+              Persistent = true;
+            };
+            # An empty list makes the nixpkgs module skip forget/prune here.
+            pruneOpts = [];
+            extraBackupArgs = ["--retry-lock" "2h"];
+            backupPrepareCommand =
+              lib.optionalString (job.volume != null) ''
+                ${pkgs.util-linux}/bin/mountpoint -q ${job.volume} || { echo "restic-backups-${name}: ${job.volume} is not mounted, refusing to back up an empty directory" >&2; exit 1; }
+              ''
+              + lib.optionalString (job.pauseUnits != []) ''
+                systemctl stop ${lib.concatStringsSep " " job.pauseUnits}
+              ''
+              + job.prepareCommand;
+            backupCleanupCommand = lib.optionalString (job.pauseUnits != []) ''
+              systemctl start ${lib.concatStringsSep " " job.pauseUnits}
+            '';
+          })
+          cfg.jobs;
+
+        systemd.services =
+          lib.mapAttrs' (name: job:
+            lib.nameValuePair "restic-backups-${name}" {
+              unitConfig.RequiresMountsFor = lib.optional (job.volume != null) job.volume;
+            })
+          cfg.jobs
+          // lib.mapAttrs' (name: _job:
+            lib.nameValuePair "restic-maintenance-${name}" (maintenanceService {
+              inherit lib name pkgs;
+              repository = repositoryFor name;
+              passwordFile = config.sops.secrets."restic/password".path;
+              environmentFile = config.sops.secrets."restic/s4-env".path;
+            }))
+          cfg.jobs;
+
+        systemd.timers = lib.mapAttrs' (name: _:
+          lib.nameValuePair "restic-maintenance-${name}" maintenanceTimer)
+        cfg.jobs;
+      };
+    };
+
+    artemis = {
+      config,
+      lib,
+      pkgs,
+      ...
+    }: let
+      cfg = config.backups.persist;
+
+      repository = "s3:${s4Endpoint}/artemis-restic-backups/persist";
+      btrfs = "${pkgs.btrfs-progs}/bin/btrfs";
+
+      # A live path's place under /persist, found through the persistence entry
+      # it is, lies inside, or contains; null when no entry covers it.
+      storedPath = path: let
+        covering = lib.filter (e: e.live == path || lib.hasPrefix "${e.live}/" path || lib.hasPrefix "${path}/" e.live) config.persistence.entries;
+        roots = lib.unique (map (e: e.root) covering);
+      in
+        if lib.length roots == 1
+        then lib.removePrefix "/persist/" (lib.head roots + path)
+        else null;
+      inSnapshot = path: "${cfg.snapshot}/${toString (storedPath path)}";
+      stopUnits = lib.concatStringsSep " " cfg.stopUnits;
+    in {
+      options.backups.persist = {
         paths = lib.mkOption {
-          type = lib.types.listOf lib.types.str;
-          description = ''
-            Explicit allowlist of paths to back up, inside the service's
-            Volume mountpoint when it has one.
-          '';
-        };
-        volume = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = null;
-          description = ''
-            Mountpoint of the Volume the job's paths live on. Guards the
-            backup against running while the Volume is not mounted. Null
-            for a service that keeps its state on the root disk, where the
-            repository is the only copy of it.
-          '';
-        };
-        pauseUnits = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           default = [];
           description = ''
-            systemd units to stop before the snapshot and start again after,
-            so live SQLite databases are captured consistently.
+            Live paths backed up from /persist: each is a persistence.* path,
+            lies inside one, or holds only persistence.* paths.
           '';
         };
-        prepareCommand = lib.mkOption {
-          type = lib.types.lines;
-          default = "";
-          description = ''
-            Shell run before the snapshot, after the Volume check, such as
-            an online copy of a live database into one of the paths.
-          '';
+        homePaths = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [];
+          description = "Like `paths`, relative to the operator's home.";
+        };
+        exclude = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [];
+          description = "Live paths inside `paths` left out of the backup.";
+        };
+        stopUnits = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [];
+          description = "Units stopped while the read-only snapshot is taken.";
+        };
+        # Read-only btrfs snapshot of /persist that restic reads, so it never
+        # reads a file while it is written.
+        snapshot = lib.mkOption {
+          type = lib.types.str;
+          default = "/persist/.backup-snapshot";
+          readOnly = true;
+          internal = true;
         };
       };
-    };
-  in {
-    options.backups.jobs = lib.mkOption {
-      type = lib.types.attrsOf jobType;
-      default = {};
-      description = ''
-        Per-service Restic backup jobs, keyed by service name. Legion nodes
-        populate them from each `legion.services` entry's backupSet and
-        units (modules/hosts/legion/default.nix); by default a backup
-        pauses the service's own units.
-      '';
-    };
 
-    config = lib.mkIf (cfg.jobs != {}) {
-      # Create both with `just sops-edit` before a node with any backupSet
-      # entry deploys.
-      sops.secrets = let
-        sopsFile = ./secrets.yaml;
-      in {
-        "restic/password" = {inherit sopsFile;};
-        "restic/s4-env" = {inherit sopsFile;};
-      };
+      config = {
+        backups.persist.paths = map (path: "${config.users.users.${self.lib.facts.userName}.home}/${path}") cfg.homePaths;
 
-      services.restic.backups =
-        lib.mapAttrs (name: job: {
-          inherit (job) paths;
-          repository = repositoryFor name;
+        # A path that is not persisted is empty after a reboot, and restic would
+        # fail on it rather than quietly shrink the backup.
+        assertions =
+          map (path: {
+            assertion = storedPath path != null;
+            message = "backups: ${path} is not a persistence.* path";
+          })
+          (cfg.paths ++ cfg.exclude);
+
+        sops.secrets = let
+          sopsFile = ./secrets.artemis.yaml;
+        in {
+          "restic/password" = {inherit sopsFile;};
+          "restic/s4-env" = {inherit sopsFile;};
+        };
+
+        services.restic.backups.persist = {
+          inherit repository;
+          paths = map inSnapshot cfg.paths;
+          exclude = map inSnapshot cfg.exclude;
           passwordFile = config.sops.secrets."restic/password".path;
           environmentFile = config.sops.secrets."restic/s4-env".path;
           initialize = true;
           timerConfig = {
-            OnCalendar = "daily";
-            RandomizedDelaySec = "4h";
+            OnCalendar = "02/6:00";
+            RandomizedDelaySec = "15m";
             Persistent = true;
           };
-          # An empty list makes the nixpkgs module skip forget/prune here.
           pruneOpts = [];
           extraBackupArgs = ["--retry-lock" "2h"];
-          backupPrepareCommand =
-            lib.optionalString (job.volume != null) ''
-              ${pkgs.util-linux}/bin/mountpoint -q ${job.volume} || { echo "restic-backups-${name}: ${job.volume} is not mounted, refusing to back up an empty directory" >&2; exit 1; }
-            ''
-            + lib.optionalString (job.pauseUnits != []) ''
-              systemctl stop ${lib.concatStringsSep " " job.pauseUnits}
-            ''
-            + job.prepareCommand;
-          backupCleanupCommand = lib.optionalString (job.pauseUnits != []) ''
-            systemctl start ${lib.concatStringsSep " " job.pauseUnits}
+          # Both guards are for a run that was killed before its cleanup: the
+          # snapshot outlives the unit, and deleting one that is not there would
+          # fail the unit after a successful backup.
+          backupPrepareCommand = ''
+            set -eu
+            if [ -e ${cfg.snapshot} ]; then
+              ${btrfs} subvolume delete ${cfg.snapshot}
+            fi
+            ${lib.optionalString (cfg.stopUnits != []) "systemctl stop ${stopUnits}"}
+            ${btrfs} subvolume snapshot -r /persist ${cfg.snapshot}
+            ${lib.optionalString (cfg.stopUnits != []) "systemctl start ${stopUnits}"}
           '';
-        })
-        cfg.jobs;
+          backupCleanupCommand = ''
+            # nixpkgs runs cleanup through ExecStopPost, including prepare/backup failures.
+            ${lib.optionalString (cfg.stopUnits != []) "systemctl start ${stopUnits}"}
+            if [ -e ${cfg.snapshot} ]; then
+              ${btrfs} subvolume delete ${cfg.snapshot}
+            fi
+          '';
+        };
 
-      systemd.services =
-        lib.mapAttrs' (name: job:
-          lib.nameValuePair "restic-backups-${name}" {
-            unitConfig.RequiresMountsFor = lib.optional (job.volume != null) job.volume;
-          })
-        cfg.jobs
-        // lib.mapAttrs' (name: _job:
-          lib.nameValuePair "restic-maintenance-${name}" (maintenanceService {
-            inherit lib name pkgs;
-            repository = repositoryFor name;
-            passwordFile = config.sops.secrets."restic/password".path;
-            environmentFile = config.sops.secrets."restic/s4-env".path;
-          }))
-        cfg.jobs;
-
-      systemd.timers = lib.mapAttrs' (name: _:
-        lib.nameValuePair "restic-maintenance-${name}" maintenanceTimer)
-      cfg.jobs;
-    };
-  };
-
-  nixos.modules.artemis = {
-    config,
-    lib,
-    pkgs,
-    ...
-  }: let
-    home = config.users.users.${config.preferences.user.name}.home;
-
-    repository = "s3:${s4Endpoint}/artemis-restic-backups/persist";
-
-    # Read-only snapshot, so restic never reads a file while it is written.
-    # It sits inside /persist, which is already mounted, so the unit needs no
-    # mount of its own.
-    snapshot = "/persist/.backup-snapshot";
-    btrfs = "${pkgs.btrfs-progs}/bin/btrfs";
-
-    # Paths relative to /persist.
-    backupSet =
-      # Host identity: with these two a rebuilt artemis keeps its sops key and
-      # its NetBird peer address, which the flake hardcodes.
-      ["etc/ssh" "var/lib/netbird" "var/lib/atrium" "var/lib/factorio" "srv/minecraft/mc"]
-      ++ map (directory: "data${home}/${directory}") [
-        ".config/sunshine"
-        ".gnupg"
-        ".local/share/PrismLauncher"
-        ".local/share/fish"
-        ".password-store"
-        ".renpy"
-        ".ssh"
-      ];
-
-    persisted = map (e: lib.removePrefix "/persist/" e.stored) config.persistence.entries;
-  in {
-    # A path that is not persisted is empty after a reboot, and restic would
-    # fail on it rather than quietly shrink the backup.
-    assertions =
-      map (path: {
-        assertion =
-          lib.elem path persisted
-          # Either a parent of persisted entries (/persist holds nothing else)
-          # or a path inside one.
-          || lib.any (lib.hasPrefix "${path}/") persisted
-          || lib.any (entry: lib.hasPrefix "${entry}/" path) persisted;
-        message = "backups: /persist/${path} is not a persistence.* path";
-      })
-      backupSet;
-
-    sops.secrets = let
-      sopsFile = ./secrets.artemis.yaml;
-    in {
-      "restic/password" = {inherit sopsFile;};
-      "restic/s4-env" = {inherit sopsFile;};
-    };
-
-    services.restic.backups.persist = {
-      inherit repository;
-      paths = map (path: "${snapshot}/${path}") backupSet;
-      exclude = ["${snapshot}/var/lib/atrium/cache"];
-      passwordFile = config.sops.secrets."restic/password".path;
-      environmentFile = config.sops.secrets."restic/s4-env".path;
-      initialize = true;
-      timerConfig = {
-        OnCalendar = "02/6:00";
-        RandomizedDelaySec = "15m";
-        Persistent = true;
-      };
-      pruneOpts = [];
-      extraBackupArgs = ["--retry-lock" "2h"];
-      # Both guards are for a run that was killed before its cleanup: the
-      # snapshot outlives the unit, and deleting one that is not there would
-      # fail the unit after a successful backup.
-      backupPrepareCommand = ''
-        set -eu
-        if [ -e ${snapshot} ]; then
-          ${btrfs} subvolume delete ${snapshot}
-        fi
-        systemctl stop factorio.service minecraft-server-mc.service
-        ${btrfs} subvolume snapshot -r /persist ${snapshot}
-        systemctl start factorio.service minecraft-server-mc.service
-      '';
-      backupCleanupCommand = ''
-        # nixpkgs runs cleanup through ExecStopPost, including prepare/backup failures.
-        systemctl start factorio.service minecraft-server-mc.service
-        if [ -e ${snapshot} ]; then
-          ${btrfs} subvolume delete ${snapshot}
-        fi
-      '';
-    };
-
-    systemd = {
-      services = {
-        restic-backups-persist.unitConfig.RequiresMountsFor = ["/persist"];
-        restic-maintenance-persist = maintenanceService {
-          inherit lib pkgs repository;
-          name = "persist";
-          passwordFile = config.sops.secrets."restic/password".path;
-          environmentFile = config.sops.secrets."restic/s4-env".path;
+        systemd = {
+          services = {
+            restic-backups-persist.unitConfig.RequiresMountsFor = ["/persist"];
+            restic-maintenance-persist = maintenanceService {
+              inherit lib pkgs repository;
+              name = "persist";
+              passwordFile = config.sops.secrets."restic/password".path;
+              environmentFile = config.sops.secrets."restic/s4-env".path;
+            };
+          };
+          timers.restic-maintenance-persist = maintenanceTimer;
         };
       };
-      timers.restic-maintenance-persist = maintenanceTimer;
     };
   };
 }
