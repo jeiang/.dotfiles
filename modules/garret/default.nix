@@ -1,4 +1,8 @@
-{inputs, ...}: let
+{
+  self,
+  inputs,
+  ...
+}: let
   # The SQLite index is the only record of what is in the S3 bucket.
   # pusher.nix's default dbPath lives in its StateDirectory.
   dataDir = "/var/lib/garret";
@@ -13,6 +17,8 @@
   pullerPort = 8081;
   pusherPort = 8082;
   pusherMetricsPort = 9091;
+  hostname = "cache.jeiang.dev";
+  pushHostname = "cache-push.jeiang.dev";
   pullerMetricsPort = 9092;
 
   client = {pkgs, ...}: {
@@ -21,8 +27,8 @@
 in {
   flake.lib = {
     garretWatermarks = watermarks;
-    cacheHostname = "cache.jeiang.dev";
-    cachePushHostname = "cache-push.jeiang.dev";
+    cacheHostname = hostname;
+    cachePushHostname = pushHostname;
   };
 
   nixos.modules.artemis = client;
@@ -39,7 +45,9 @@ in {
       pusher-metrics = pusherMetricsPort;
       puller-metrics = pullerMetricsPort;
     };
-    publicHostnames = ["cache.jeiang.dev" "cache-push.jeiang.dev"];
+    # cache-push takes one streaming PUT of a whole NAR; Cloudflare rejects
+    # bodies over 100 MB.
+    publicHostnames = [hostname pushHostname];
     publicPorts = [
       {
         port = 443;
@@ -65,9 +73,9 @@ in {
     # push; the real gate is Pocket ID's per-client group restriction,
     # hence the empty allowed_groups.
     pocketIdIssuer = {
-      issuer = "https://auth.jeiang.dev";
+      issuer = self.lib.pocketIdUrl;
       audience = pocketIdAudience;
-      jwks_url = "https://auth.jeiang.dev/.well-known/jwks.json";
+      jwks_url = "${self.lib.pocketIdUrl}/.well-known/jwks.json";
       allowed_groups = [];
     };
 
@@ -132,7 +140,7 @@ in {
 
           # Advertised by /api/v1/discovery; without it `garret login` leaves
           # every client's use/list/tree unconfigured.
-          pullerEndpoint = "https://cache.jeiang.dev";
+          pullerEndpoint = "https://${hostname}";
 
           quotaBytes = 268435456000;
           inherit watermarks;
@@ -153,7 +161,7 @@ in {
           oidc = [
             {
               issuer = "https://token.actions.githubusercontent.com";
-              audience = "https://cache-push.jeiang.dev/";
+              audience = "https://${pushHostname}/";
               jwks_url = "https://token.actions.githubusercontent.com/.well-known/jwks";
               # Immutable owner id, not the name: names are renameable.
               github_owner_id = "31970261";
@@ -198,7 +206,7 @@ in {
         # high-volume bursts. garret closes a connection idle for 30 s, so
         # Caddy must drop its pooled upstream connections first or reuse one
         # mid-close (502).
-        virtualHosts."cache.jeiang.dev".extraConfig = ''
+        virtualHosts.${hostname}.extraConfig = ''
           reverse_proxy 127.0.0.1:${toString pullerPort} {
             transport http {
               keepalive 20s
@@ -207,7 +215,7 @@ in {
         '';
         # MUST stay DNS-only in Cloudflare: a push is one streaming PUT of a
         # whole NAR and Cloudflare 413s bodies over 100 MB on the free plan.
-        virtualHosts."cache-push.jeiang.dev".extraConfig = ''
+        virtualHosts.${pushHostname}.extraConfig = ''
           reverse_proxy 127.0.0.1:${toString pusherPort} {
             transport http {
               keepalive 20s

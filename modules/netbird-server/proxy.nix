@@ -71,7 +71,7 @@ in {
   in {
     security.acme = {
       acceptTerms = true;
-      defaults.email = "aidan@aidanpinard.co";
+      defaults.email = self.lib.facts.email;
 
       certs.${domain} = {
         extraDomainNames = ["*.${domain}"];
@@ -131,7 +131,7 @@ in {
         # The management connection MUST be TLS (gRPC refuses per-RPC
         # credentials over plaintext) and the local server is plain :80, so
         # this hairpins through the edge's TLS-terminating @grpc route.
-        NB_PROXY_MANAGEMENT_ADDRESS = "https://netbird.jeiang.dev";
+        NB_PROXY_MANAGEMENT_ADDRESS = "https://${self.lib.netbirdDomain}";
         NB_PROXY_CERTIFICATE_DIRECTORY = acmeCertDir;
         NB_PROXY_CERTIFICATE_FILE = "fullchain.pem";
         NB_PROXY_CERTIFICATE_KEY_FILE = "key.pem";

@@ -6,7 +6,8 @@
 }: let
   legionServices = config.legion.services;
   metricsPort = 2020;
-  websiteHostnames = ["jeiang.dev" "aidanpinard.co" "pinard.co.tt"];
+  apex = "jeiang.dev";
+  websiteHostnames = [apex "aidanpinard.co" "pinard.co.tt"];
 in {
   flake.lib.websiteHostnames = websiteHostnames;
 
@@ -162,12 +163,12 @@ in {
         {
           # Caddy 2.10+ reuses this DNS-01 wildcard for the other jeiang.dev
           # sites, so none of them needs its own tls directive.
-          "jeiang.dev" = {
-            hosts = ["jeiang.dev" "*.jeiang.dev"];
+          ${apex} = {
+            hosts = [apex "*.${apex}"];
             content = true;
             dnsChallenge = true;
             config = ''
-              @apex host jeiang.dev
+              @apex host ${apex}
               handle @apex {
                 ${gate {serve = serveRoot website;}}
               }
@@ -178,7 +179,7 @@ in {
             '';
           };
         }
-        // lib.genAttrs (lib.remove "jeiang.dev" websiteHostnames) (_: {
+        // lib.genAttrs (lib.remove apex websiteHostnames) (_: {
           content = true;
           dnsChallenge = true;
           config = gate {serve = serveRoot website;};
