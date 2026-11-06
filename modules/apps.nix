@@ -1,16 +1,12 @@
 {self, ...}: {
-  darwin.modules.base = {
-    config,
-    pkgs,
-    ...
-  }: let
+  darwin.modules.base = {pkgs, ...}: let
     wrapped = self.packages.${pkgs.stdenv.hostPlatform.system};
   in {
     fonts.packages = [pkgs.nerd-fonts.mononoki];
 
     # Ghostty.app ignores the wrapper's --config-file flag when launched from
     # the Dock or a launcher, so the same config is installed at the XDG path.
-    hjem.users.${config.preferences.user.name}.files.".config/ghostty/config".source = wrapped.ghostty-config;
+    hjem.users.${self.lib.facts.userName}.files.".config/ghostty/config".source = wrapped.ghostty-config;
 
     environment.systemPackages = with pkgs; [
       crossover

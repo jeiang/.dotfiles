@@ -1,4 +1,4 @@
-_: let
+{self, ...}: let
   mediaDir = "/var/lib/media";
   # icloud-import stages files in incoming (rsync creates it) and moves each
   # finished item into import.
@@ -22,7 +22,6 @@ in {
   };
 
   nixos.modules.artemis = {
-    config,
     lib,
     pkgs,
     ...
@@ -38,7 +37,7 @@ in {
     # The operator copies files into the library and tidies it by hand.
     users = {
       groups.${group} = {};
-      users.${config.preferences.user.name}.extraGroups = [group];
+      users.${self.lib.facts.userName}.extraGroups = [group];
     };
 
     # setgid keeps every file in the media group; the tree is world-readable.

@@ -1,4 +1,4 @@
-{
+{self, ...}: {
   nixos.modules.artemis = {
     config,
     pkgs,
@@ -22,6 +22,6 @@
       ".config/gopass"
     ];
 
-    backups.persist.paths = map (directory: "${config.users.users.${config.preferences.user.name}.home}/${directory}") [".gnupg" ".password-store"];
+    backups.persist.paths = map (directory: "${config.users.users.${self.lib.facts.userName}.home}/${directory}") [".gnupg" ".password-store"];
   };
 }

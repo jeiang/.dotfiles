@@ -1,13 +1,8 @@
 {self, ...}: let
+  inherit (self.lib.facts) userName;
   shell = pkgs: self.packages.${pkgs.stdenv.hostPlatform.system}.environment;
+  passwordSecret = "passwords/${userName}";
 in {
-  shared.modules.base = {lib, ...}: {
-    options.preferences.user.name = lib.mkOption {
-      type = lib.types.str;
-      default = self.lib.facts.userName;
-    };
-  };
-
   nixos.modules.base = {
     pkgs,
     config,
@@ -17,13 +12,13 @@ in {
   in {
     users = {
       mutableUsers = false;
-      users.${config.preferences.user.name} = {
+      users.${userName} = {
         isNormalUser = true;
-        description = "${config.preferences.user.name}'s account";
+        description = "${userName}'s account";
         extraGroups = ["wheel"];
         shell = shell pkgs;
 
-        hashedPasswordFile = config.sops.secrets."passwords/aidanp".path;
+        hashedPasswordFile = config.sops.secrets.${passwordSecret}.path;
         openssh.authorizedKeys.keys = [
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDX/1mgkG5030b8C3eAZN2vBcoYvS9d+/OTtRf0f6XJJ"
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHQvWsGTb0u/1rmZpL8Av7+6824ecAOwtKeTe1fT9Rvz Hillwillow SSH Key"
@@ -33,7 +28,7 @@ in {
         hashedPasswordFile = config.sops.secrets."passwords/root".path;
       };
     };
-    sops.secrets."passwords/aidanp" = {
+    sops.secrets.${passwordSecret} = {
       inherit sopsFile;
       neededForUsers = true;
     };
@@ -43,16 +38,12 @@ in {
     };
   };
 
-  darwin.modules.base = {
-    config,
-    pkgs,
-    ...
-  }: {
+  darwin.modules.base = {pkgs, ...}: {
     # nix-darwin only writes UserShell for knownUsers (a bare users.users.<name>.shell is silently ignored), and re-pointing it every activation is load-bearing: the wrapped shell's store path changes per rebuild.
-    users.knownUsers = [config.preferences.user.name];
-    users.users.${config.preferences.user.name} = {
+    users.knownUsers = [userName];
+    users.users.${userName} = {
       uid = 501;
-      home = "/Users/${config.preferences.user.name}";
+      home = "/Users/${userName}";
       shell = shell pkgs;
       # The wrapped shell's pname no longer reads as bash/fish/zsh, so nix-darwin's programs.<shell>.enable assert doesn't apply.
       ignoreShellProgramCheck = true;

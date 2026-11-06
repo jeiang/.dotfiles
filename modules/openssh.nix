@@ -35,7 +35,7 @@
         PasswordAuthentication = false;
         KbdInteractiveAuthentication = false;
         PermitRootLogin = "no";
-        AllowUsers = [config.preferences.user.name self.lib.deployUser];
+        AllowUsers = [self.lib.facts.userName self.lib.deployUser];
       };
     };
 

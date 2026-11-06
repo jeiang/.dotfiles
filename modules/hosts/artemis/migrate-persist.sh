@@ -14,7 +14,7 @@ nix_eval() {
   runuser -u "$owner" -- nix eval --impure "$@"
 }
 
-user=$(nix_eval --raw "${flake}#${attr}.preferences.user.name")
+user=$(nix_eval --raw "${flake}#lib.facts.userName")
 
 # Load every entry first so a failed eval stops the script before anything is copied.
 entries=$(nix_eval --json "${flake}#${attr}.persistence.entries" | jq -r '.[] | [.kind, .live, .stored] | @tsv')

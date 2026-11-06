@@ -1,11 +1,15 @@
-{inputs, ...}: {
+{
+  self,
+  inputs,
+  ...
+}: {
   darwin.modules.base = {config, ...}: {
     imports = [inputs.nix-homebrew.darwinModules.nix-homebrew];
 
     nix-homebrew = {
       enable = true;
       enableRosetta = false;
-      user = config.preferences.user.name;
+      user = self.lib.facts.userName;
       mutableTaps = false;
       # Pin Homebrew itself rather than trusting nix-homebrew's bundled default.
       package =

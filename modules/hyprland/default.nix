@@ -4,13 +4,12 @@
   ...
 }: {
   nixos.modules.artemis = {
-    config,
     pkgs,
     lib,
     ...
   }: let
     cursor = "rose-pine-hyprcursor";
-    user = config.preferences.user.name;
+    user = self.lib.facts.userName;
     selfpkgs = self.packages.${pkgs.stdenv.hostPlatform.system};
     terminal = lib.getExe selfpkgs.ghostty;
   in {

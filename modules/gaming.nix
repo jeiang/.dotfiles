@@ -14,7 +14,7 @@
     };
 
     config = {
-      users.users.${config.preferences.user.name}.extraGroups = ["gamemode"];
+      users.users.${self.lib.facts.userName}.extraGroups = ["gamemode"];
 
       environment.systemPackages = with pkgs; [
         self.packages.${pkgs.stdenv.hostPlatform.system}.mangohud
@@ -70,7 +70,7 @@
           var units = ${builtins.toJSON config.gaming.pauseUnits};
           var verb = action.lookup("verb");
           if (action.id == "org.freedesktop.systemd1.manage-units"
-              && subject.user == "${config.preferences.user.name}"
+              && subject.user == "${self.lib.facts.userName}"
               && units.indexOf(action.lookup("unit")) >= 0
               && (verb == "start" || verb == "stop")) {
             return polkit.Result.YES;
@@ -108,7 +108,7 @@
           ".cache/protontricks"
         ];
       };
-      backups.persist.paths = ["${config.users.users.${config.preferences.user.name}.home}/.local/share/PrismLauncher"];
+      backups.persist.paths = ["${config.users.users.${self.lib.facts.userName}.home}/.local/share/PrismLauncher"];
     };
   };
 }
