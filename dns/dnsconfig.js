@@ -9,14 +9,20 @@ var DSP_CLOUDFLARE = NewDnsProvider("cloudflare");
 var NODES = require("./nodes.json");
 var ALDA_V4 = NODES["alda"].publicIPv4;
 var VIDA_V4 = NODES["vida"].publicIPv4;
-var ZANTARK_V4 = NODES["zantark"].publicIPv4;
 var PERIA_V4 = NODES["peria"].publicIPv4;
 var RICKLENT_V4 = NODES["ricklent"].publicIPv4;
 var ALDA_V6 = NODES["alda"].publicIPv6;
 var VIDA_V6 = NODES["vida"].publicIPv6;
-var ZANTARK_V6 = NODES["zantark"].publicIPv6;
 var PERIA_V6 = NODES["peria"].publicIPv6;
 var RICKLENT_V6 = NODES["ricklent"].publicIPv6;
+
+// Every Legion node's own name: the deploy and SSH hostname <node>.svr.jeiang.dev.
+var SVR = Object.keys(NODES).reduce(function (records, node) {
+  return records.concat([
+    A(node + ".svr", NODES[node].publicIPv4),
+    AAAA(node + ".svr", NODES[node].publicIPv6),
+  ]);
+}, []);
 
 // Caddy's DNS-01 issuer creates/deletes these TXT records at every renewal; a push racing a renewal must not delete a challenge mid-validation.
 var ACME = [
@@ -73,16 +79,7 @@ D("jeiang.dev", REG_NONE,
   A("*.proxy", RICKLENT_V4),
   AAAA("*.proxy", RICKLENT_V6),
 
-  A("alda.svr", ALDA_V4),
-  AAAA("alda.svr", ALDA_V6),
-  A("vida.svr", VIDA_V4),
-  AAAA("vida.svr", VIDA_V6),
-  A("zantark.svr", ZANTARK_V4),
-  AAAA("zantark.svr", ZANTARK_V6),
-  A("peria.svr", PERIA_V4),
-  AAAA("peria.svr", PERIA_V6),
-  A("ricklent.svr", RICKLENT_V4),
-  AAAA("ricklent.svr", RICKLENT_V6),
+  SVR,
 
   MX("@", 10, "mx01.mail.icloud.com.", TTL(3600)),
   MX("@", 10, "mx02.mail.icloud.com.", TTL(3600)),
