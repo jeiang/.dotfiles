@@ -1,14 +1,10 @@
 {
   self,
   config,
+  lib,
   ...
 }: let
   port = 8086;
-
-  service = {
-    units = ["gatus"];
-    ports.app = port;
-  };
 
   https = name: group: url: conditions: {
     inherit name group url conditions;
@@ -50,14 +46,14 @@
 
         # /healthz returns 204 No Content; 200 elsewhere is just the SPA
         # fallback, which says nothing about backend health.
-        (https "Pocket ID" "Services" "https://auth.jeiang.dev/healthz" ["[STATUS] == 204"])
-        (ok "Grafana" "Services" "https://grafana.jeiang.dev/api/health")
+        (https "Pocket ID" "Services" "${self.lib.pocketIdUrl}/healthz" ["[STATUS] == 204"])
+        (ok "Grafana" "Services" "https://${self.lib.grafanaHostname}/api/health")
         # "/" falls through to the static dashboard on node1's edge Caddy
         # even when netbird-server is down; this path proxies to node2.
-        (ok "NetBird" "Services" "https://netbird.jeiang.dev/oauth2/.well-known/openid-configuration")
+        (ok "NetBird" "Services" "https://${self.lib.netbirdDomain}/oauth2/.well-known/openid-configuration")
         # nix-cache-info is the first request every substituter client makes.
-        (ok "Nix cache" "Services" "https://cache.jeiang.dev/nix-cache-info")
-        (ok "tinyauth" "Services" "https://tinyauth.jeiang.dev")
+        (ok "Nix cache" "Services" "https://${self.lib.cacheHostname}/nix-cache-info")
+        (ok "tinyauth" "Services" "https://${self.lib.tinyauthHostname}")
         (ok "ntfy" "Services" "${self.lib.ntfyBaseUrl}/v1/health")
 
         # netbird-proxy has no stable unauthenticated HTTP response, so plain
@@ -71,7 +67,8 @@
         url = "tcp://${self.lib.legionNodes.${node}.publicIPv4}:443";
         interval = "2m";
         conditions = ["[CONNECTED] == true"];
-      }) ["netbird-proxy" "netbird-proxy-atl"]
+      })
+      self.lib.netbirdProxyServices
       ++ [
         # ntfy.jeiang.dev is grey-clouded (DNS-only), so this reads
         # Caddy's own *.jeiang.dev wildcard cert directly, not
@@ -88,9 +85,9 @@
         }
         # The cache and regional ingress renew independently of the edge wildcard.
         {
-          name = "cache.jeiang.dev certificate";
+          name = "${self.lib.cacheHostname} certificate";
           group = "Edge";
-          url = "https://cache.jeiang.dev/nix-cache-info";
+          url = "https://${self.lib.cacheHostname}/nix-cache-info";
           interval = "1h";
           conditions = [
             "[STATUS] == 200"
@@ -100,9 +97,9 @@
         # proxy.jeiang.dev has its own security.acme cert on each replica,
         # renewed separately from the edge wildcard; each run reaches one of them.
         {
-          name = "proxy.jeiang.dev certificate";
+          name = "${self.lib.netbirdProxyDomain} certificate";
           group = "Edge";
-          url = "tls://proxy.jeiang.dev:443";
+          url = "tls://${self.lib.netbirdProxyDomain}:443";
           interval = "1h";
           conditions = [
             "[CONNECTED] == true"
@@ -115,42 +112,22 @@
   # The Anubis-protected sites resolve to the edge's private or mesh
   # address, which the edge serves without a challenge.
   contentSiteHosts = hostName: {
-    ${self.lib.legionAddress hostName config.legion.services.caddy.node} = [
-      "jeiang.dev"
-      "aidanpinard.co"
-      "pinard.co.tt"
-      "noelejoshua.com"
-      "blog.noelejoshua.com"
-    ];
+    ${self.lib.legionAddress hostName config.legion.services.caddy.node} = self.lib.websiteHostnames ++ self.lib.portfolioHostnames;
   };
-in {
-  flake.lib.statusHostname = "status.jeiang.dev";
 
-  legion.services.gatus =
-    service
-    // {
-      node = "zantark";
-      module = "gatus";
-    };
-
-  legion.services.gatus-atl =
-    service
-    // {
-      node = "ricklent";
-      module = "gatus-atl";
-    };
-
-  nixos.modules.gatus = {config, ...}: {
+  instance = {
+    settings,
+    alerts ? [],
+  }: {config, ...}: {
     networking.hosts = contentSiteHosts config.networking.hostName;
 
     services.gatus = {
       enable = true;
       settings =
         base
-        // {
-          # Scraped by VictoriaMetrics so a failed check reaches Alertmanager;
-          # the dashboard alone never notifies anyone.
-          metrics = true;
+        // settings
+        // lib.optionalAttrs (alerts != []) {
+          endpoints = map (endpoint: endpoint // {inherit alerts;}) base.endpoints;
         };
     };
 
@@ -161,17 +138,36 @@ in {
     };
   };
 
-  # Alerts straight to Discord so the watchdog does not depend on zantark.
-  nixos.modules.gatus-atl = {config, ...}: {
-    networking.hosts = contentSiteHosts config.networking.hostName;
+  placement = {
+    gatus = "zantark";
+    gatus-atl = "ricklent";
+  };
+in {
+  flake.lib = {
+    statusHostname = "status.jeiang.dev";
+    gatusServices = builtins.attrNames placement;
+  };
 
-    services.gatus = {
-      enable = true;
-      environmentFile = config.sops.templates."gatus.env".path;
-      settings =
-        base
-        // {
-          alerting.discord = {
+  legion.services =
+    lib.mapAttrs (module: node: {
+      inherit node module;
+      units = ["gatus"];
+      ports.app = port;
+    })
+    placement;
+
+  nixos.modules = {
+    gatus = instance {
+      # Scraped by VictoriaMetrics so a failed check reaches Alertmanager;
+      # the dashboard alone never notifies anyone.
+      settings.metrics = true;
+    };
+
+    # Alerts straight to Discord so the watchdog does not depend on zantark.
+    gatus-atl = {config, ...}: {
+      imports = [
+        (instance {
+          settings.alerting.discord = {
             webhook-url = "\${DISCORD_WEBHOOK_URL}";
             default-alert = {
               failure-threshold = 5;
@@ -179,20 +175,18 @@ in {
               send-on-resolved = true;
             };
           };
-          endpoints = map (endpoint: endpoint // {alerts = [{type = "discord";}];}) base.endpoints;
+          alerts = [{type = "discord";}];
+        })
+      ];
+
+      services.gatus.environmentFile = config.sops.templates."gatus.env".path;
+
+      sops = {
+        secrets."discord-webhook".sopsFile = ./secrets.yaml;
+        templates."gatus.env" = {
+          restartUnits = ["gatus.service"];
+          content = "DISCORD_WEBHOOK_URL=${config.sops.placeholder."discord-webhook"}\n";
         };
-    };
-
-    systemd.services.gatus = {
-      serviceConfig.MemoryMax = "64M";
-      restartTriggers = [(builtins.toJSON config.networking.hosts)];
-    };
-
-    sops = {
-      secrets."discord-webhook".sopsFile = ./secrets.yaml;
-      templates."gatus.env" = {
-        restartUnits = ["gatus.service"];
-        content = "DISCORD_WEBHOOK_URL=${config.sops.placeholder."discord-webhook"}\n";
       };
     };
   };

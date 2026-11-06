@@ -64,7 +64,7 @@ in {
     # Gatus reaches the content sites over the private network or mesh and
     # cannot solve a challenge. remote_ip is the TCP peer, so a forwarded
     # header cannot claim these sources.
-    monitorSources = lib.concatMapStringsSep " " (ip: "${ip}/32") (builtins.filter (ip: ip != null) (map (s: self.lib.serviceAddress host s) ["gatus" "gatus-atl"]));
+    monitorSources = lib.concatMapStringsSep " " (ip: "${ip}/32") (builtins.filter (ip: ip != null) (map (self.lib.serviceAddress host) self.lib.gatusServices));
 
     # Exemptions are enforced here (first matching handle wins), not as
     # Anubis ALLOW rules: non-browser clients -- ACME HTTP-01 validation,

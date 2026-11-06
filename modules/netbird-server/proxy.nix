@@ -18,6 +18,11 @@
     };
   };
 in {
+  flake.lib = {
+    netbirdProxyDomain = domain;
+    netbirdProxyServices = builtins.attrNames replicas;
+  };
+
   crowdsec.bouncers = builtins.mapAttrs (_: replica: replica.node) replicas;
 
   legion.services =
