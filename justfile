@@ -62,7 +62,7 @@ dns-nodes:
 
 # Preview dns/dnsconfig.js against live Cloudflare; read-only — the push happens in CI on merge to main
 dns-preview *args:
-  CLOUDFLARE_API_TOKEN=$(sops -d --extract '["caddy"]["cloudflare-dns-token"]' modules/edge/secrets.yaml) dnscontrol preview --config dns/dnsconfig.js --creds dns/creds.json {{args}}
+  CLOUDFLARE_API_TOKEN=$(sops -d --extract '["cloudflare"]["dns-token"]' modules/cloudflare/secrets.yaml) dnscontrol preview --config dns/dnsconfig.js --creds dns/creds.json {{args}}
 
 # Compare live Hetzner Cloud firewall/Volume state to the flake; read-only, uses the operator's hcloud context
 hcloud-drift:

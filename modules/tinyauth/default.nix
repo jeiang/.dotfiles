@@ -1,8 +1,12 @@
-{self, ...}: let
+{
+  self,
+  config,
+  ...
+}: let
   port = 3000;
 in {
   legion.services.tinyauth = {
-    node = "alda";
+    inherit (config.legion.services.caddy) node;
     module = "tinyauth";
     units = ["tinyauth"];
     ports.app = port;
@@ -16,8 +20,7 @@ in {
   nixos.modules.tinyauth = {config, ...}: let
     appUrl = "https://${self.lib.tinyauthHostname}";
     pocketId = self.lib.pocketIdUrl;
-    # Consumed only on the edge node, so it shares the edge Secret Shard.
-    sopsFile = ./edge/secrets.yaml;
+    sopsFile = ./secrets.yaml;
   in {
     services.tinyauth = {
       enable = true;

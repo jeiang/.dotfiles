@@ -52,7 +52,7 @@ creation_rules:
       - *server_vida
       - *server_zantark
 
-  - path_regex: modules/crowdsec/secrets\.agent\.yaml$
+  - path_regex: modules/cloudflare/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -61,8 +61,18 @@ creation_rules:
       - *user_aidanp_se
       - *server_alda
       - *server_ricklent
+      - *server_vida
 
-  - path_regex: modules/crowdsec/secrets\.garret\.yaml$
+  - path_regex: modules/crowdsec/secrets\.alda\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_alda
+
+  - path_regex: modules/crowdsec/secrets\.peria\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -72,7 +82,17 @@ creation_rules:
       - *server_alda
       - *server_peria
 
-  - path_regex: modules/crowdsec/secrets\.yaml$
+  - path_regex: modules/crowdsec/secrets\.ricklent\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_alda
+      - *server_ricklent
+
+  - path_regex: modules/crowdsec/secrets\.vida\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -91,15 +111,6 @@ creation_rules:
       - *user_aidanp_se
       - *server_alda
       - *server_zantark
-
-  - path_regex: modules/edge/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_alda
 
   - path_regex: modules/factorio/secrets\.yaml$
     key_groups:
@@ -267,6 +278,15 @@ creation_rules:
       - *user_aidanp_yubikey_a
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
+
+  - path_regex: modules/tinyauth/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_alda
 
   - path_regex: modules/user/secrets\.yaml$
     key_groups:
