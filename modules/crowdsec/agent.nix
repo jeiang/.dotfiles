@@ -5,16 +5,6 @@
 }: let
   engineModule = config.nixos.modules.crowdsec-engine;
 in {
-  legion.services =
-    builtins.mapAttrs (_: node: {
-      inherit node;
-      module = "crowdsec-agent";
-      units = ["crowdsec" "crowdsec-firewall-bouncer"];
-    }) {
-      crowdsec-agent = "ricklent";
-      crowdsec-agent-zantark = "zantark";
-    };
-
   nixos.modules.crowdsec-agent = {config, ...}: let
     host = config.networking.hostName;
     machineSecret = self.lib.crowdsecMachineSecret host;

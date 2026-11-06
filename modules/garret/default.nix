@@ -37,7 +37,7 @@ in {
     node = "peria";
     module = "garret";
     stateful = true;
-    units = ["garret-pusher" "garret-puller" "crowdsec-firewall-bouncer"];
+    units = ["garret-pusher" "garret-puller"];
     ports = {
       puller = pullerPort;
       pusher-metrics = pusherMetricsPort;

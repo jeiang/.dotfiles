@@ -29,7 +29,7 @@ in {
     builtins.mapAttrs (_name: replica: {
       inherit (replica) node;
       module = "netbird-proxy";
-      units = ["netbird-proxy" "acme-*" "crowdsec-firewall-bouncer"];
+      units = ["netbird-proxy" "acme-*"];
       ports.health = healthPort;
       publicHostnames = [domain "*.${domain}"];
       publicPorts = [
