@@ -35,6 +35,7 @@
               gamemode
             ];
         })
+        umu-launcher
       ];
       programs = {
         gamescope.enable = true;

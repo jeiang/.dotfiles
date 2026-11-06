@@ -5,6 +5,7 @@
       # Headless host: SSH gpg/gopass prompts must not try a Wayland dialog.
       pinentryPackage = pkgs.pinentry-curses;
     };
+    environment.systemPackages = [pkgs.gopass];
 
     persistence.data.directories = [
       {

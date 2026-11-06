@@ -5,6 +5,7 @@
     ];
     environment.systemPackages = with pkgs; [
       qpwgraph
+      pwvucontrol
     ];
     security.rtkit.enable = true;
     services.pipewire = {

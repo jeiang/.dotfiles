@@ -54,6 +54,7 @@
       hyprpolkitagent
       hyprpaper
       fuzzel
+      selfpkgs.ghostty
     ];
 
     environment.variables = rec {

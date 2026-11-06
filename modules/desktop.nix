@@ -9,13 +9,9 @@
       '';
       systemPackages = with pkgs; [
         btop-rocm
-        self.packages.${pkgs.stdenv.hostPlatform.system}.ghostty
-        gopass
         kdePackages.dolphin
         # needed for dolphin's file associations
         kdePackages.kservice
-        pwvucontrol
-        umu-launcher
       ];
     };
 
