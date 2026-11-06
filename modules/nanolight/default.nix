@@ -39,8 +39,6 @@ in {
 
     programs.nanolight = {
       enable = true;
-      # macos-defaults.nix already turns off Spotlight's Command-Space.
-      disableSpotlightShortcut = false;
       # Xcode's Apple Development certificate, by SHA-1: keeps the Accessibility
       # grant across rebuilds. Signing also needs Apple's WWDR G3 intermediate.
       codesignIdentity = "BEFA7CA1803B0F13E47D3D32831AD134C97C1DE9";
