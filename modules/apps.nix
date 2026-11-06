@@ -12,43 +12,35 @@
     # the Dock or a launcher, so the same config is installed at the XDG path.
     hjem.users.${config.preferences.user.name}.files.".config/ghostty/config".source = wrapped.ghostty-config;
 
-    environment.systemPackages =
-      (with pkgs; [
-        crossover
-        discord
-        finetune
-        iina
-        moonlight-qt
-        mos
-        obsidian
-        prismlauncher
-        telegram-desktop
-        utm
-        zed-editor
-        wrapped.ghostty
-        wrapped.zeiger
+    environment.systemPackages = with pkgs; [
+      crossover
+      discord
+      finetune
+      iina
+      moonlight-qt
+      mos
+      obsidian
+      prismlauncher
+      telegram-desktop
+      utm
+      zed-editor
+      wrapped.ghostty
+      wrapped.zeiger
 
-        bat
-        btop
-        defaultbrowser
-        # withWhisper off: whisper-cpp's CoreML backend fails to link on this pinned aarch64-darwin toolchain. doCheck off: ffmpeg's FATE suite is impractical for a CI build.
-        ((ffmpeg-full.override {withWhisper = false;}).overrideAttrs (_: {doCheck = false;}))
-        gh
-        gnupg
-        pinentry_mac
-        hcloud
-        imagemagick
-        megatools
-        mole-cleaner
-        nodejs
-        ouch
-        pkgconf
-        tokei
-        uv
-      ])
-      ++ [
-        wrapped.git
-        wrapped.difft
-      ];
+      bat
+      btop
+      defaultbrowser
+      # withWhisper off: whisper-cpp's CoreML backend fails to link on this pinned aarch64-darwin toolchain. doCheck off: ffmpeg's FATE suite is impractical for a CI build.
+      ((ffmpeg-full.override {withWhisper = false;}).overrideAttrs (_: {doCheck = false;}))
+      gnupg
+      pinentry_mac
+      hcloud
+      imagemagick
+      megatools
+      mole-cleaner
+      nodejs
+      pkgconf
+      uv
+    ];
   };
 }

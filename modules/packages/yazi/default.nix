@@ -39,7 +39,7 @@
         { run = '${lib.getExe self'.packages.helix} "$@"', desc = "Open in Helix", block = true, for = "unix" },
       ]
       extract = [
-        { run = '${lib.getExe pkgs.ouch} decompress --yes "$@"', desc = "Extract here", for = "unix" },
+        { run = '${lib.getExe self'.packages.ouch} decompress --yes "$@"', desc = "Extract here", for = "unix" },
       ]
 
       [open]
@@ -128,7 +128,7 @@
         inherit pkgs;
         package = pkgs.yazi;
         env.YAZI_CONFIG_HOME = "${mkConfigHome keymap}";
-        runtimePkgs = [pkgs.glow pkgs.ouch];
+        runtimePkgs = [pkgs.glow self'.packages.ouch];
       };
   in {
     packages.yazi = mkYazi ./keymap.toml;
