@@ -42,7 +42,7 @@ in {
     };
 
     # Only omp reads a declarative user-level MCP file; Claude Code and Codex
-    # rewrite their own config, so the operator registers these there.
+    # rewrite their own config, so `just mcp-register` copies these into it.
     hjem.users.${config.preferences.user.name}.files."${self.lib.agentHomes.omp}/mcp.json".source = servers pkgs config.sops.secrets.${token}.path;
   };
 }

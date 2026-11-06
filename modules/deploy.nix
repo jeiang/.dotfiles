@@ -1,7 +1,6 @@
 {self, ...}: {
   flake.lib.deployUser = "deploy";
 
-  # deploy-rs's SSH user; each role grants its elevation (sudo rules on Legion, a doas rule on artemis).
   nixos.modules.base = {pkgs, ...}: {
     users = {
       groups.${self.lib.deployUser} = {};

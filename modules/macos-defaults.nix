@@ -1,4 +1,3 @@
-# What system.defaults can express faithfully lives there; the rest is scripted as idempotent user-context activation steps.
 {self, ...}: {
   darwin.modules.base = {
     config,

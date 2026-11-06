@@ -8,9 +8,6 @@
     pkgs,
     ...
   }: {
-    # Exposed separately because the macOS .app bundle is launched by
-    # LaunchServices, never through the wrapper's --config-file flag; the
-    # darwin apps module installs this file where Ghostty.app reads it.
     packages.ghostty-config = pkgs.writeTextFile {
       name = "ghostty-config";
       # The ANSI 16 mapping follows kanagawa.nvim's "wave" terminal colors.

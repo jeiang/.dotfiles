@@ -22,7 +22,6 @@ in {
     nixos.configurations = configurationsOption;
     darwin.modules = modulesOption;
     darwin.configurations = configurationsOption;
-    # Class-agnostic roles: `base` is every host, `workstation` is artemis and every darwin host.
     shared.modules = modulesOption;
   };
 

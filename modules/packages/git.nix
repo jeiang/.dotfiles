@@ -47,7 +47,6 @@
         tlog = "!git log --stat --since='1 Day Ago' --graph --pretty=oneline --abbrev-commit --date=relative";
         rank = "!git shortlog -sn --no-merges";
 
-        # delete merged branches
         bdm = "!git branch --merged | grep -v '*' | xargs -n 1 git branch -d";
       };
     };
