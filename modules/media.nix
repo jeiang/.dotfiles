@@ -1,5 +1,9 @@
 _: let
   mediaDir = "/var/lib/media";
+  # icloud-import stages files in incoming (rsync creates it) and moves each
+  # finished item into import.
+  importDir = "${mediaDir}/import";
+  incomingDir = "${mediaDir}/.incoming";
   group = "media";
   # One darkhttpd per library root, so the URL path is the library path.
   libraryServers = {
@@ -13,6 +17,8 @@ in {
     mediaTvPort = libraryServers.tv;
     mediaGroup = group;
     mediaDownloadDir = "${mediaDir}/downloads";
+    mediaImportDir = importDir;
+    mediaIncomingDir = incomingDir;
   };
 
   nixos.modules.artemis = {
@@ -36,7 +42,7 @@ in {
     };
 
     # setgid keeps every file in the media group; the tree is world-readable.
-    systemd.tmpfiles.settings.media = lib.genAttrs (map (d: "${mediaDir}${d}") ["" "/import" "/movies" "/tv"]) (_: {
+    systemd.tmpfiles.settings.media = lib.genAttrs ([mediaDir importDir] ++ map (library: "${mediaDir}/${library}") (lib.attrNames libraryServers)) (_: {
       d = {
         user = "root";
         inherit group;
