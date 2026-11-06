@@ -39,10 +39,9 @@
         (page "pinard.co.tt" "Web" "https://pinard.co.tt" "Aidan Pinard - Home")
         (page "Portfolio" "Web" "https://noelejoshua.com" "Joshua Noel")
         (page "Portfolio blog" "Web" "https://blog.noelejoshua.com" "Writing")
-        (ok "Bill Splitter" "Web" "https://bill-split.jeiang.dev")
-        (ok "Rivals Randomizer" "Web" "https://rivals.jeiang.dev")
-        (ok "Markdown Table Editor" "Web" "https://mdtable.jeiang.dev")
-
+      ]
+      ++ lib.mapAttrsToList (_: site: ok site.title "Web" "https://${site.hostname}") self.lib.toolSites
+      ++ [
         # /healthz returns 204 No Content; 200 elsewhere is just the SPA
         # fallback, which says nothing about backend health.
         (https "Pocket ID" "Services" "${self.lib.pocketIdUrl}/healthz" ["[STATUS] == 204"])

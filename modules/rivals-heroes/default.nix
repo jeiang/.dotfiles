@@ -1,4 +1,8 @@
-{inputs, ...}: {
+{
+  self,
+  inputs,
+  ...
+}: {
   legion.services.caddy.units = ["rivals-heroes-sync"];
 
   # Stock Caddy cannot cache responses (needs the cache-handler plugin), so
@@ -11,7 +15,7 @@
     # per request, so a half-written snapshot is never visible.
     heroCacheRoot = "/var/lib/rivals-heroes/current";
   in {
-    edge.sites."rivals.jeiang.dev" = {
+    edge.sites.${self.lib.toolSites.rivals.hostname} = {
       content = true;
       appsec = false;
       # Hero data and the portraits the app derives from heroes.json slugs
