@@ -100,11 +100,7 @@ in {
         };
       };
 
-      crowdsec-engine = {
-        config,
-        lib,
-        ...
-      }: {
+      crowdsec-engine = {lib, ...}: {
         services.crowdsec = {
           enable = true;
           hub = {
@@ -127,10 +123,7 @@ in {
           };
         };
 
-        systemd.services.crowdsec = {
-          path = lib.mkForce [config.systemd.package];
-          serviceConfig.SupplementaryGroups = ["systemd-journal"];
-        };
+        systemd.services.crowdsec.serviceConfig.SupplementaryGroups = ["systemd-journal"];
       };
 
       crowdsec = {
