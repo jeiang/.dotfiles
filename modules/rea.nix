@@ -4,10 +4,11 @@
   ...
 }: let
   skill = "reverse-engineer-anything";
-
-  rea = {
+in {
+  shared.modules.workstation = {
     config,
     pkgs,
+    ...
   }: let
     package = self.packages.${pkgs.stdenv.hostPlatform.system}.rea;
   in {
@@ -20,18 +21,4 @@
       })
     self.lib.agentHomes;
   };
-in {
-  nixos.modules.artemis = {
-    config,
-    pkgs,
-    ...
-  }:
-    rea {inherit config pkgs;};
-
-  darwin.modules.base = {
-    config,
-    pkgs,
-    ...
-  }:
-    rea {inherit config pkgs;};
 }

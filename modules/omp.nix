@@ -1,11 +1,7 @@
 {self, ...}: {
-  nixos.modules.artemis = {pkgs, ...}: {
-    environment.systemPackages = [self.packages.${pkgs.stdenv.hostPlatform.system}.omp];
-
-    persistence.cache.directories = [".omp/cache" ".omp/natives" ".omp/webcache"];
-  };
-
-  darwin.modules.base = {pkgs, ...}: {
+  shared.modules.workstation = {pkgs, ...}: {
     environment.systemPackages = [self.packages.${pkgs.stdenv.hostPlatform.system}.omp];
   };
+
+  nixos.modules.artemis.persistence.cache.directories = map (dir: "${dirOf self.lib.agentHomes.omp}/${dir}") ["cache" "natives" "webcache"];
 }

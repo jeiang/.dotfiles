@@ -1,39 +1,11 @@
 {inputs, ...}: {
-  nixos.modules.base = {config, ...}: let
-    user = config.preferences.user.name;
-  in {
-    imports = [
-      inputs.hjem.nixosModules.default
-    ];
+  nixos.modules.base.imports = [inputs.hjem.nixosModules.default];
+  darwin.modules.base.imports = [inputs.hjem.darwinModules.default];
 
-    config = {
-      hjem = {
-        users."${user}" = {
-          enable = true;
-          directory = "/home/${user}";
-          user = "${user}";
-        };
-
-        clobberByDefault = true;
-      };
-    };
-  };
-
-  darwin.modules.base = {config, ...}: let
-    user = config.preferences.user.name;
-  in {
-    imports = [inputs.hjem.darwinModules.default];
-
-    config = {
-      hjem = {
-        users."${user}" = {
-          enable = true;
-          directory = "/Users/${user}";
-          user = "${user}";
-        };
-
-        clobberByDefault = true;
-      };
+  shared.modules.base = {config, ...}: {
+    hjem = {
+      users.${config.preferences.user.name}.enable = true;
+      clobberByDefault = true;
     };
   };
 }

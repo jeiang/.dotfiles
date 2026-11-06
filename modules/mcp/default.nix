@@ -4,14 +4,12 @@
   config,
   ...
 }: let
-  sopsFile = ./secrets.yaml;
   token = "grafana/mcp-token";
-  tokenPath = "/run/secrets/${token}";
 
   # Mesh address, not grafana.jeiang.dev: probing the edge gets the client banned by CrowdSec.
-  grafanaUrl = "http://${self.lib.netbirdPeers.zantark}:${toString config.legion.services.monitoring.ports.grafana}";
+  grafanaUrl = "http://${self.lib.netbirdPeers.${config.legion.services.monitoring.node}}:${toString config.legion.services.monitoring.ports.grafana}";
 
-  servers = pkgs:
+  servers = pkgs: tokenPath:
     inputs.mcp-servers-nix.lib.mkConfig pkgs {
       flavor = "claude-code";
       fileName = "mcp.json";
@@ -30,41 +28,21 @@
         };
       };
     };
+in {
+  flake.lib.grafanaMeshUrl = grafanaUrl;
 
-  mcp = {
+  shared.modules.workstation = {
     config,
     pkgs,
-    group,
+    ...
   }: {
     sops.secrets.${token} = {
-      inherit sopsFile group;
+      sopsFile = ./secrets.yaml;
       owner = config.preferences.user.name;
     };
 
     # Only omp reads a declarative user-level MCP file; Claude Code and Codex
     # rewrite their own config, so the operator registers these there.
-    hjem.users.${config.preferences.user.name}.files."${self.lib.agentHomes.omp}/mcp.json".source = servers pkgs;
+    hjem.users.${config.preferences.user.name}.files."${self.lib.agentHomes.omp}/mcp.json".source = servers pkgs config.sops.secrets.${token}.path;
   };
-in {
-  flake.lib.grafanaMeshUrl = grafanaUrl;
-
-  nixos.modules.artemis = {
-    config,
-    pkgs,
-    ...
-  }:
-    mcp {
-      inherit config pkgs;
-      group = "users";
-    };
-
-  darwin.modules.base = {
-    config,
-    pkgs,
-    ...
-  }:
-    mcp {
-      inherit config pkgs;
-      group = "staff";
-    };
 }

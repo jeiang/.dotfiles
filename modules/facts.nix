@@ -5,12 +5,5 @@
     timeZone = "America/Port_of_Spain";
     cacheUrl = "https://${self.lib.cacheHostname}";
     cacheKey = "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA=";
-    allowUnfreeConfigNix =
-      # nix
-      ''
-        {
-          allowUnfree = true;
-        }
-      '';
   };
 }

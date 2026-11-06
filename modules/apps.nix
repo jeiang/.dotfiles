@@ -12,12 +12,6 @@
     # the Dock or a launcher, so the same config is installed at the XDG path.
     hjem.users.${config.preferences.user.name}.files.".config/ghostty/config".source = wrapped.ghostty-config;
 
-    programs.direnv = {
-      enable = true;
-      silent = false;
-      loadInNixShell = true;
-    };
-
     environment.systemPackages =
       (with pkgs; [
         crossover
