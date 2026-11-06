@@ -1,8 +1,12 @@
-{self, ...}: let
+{
+  self,
+  config,
+  ...
+}: let
   port = 3000;
 in {
   legion.services.tinyauth = {
-    node = "alda";
+    inherit (config.legion.services.caddy) node;
     module = "tinyauth";
     units = ["tinyauth"];
     ports.app = port;

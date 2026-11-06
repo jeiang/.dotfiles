@@ -3,8 +3,12 @@
   # to ${dataDir}/data/*.
   dataDir = "/mnt/pocket-id";
   appPort = 1411;
+  hostname = "auth.jeiang.dev";
 in {
-  flake.lib.pocketIdUrl = "https://auth.jeiang.dev";
+  flake.lib = {
+    pocketIdHostname = hostname;
+    pocketIdUrl = "https://${hostname}";
+  };
 
   legion.services.pocket-id = {
     node = "vida";

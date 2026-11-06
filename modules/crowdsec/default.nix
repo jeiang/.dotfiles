@@ -43,14 +43,14 @@ in {
       crowdsecLapiUrl = from: "http://${self.lib.serviceAddress from "crowdsec"}:${toString lapiPort}";
     };
 
+    # Edge Caddy reaches the LAPI and AppSec over loopback.
     legion.services.crowdsec = {
-      node = "alda";
+      inherit (legionServices.caddy) node;
       module = "crowdsec";
       units = ["crowdsec" "crowdsec-bouncers" "crowdsec-firewall-bouncer"];
       ports = {
         lapi = lapiPort;
         metrics = metricsPort;
-        appsec = appsecPort;
       };
     };
 
@@ -221,13 +221,6 @@ in {
           lib.mapAttrs' (name: node: lib.nameValuePair (bouncerSecret name) (registration node)) bouncers
           // lib.genAttrs' agentNodes (node: lib.nameValuePair (machineSecret node) (registration node));
 
-        # Acts on this node's own decisions, sshd bans included; the edge's Caddy bouncer covers only HTTP.
-        services.crowdsec-firewall-bouncer = {
-          enable = true;
-          settings.mode = "nftables";
-          registerBouncer.enable = true;
-        };
-
         systemd.services = {
           # No declarative bouncer option exists upstream, so every known key
           # is registered idempotently.
@@ -264,11 +257,54 @@ in {
 
           # wants+after, not requires: Caddy must still serve traffic with
           # crowdsec.service stopped or missing (fail-open).
-          caddy = lib.mkIf config.services.caddy.enable {
+          caddy = {
             after = ["crowdsec.service"];
             wants = ["crowdsec.service"];
           };
         };
+
+        services = {
+          # Acts on this node's own decisions, sshd bans included; the edge's Caddy bouncer covers only HTTP.
+          crowdsec-firewall-bouncer = {
+            enable = true;
+            settings.mode = "nftables";
+            registerBouncer.enable = true;
+          };
+
+          caddy = {
+            # The file the caddy acquisition above tails; retention is short
+            # since VictoriaLogs is the searchable archive.
+            logFormat = ''
+              output file ${config.services.caddy.logDir}/access.log {
+                roll_size 100mb
+                roll_keep 2
+                roll_keep_for 48h
+              }
+            '';
+
+            globalConfig = ''
+              # Neither handler registers a default directive order, so bare
+              # site-block usage needs this global placement.
+              order crowdsec first
+              order appsec after crowdsec
+
+              # Fail-open: enable_hard_fails stays off so Caddy starts with
+              # the LAPI unreachable; appsec_fail_open ignores AppSec errors.
+              crowdsec {
+                api_url http://127.0.0.1:${toString lapiPort}/
+                # {$VAR}, not {env.VAR}: this field is parsed at config-adapt
+                # time, before the placeholder replacer runs.
+                api_key {$CROWDSEC_LAPI_KEY}
+                appsec_url http://127.0.0.1:${toString appsecPort}
+                appsec_fail_open
+              }
+            '';
+          };
+        };
+
+        sops.templates."caddy.env".content = ''
+          CROWDSEC_LAPI_KEY=${config.sops.placeholder.${bouncerSecret "edge-caddy"}}
+        '';
       };
     };
   };

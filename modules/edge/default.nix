@@ -6,30 +6,18 @@
 }: let
   legionServices = config.legion.services;
   metricsPort = 2020;
+  websiteHostnames = ["jeiang.dev" "aidanpinard.co" "pinard.co.tt"];
 in {
+  flake.lib.websiteHostnames = websiteHostnames;
+
   legion.services.caddy = {
     node = "alda";
     module = "edge";
-    units = ["caddy" "rivals-heroes-sync"];
+    units = ["caddy"];
     ports.metrics = metricsPort;
-    publicHostnames = [
-      "jeiang.dev"
-      "aidanpinard.co"
-      "pinard.co.tt"
-      "auth.jeiang.dev"
-      "ntfy.jeiang.dev"
-      "grafana.jeiang.dev"
-      "netbird.jeiang.dev"
-      "noelejoshua.com"
-      "blog.noelejoshua.com"
-      "bill-split.jeiang.dev"
-      "rivals.jeiang.dev"
-      "mdtable.jeiang.dev"
-      "github.jeiang.dev"
-      "status.jeiang.dev"
-      "tinyauth.jeiang.dev"
-      self.lib.atriumHostname
-    ];
+    # ntfy's SSE/WebSocket streams stay off the Cloudflare proxy, and the
+    # client IP reaches ntfy's rate limiter.
+    publicHostnames = [self.lib.ntfyHostname];
     publicPorts = [
       {
         port = 80;
@@ -48,44 +36,14 @@ in {
     pkgs,
     ...
   }: let
-    cfg = config.edge;
-    anubisHere = (legionServices ? anubis) && legionServices.anubis.node == config.networking.hostName;
-    crowdsecHere = (legionServices ? crowdsec) && legionServices.crowdsec.node == config.networking.hostName;
+    host = config.networking.hostName;
     system = pkgs.stdenv.hostPlatform.system;
-
-    node1 = self.lib.legionNodes.alda.privateIPv4;
-    node2 = self.lib.legionNodes.vida.privateIPv4;
-    node3 = self.lib.legionNodes.zantark.privateIPv4;
-
-    port = svc: key: toString legionServices.${svc}.ports.${key};
-    upstream = svc: key: "${self.lib.legionNodes.${legionServices.${svc}.node}.privateIPv4}:${port svc key}";
+    upstream = service: port: "${self.lib.serviceAddress host service}:${toString legionServices.${service}.ports.${port}}";
+    tinyauth = "127.0.0.1:${toString legionServices.tinyauth.ports.app}";
+    atrium = "${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumWebPort}";
 
     website = inputs.website.packages.${system}.default;
-    portfolio = "${self.lib.legionNodes.${legionServices.portfolio.node}.privateIPv4}:${port "portfolio" "app"}";
-    billSplitter = "${inputs.bill-splitter.packages.${system}.default}/dist";
-    rivalsRandomizer = inputs.character-randomizer.packages.${system}.default;
-    mdTableEditor = inputs.markdown-table-live-editor.packages.${system}.default;
 
-    # Symlink swapped atomically by rivals-heroes-sync; Caddy resolves it
-    # per request, so a half-written snapshot is never visible.
-    heroCacheRoot = "/var/lib/rivals-heroes/current";
-    netbirdDashboard = config.services.netbird.server.dashboard.finalDrv;
-    netbirdIronRDP = self.packages.${system}.netbird-ironrdp-web;
-
-    # Each carries its own trailing newline + indent; callers concatenate
-    # them ahead of a site block's first real directive.
-    crowdsecLine = lib.optionalString crowdsecHere "crowdsec\n            ";
-    appsecLine = lib.optionalString crowdsecHere "appsec\n            ";
-
-    # Only forced inside the anubisHere branch of mkContentSite -- with
-    # the module unimported, services.anubis.instances is empty and this
-    # would throw.
-    anubisSocket = config.services.anubis.instances.content.settings.BIND;
-
-    # Exemptions are enforced here in Caddy (first matching handle wins),
-    # not as Anubis ALLOW rules: non-browser clients -- ACME HTTP-01
-    # validation, crawler metadata, feed readers -- can never solve a
-    # proof-of-work challenge.
     serveRoot = root: ''
       root * ${root}
       file_server
@@ -97,62 +55,38 @@ in {
     # only over https, and the app trusts X-Forwarded-Proto https alone:
     # without it every admin form POST fails Astro's origin check.
     servePortfolio = clientIp: ''
-      reverse_proxy ${portfolio} {
+      reverse_proxy ${upstream "portfolio" "app"} {
         header_up X-Forwarded-For ${clientIp}
         header_up X-Forwarded-Proto https
       }
     '';
 
-    # Gatus reaches the content sites over the private network or mesh (see
-    # modules/gatus) and cannot solve a challenge. remote_ip is the TCP
-    # peer, so a forwarded header cannot claim these sources.
-    monitorSources = lib.concatMapStringsSep " " (ip: "${ip}/32") (builtins.filter (ip: ip != null) (map (s: self.lib.legionAddress config.networking.hostName legionServices.${s}.node) ["gatus" "gatus-atl"]));
+    # Gatus reaches the content sites over the private network or mesh and
+    # cannot solve a challenge. remote_ip is the TCP peer, so a forwarded
+    # header cannot claim these sources.
+    monitorSources = lib.concatMapStringsSep " " (ip: "${ip}/32") (builtins.filter (ip: ip != null) (map (s: self.lib.serviceAddress host s) ["gatus" "gatus-atl"]));
 
-    mkContentSite = {
+    # Exemptions are enforced here (first matching handle wins), not as
+    # Anubis ALLOW rules: non-browser clients -- ACME HTTP-01 validation,
+    # crawler metadata, feed readers -- can never solve a proof-of-work
+    # challenge.
+    gate = {
       serve,
       unchallenged ? [],
-    }:
-      if anubisHere
-      then ''
-        @unchallenged path /.well-known/* /robots.txt /sitemap.xml /favicon.ico /feed.xml /rss.xml /atom.xml ${lib.concatStringsSep " " unchallenged}
-        handle @unchallenged {
-          ${serve}
-        }
+    }: ''
+      @unchallenged path /.well-known/* /robots.txt /sitemap.xml /favicon.ico /feed.xml /rss.xml /atom.xml ${lib.concatStringsSep " " unchallenged}
+      handle @unchallenged {
+        ${serve}
+      }
 
-        @monitor remote_ip ${monitorSources}
-        handle @monitor {
-          ${serve}
-        }
+      @monitor remote_ip ${monitorSources}
+      handle @monitor {
+        ${serve}
+      }
 
-        handle {
-          reverse_proxy unix/${anubisSocket} {
-            # Anubis keys its challenge state on X-Real-Ip; {client_ip} is
-            # the Cloudflare-aware placeholder, not {remote_host}.
-            header_up X-Real-Ip {client_ip}
-          }
-        }
-      ''
-      else serve;
-
-    portfolioSite = mkContentSite {
-      serve = servePortfolio "{client_ip}";
-      # The admin API is session-authenticated and throttled by the app;
-      # uploads are fetched by crawlers reading og:image.
-      unchallenged = ["/api/*" "/healthz" "/uploads/*"];
-    };
-
-    # Caddy access logging is opt-in per site block: without a `log`
-    # directive a site emits zero access records.
-    logLine = "log\n            ";
-
-    # Browser-facing content sites: compressed, with transport and sniffing headers.
-    contentLine = ''
-      encode zstd gzip
-                  header {
-                    Strict-Transport-Security "max-age=31536000"
-                    X-Content-Type-Options nosniff
-                    Referrer-Policy strict-origin-when-cross-origin
-                  }
+      handle {
+        import anubis
+      }
     '';
 
     # Shared by both global loggers: strip credential-bearing headers at the
@@ -170,23 +104,174 @@ in {
         }
       }
     '';
-  in {
-    options.edge.anubis.originPort = lib.mkOption {
-      type = lib.types.port;
-      default = 8129;
-      description = ''
-        Loopback port of the internal Caddy listener that serves the
-        protected static roots, and which the Anubis instance proxies
-        to as its TARGET. Read by modules/anubis.nix, so it is a
-        real cross-module boundary rather than a one-off constant.
 
-        Must not collide with Caddy's admin API (127.0.0.1:2019) or the
-        metrics site block (2020); site blocks sharing a port get merged
-        into a single listener, so a collision is a startup failure.
-      '';
+    renderSite = site: ''
+      ${lib.concatStringsSep ", " site.hosts} {
+        # Access logging is opt-in per site block.
+        log
+        ${lib.optionalString site.content ''
+        encode zstd gzip
+        header {
+          Strict-Transport-Security "max-age=31536000"
+          X-Content-Type-Options nosniff
+          Referrer-Policy strict-origin-when-cross-origin
+        }
+      ''}
+        crowdsec
+        ${lib.optionalString site.appsec "appsec"}
+        ${lib.optionalString site.dnsChallenge ''
+        tls {
+          dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+        }
+      ''}
+        ${site.config}
+      }
+    '';
+  in {
+    options.edge.sites = lib.mkOption {
+      type = lib.types.attrsOf (lib.types.submodule ({name, ...}: {
+        options = {
+          hosts = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [name];
+          };
+          content = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = "Browser-facing: compressed, with transport and sniffing headers.";
+          };
+          appsec = lib.mkOption {
+            type = lib.types.bool;
+            default = true;
+            description = "Run CrowdSec AppSec on the whole site; off for sites that place it per handle or skip it.";
+          };
+          dnsChallenge = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = "Issue the certificate over DNS-01 through Cloudflare instead of HTTP-01.";
+          };
+          config = lib.mkOption {type = lib.types.lines;};
+        };
+      }));
+      default = {};
+      description = "Public site blocks of the edge Caddy, all behind the CrowdSec bouncer.";
     };
 
     config = {
+      edge.sites =
+        {
+          # Caddy 2.10+ reuses this DNS-01 wildcard for the other jeiang.dev
+          # sites, so none of them needs its own tls directive.
+          "jeiang.dev" = {
+            hosts = ["jeiang.dev" "*.jeiang.dev"];
+            content = true;
+            dnsChallenge = true;
+            config = ''
+              @apex host jeiang.dev
+              handle @apex {
+                ${gate {serve = serveRoot website;}}
+              }
+
+              handle {
+                respond 404
+              }
+            '';
+          };
+        }
+        // lib.genAttrs (lib.remove "jeiang.dev" websiteHostnames) (_: {
+          content = true;
+          dnsChallenge = true;
+          config = gate {serve = serveRoot website;};
+        })
+        // {
+          # In its owner's Cloudflare account, proxied, so not in dns/: renews
+          # via HTTP-01 rather than DNS-01.
+          portfolio = {
+            hosts = self.lib.portfolioHostnames;
+            content = true;
+            config = gate {
+              serve = servePortfolio "{client_ip}";
+              # The admin API is session-authenticated and throttled by the
+              # app; uploads are fetched by crawlers reading og:image.
+              unchallenged = ["/api/*" "/healthz" "/uploads/*"];
+            };
+          };
+
+          # Every site from here down is deliberately NOT behind the Anubis
+          # gate: these are machine-consumed routes, and a proof-of-work
+          # interstitial in front of a non-browser client is an outage, not
+          # a trade-off.
+
+          ${self.lib.pocketIdHostname}.config = "reverse_proxy ${upstream "pocket-id" "app"}";
+
+          ${self.lib.ntfyHostname} = {
+            appsec = false;
+            config = "reverse_proxy ${upstream "ntfy" "app"}";
+          };
+
+          ${self.lib.grafanaHostname}.config = "reverse_proxy ${upstream "monitoring" "grafana"}";
+
+          # Ungated deliberately: it reports on Pocket ID, so SSO (or
+          # netbird-proxy, which authenticates against it) would take the
+          # outage report down with the outage. appsec skipped, fail-open.
+          ${self.lib.statusHostname} = {
+            appsec = false;
+            config = "reverse_proxy ${upstream "gatus" "app"}";
+          };
+
+          ${self.lib.tinyauthHostname}.config = "reverse_proxy ${tinyauth}";
+
+          # Only a tinyauth session in the atrium_access group is forwarded.
+          # `route` keeps the written order: Caddy's default order runs
+          # request_header after forward_auth, which would delete the
+          # identity headers tinyauth just copied in.
+          ${self.lib.atriumHostname}.config = ''
+            route {
+              request_header -Remote-User
+              request_header -Remote-Email
+              request_header -Remote-Name
+              request_header -Remote-Groups
+              # Signed media links are public: atrium verifies the HMAC.
+              # Remote-* stays stripped above, so nothing can be spoofed.
+              handle /media/file/* {
+                reverse_proxy ${atrium}
+              }
+              handle {
+                forward_auth ${tinyauth} {
+                  uri /api/auth/caddy
+                  copy_headers Remote-User Remote-Email Remote-Groups
+                }
+                reverse_proxy ${atrium}
+              }
+            }
+          '';
+
+          "bill-split.jeiang.dev" = {
+            content = true;
+            config = serveRoot "${inputs.bill-splitter.packages.${system}.default}/dist";
+          };
+
+          "mdtable.jeiang.dev" = {
+            content = true;
+            config = serveRoot inputs.markdown-table-live-editor.packages.${system}.default;
+          };
+
+          "github.jeiang.dev".config = "redir https://github.com/jeiang{uri} 301";
+        };
+
+      anubis.origins = {
+        website = {
+          hosts = websiteHostnames;
+          serve = serveRoot website;
+        };
+        # Anubis is the peer here, so the forwarded headers Caddy would
+        # derive describe it (plain http from loopback), not the visitor.
+        portfolio = {
+          hosts = self.lib.portfolioHostnames;
+          serve = servePortfolio "{header.X-Real-Ip}";
+        };
+      };
+
       services.caddy = {
         enable = true;
         package = self.packages.${system}.caddy;
@@ -194,15 +279,8 @@ in {
         # Caddy's ZeroSSL fallback never hits the CA and fails automatic HTTPS.
         acmeCA = "https://acme-v02.api.letsencrypt.org/directory";
 
-        # CrowdSec's file acquisition tails this exact path; retention is
-        # short since VictoriaLogs is the searchable archive.
         logFormat = ''
           level INFO
-          output file ${config.services.caddy.logDir}/access.log {
-            roll_size 100mb
-            roll_keep 2
-            roll_keep_for 48h
-          }
           ${logEncoder}
         '';
 
@@ -216,7 +294,7 @@ in {
           }
 
           # The admin API stays loopback-only (unauthenticated config
-          # mutation); metrics are served from the :2020 site block instead.
+          # mutation); metrics are served from the metrics site instead.
           metrics
 
           # Without this every client_ip is a Cloudflare PoP, and a CrowdSec
@@ -230,337 +308,35 @@ in {
             # No UDP 443 is open, so advertising HTTP/3 only sends clients on a failed QUIC attempt.
             protocols h1 h2
           }
-
-          ${lib.optionalString crowdsecHere ''
-            # Neither handler registers a default directive order, so bare
-            # site-block usage needs this global placement.
-            order crowdsec first
-            order appsec after crowdsec
-
-            # Fail-open: enable_hard_fails stays off so Caddy starts with
-            # the LAPI unreachable; appsec_fail_open ignores AppSec errors.
-            crowdsec {
-              # {$VAR}, not {env.VAR}: this field is parsed at config-adapt
-              # time, before the placeholder replacer runs.
-              api_url {$CROWDSEC_LAPI_URL}
-              api_key {$CROWDSEC_LAPI_KEY}
-              appsec_url http://127.0.0.1:${toString legionServices.crowdsec.ports.appsec}
-              appsec_fail_open
-            }
-          ''}
         '';
 
         extraConfig = ''
           # 2019 would collide with the admin API listener; plain http://
           # skips automatic HTTPS/ACME for this private-network-only block.
-          http://${node1}:${toString metricsPort} {
+          http://${self.lib.legionNodes.${host}.privateIPv4}:${toString metricsPort} {
             metrics /metrics
           }
 
-          ${lib.optionalString anubisHere ''
-            # bind makes this loopback-only, so only Anubis on this node can
-            # reach it. The address has no host: an IP host here would add
-            # an implicit matcher for it, but Anubis forwards the original
-            # Host header (e.g. jeiang.dev), so no site would match. The
-            # respond 404 fallback guards the Host-preservation assumption.
-            http://:${toString cfg.anubis.originPort} {
-              bind 127.0.0.1
-              @website host jeiang.dev aidanpinard.co pinard.co.tt
-              handle @website {
-                root * ${website}
-                file_server
-              }
-
-              # Anubis is the peer here, so the forwarded headers Caddy
-              # would derive describe it (plain http from loopback), not
-              # the visitor.
-              @portfolio host noelejoshua.com blog.noelejoshua.com
-              handle @portfolio {
-                ${servePortfolio "{header.X-Real-Ip}"}
-              }
-
-              handle {
-                respond 404
-              }
-            }
-          ''}
-
-          # Caddy 2.10+ reuses this DNS-01 wildcard for the other jeiang.dev
-          # blocks below -- none of them needs its own tls directive.
-          jeiang.dev, *.jeiang.dev {
-            ${logLine}${contentLine}${crowdsecLine}${appsecLine}tls {
-              dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-            }
-
-            @apex host jeiang.dev
-            handle @apex {
-              ${mkContentSite {serve = serveRoot website;}}
-            }
-
-            handle {
-              respond 404
-            }
-          }
-
-          aidanpinard.co {
-            ${logLine}${contentLine}${crowdsecLine}${appsecLine}tls {
-              dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-            }
-            ${mkContentSite {serve = serveRoot website;}}
-          }
-
-          pinard.co.tt {
-            ${logLine}${contentLine}${crowdsecLine}${appsecLine}tls {
-              dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-            }
-            ${mkContentSite {serve = serveRoot website;}}
-          }
-
-          # In its owner's Cloudflare account, proxied, so not in dns/: renews
-          # via HTTP-01 rather than DNS-01.
-          noelejoshua.com, blog.noelejoshua.com {
-            ${logLine}${contentLine}${crowdsecLine}${appsecLine}${portfolioSite}
-          }
-
-          # Every site block from here down is deliberately NOT behind the
-          # Anubis gate: these are machine-consumed routes, and a
-          # proof-of-work interstitial in front of a non-browser client is
-          # an outage, not a trade-off.
-
-          auth.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node2}:${port "pocket-id" "app"}
-          }
-
-          ntfy.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${upstream "ntfy" "app"}
-          }
-
-          grafana.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy ${node3}:${port "monitoring" "grafana"}
-          }
-
-          # Ungated deliberately: it reports on Pocket ID, so SSO (or
-          # netbird-proxy, which authenticates against it) would take the
-          # outage report down with the outage. appsec skipped, fail-open.
-          status.jeiang.dev {
-            ${logLine}${crowdsecLine}reverse_proxy ${upstream "gatus" "app"}
-          }
-
-          tinyauth.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}reverse_proxy 127.0.0.1:${port "tinyauth" "app"}
-          }
-
-          # Only a tinyauth session in the atrium_access group is forwarded.
-          # `route` keeps the written order: Caddy's default order runs
-          # request_header after forward_auth, which would delete the
-          # identity headers tinyauth just copied in.
-          ${self.lib.atriumHostname} {
-            ${logLine}${crowdsecLine}${appsecLine}route {
-              request_header -Remote-User
-              request_header -Remote-Email
-              request_header -Remote-Name
-              request_header -Remote-Groups
-              # Signed media links are public: atrium verifies the HMAC.
-              # Remote-* stays stripped above, so nothing can be spoofed.
-              handle /media/file/* {
-                reverse_proxy ${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumWebPort}
-              }
-              handle {
-                forward_auth 127.0.0.1:${port "tinyauth" "app"} {
-                  uri /api/auth/caddy
-                  copy_headers Remote-User Remote-Email Remote-Groups
-                }
-                reverse_proxy ${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumWebPort}
-              }
-            }
-          }
-
-          netbird.jeiang.dev {
-            # appsec only on the dashboard handles below: @grpc/@backend/
-            # @relay are long-lived streams the local AppSec config would
-            # allow anyway.
-            ${logLine}${crowdsecLine}@grpc path /signalexchange.SignalExchange/* /management.ManagementService/* /management.ProxyService/*
-            handle @grpc {
-              reverse_proxy h2c://${node2}:${port "netbird-server" "http"}
-            }
-
-            @backend path /api/* /oauth2/* /ws-proxy/*
-            handle @backend {
-              reverse_proxy ${node2}:${port "netbird-server" "http"} {
-                transport http {
-                  read_timeout 15m
-                }
-              }
-            }
-
-            @relay path /relay*
-            handle @relay {
-              reverse_proxy ${node2}:${port "netbird-relay" "relay"} {
-                transport http {
-                  read_timeout 15m
-                }
-              }
-            }
-
-            # IronRDP WASM bundle the nixpkgs dashboard doesn't carry
-            # (modules/packages/netbird-ironrdp.nix). Must precede the
-            # fallback handle or the module import gets index.html.
-            handle_path /ironrdp-pkg/* {
-              ${appsecLine}root * ${netbirdIronRDP}
-              file_server
-            }
-
-            # Next.js `output: "export"` build: the {path}.html candidate is
-            # what makes a direct /networks hit resolve; without it deep
-            # links hydrate the wrong route tree and hard-reload forever.
-            handle {
-              ${appsecLine}root * ${netbirdDashboard}
-              try_files {path} {path}.html {path}/index.html /index.html
-              file_server
-            }
-          }
-
-          bill-split.jeiang.dev {
-            ${logLine}${contentLine}${crowdsecLine}${appsecLine}root * ${billSplitter}
-            file_server
-          }
-
-          rivals.jeiang.dev {
-            ${logLine}${contentLine}${crowdsecLine}# Hero data is served from the daily rivals-heroes-sync snapshot
-            # (below) so a weekly upstream refresh lands without a redeploy.
-            # Portraits ride along because the app derives img/ paths from
-            # heroes.json slugs. Anything the snapshot lacks -- including all
-            # of it before the first sync -- falls through to the pinned build.
-            @cachedHero {
-              path /heroes.json /meta.json /img/*
-              file {
-                root ${heroCacheRoot}
-              }
-            }
-            handle @cachedHero {
-              ${appsecLine}root * ${heroCacheRoot}
-              file_server
-            }
-
-            handle {
-              ${appsecLine}root * ${rivalsRandomizer}
-              file_server
-            }
-          }
-
-          mdtable.jeiang.dev {
-            ${logLine}${contentLine}${crowdsecLine}${appsecLine}root * ${mdTableEditor}
-            file_server
-          }
-
-          github.jeiang.dev {
-            ${logLine}${crowdsecLine}${appsecLine}redir https://github.com/jeiang{uri} 301
-          }
+          ${lib.concatMapStringsSep "\n" renderSite (builtins.attrValues config.edge.sites)}
         '';
+
+        environmentFile = config.sops.templates."caddy.env".path;
       };
 
-      sops.secrets =
-        {
-          ${self.lib.cloudflareDnsToken.secret}.sopsFile = self.lib.cloudflareDnsToken.sopsFile;
-        }
-        // lib.optionalAttrs crowdsecHere {
-          "caddy/crowdsec-lapi-url".sopsFile = ./secrets.yaml;
-        };
+      sops = {
+        secrets.${self.lib.cloudflareDnsToken.secret}.sopsFile = self.lib.cloudflareDnsToken.sopsFile;
 
-      sops.templates."caddy.env" = {
-        owner = config.services.caddy.user;
-        group = config.services.caddy.group;
-        restartUnits = ["caddy.service"];
-        content =
-          "CLOUDFLARE_API_TOKEN=${config.sops.placeholder.${self.lib.cloudflareDnsToken.secret}}\n"
-          + lib.optionalString crowdsecHere ''
-            CROWDSEC_LAPI_URL=${config.sops.placeholder."caddy/crowdsec-lapi-url"}
-            CROWDSEC_LAPI_KEY=${config.sops.placeholder.${self.lib.crowdsecBouncerSecret "edge-caddy"}}
-          '';
-      };
-      services = {
-        caddy.environmentFile = config.sops.templates."caddy.env".path;
-
-        netbird.server.dashboard = {
-          enable = true;
-          package = self.packages.${system}.netbird-dashboard;
-          managementServer = "https://netbird.jeiang.dev";
-          settings = {
-            AUTH_AUDIENCE = "netbird-dashboard";
-            AUTH_CLIENT_ID = "netbird-dashboard";
-            AUTH_AUTHORITY = "https://netbird.jeiang.dev/oauth2";
-            AUTH_SUPPORTED_SCOPES = "openid profile email groups";
-            AUTH_REDIRECT_URI = "/nb-auth";
-            AUTH_SILENT_REDIRECT_URI = "/nb-silent-auth";
-            USE_AUTH0 = false;
-          };
-        };
-      };
-
-      users.users.rivals-heroes = {
-        isSystemUser = true;
-        group = "rivals-heroes";
-      };
-      users.groups.rivals-heroes = {};
-
-      systemd = {
-        services.caddy.serviceConfig.MemoryMax = "256M";
-
-        # Server-side cache for the rivals hero data: stock Caddy cannot cache
-        # responses (that needs the cache-handler plugin), so a timer snapshots
-        # upstream main into a state directory once a day and Caddy serves
-        # that. A failed fetch leaves the previous snapshot in place.
-        services.rivals-heroes-sync = {
-          description = "Snapshot rivals hero data from upstream main";
-          path = with pkgs; [curl jq coreutils findutils];
-          serviceConfig = {
-            Type = "oneshot";
-            # A static user, not DynamicUser: that would place the state
-            # under root-only /var/lib/private, which Caddy cannot traverse,
-            # and the store fallback would mask it.
-            User = "rivals-heroes";
-            Group = "rivals-heroes";
-            StateDirectory = "rivals-heroes";
-            # Snapshot dir + files must stay world-readable for Caddy.
-            UMask = "0022";
-          };
-          script = ''
-            set -euo pipefail
-            base=https://raw.githubusercontent.com/jeiang/character-randomizer/main/site
-            new=$(mktemp -d -p "$STATE_DIRECTORY" snapshot.XXXXXX)
-            trap 'rm -rf "$new"' EXIT
-            chmod 0755 "$new"
-
-            curl -fsSL --retry 3 "$base/heroes.json" -o "$new/heroes.json"
-            curl -fsSL --retry 3 "$base/meta.json" -o "$new/meta.json"
-            mkdir "$new/img"
-            # The app only renders -head.png; portraits in the repo go unused.
-            for slug in $(jq -r '.[].slug' "$new/heroes.json"); do
-              curl -fsSL --retry 3 "$base/img/$slug-head.png" -o "$new/img/$slug-head.png"
-            done
-
-            final="$STATE_DIRECTORY/snapshot.$(date +%s)"
-            mv "$new" "$final"
-            trap - EXIT
-            ln -sfn "$(basename "$final")" "$STATE_DIRECTORY/current.tmp"
-            mv -T "$STATE_DIRECTORY/current.tmp" "$STATE_DIRECTORY/current"
-            find "$STATE_DIRECTORY" -mindepth 1 -maxdepth 1 -name 'snapshot.*' \
-              ! -name "$(basename "$final")" -exec rm -rf {} +
+        templates."caddy.env" = {
+          owner = config.services.caddy.user;
+          group = config.services.caddy.group;
+          restartUnits = ["caddy.service"];
+          content = ''
+            CLOUDFLARE_API_TOKEN=${config.sops.placeholder.${self.lib.cloudflareDnsToken.secret}}
           '';
         };
-
-        timers.rivals-heroes-sync = {
-          wantedBy = ["timers.target"];
-          timerConfig = {
-            OnCalendar = "daily";
-            RandomizedDelaySec = "1h";
-            Persistent = true;
-            # Persistent= only covers missed calendar ticks; OnActiveSec
-            # fills the cache soon after first activation.
-            OnActiveSec = "2m";
-          };
-        };
       };
+
+      systemd.services.caddy.serviceConfig.MemoryMax = "256M";
     };
   };
 }

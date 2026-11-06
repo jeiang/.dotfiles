@@ -108,16 +108,6 @@ creation_rules:
       - *user_aidanp_se
       - *server_artemis
 
-  # modules/edge/default.nix.
-  - path_regex: modules/edge/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_alda
-
   # modules/tinyauth/default.nix.
   - path_regex: modules/tinyauth/secrets\.yaml$
     key_groups:
