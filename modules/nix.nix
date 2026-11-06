@@ -47,7 +47,7 @@ in {
   shared.modules.base = {config, ...}: {
     nixpkgs.pkgs = withSystem config.nixpkgs.hostPlatform.system ({pkgs, ...}: pkgs);
 
-    hjem.users.${config.preferences.user.name}.files.".config/nixpkgs/config.nix".text = lib.generators.toPretty {} nixpkgsConfig + "\n";
+    hjem.users.${self.lib.facts.userName}.files.".config/nixpkgs/config.nix".text = lib.generators.toPretty {} nixpkgsConfig + "\n";
   };
 
   shared.modules.workstation.programs.direnv.enable = true;

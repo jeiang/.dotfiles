@@ -17,9 +17,7 @@ permissions:
 
 jobs:
   # Splitting checks into a matrix gives each one its own runner, memory and time
-  # budget. This only evaluates checks.x86_64-linux, not the whole flake: some
-  # packages need a build-capable evaluation just to resolve their attributes, so
-  # a `nix flake check --no-build`-style pass over every output isn't viable here.
+  # budget.
   discover:
     runs-on: ubuntu-latest
     outputs:

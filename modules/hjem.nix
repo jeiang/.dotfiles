@@ -1,10 +1,14 @@
-{inputs, ...}: {
+{
+  self,
+  inputs,
+  ...
+}: {
   nixos.modules.base.imports = [inputs.hjem.nixosModules.default];
   darwin.modules.base.imports = [inputs.hjem.darwinModules.default];
 
-  shared.modules.base = {config, ...}: {
+  shared.modules.base = _: {
     hjem = {
-      users.${config.preferences.user.name}.enable = true;
+      users.${self.lib.facts.userName}.enable = true;
       clobberByDefault = true;
     };
   };

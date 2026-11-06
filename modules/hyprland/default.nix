@@ -4,13 +4,12 @@
   ...
 }: {
   nixos.modules.artemis = {
-    config,
     pkgs,
     lib,
     ...
   }: let
     cursor = "rose-pine-hyprcursor";
-    user = config.preferences.user.name;
+    user = self.lib.facts.userName;
     selfpkgs = self.packages.${pkgs.stdenv.hostPlatform.system};
     terminal = lib.getExe selfpkgs.ghostty;
   in {
@@ -88,9 +87,7 @@
           mkdir -p $HOME/Pictures/Screenshots
           ${lib.getExe pkgs.grimblast} --notify copysave area "$HOME/Pictures/Screenshots/screenshot-$(date +"%Y%m%d%H%M%S").png"
         '';
-        # strip the leading "#" for hyprland's rgba()/0x color syntax
-        hex = c: builtins.substring 1 6 c;
-        p = builtins.mapAttrs (_: hex) self.lib.palette.kanaboxDarkHard;
+        p = self.lib.palette.kanaboxDarkHardHex;
       in
         # lua
         ''

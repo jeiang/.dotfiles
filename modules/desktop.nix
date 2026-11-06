@@ -18,7 +18,7 @@
     fonts.fontconfig.defaultFonts = {
       serif = ["UbuntuSans Nerd Font"];
       sansSerif = ["UbuntuSans Nerd Font"];
-      monospace = ["Mononoki Nerd Font Mono"];
+      monospace = ["${self.lib.fonts.monospace} Mono"];
     };
 
     fonts.packages = with pkgs; [
@@ -27,10 +27,8 @@
       nerd-fonts.jetbrains-mono
       nerd-fonts.ubuntu-sans
       nerd-fonts.symbols-only
-      nerd-fonts.mononoki
     ];
 
-    time.timeZone = self.lib.facts.timeZone;
     i18n.defaultLocale = "en_US.UTF-8";
 
     hardware.enableRedistributableFirmware = true;

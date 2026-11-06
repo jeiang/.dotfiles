@@ -127,7 +127,7 @@ in {
     };
     # facter detects the board's Bluetooth controller and defaults this on; nothing pairs to it.
     hardware.bluetooth.enable = false;
-    users.users.${config.preferences.user.name}.extraGroups = ["networkmanager"];
+    users.users.${self.lib.facts.userName}.extraGroups = ["networkmanager"];
 
     nix.settings.trusted-users = ["@wheel"];
 
@@ -150,8 +150,8 @@ in {
     # gopass autosync push key; the public half must be registered as a write-access deploy key on github.com:jeiang/pass.
     sops.secrets."gopass/github-ssh-key" = {
       sopsFile = ./secrets.yaml;
-      owner = config.preferences.user.name;
-      path = "${config.users.users.${config.preferences.user.name}.home}/.ssh/id_ed25519";
+      owner = self.lib.facts.userName;
+      path = "${config.users.users.${self.lib.facts.userName}.home}/.ssh/id_ed25519";
       mode = "0600";
     };
     # Pinned so the first unattended push never stalls on an interactive known-hosts prompt.

@@ -36,52 +36,74 @@
       depsTargetTargetPropagated = [];
     };
 
+    # The dashboard's browser RDP client needs /ironrdp-pkg/{ironrdp_web.js,ironrdp_web_bg.wasm}, which only the dashboard's release CI downloads -- nixpkgs' netbird-dashboard ships without them.
+    # The IronRDP tag is the one that CI pins for this dashboard version; re-check the workflow when the dashboard moves.
     dashboardVersion = "2.95.0";
+    ironrdpVersion = "0.0.2";
+
+    ironrdpAsset = {
+      name,
+      hash,
+    }:
+      pkgs.fetchurl {
+        inherit hash;
+        url = "https://github.com/netbirdio/IronRDP/releases/download/v${ironrdpVersion}/${name}";
+      };
   in {
     linuxPackages = {
       netbird-relay = pkgs.netbird-relay.overrideAttrs pin;
       netbird-proxy = pkgs.netbird-proxy.overrideAttrs pin;
+      # Both files must sit at top level under their release names: the loader resolves the wasm relative to its own URL.
+      netbird-ironrdp-web = pkgs.runCommand "netbird-ironrdp-web-${ironrdpVersion}" {} ''
+        mkdir -p $out
+        cp ${ironrdpAsset {
+          name = "ironrdp_web.js";
+          hash = "sha256-0yWjXWyG16g/DKSAeYmDI+wD2Wxvk7ovgkMXR2vNogc=";
+        }} $out/ironrdp_web.js
+        cp ${ironrdpAsset {
+          name = "ironrdp_web_bg.wasm";
+          hash = "sha256-f4PfP90HmF6Q50+TKqmgrU+j3rsH02s0MABPGywgrjM=";
+        }} $out/ironrdp_web_bg.wasm
+      '';
     };
 
-    packages =
-      {
-        netbird = pkgs.netbird.overrideAttrs pin;
-        netbird-dashboard = pkgs.netbird-dashboard.overrideAttrs (old: rec {
-          version = dashboardVersion;
-          src = pkgs.fetchFromGitHub {
-            owner = "netbirdio";
-            repo = "dashboard";
-            rev = "v${version}";
-            hash = "sha256-ZIX8YzRFw6aXZuQ4Vc1EH53IO8M0RjFGkxkEso4HAxs=";
-          };
-          # nixpkgs builds npmDeps from its own rec-bound src, so the override must rebuild it.
-          npmDeps = pkgs.fetchNpmDeps {
-            inherit src;
-            name = "netbird-dashboard-${version}-npm-deps";
-            hash = "sha256-icFdukw9X2XJUkREHWbwwbR4jVeVurgX2GJyphrAmoc=";
-          };
-          env = old.env // {NEXT_PUBLIC_DASHBOARD_VERSION = version;};
+    packages = {
+      netbird = pkgs.netbird.overrideAttrs pin;
+      netbird-dashboard = pkgs.netbird-dashboard.overrideAttrs (old: rec {
+        version = dashboardVersion;
+        src = pkgs.fetchFromGitHub {
+          owner = "netbirdio";
+          repo = "dashboard";
+          rev = "v${version}";
+          hash = "sha256-ZIX8YzRFw6aXZuQ4Vc1EH53IO8M0RjFGkxkEso4HAxs=";
+        };
+        # nixpkgs builds npmDeps from its own rec-bound src, so the override must rebuild it.
+        npmDeps = pkgs.fetchNpmDeps {
+          inherit src;
+          name = "netbird-dashboard-${version}-npm-deps";
+          hash = "sha256-icFdukw9X2XJUkREHWbwwbR4jVeVurgX2GJyphrAmoc=";
+        };
+        env = old.env // {NEXT_PUBLIC_DASHBOARD_VERSION = version;};
+      });
+    };
+
+    darwinPackages.netbird-ui =
+      (pkgs.netbird.override {
+        componentName = "ui";
+        inherit wails3;
+      }).overrideAttrs (old:
+        pin old
+        // {
+          # Same bundle layout as client/ui/build/darwin/Taskfile.yml's create:app:bundle.
+          postInstall =
+            old.postInstall
+            + ''
+              app=$out/Applications/NetBird.app/Contents
+              install -Dm755 $out/bin/netbird-ui $app/MacOS/netbird-ui
+              install -Dm644 $src/client/ui/build/darwin/icons.icns $app/Resources/icons.icns
+              substitute $src/client/ui/build/darwin/Info.plist $app/Info.plist --replace-fail 0.0.1 ${(pin old).version}
+              rm -r $out/bin
+            '';
         });
-      }
-      // lib.optionalAttrs isDarwin {
-        netbird-ui =
-          (pkgs.netbird.override {
-            componentName = "ui";
-            inherit wails3;
-          }).overrideAttrs (old:
-            pin old
-            // {
-              # Same bundle layout as client/ui/build/darwin/Taskfile.yml's create:app:bundle.
-              postInstall =
-                old.postInstall
-                + ''
-                  app=$out/Applications/NetBird.app/Contents
-                  install -Dm755 $out/bin/netbird-ui $app/MacOS/netbird-ui
-                  install -Dm644 $src/client/ui/build/darwin/icons.icns $app/Resources/icons.icns
-                  substitute $src/client/ui/build/darwin/Info.plist $app/Info.plist --replace-fail 0.0.1 ${(pin old).version}
-                  rm -r $out/bin
-                '';
-            });
-      };
   };
 }

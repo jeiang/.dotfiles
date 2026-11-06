@@ -1,11 +1,22 @@
-{inputs, ...}: {
-  darwin.modules.base = {config, ...}: {
+{
+  self,
+  inputs,
+  ...
+}: {
+  darwin.modules.base = {config, ...}: let
+    # brew bundle never installs these; install them from the App Store by hand. Spotlight does not index Bitwarden and Wipr 2, so mas would reinstall them on every switch.
+    manualMasApps = {
+      Bitwarden = 1352778147;
+      "Wipr 2" = 1662217862;
+      Xcode = 497799835;
+    };
+  in {
     imports = [inputs.nix-homebrew.darwinModules.nix-homebrew];
 
     nix-homebrew = {
       enable = true;
       enableRosetta = false;
-      user = config.preferences.user.name;
+      user = self.lib.facts.userName;
       mutableTaps = false;
       # Pin Homebrew itself rather than trusting nix-homebrew's bundled default.
       package =
@@ -35,8 +46,7 @@
         autoUpdate = false;
         upgrade = true;
         cleanup = "zap";
-        # brew bundle never installs these; install them from the App Store by hand. Spotlight does not index Bitwarden and Wipr 2, so mas would reinstall them on every switch.
-        extraEnv.HOMEBREW_BUNDLE_MAS_SKIP = "${toString config.homebrew.masApps.Bitwarden} ${toString config.homebrew.masApps."Wipr 2"} ${toString config.homebrew.masApps.Xcode}";
+        extraEnv.HOMEBREW_BUNDLE_MAS_SKIP = toString (builtins.attrValues manualMasApps);
       };
 
       casks = [
@@ -62,12 +72,7 @@
         "omlahore/tap/removemacai"
       ];
 
-      masApps = {
-        Bitwarden = 1352778147;
-        "Yubico Authenticator" = 1497506650;
-        "Wipr 2" = 1662217862;
-        Xcode = 497799835;
-      };
+      masApps = manualMasApps // {"Yubico Authenticator" = 1497506650;};
     };
   };
 }

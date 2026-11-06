@@ -113,7 +113,8 @@ behavior for its own sake.
 - Every NixOS host's node exporter reports only `monitoredUnits`; each
   module adds the units it owns (Legion services through `units`).
 - `modules/packages/`: packages and wrapped programs. A package that only
-  builds on Linux goes in `perSystem.linuxPackages`.
+  builds on Linux goes in `perSystem.linuxPackages`, one that only builds on
+  darwin in `perSystem.darwinPackages`.
 - `dns/dnsconfig.js`: public DNS.
 - `docs/runbooks/`: procedures that recur.
 - `docs/topology/`: nix-topology diagrams rendered from the host
@@ -526,3 +527,5 @@ behavior for its own sake.
   `modules/hcloud-drift/check.sh` (what `just hcloud-drift` also runs) as a
   non-blocking preview on pull requests, and fails on push to `main`, weekly
   schedule, and `workflow_dispatch`.
+- `topology.yml` re-renders `docs/topology/` weekly and on
+  `workflow_dispatch`, and opens a pull request when the diagrams changed.

@@ -4,7 +4,7 @@
   ...
 }: {
   nixos.modules.base = {config, ...}: let
-    user = config.preferences.user.name;
+    user = self.lib.facts.userName;
     netbird = "${config.services.netbird.clients.default.service.name}.service";
     meshIP = self.lib.netbirdPeers.${config.networking.hostName};
     port = "7297";

@@ -68,8 +68,6 @@
           alias ls eza
           alias lt 'eza --tree'
           alias mv 'mv -i'
-          # rip (ripper) is only installed on artemis.
-          command -q rip; and alias trash rip
         end
       '';
   in {
@@ -85,12 +83,10 @@
             eza
             fzf
             jq
+            zoxide
           ]
           # nitch is Linux-only in the pinned nixpkgs.
-          ++ lib.optional (!pkgs.stdenv.hostPlatform.isDarwin) nitch
-          ++ [
-            zoxide
-          ];
+          ++ lib.optional (!pkgs.stdenv.hostPlatform.isDarwin) nitch;
         flags = {
           "-C" = "source ${fishConf}";
         };

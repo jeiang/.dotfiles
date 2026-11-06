@@ -11,7 +11,7 @@
     ...
   }: let
     cfg = config.persistence;
-    user = config.preferences.user.name;
+    user = self.lib.facts.userName;
     persistenceEntryType = lib.types.either lib.types.str (lib.types.attrsOf lib.types.anything);
     persistenceListOption = description:
       lib.mkOption {

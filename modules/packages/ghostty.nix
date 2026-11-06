@@ -33,7 +33,7 @@
         ];
         palette = builtins.concatStringsSep "\n" (inputs.nixpkgs.lib.imap0 (i: c: "palette = ${toString i}=${c}") ansi);
       in ''
-        font-family = Mononoki Nerd Font
+        font-family = ${self.lib.fonts.monospace}
         font-size = 13
         background = ${p.sumiInk1}
         foreground = ${p.fujiWhite}

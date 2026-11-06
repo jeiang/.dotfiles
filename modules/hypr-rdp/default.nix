@@ -9,7 +9,7 @@
     ...
   }: let
     package = self.packages.${pkgs.stdenv.hostPlatform.system}.hypr-rdp;
-    user = config.preferences.user.name;
+    user = self.lib.facts.userName;
     secretKey = "hypr-rdp/password";
   in {
     environment.systemPackages = [package];

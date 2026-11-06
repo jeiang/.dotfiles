@@ -48,7 +48,7 @@ in {
 
     sops.secrets."nanolight/token" = {
       inherit sopsFile;
-      owner = config.preferences.user.name;
+      owner = self.lib.facts.userName;
     };
   };
 }

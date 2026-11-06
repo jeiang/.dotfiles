@@ -17,7 +17,7 @@ alone, so a photo kept in its original colors is just a copy.
 ## Add or replace photos
 
 1. Downscale to 3840 px wide before committing; the repo carries the bytes
-    forever. Fill in the original name on both commands:
+    forever. Fill in the original's path and name:
 
     ```sh
     nix run nixpkgs#imagemagick -- IN.jpg -resize '3840x3840>' -quality 90 assets/wallpapers/NAME.jpg

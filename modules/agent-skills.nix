@@ -1,4 +1,5 @@
 {
+  self,
   inputs,
   lib,
   ...
@@ -45,12 +46,8 @@
 in {
   flake.lib.agentHomes = homes;
 
-  shared.modules.workstation = {
-    config,
-    pkgs,
-    ...
-  }: {
-    hjem.users.${config.preferences.user.name}.files = files pkgs;
+  shared.modules.workstation = {pkgs, ...}: {
+    hjem.users.${self.lib.facts.userName}.files = files pkgs;
   };
 
   # The homes hold OAuth tokens (omp's agent.db among them): persisted, never in the backup allowlist.
