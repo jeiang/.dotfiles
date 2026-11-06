@@ -5,11 +5,11 @@
     ...
   }: {
     packages.omp = let
-      strong = ["opencode-go/kimi-k3.1-pro:high" "openai-codex/gpt-6.1-sol:high"];
+      strong = ["openai-codex/gpt-6.1-sol:high" "mistral/zai-glm-5-3:high"];
       light = "opencode-zen/deepseek-v4.1-flash-free:high";
       lightChain = [
         "opencode-zen/glm-5.3-flash-free:high"
-        "opencode-go/deepseek-v4.1-flash:high"
+        "mistral/deepseek-v4-1-flash-1017:high"
         "openai-codex/gpt-6.1-terra:low"
         "anthropic/claude-haiku-5-5:high"
       ];
@@ -51,11 +51,19 @@
         astGrep.enabled = true;
         providers = {
           anthropic.slowMode = "auto";
-          maxInFlightRequests.opencode-go = 8;
           openaiLiveSteering = true;
         };
         # Paid OpenCode Zen models are off limits; only its free tier is used.
-        enabledModels = ["anthropic/*" "openai-codex/*" "opencode-go/*" "opencode-zen/*-free"];
+        # Mistral bills per token, so only the models placed in roles are enabled.
+        enabledModels = [
+          "anthropic/*"
+          "openai-codex/*"
+          "opencode-zen/*-free"
+          "mistral/mistral-large-4"
+          "mistral/deepseek-v4-1-flash-1017"
+          "mistral/zai-glm-5-3"
+          "mistral/zai-glm-5-3-flash"
+        ];
         prewalk = {
           enabled = false;
           auto = "suggest";
@@ -77,7 +85,7 @@
           perCallModelAllow = [
             "openai-codex/gpt-6.1-sol"
             "openai-codex/gpt-6.1-terra"
-            "opencode-go/deepseek-v4.1-flash"
+            "mistral/deepseek-v4-1-flash-1017"
             "anthropic/claude-sonnet-5-5"
           ];
           agentModelOverrides = {
@@ -143,25 +151,21 @@
             default = strong;
             slow = strong;
             plan = strong;
-            max-reasoning = [
-              "opencode-go/kimi-k3.1-pro:max"
-              "openai-codex/gpt-6.1-sol:xhigh"
-              "opencode-go/gemini-4-argon:high"
-            ];
-            advisor = ["opencode-go/kimi-k3.1-pro:high" "anthropic/claude-opus-5-5:medium"];
+            max-reasoning = ["openai-codex/gpt-6.1-sol:xhigh" "mistral/zai-glm-5-3:xhigh"];
+            advisor = ["anthropic/claude-opus-5-5:medium" "mistral/deepseek-v4-1-flash-1017:max"];
             task = [
-              "opencode-go/kimi-k3.1-pro:high"
-              "opencode-go/deepseek-v4.1-flash:max"
               "anthropic/claude-opus-5-5:medium"
+              "mistral/zai-glm-5-3-flash:high"
+              "mistral/deepseek-v4-1-flash-1017:max"
             ];
-            smol = ["opencode-go/deepseek-v4.1-flash:max" "anthropic/claude-sonnet-5-5:high"];
+            smol = ["mistral/deepseek-v4-1-flash-1017:max" "anthropic/claude-sonnet-5-5:high"];
             fast = lightChain;
             commit = lightChain;
             widget = lightChain;
             memory = lightChain;
             judge = ["opencode-zen/jev-1.13-free" "@smol"];
             vision = [
-              "opencode-go/deepseek-v4.1-flash:high"
+              "mistral/mistral-large-4:medium"
               "openai-codex/gpt-6-luna:high"
               "anthropic/claude-haiku-5-5:high"
             ];
