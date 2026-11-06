@@ -67,45 +67,43 @@
       '';
     };
 
-    packages =
-      {
-        netbird = pkgs.netbird.overrideAttrs pin;
-        netbird-dashboard = pkgs.netbird-dashboard.overrideAttrs (old: rec {
-          version = dashboardVersion;
-          src = pkgs.fetchFromGitHub {
-            owner = "netbirdio";
-            repo = "dashboard";
-            rev = "v${version}";
-            hash = "sha256-ZIX8YzRFw6aXZuQ4Vc1EH53IO8M0RjFGkxkEso4HAxs=";
-          };
-          # nixpkgs builds npmDeps from its own rec-bound src, so the override must rebuild it.
-          npmDeps = pkgs.fetchNpmDeps {
-            inherit src;
-            name = "netbird-dashboard-${version}-npm-deps";
-            hash = "sha256-icFdukw9X2XJUkREHWbwwbR4jVeVurgX2GJyphrAmoc=";
-          };
-          env = old.env // {NEXT_PUBLIC_DASHBOARD_VERSION = version;};
+    packages = {
+      netbird = pkgs.netbird.overrideAttrs pin;
+      netbird-dashboard = pkgs.netbird-dashboard.overrideAttrs (old: rec {
+        version = dashboardVersion;
+        src = pkgs.fetchFromGitHub {
+          owner = "netbirdio";
+          repo = "dashboard";
+          rev = "v${version}";
+          hash = "sha256-ZIX8YzRFw6aXZuQ4Vc1EH53IO8M0RjFGkxkEso4HAxs=";
+        };
+        # nixpkgs builds npmDeps from its own rec-bound src, so the override must rebuild it.
+        npmDeps = pkgs.fetchNpmDeps {
+          inherit src;
+          name = "netbird-dashboard-${version}-npm-deps";
+          hash = "sha256-icFdukw9X2XJUkREHWbwwbR4jVeVurgX2GJyphrAmoc=";
+        };
+        env = old.env // {NEXT_PUBLIC_DASHBOARD_VERSION = version;};
+      });
+    };
+
+    darwinPackages.netbird-ui =
+      (pkgs.netbird.override {
+        componentName = "ui";
+        inherit wails3;
+      }).overrideAttrs (old:
+        pin old
+        // {
+          # Same bundle layout as client/ui/build/darwin/Taskfile.yml's create:app:bundle.
+          postInstall =
+            old.postInstall
+            + ''
+              app=$out/Applications/NetBird.app/Contents
+              install -Dm755 $out/bin/netbird-ui $app/MacOS/netbird-ui
+              install -Dm644 $src/client/ui/build/darwin/icons.icns $app/Resources/icons.icns
+              substitute $src/client/ui/build/darwin/Info.plist $app/Info.plist --replace-fail 0.0.1 ${(pin old).version}
+              rm -r $out/bin
+            '';
         });
-      }
-      // lib.optionalAttrs isDarwin {
-        netbird-ui =
-          (pkgs.netbird.override {
-            componentName = "ui";
-            inherit wails3;
-          }).overrideAttrs (old:
-            pin old
-            // {
-              # Same bundle layout as client/ui/build/darwin/Taskfile.yml's create:app:bundle.
-              postInstall =
-                old.postInstall
-                + ''
-                  app=$out/Applications/NetBird.app/Contents
-                  install -Dm755 $out/bin/netbird-ui $app/MacOS/netbird-ui
-                  install -Dm644 $src/client/ui/build/darwin/icons.icns $app/Resources/icons.icns
-                  substitute $src/client/ui/build/darwin/Info.plist $app/Info.plist --replace-fail 0.0.1 ${(pin old).version}
-                  rm -r $out/bin
-                '';
-            });
-      };
   };
 }

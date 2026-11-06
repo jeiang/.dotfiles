@@ -38,12 +38,21 @@
       pkgs,
       ...
     }: {
-      # Absent on darwin rather than an eval error there.
-      options.linuxPackages = lib.mkOption {
-        type = lib.types.lazyAttrsOf lib.types.package;
-        default = {};
+      # Packages for one platform only: absent on the other rather than an eval error there.
+      options = {
+        linuxPackages = lib.mkOption {
+          type = lib.types.lazyAttrsOf lib.types.package;
+          default = {};
+        };
+        darwinPackages = lib.mkOption {
+          type = lib.types.lazyAttrsOf lib.types.package;
+          default = {};
+        };
       };
-      config.packages = lib.mkIf pkgs.stdenv.hostPlatform.isLinux config.linuxPackages;
+      config.packages = lib.mkMerge [
+        (lib.mkIf pkgs.stdenv.hostPlatform.isLinux config.linuxPackages)
+        (lib.mkIf pkgs.stdenv.hostPlatform.isDarwin config.darwinPackages)
+      ];
     };
   };
 }
