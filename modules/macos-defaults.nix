@@ -1,12 +1,19 @@
-{self, ...}: {
+{
+  self,
+  lib,
+  ...
+}: let
+  userArg = lib.escapeShellArg self.lib.facts.userName;
+in {
+  # Activation runs as root; per-user preferences and LaunchServices need the user's launchd session.
+  flake.lib.darwinAsUser = cmd: ''launchctl asuser "$(id -u -- ${userArg})" sudo --user=${userArg} -- ${cmd}'';
+
   darwin.modules.base = {
     config,
-    lib,
     pkgs,
     ...
   }: let
-    userArg = lib.escapeShellArg config.preferences.user.name;
-    asUser = cmd: ''launchctl asuser "$(id -u -- ${userArg})" sudo --user=${userArg} -- ${cmd}'';
+    asUser = self.lib.darwinAsUser;
     # Rotation is macOS' own folder wallpaper, set once by hand; nothing
     # scriptable reaches it, so this keeps the store directory at a stable path.
     pictures = "${config.users.users.${config.preferences.user.name}.home}/Pictures";

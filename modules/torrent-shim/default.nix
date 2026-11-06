@@ -3,7 +3,6 @@
   name = "Send to atrium";
 in {
   darwin.modules.base = {
-    config,
     lib,
     pkgs,
     ...
@@ -59,8 +58,7 @@ in {
         runHook postInstall
       '';
     };
-    user = config.preferences.user.name;
-    asUser = cmd: ''launchctl asuser "$(id -u -- ${lib.escapeShellArg user})" sudo --user=${lib.escapeShellArg user} -- ${cmd}'';
+    asUser = self.lib.darwinAsUser;
     lsregister = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister";
     handlers = pkgs.writeText "send-to-artemis.duti" ''
       ${bundleId} magnet
