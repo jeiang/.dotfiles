@@ -5,16 +5,11 @@
 var REG_NONE = NewRegistrar("none");
 var DSP_CLOUDFLARE = NewDnsProvider("cloudflare");
 
-// nodes.json is generated from flake.lib.legionNodes by `just dns-nodes`; the legion-nodes-json flake check fails while it is stale.
-var NODES = require("./nodes.json");
+// nodes.json is generated from flake.lib.legionNodes and legion.services publicHostnames by `just dns-nodes`; the legion-nodes-json flake check fails while it is stale.
+var LEGION = require("./nodes.json");
+var NODES = LEGION.nodes;
 var ALDA_V4 = NODES["alda"].publicIPv4;
-var VIDA_V4 = NODES["vida"].publicIPv4;
-var PERIA_V4 = NODES["peria"].publicIPv4;
-var RICKLENT_V4 = NODES["ricklent"].publicIPv4;
 var ALDA_V6 = NODES["alda"].publicIPv6;
-var VIDA_V6 = NODES["vida"].publicIPv6;
-var PERIA_V6 = NODES["peria"].publicIPv6;
-var RICKLENT_V6 = NODES["ricklent"].publicIPv6;
 
 // Every Legion node's own name: the deploy and SSH hostname <node>.svr.jeiang.dev.
 var SVR = Object.keys(NODES).reduce(function (records, node) {
@@ -23,6 +18,23 @@ var SVR = Object.keys(NODES).reduce(function (records, node) {
     AAAA(node + ".svr", NODES[node].publicIPv6),
   ]);
 }, []);
+
+// DNS-only records for each legion.services publicHostnames entry inside the zone, one A/AAAA pair per node listing it.
+function DIRECT(zone) {
+  var suffix = "." + zone;
+  return Object.keys(LEGION.hostnames).reduce(function (records, host) {
+    var label = host === zone ? "@" : host.slice(-suffix.length) === suffix ? host.slice(0, -suffix.length) : null;
+    if (label === null) {
+      return records;
+    }
+    return records.concat(LEGION.hostnames[host].reduce(function (pairs, node) {
+      return pairs.concat([
+        A(label, NODES[node].publicIPv4, CF_PROXY_OFF),
+        AAAA(label, NODES[node].publicIPv6, CF_PROXY_OFF),
+      ]);
+    }, []));
+  }, []);
+}
 
 // Caddy's DNS-01 issuer creates/deletes these TXT records at every renewal; a push racing a renewal must not delete a challenge mid-validation.
 var ACME = [
@@ -44,40 +56,10 @@ D("jeiang.dev", REG_NONE,
   CAA("@", "issuewild", "letsencrypt.org"),
   CAA("@", "iodef", "mailto:aidan@aidanpinard.co"),
 
-  // cache-push MUST stay grey-clouded: a push is one streaming PUT of a whole NAR and Cloudflare 413s bodies over 100 MB.
-  A("cache", PERIA_V4, CF_PROXY_OFF),
-  AAAA("cache", PERIA_V6, CF_PROXY_OFF),
-  A("cache-push", PERIA_V4, CF_PROXY_OFF),
-  AAAA("cache-push", PERIA_V6, CF_PROXY_OFF),
-
-  // Long-lived subscription streams (SSE/WebSocket) stay off the Cloudflare proxy, and the client IP reaches ntfy's rate limiter.
-  A("ntfy", ALDA_V4, CF_PROXY_OFF),
-  AAAA("ntfy", ALDA_V6, CF_PROXY_OFF),
+  DIRECT("jeiang.dev"),
 
   // GitHub Pages for the atrium docs; grey-clouded so GitHub can issue the certificate.
   CNAME("atrium.docs", "jeiang.github.io.", CF_PROXY_OFF),
-
-  // UDP game traffic cannot pass the Cloudflare proxy, so the wildcard does not cover it.
-  A("factorio", RICKLENT_V4, CF_PROXY_OFF),
-  AAAA("factorio", RICKLENT_V6, CF_PROXY_OFF),
-  A("mc", RICKLENT_V4, CF_PROXY_OFF),
-  AAAA("mc", RICKLENT_V6, CF_PROXY_OFF),
-
-  // NetBird control plane and STUN: long-lived gRPC/WebSocket streams and UDP, kept off the Cloudflare proxy.
-  A("netbird", ALDA_V4),
-  AAAA("netbird", ALDA_V6),
-  A("stun.netbird", VIDA_V4),
-  AAAA("stun.netbird", VIDA_V6),
-
-  // NetBird reverse proxy cluster: one replica on vida, one on ricklent.
-  A("proxy", VIDA_V4),
-  AAAA("proxy", VIDA_V6),
-  A("proxy", RICKLENT_V4),
-  AAAA("proxy", RICKLENT_V6),
-  A("*.proxy", VIDA_V4),
-  AAAA("*.proxy", VIDA_V6),
-  A("*.proxy", RICKLENT_V4),
-  AAAA("*.proxy", RICKLENT_V6),
 
   SVR,
 
@@ -97,6 +79,7 @@ D("aidanpinard.co", REG_NONE,
 
   A("@", ALDA_V4, CF_PROXY_ON, TTL(1)),
   AAAA("@", ALDA_V6, CF_PROXY_ON, TTL(1)),
+  DIRECT("aidanpinard.co"),
 
   CAA("@", "issue", "letsencrypt.org"),
   CAA("@", "issuewild", "letsencrypt.org"),
@@ -119,6 +102,7 @@ D("pinard.co.tt", REG_NONE,
 
   A("@", ALDA_V4, CF_PROXY_ON, TTL(1)),
   AAAA("@", ALDA_V6, CF_PROXY_ON, TTL(1)),
+  DIRECT("pinard.co.tt"),
 
   CAA("@", "issue", "letsencrypt.org"),
   CAA("@", "issuewild", "letsencrypt.org"),

@@ -7,19 +7,51 @@
 }: let
   inherit (config.nixos) modules;
 
-  publicV4Gateway = "172.31.1.1";
-  publicV6Gateway = "fe80::1";
+  inventory = {
+    alda = {
+      provider = "hetzner";
+      privateIPv4 = "172.17.0.1";
+      publicIPv4 = "178.156.226.145";
+      publicIPv6 = "2a01:4ff:f0:6b8e::1";
+    };
 
-  legionNodes = self.lib.legionNodes;
+    vida = {
+      provider = "hetzner";
+      privateIPv4 = "172.17.0.2";
+      publicIPv4 = "178.156.201.35";
+      publicIPv6 = "2a01:4ff:f0:a1ff::1";
+    };
 
-  nodeAddresses = builtins.filter (a: a != null) (lib.concatMap (node: [node.privateIPv4 node.publicIPv4 node.publicIPv6]) (builtins.attrValues legionNodes));
+    zantark = {
+      provider = "hetzner";
+      privateIPv4 = "172.17.0.3";
+      publicIPv4 = "178.156.186.147";
+      publicIPv6 = "2a01:4ff:f0:c52a::1";
+    };
 
-  validatedLegionNodes = assert lib.assertMsg (builtins.length nodeAddresses == builtins.length (lib.unique nodeAddresses))
-  "Legion inventory must not reuse an IP address"; legionNodes;
+    peria = {
+      provider = "hetzner";
+      privateIPv4 = "172.17.0.4";
+      publicIPv4 = "178.156.191.180";
+      publicIPv6 = "2a01:4ff:f0:ca96::1";
+    };
+
+    ricklent = {
+      provider = "linode";
+      privateIPv4 = null;
+      publicIPv4 = "23.92.31.67";
+      publicIPv6 = "2600:3c02::2000:f4ff:fe3d:6112";
+    };
+  };
+
+  nodeAddresses = builtins.filter (a: a != null) (lib.concatMap (node: [node.privateIPv4 node.publicIPv4 node.publicIPv6]) (builtins.attrValues inventory));
+
+  legionNodes = assert lib.assertMsg (builtins.length nodeAddresses == builtins.length (lib.unique nodeAddresses))
+  "Legion inventory must not reuse an IP address"; inventory;
 
   isHetzner = node: node.provider == "hetzner";
 
-  # Hetzner nodes reach each other over the private network; every other pair goes over the mesh. Null while a node is not yet in modules/netbird-peers.nix.
+  # Hetzner nodes reach each other over the private network; every other pair goes over the mesh. Null while the target has no NetBird peer entry.
   legionAddress = from: to:
     if isHetzner legionNodes.${from} && isHetzner legionNodes.${to}
     then legionNodes.${to}.privateIPv4
@@ -47,81 +79,20 @@
   nodeHostname = name: "${name}.svr.jeiang.dev";
 
   serviceAddress = from: service: legionAddress from legionServices.${service}.node;
-
-  mkWan = {
-    publicIPv4,
-    publicIPv6,
-  }: {
-    matchConfig.Name = "enp1s0";
-
-    address = [
-      "${publicIPv4}/32"
-      "${publicIPv6}/64"
-    ];
-
-    routes = [
-      {Destination = "${publicV4Gateway}/32";}
-      {
-        Gateway = publicV4Gateway;
-        GatewayOnLink = true;
-      }
-      {
-        Gateway = publicV6Gateway;
-        GatewayOnLink = true;
-      }
-    ];
-
-    networkConfig = {
-      DHCP = "no";
-      IPv6AcceptRA = false;
-    };
-  };
 in {
   flake = {
     lib = {
-      legionNodes = {
-        alda = {
-          provider = "hetzner";
-          privateIPv4 = "172.17.0.1";
-          publicIPv4 = "178.156.226.145";
-          publicIPv6 = "2a01:4ff:f0:6b8e::1";
-        };
-
-        vida = {
-          provider = "hetzner";
-          privateIPv4 = "172.17.0.2";
-          publicIPv4 = "178.156.201.35";
-          publicIPv6 = "2a01:4ff:f0:a1ff::1";
-        };
-
-        zantark = {
-          provider = "hetzner";
-          privateIPv4 = "172.17.0.3";
-          publicIPv4 = "178.156.186.147";
-          publicIPv6 = "2a01:4ff:f0:c52a::1";
-        };
-
-        peria = {
-          provider = "hetzner";
-          privateIPv4 = "172.17.0.4";
-          publicIPv4 = "178.156.191.180";
-          publicIPv6 = "2a01:4ff:f0:ca96::1";
-        };
-
-        ricklent = {
-          provider = "linode";
-          privateIPv4 = null;
-          publicIPv4 = "23.92.31.67";
-          publicIPv6 = "2600:3c02::2000:f4ff:fe3d:6112";
-        };
-      };
-
-      hetznerNodes = lib.filterAttrs (_: isHetzner) legionNodes;
-
-      inherit legionAddress serviceAddress nodeHostname;
+      inherit legionNodes legionAddress serviceAddress nodeHostname;
 
       # dns/dnsconfig.js reads this through require(); `just dns-nodes` rewrites the committed dns/nodes.json.
-      legionNodesJson = builtins.toJSON (lib.mapAttrs (_: node: {inherit (node) publicIPv4 publicIPv6;}) validatedLegionNodes) + "\n";
+      legionNodesJson =
+        builtins.toJSON {
+          nodes = lib.mapAttrs (_: node: {inherit (node) publicIPv4 publicIPv6;}) legionNodes;
+          hostnames = lib.zipAttrsWith (_: lib.sort lib.lessThan) (
+            lib.concatMap (s: map (hostname: {${hostname} = s.node;}) s.publicHostnames) (builtins.attrValues legionServices)
+          );
+        }
+        + "\n";
     };
 
     deploy.nodes =
@@ -135,7 +106,7 @@ in {
           path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.${name};
         };
       })
-      validatedLegionNodes;
+      legionNodes;
   };
 
   nixos = {
@@ -144,10 +115,6 @@ in {
       lib,
       ...
     }: {
-      imports = [
-        self.diskoConfigurations.legion
-      ];
-
       # documentation.man.enable stays on: the toolbox keeps man pages, only the rest of the headless-server bulk goes.
       documentation = {
         nixos.enable = false;
@@ -161,7 +128,20 @@ in {
       };
       fonts.fontconfig.enable = false;
 
-      # Host DNS must never use Blocky-over-NetBird as primary resolver: netbird.jeiang.dev has to resolve via public DNS before the tunnel is up.
+      systemd.network.enable = true;
+      networking = {
+        useNetworkd = true;
+        nftables.enable = true;
+        tempAddresses = "disabled";
+        firewall = {
+          enable = true;
+          allowedTCPPorts = publicPortsFor config.networking.hostName "tcp";
+          allowedUDPPorts = publicPortsFor config.networking.hostName "udp";
+          allowedTCPPortRanges = publicPortRangesFor config.networking.hostName "tcp";
+          allowedUDPPortRanges = publicPortRangesFor config.networking.hostName "udp";
+        };
+      };
+
       sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
       services = {
         prometheus.exporters.node = {
@@ -176,7 +156,7 @@ in {
         # systemd-journal-upload appends `/upload` itself and VictoriaLogs' route is /insert/journald/upload, so this URL must end at /insert/journald.
         journald.upload = {
           enable = true;
-          settings.Upload.URL = "http://${legionAddress config.networking.hostName "zantark"}:${toString legionServices.monitoring.ports.victoria-logs}/insert/journald";
+          settings.Upload.URL = "http://${serviceAddress config.networking.hostName "monitoring"}:${toString legionServices.monitoring.ports.victoria-logs}/insert/journald";
         };
 
         journald.settings.Journal.SystemMaxUse = "1G";
@@ -240,67 +220,21 @@ in {
         max-free = 10 * 1024 * 1024 * 1024;
       };
 
-      networking.firewall = {
-        allowedTCPPorts = publicPortsFor config.networking.hostName "tcp";
-        allowedUDPPorts = publicPortsFor config.networking.hostName "udp";
-        allowedTCPPortRanges = publicPortRangesFor config.networking.hostName "tcp";
-        allowedUDPPortRanges = publicPortRangesFor config.networking.hostName "udp";
-      };
-
       nixpkgs.hostPlatform = "x86_64-linux";
       system.stateVersion = "25.05";
     };
 
-    modules.hetzner = {
-      config,
-      lib,
-      ...
-    }: {
-      systemd.network.networks = {
-        "10-wan" = mkWan {
-          inherit (legionNodes.${config.networking.hostName}) publicIPv4 publicIPv6;
-        };
-
-        "20-hcloud-private" = {
-          matchConfig.Name = "enp7s0";
-          networkConfig.DHCP = "ipv4";
-          dhcpV4Config.UseRoutes = false;
-          routes = [
-            {
-              Destination = self.lib.hetznerPrivateCidr;
-              Gateway = "172.16.0.1";
-              GatewayOnLink = true;
-            }
-          ];
-        };
-      };
-
-      networking.firewall.trustedInterfaces = ["enp7s0"];
-
-      # The label is the service name, applied once by the operator; nofail keeps a missing Volume from blocking boot, and mountGuard keeps the service off the unmounted dir.
-      fileSystems = lib.listToAttrs (
-        map (s:
-          lib.nameValuePair s.volume.mountpoint {
-            device = "/dev/disk/by-label/${s.name}";
-            fsType = "ext4";
-            options = ["nofail" "x-systemd.device-timeout=10s"];
-          })
-        (builtins.filter (s: s.volume != null) (servicesByNode config.networking.hostName))
-      );
-    };
-
-    configurations = let
-      mkLegionSystem = name: node: {
+    configurations =
+      builtins.mapAttrs (name: node: {
         module.imports =
           [
             modules.base
             modules.legion
+            modules.${node.provider}
+            {networking.hostName = name;}
           ]
-          ++ lib.optional (isHetzner node) modules.hetzner
-          ++ [{networking.hostName = name;}]
           ++ map (m: modules.${m}) (moduleNamesFor name);
-      };
-    in
-      builtins.mapAttrs mkLegionSystem validatedLegionNodes;
+      })
+      legionNodes;
   };
 }

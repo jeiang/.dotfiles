@@ -4,7 +4,7 @@
   config,
   ...
 }: let
-  legionNodeNames = builtins.attrNames self.lib.hetznerNodes;
+  hetznerNodeNames = builtins.attrNames self.lib.hetznerNodes;
 
   firewallOf = node: self.nixosConfigurations.${node}.config.networking.firewall;
 
@@ -47,8 +47,8 @@
   expected = {
     firewall = {
       name = "legion";
-      attachments = legionNodeNames;
-      rules = lib.unique (lib.concatMap rulesFor legionNodeNames);
+      attachments = hetznerNodeNames;
+      rules = lib.unique (lib.concatMap rulesFor hetznerNodeNames);
     };
     volumes =
       map (s: {
@@ -61,4 +61,17 @@
   };
 in {
   flake.lib.hcloudDriftExpectedJson = builtins.toJSON expected + "\n";
+
+  perSystem = {
+    pkgs,
+    system,
+    ...
+  }: {
+    checks = lib.mkIf (system == "x86_64-linux") {
+      hcloud-drift = pkgs.runCommand "hcloud-drift-check" {nativeBuildInputs = [pkgs.jq];} ''
+        bash ${./tests/run.sh} ${./check.sh} ${./tests/fixtures} ${pkgs.writeText "hcloud-drift-expected.json" self.lib.hcloudDriftExpectedJson}
+        touch $out
+      '';
+    };
+  };
 }

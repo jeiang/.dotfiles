@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Read-only: compares live Hetzner Cloud firewall/Volume state (via `hcloud`,
-# list/describe only) against modules/hcloud-drift's expected JSON, and exits
-# non-zero on any discrepancy. See AGENTS.md's Cloud Firewall / Volume
-# "Decisions that constrain changes" for what counts as drift.
+# list/describe only) against the flake's expected JSON, and exits non-zero on
+# any discrepancy.
 set -euo pipefail
 
 if [ -z "${HCLOUD_TOKEN:-}" ] && ! hcloud context active >/dev/null 2>&1; then
@@ -10,8 +9,7 @@ if [ -z "${HCLOUD_TOKEN:-}" ] && ! hcloud context active >/dev/null 2>&1; then
   exit 1
 fi
 
-# HCLOUD_DRIFT_EXPECTED lets a fixture (modules/checks.nix's hcloud-drift
-# flake check, or a manual test) stand in for the flake evaluation.
+# HCLOUD_DRIFT_EXPECTED lets a test stand in for the flake evaluation.
 expected_json="${HCLOUD_DRIFT_EXPECTED:-$(nix eval --raw '.#lib.hcloudDriftExpectedJson')}"
 
 drift=0
@@ -46,7 +44,7 @@ live_servers=$(hcloud server list -o json)
 server_name_by_id=$(jq -c '[.[] | {(.id | tostring): .name}] | add // {}' <<<"$live_servers")
 
 expected_rules=$(jq -S -c '.firewall.rules[] | .sourceIps |= sort' <<<"$expected_json" | sort -u)
-# ICMP stays operator-managed (AGENTS.md); it must never fail this check.
+# ICMP stays operator-managed; it must never fail this check.
 live_rules=$(jq -S -c '.rules[] | select(.protocol != "icmp") | {direction, protocol, port, sourceIps: (.source_ips | sort)}' <<<"$live_fw" | sort -u)
 diff_lines "firewall '$fw_name' rules" "$expected_rules" "$live_rules"
 

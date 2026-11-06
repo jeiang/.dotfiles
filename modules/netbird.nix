@@ -14,7 +14,7 @@
             Scheme = "https";
             Opaque = "";
             User = null;
-            Host = "netbird.jeiang.dev:443";
+            Host = "${self.lib.netbirdDomain}:443";
             Path = "";
             RawPath = "";
             OmitHost = false;

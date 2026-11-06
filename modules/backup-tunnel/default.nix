@@ -1,9 +1,16 @@
-_: let
+{
+  self,
+  config,
+  ...
+}: let
   # Out-of-band rescue path into artemis for when the NetBird mesh cannot
   # bootstrap; depends only on public DNS and static keys.
   artemisPublicKey = "XWfbtRzMfHUrv1oJ0ULRKFTbSn8io1iLkwBcf7AgQwQ=";
-  node1PublicKey = "ay1qHJCX2WQONRG5eTfh4fsIcTO6HOU8wdhSwHaJ+BM=";
+  responderPublicKey = "ay1qHJCX2WQONRG5eTfh4fsIcTO6HOU8wdhSwHaJ+BM=";
+  artemisAddress = "10.100.0.2";
+  responderAddress = "10.100.0.1";
   wireguardPort = 51821;
+  responderNode = config.legion.services.backup-tunnel.node;
 in {
   legion.services.backup-tunnel = {
     node = "alda";
@@ -25,13 +32,13 @@ in {
 
     networking = {
       wireguard.interfaces.wg-backup = {
-        ips = ["10.100.0.2/30"];
+        ips = ["${artemisAddress}/30"];
         privateKeyFile = config.sops.secrets."wireguard/artemis-private-key".path;
         peers = [
           {
-            publicKey = node1PublicKey;
-            allowedIPs = ["10.100.0.1/32"];
-            endpoint = "alda.svr.jeiang.dev:${toString wireguardPort}";
+            publicKey = responderPublicKey;
+            allowedIPs = ["${responderAddress}/32"];
+            endpoint = "${self.lib.nodeHostname responderNode}:${toString wireguardPort}";
             persistentKeepalive = 25;
             # Without this the peer unit is a one-shot that fails permanently
             # when the boot-time DNS lookup runs before the network is up.
@@ -55,13 +62,13 @@ in {
     systemd.services.sops-install-secrets.before = ["systemd-networkd.service"];
 
     networking.wireguard.interfaces.wg-backup = {
-      ips = ["10.100.0.1/30"];
+      ips = ["${responderAddress}/30"];
       listenPort = wireguardPort;
       privateKeyFile = config.sops.secrets."wireguard/node1-private-key".path;
       peers = [
         {
           publicKey = artemisPublicKey;
-          allowedIPs = ["10.100.0.2/32"];
+          allowedIPs = ["${artemisAddress}/32"];
         }
       ];
     };
