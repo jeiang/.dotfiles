@@ -108,7 +108,8 @@ behavior for its own sake.
 - A value another module needs is a `flake.lib` name defined by the module
   that owns it (`netbirdDomain`, `pocketIdUrl`, `cacheHostname`,
   `deployUser`, ...). A Legion service's address comes from
-  `self.lib.serviceAddress <fromNode> <service>`; never type a node name for
+  `self.lib.serviceAddress <fromNode> <service>`, and its NetBird mesh IP
+  from `self.lib.serviceMeshAddress <service>`; never type a node name for
   where a service runs.
 - Every NixOS host's node exporter reports only `monitoredUnits`; each
   module adds the units it owns (Legion services through `units`).

@@ -21,7 +21,7 @@ in {
 
     services.nanolight-server = {
       enable = true;
-      listenAddress = self.lib.netbirdPeers.${service.node};
+      listenAddress = self.lib.serviceMeshAddress "nanolight-server";
       port = service.ports.app;
       tokensFile = config.sops.secrets."nanolight/tokens".path;
     };
@@ -41,7 +41,7 @@ in {
       # grant across rebuilds. Signing also needs Apple's WWDR G3 intermediate.
       codesignIdentity = "BEFA7CA1803B0F13E47D3D32831AD134C97C1DE9";
       settings.sync = {
-        url = "http://${self.lib.netbirdPeers.${service.node}}:${toString service.ports.app}";
+        url = "http://${self.lib.serviceMeshAddress "nanolight-server"}:${toString service.ports.app}";
         token_file = config.sops.secrets."nanolight/token".path;
       };
     };

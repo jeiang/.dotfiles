@@ -70,10 +70,12 @@
   nodeHostname = name: "${name}.svr.jeiang.dev";
 
   serviceAddress = from: service: legionAddress from legionServices.${service}.node;
+
+  serviceMeshAddress = service: self.lib.netbirdPeers.${legionServices.${service}.node};
 in {
   flake = {
     lib = {
-      inherit legionNodes legionAddress serviceAddress nodeHostname;
+      inherit legionNodes legionAddress serviceAddress serviceMeshAddress nodeHostname;
 
       # dns/dnsconfig.js reads this through require(); `just dns-nodes` rewrites the committed dns/nodes.json.
       legionNodesJson =

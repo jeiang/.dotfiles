@@ -7,7 +7,7 @@
   token = "grafana/mcp-token";
 
   # Mesh address, not grafana.jeiang.dev: probing the edge gets the client banned by CrowdSec.
-  grafanaUrl = "http://${self.lib.netbirdPeers.${config.legion.services.monitoring.node}}:${toString config.legion.services.monitoring.ports.grafana}";
+  grafanaUrl = "http://${self.lib.serviceMeshAddress "monitoring"}:${toString config.legion.services.monitoring.ports.grafana}";
 
   servers = pkgs: tokenPath:
     inputs.mcp-servers-nix.lib.mkConfig pkgs {
