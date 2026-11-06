@@ -2,6 +2,10 @@
   mainUnit = "netbird-server";
   dataDir = "/mnt/netbird";
 
+  domain = "netbird.jeiang.dev";
+  # The edge's @relay route; the server advertises it and the relay announces it, so they must match.
+  relayAddress = "rels://${domain}:443";
+
   httpPort = 80;
   serverMetricsPort = 9090;
 
@@ -46,7 +50,7 @@ in {
         metrics = relayMetricsPort;
         health = relayHealthPort;
       };
-      publicHostnames = ["stun.netbird.jeiang.dev"];
+      publicHostnames = ["stun.${domain}"];
       firewall = [
         {
           port = stunPort;
@@ -78,7 +82,7 @@ in {
       configYaml = ''
         server:
           listenAddress: ":${toString httpPort}"
-          exposedAddress: "https://netbird.jeiang.dev:443"
+          exposedAddress: "https://${domain}:443"
           metricsPort: ${toString serverMetricsPort}
           healthcheckAddress: ":9000"
           logLevel: "info"
@@ -95,11 +99,11 @@ in {
           authSecret: "${config.sops.placeholder."netbird/relay-auth-secret"}"
           dataDir: "${dataDir}"
           stuns:
-            - uri: "stun:stun.netbird.jeiang.dev:${toString stunPort}"
+            - uri: "stun:stun.${domain}:${toString stunPort}"
               proto: "udp"
           relays:
             addresses:
-              - "rels://netbird.jeiang.dev:443"
+              - "${relayAddress}"
             secret: "${config.sops.placeholder."netbird/relay-auth-secret"}"
             credentialsTTL: "24h"
           disableAnonymousMetrics: true
@@ -109,13 +113,13 @@ in {
             # in the management database; its Pocket ID client admits only the
             # `netbird` group). Turning local login back on needs this set to
             # false and a vida deploy; API tokens (nb-nix) work either way.
-            issuer: "https://netbird.jeiang.dev/oauth2"
+            issuer: "https://${domain}/oauth2"
             localAuthDisabled: true
             signKeyRefreshEnabled: true
             sessionCookieEncryptionKey: "${config.sops.placeholder."netbird/idp-session-cookie-encryption-key"}"
             dashboardRedirectURIs:
-              - "https://netbird.jeiang.dev/nb-auth"
-              - "https://netbird.jeiang.dev/nb-silent-auth"
+              - "https://${domain}/nb-auth"
+              - "https://${domain}/nb-silent-auth"
             cliRedirectURIs:
               - "http://localhost:53000/"
           dnsDomain: "jeiang.vpn"
@@ -187,9 +191,8 @@ in {
             wantedBy = ["multi-user.target"];
             environment = {
               NB_LISTEN_ADDRESS = ":${toString relayPort}";
-              # Advertised address: peers reach the relay through the edge's
-              # netbird.jeiang.dev:443 @relay route, not relayPort directly.
-              NB_EXPOSED_ADDRESS = "rels://netbird.jeiang.dev:443";
+              # Advertised address: peers reach the relay through the edge, not relayPort directly.
+              NB_EXPOSED_ADDRESS = relayAddress;
               NB_ENABLE_STUN = "true";
               NB_STUN_PORTS = toString stunPort;
               NB_LOG_LEVEL = "info";
