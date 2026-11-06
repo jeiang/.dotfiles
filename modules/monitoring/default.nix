@@ -365,7 +365,7 @@ in {
                 # GC evicts on its next tick once usage passes the high
                 # watermark, so staying above it means eviction is stuck.
                 alert = "GarretOverHighWatermark";
-                expr = "garret_gc_usage_bytes / garret_gc_quota_bytes > ${toString self.lib.garretWatermarks.high}";
+                expr = "garret_gc_usage_bytes / garret_gc_quota_bytes > ${toString self.lib.garretHighWatermark}";
                 for = "30m";
                 labels.severity = "warning";
                 annotations = {

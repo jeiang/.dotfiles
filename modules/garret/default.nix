@@ -26,7 +26,7 @@
   };
 in {
   flake.lib = {
-    garretWatermarks = watermarks;
+    garretHighWatermark = watermarks.high;
     cacheHostname = hostname;
     cachePushHostname = pushHostname;
   };

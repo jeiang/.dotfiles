@@ -15,7 +15,6 @@ in {
   legion.services.backup-tunnel = {
     node = "alda";
     module = "backup-tunnel-responder";
-    ports.wireguard = wireguardPort;
     publicPorts = [
       {
         port = wireguardPort;
