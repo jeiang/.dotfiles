@@ -9,6 +9,23 @@ in {
       inherit sha256;
     };
 
+    # Shell that downloads a `huggingface` file into dir (a path or shell
+    # expression) unless it is there, keeping it only if the checksum matches;
+    # needs curl and coreutils.
+    fetchWeights = dir: model: ''
+      if [ ! -e "${dir}/${model.file}" ]; then
+        echo "downloading ${model.file}" >&2
+        tmp="${dir}/.${model.file}.part"
+        curl --fail --location --retry 3 --retry-delay 5 --continue-at - -o "$tmp" "${model.url}"
+        if ! printf '%s  %s\n' "${model.sha256}" "$tmp" | sha256sum --check --status; then
+          rm -f "$tmp"
+          echo "checksum mismatch for ${model.file}" >&2
+          exit 1
+        fi
+        mv "$tmp" "${dir}/${model.file}"
+      fi
+    '';
+
     llamaModels = {
       embeddinggemma = embeddinggemma "embeddinggemma-2-Q8_0.gguf" "2188ac1deca4b77dffefd603c2776a9d76d9d74ec01841392982ebb840b09135";
       embeddinggemmaProjector = embeddinggemma "mmproj-embeddinggemma-2-Q8_0.gguf" "c4a8a52691ecef40618438928bdf9e68379b854e24166f292592353db0aab64f";
@@ -37,18 +54,7 @@ in {
           ''
             mkdir -p "${modelsDir}"
           ''
-          + lib.concatMapStrings (model: ''
-            if [ ! -e "${modelsDir}/${model.file}" ]; then
-              tmp="${modelsDir}/.${model.file}.part"
-              curl --fail --location --retry 3 --retry-delay 5 --continue-at - -o "$tmp" "${model.url}"
-              if ! printf '%s  %s\n' "${model.sha256}" "$tmp" | sha256sum --check --status; then
-                rm -f "$tmp"
-                exit 1
-              fi
-              mv "$tmp" "${modelsDir}/${model.file}"
-            fi
-          '')
-          models;
+          + lib.concatMapStrings (self.lib.fetchWeights modelsDir) models;
       };
 
       service = unit: {
