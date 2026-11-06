@@ -99,8 +99,6 @@
     };
   };
 in {
-  config.flake.lib.hetznerPrivateCidr = "172.16.0.0/12";
-
   options.legion.services = lib.mkOption {
     type = lib.types.attrsOf serviceType;
     default = {};

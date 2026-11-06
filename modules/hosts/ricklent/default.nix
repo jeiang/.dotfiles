@@ -1,33 +1,34 @@
-{self, ...}: let
-  node = self.lib.legionNodes.ricklent;
-
-  wanInterface = "eth0";
-in {
-  nixos.configurations.ricklent.module = {
-    lib,
+{
+  self,
+  inputs,
+  ...
+}: {
+  nixos.modules.linode = {
+    config,
     modulesPath,
     ...
   }: {
-    imports = [(modulesPath + "/profiles/qemu-guest.nix")];
+    imports = [
+      (modulesPath + "/profiles/qemu-guest.nix")
+      inputs.disko.nixosModules.disko
+    ];
 
-    disko.devices = lib.mkForce {
-      disk.disk1 = {
-        device = "/dev/sda";
-        type = "disk";
-        content = {
-          type = "gpt";
-          partitions = {
-            boot = {
-              size = "1M";
-              type = "EF02";
-            };
-            root = {
-              size = "100%";
-              content = {
-                type = "filesystem";
-                format = "ext4";
-                mountpoint = "/";
-              };
+    disko.devices.disk.disk1 = {
+      device = "/dev/sda";
+      type = "disk";
+      content = {
+        type = "gpt";
+        partitions = {
+          boot = {
+            size = "1M";
+            type = "EF02";
+          };
+          root = {
+            size = "100%";
+            content = {
+              type = "filesystem";
+              format = "ext4";
+              mountpoint = "/";
             };
           };
         };
@@ -49,8 +50,8 @@ in {
     };
 
     systemd.network.networks."10-wan" = {
-      matchConfig.Name = wanInterface;
-      address = ["${node.publicIPv6}/128"];
+      matchConfig.Name = "eth0";
+      address = ["${self.lib.legionNodes.${config.networking.hostName}.publicIPv6}/128"];
       networkConfig = {
         DHCP = "ipv4";
         IPv6AcceptRA = true;
@@ -60,7 +61,7 @@ in {
     };
 
     networking = {
-      nameservers = ["9.9.9.9" "149.112.112.112"];
+      nameservers = self.lib.quad9;
       firewall.filterForward = true;
     };
 

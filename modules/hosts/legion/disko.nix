@@ -3,14 +3,14 @@
   inputs,
   ...
 }: {
-  flake.diskoConfigurations.legion = {lib, ...}: {
+  flake.diskoConfigurations.legion = {
     imports = [
       inputs.disko.nixosModules.disko
     ];
 
     disko.devices = {
       disk.disk1 = {
-        device = lib.mkDefault self.lib.hetznerServerDisk;
+        device = self.lib.hetznerServerDisk;
         type = "disk";
         content = {
           type = "gpt";

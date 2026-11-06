@@ -55,10 +55,10 @@ in {
 
       nodes = lib.mkMerge [
         (lib.mapAttrs (_: address: {interfaces = mkMeshInterface address;}) self.lib.netbirdPeers)
-        (lib.genAttrs hetznerNodeNames (_: {interfaces.enp7s0.network = "hetzner-private";}))
+        (lib.genAttrs hetznerNodeNames (_: {interfaces.${self.lib.hetznerPrivateInterface}.network = "hetzner-private";}))
         {
           internet = mkInternet {
-            connections = map (node: mkConnection node "enp1s0") hetznerNodeNames;
+            connections = map (node: mkConnection node self.lib.hetznerWanInterface) hetznerNodeNames;
           };
 
           artemis.interfaces =
