@@ -110,6 +110,7 @@
           ".cache/protontricks"
         ];
       };
+      backups.persist.paths = ["${config.users.users.${config.preferences.user.name}.home}/.local/share/PrismLauncher"];
     };
   };
 }

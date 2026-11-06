@@ -59,6 +59,7 @@ in {
     tunnelUnit = "wireguard-${exitInterface}";
   in {
     persistence.directories = [stateDir];
+    monitoredUnits = ["qbittorrent.service" "darkhttpd.service"];
 
     # Seeding would eat the uplink a remote Moonlight session needs.
     gaming.pauseUnits = ["qbittorrent.service"];

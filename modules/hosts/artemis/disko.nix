@@ -55,6 +55,7 @@
         };
       };
     };
+    monitoredUnits = ["beesd@*.service" "btrfs-scrub@*.service"];
     # bees holds btrfs extent locks that stall game I/O, so it runs in a nightly window; missed windows are skipped, never run late.
     systemd = {
       services."beesd@-".wantedBy = lib.mkForce [];

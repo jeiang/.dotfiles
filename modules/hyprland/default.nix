@@ -40,6 +40,7 @@
         };
       };
     };
+    monitoredUnits = ["greetd.service"];
 
     # hjem-activate@ has no ordering relative to greetd; with impermanence
     # relinking /home every boot, Hyprland can start before its config exists.

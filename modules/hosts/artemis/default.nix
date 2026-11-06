@@ -90,6 +90,16 @@ in {
       ];
     };
 
+    # Host identity: with these a rebuilt artemis keeps its sops key and its
+    # NetBird peer address, which the flake hardcodes.
+    backups.persist.paths = let
+      home = config.users.users.${config.preferences.user.name}.home;
+    in
+      ["/etc/ssh" "/var/lib/netbird"]
+      ++ map (directory: "${home}/${directory}") [".gnupg" ".local/share/fish" ".password-store" ".renpy" ".ssh"];
+
+    monitoredUnits = ["netbird.service" "netbird-login.service" "sshd.service" "wireguard-wg-backup.service"];
+
     boot = {
       loader.systemd-boot = {
         enable = true;
@@ -172,17 +182,6 @@ in {
 
     # Grouped in one attrset: statix W20 fires on a third top-level `services.*` key.
     services = {
-      prometheus.exporters.node = {
-        enable = true;
-        enabledCollectors = ["systemd"];
-        extraFlags = [
-          # The restic pattern matches timers too; the backup-freshness alert reads their last trigger.
-          "--collector.systemd.unit-include=(netbird|netbird-login|greetd|wireguard-wg-backup|beesd@.*|btrfs-scrub@.*|sshd|qbittorrent|factorio|minecraft-server-mc|darkhttpd(-movies|-tv)?)\\.service|(restic-backups|restic-maintenance)-.*\\.(service|timer)"
-        ];
-      };
-      # Scraped from zantark over the mesh: the btrfs pool is RAID0, so one failing drive loses it.
-      prometheus.exporters.smartctl.enable = true;
-
       # The HomeKit Wake-on-LAN Switch resolves artemis.local over mDNS before pinging it.
       avahi.enable = true;
 

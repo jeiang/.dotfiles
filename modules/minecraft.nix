@@ -30,6 +30,11 @@ in {
         mode = "0770";
       }
     ];
+    backups.persist = {
+      paths = [stateDir];
+      stopUnits = ["minecraft-server-${serverName}.service"];
+    };
+    monitoredUnits = ["minecraft-server-${serverName}.service"];
 
     services.minecraft-servers = {
       enable = true;

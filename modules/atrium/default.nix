@@ -91,6 +91,10 @@ in {
         mode = "0750";
       }
     ];
+    backups.persist = {
+      paths = [stateDir];
+      exclude = ["${stateDir}/cache"];
+    };
 
     sops.secrets."atrium/env" = {
       sopsFile = ./secrets.yaml;

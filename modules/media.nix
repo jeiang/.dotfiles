@@ -27,6 +27,7 @@ in {
         inherit group;
       }
     ];
+    monitoredUnits = map (library: "darkhttpd-${library}.service") (lib.attrNames libraryServers);
 
     # The operator copies files into the library and tidies it by hand.
     users = {

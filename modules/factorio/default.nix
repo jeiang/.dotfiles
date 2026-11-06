@@ -17,6 +17,11 @@ in {
         mode = "0750";
       }
     ];
+    backups.persist = {
+      paths = [stateDir];
+      stopUnits = ["factorio.service"];
+    };
+    monitoredUnits = ["factorio.service"];
 
     services.factorio = {
       enable = true;
