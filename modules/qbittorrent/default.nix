@@ -42,9 +42,8 @@ in {
     ];
   };
 
-  # Only the Web UI and file listing ride the NetBird interface, which is
-  # already trusted (modules/netbird.nix). Peers reach qBittorrent through
-  # the exit node, never through the home network.
+  # Only the Web UI and file listing ride the NetBird interface. Peers reach
+  # qBittorrent through the exit node, never through the home network.
   nixos.modules.artemis = {
     config,
     lib,

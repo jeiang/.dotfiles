@@ -45,7 +45,6 @@ in {
       eula = true;
       servers.${serverName} = {
         enable = true;
-        # Geyser translates Bedrock 26.50-26.52 to Java 26.3.
         # nix-minecraft's Fabric launcher defaults to nixpkgs' Java 21; 26.x needs 25.
         package = pkgs.fabricServers.fabric-26_3.override {jre_headless = pkgs.jdk25_headless;};
         # Bedrock 26.60 drops RakNet, which is still Geyser's default transport.

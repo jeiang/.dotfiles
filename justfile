@@ -115,7 +115,7 @@ prepush base="origin/main":
     "$g" push "$out"
   fi
 
-# Generate an image with Qwen-Image 2.1 (sd-cli args, e.g. -p "..." -o out.png; add -r in.png to edit); the first run downloads 11 GB of weights to ~/.cache/qwen-image-2.1
+# Generate an image with Qwen-Image 2.1 (sd-cli args, e.g. -p "..." -o out.png; add -r in.png to edit); the first run downloads the weights to ~/.cache/qwen-image-2.1
 [no-cd, positional-arguments]
 qwen-image *args:
   nix run {{justfile_directory()}}#qwen-image -- "$@"

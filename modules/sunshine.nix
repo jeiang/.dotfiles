@@ -71,7 +71,6 @@
       ];
     };
 
-    # pairing state; without this every reboot forgets all paired clients
     persistence.data.directories = [".config/sunshine"];
     backups.persist.homePaths = [".config/sunshine"];
   };

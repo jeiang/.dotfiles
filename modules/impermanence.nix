@@ -142,11 +142,7 @@
           requiredBy = ["initrd.target"];
           before = ["sysroot.mount"];
           requires = [rootDeviceUnit];
-          after = [
-            rootDeviceUnit
-            # let hibernation resume consume the pre-rollback root first
-            "local-fs-pre.target"
-          ];
+          after = [rootDeviceUnit "local-fs-pre.target"];
           script = rollbackScript;
         };
       };

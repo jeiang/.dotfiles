@@ -1,7 +1,5 @@
 _: let
   mediaDir = "/var/lib/media";
-  # icloud-import stages files in incoming (rsync creates it) and moves each
-  # finished item into import.
   importDir = "${mediaDir}/import";
   incomingDir = "${mediaDir}/.incoming";
   group = "media";
@@ -53,7 +51,7 @@ in {
     # Read-only direct links over the mesh, listening on every interface but in
     # no allowedTCPPorts: only the trusted NetBird interface reaches them. The
     # nixpkgs darkhttpd module runs a single instance, hence plain units.
-    # `--ipv6` with `::` also takes IPv4 (see modules/qbittorrent).
+    # `--ipv6` with `::` also takes IPv4.
     systemd.services = lib.mapAttrs' (library: port:
       lib.nameValuePair "darkhttpd-${library}" {
         description = "Dark HTTPd for the ${library} library";

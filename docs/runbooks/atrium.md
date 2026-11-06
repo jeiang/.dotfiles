@@ -27,20 +27,14 @@ its own. The backup covers it even while atrium is disabled.
 
 ## Models
 
-`modules/atrium/default.nix` declares the servers through `self.lib.llamaServer`
-(`modules/llama-server.nix`), which creates:
-
-| Unit | Role |
-| --- | --- |
-| `atrium-models-fetch` | oneshot; downloads and sha256-verifies the weights into `cache/models`, runs only when one is missing |
-| `atrium-llm` | Qwen3.5-9B chat server on loopback, thinking off |
-| `atrium-embed` | EmbeddingGemma 2 embedding server on loopback |
-
-A checksum mismatch deletes the partial file and fails the fetch unit, which
-keeps the llama units down. Changing a model means changing its entry in
+`modules/atrium/default.nix` declares the llama servers through
+`self.lib.llamaServer` (`modules/llama-server.nix`). Their weights come from
+`atrium-models-fetch`, which runs only when a file in `cache/models` is
+missing. A checksum mismatch deletes the partial file and fails the fetch
+unit, which keeps the llama units down. Changing a model means changing its entry in
 `self.lib.llamaModels` (`modules/llama-server.nix`), deleting the old file
 from `cache/models`, and restarting the fetch unit. The first start downloads
-about 6 GB; follow it with `journalctl -u atrium-models-fetch.service -f`.
+the weights; follow it with `journalctl -u atrium-models-fetch.service -f`.
 When atrium is enabled the llama units are in `gaming.pauseUnits`, so a game
 session stops them.
 
