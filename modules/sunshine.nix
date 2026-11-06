@@ -21,7 +21,7 @@
       hyprctl eval "hl.dispatch(hl.dsp.focus({ monitor = [[$output]] }))" \
         || echo "sunshine-stream-mode: focusing $output failed" >&2
       if [ "$1" = reset ]; then
-        mode=1920x1080@60
+        mode=${self.lib.artemisDisplay.mode}
       elif [ -n "''${SUNSHINE_CLIENT_WIDTH:-}" ] && [ -n "''${SUNSHINE_CLIENT_HEIGHT:-}" ]; then
         mode="''${SUNSHINE_CLIENT_WIDTH}x''${SUNSHINE_CLIENT_HEIGHT}@''${SUNSHINE_CLIENT_FPS:-60}"
       else

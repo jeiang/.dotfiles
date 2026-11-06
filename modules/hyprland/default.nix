@@ -101,6 +101,10 @@
             shadow = 0xee${p.sumiInk0},
             background = 0x${p.sumiInk0},
           }
+          vars.display = {
+            output = "${self.lib.artemisDisplay.output}",
+            mode = "${self.lib.artemisDisplay.mode}",
+          }
           vars.terminal = "${terminal}"
           vars.fileManager = "${lib.getExe' pkgs.kdePackages.dolphin "dolphin"}"
           vars.launcher = "${lib.getExe pkgs.fuzzel}"
