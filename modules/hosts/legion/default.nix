@@ -82,6 +82,8 @@ in {
           hostnames = lib.zipAttrsWith (_: lib.sort lib.lessThan) (
             lib.concatMap (s: map (hostname: {${hostname} = s.node;}) s.publicHostnames) (builtins.attrValues legionServices)
           );
+          edge = legionServices.caddy.node;
+          websites = self.lib.websiteHostnames;
         }
         + "\n";
     };
