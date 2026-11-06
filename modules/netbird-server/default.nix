@@ -47,7 +47,6 @@ in {
       node = "vida";
       units = ["netbird-relay"];
       ports = {
-        stun = stunPort;
         relay = relayPort;
         metrics = relayMetricsPort;
         health = relayHealthPort;

@@ -41,7 +41,6 @@ in {
     units = ["garret-pusher" "garret-puller" "crowdsec-firewall-bouncer"];
     ports = {
       puller = pullerPort;
-      pusher = pusherPort;
       pusher-metrics = pusherMetricsPort;
       puller-metrics = pullerMetricsPort;
     };
