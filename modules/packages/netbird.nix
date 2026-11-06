@@ -36,11 +36,35 @@
       depsTargetTargetPropagated = [];
     };
 
+    # The dashboard's browser RDP client needs /ironrdp-pkg/{ironrdp_web.js,ironrdp_web_bg.wasm}, which only the dashboard's release CI downloads -- nixpkgs' netbird-dashboard ships without them.
+    # The IronRDP tag is the one that CI pins for this dashboard version; re-check the workflow when the dashboard moves.
     dashboardVersion = "2.95.0";
+    ironrdpVersion = "0.0.2";
+
+    ironrdpAsset = {
+      name,
+      hash,
+    }:
+      pkgs.fetchurl {
+        inherit hash;
+        url = "https://github.com/netbirdio/IronRDP/releases/download/v${ironrdpVersion}/${name}";
+      };
   in {
     linuxPackages = {
       netbird-relay = pkgs.netbird-relay.overrideAttrs pin;
       netbird-proxy = pkgs.netbird-proxy.overrideAttrs pin;
+      # Both files must sit at top level under their release names: the loader resolves the wasm relative to its own URL.
+      netbird-ironrdp-web = pkgs.runCommand "netbird-ironrdp-web-${ironrdpVersion}" {} ''
+        mkdir -p $out
+        cp ${ironrdpAsset {
+          name = "ironrdp_web.js";
+          hash = "sha256-0yWjXWyG16g/DKSAeYmDI+wD2Wxvk7ovgkMXR2vNogc=";
+        }} $out/ironrdp_web.js
+        cp ${ironrdpAsset {
+          name = "ironrdp_web_bg.wasm";
+          hash = "sha256-f4PfP90HmF6Q50+TKqmgrU+j3rsH02s0MABPGywgrjM=";
+        }} $out/ironrdp_web_bg.wasm
+      '';
     };
 
     packages =
