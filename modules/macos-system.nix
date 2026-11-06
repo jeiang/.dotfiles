@@ -13,8 +13,6 @@
       enableStealthMode = true;
     };
 
-    time.timeZone = self.lib.facts.timeZone;
-
     system = {
       primaryUser = self.lib.facts.userName;
 
