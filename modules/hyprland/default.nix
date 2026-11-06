@@ -25,7 +25,6 @@
       };
     };
 
-    security.polkit.enable = true;
     services = {
       greetd = {
         enable = true;
