@@ -63,33 +63,39 @@ in {
 
     services.atrium = {
       enable = true;
-      mode = "live";
       environmentFiles = [config.sops.secrets."atrium/env".path];
       modelServerUnits = llamaServer.units;
-      chatUrl = "http://127.0.0.1:${toString chatPort}/v1";
-      embedUrl = "http://127.0.0.1:${toString embedPort}/v1";
-      publicUrl = "https://${atriumHostname}";
-      grafanaUrl = self.lib.grafanaMeshUrl;
-      inherit icloudAppleId;
+      port = webPort;
       web = {
-        port = webPort;
         allowedHost = atriumHostname;
         local.port = webLocalPort;
-      };
-      ntfy = {
-        url = self.lib.ntfyBaseUrl;
-        topic = self.lib.ntfyAtriumTopic;
-        mediaTopic = self.lib.ntfyMediaTopic;
       };
       media = {
         enable = true;
         group = self.lib.mediaGroup;
-        root = self.lib.mediaDir;
-        qbittorrentUrl = "http://127.0.0.1:${toString self.lib.qbittorrentWebuiPort}";
-        moviesUrl = "http://${self.deploy.nodes.artemis.hostname}:${toString self.lib.mediaMoviesPort}";
-        tvUrl = "http://${self.deploy.nodes.artemis.hostname}:${toString self.lib.mediaTvPort}";
       };
-      extraEnvironment.ATRIUM_NOTION_WIKI_ROOT = "3f47a0cdb63e812c9030ffb39de864be";
+      settings = {
+        core.public_url = "https://${atriumHostname}";
+        mail = {
+          mail_mode = "live";
+          mail_chat_url = "http://127.0.0.1:${toString chatPort}/v1";
+          mail_embed_url = "http://127.0.0.1:${toString embedPort}/v1";
+        };
+        calendar.icloud_apple_id = icloudAppleId;
+        grafana.grafana_url = self.lib.grafanaMeshUrl;
+        notify = {
+          ntfy_url = self.lib.ntfyBaseUrl;
+          ntfy_topic = self.lib.ntfyAtriumTopic;
+          ntfy_media_topic = self.lib.ntfyMediaTopic;
+        };
+        media = {
+          media_root = self.lib.mediaDir;
+          media_qbittorrent_url = "http://127.0.0.1:${toString self.lib.qbittorrentWebuiPort}";
+          media_movies_url = "http://${self.deploy.nodes.artemis.hostname}:${toString self.lib.mediaMoviesPort}";
+          media_tv_url = "http://${self.deploy.nodes.artemis.hostname}:${toString self.lib.mediaTvPort}";
+        };
+        notion.wiki_root = "3f47a0cdb63e812c9030ffb39de864be";
+      };
     };
 
     gaming.pauseUnits = lib.mkIf enabled llamaServer.units;
@@ -110,12 +116,11 @@ in {
     sops.secrets."atrium/env" = {
       sopsFile = ./secrets.yaml;
       mode = "0400";
-      restartUnits = ["atrium-agent-scheduler.service" "atrium-notion-sync.service" "atrium-vdirsyncer-sync.service" "atrium-watch.service" "atrium-web.service" "atrium-web-local.service"];
+      restartUnits = ["atrium-agent-scheduler.service" "atrium-notion-sync.service" "atrium-dav-sync.service" "atrium-watch.service" "atrium-web.service" "atrium-web-local.service"];
     };
 
     systemd = {
-      timers = lib.mkIf (!enabled) (off ["atrium-sync" "atrium-notion-sync" "atrium-scan" "atrium-vdirsyncer-sync" "atrium-backup"]);
-      sockets = lib.mkIf (!enabled) (off ["atrium-codemode"]);
+      timers = lib.mkIf (!enabled) (off ["atrium-sync" "atrium-notion-sync" "atrium-scan" "atrium-dav-sync"]);
 
       services =
         llamaServer.services

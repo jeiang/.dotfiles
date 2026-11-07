@@ -480,8 +480,8 @@ behavior for its own sake.
 - `atrium` is the code-owned service on artemis, built and documented in
   the `atrium` input (`jeiang/atrium`); its own `AGENTS.md` holds the mail,
   assistant, web auth and media decisions. `modules/atrium/` only wires
-  `services.atrium` into artemis: `mode = "live"`, the sops environment file
-  (`atrium/env`, which carries the IMAP, SMTP, Notion, Google and Anthropic
+  `services.atrium` into artemis: `settings.mail.mail_mode = "live"`, the
+  sops environment file (`atrium/env`, which carries the IMAP, SMTP, Notion,
   credentials, so what the assistant reads leaves the house), the shared
   hostname and port (`flake.lib.atriumHostname`, `atriumWebPort`), the
   llama-server units (`self.lib.llamaServer`, models from
@@ -501,10 +501,6 @@ behavior for its own sake.
   directory is excluded from the artemis restic job; `atrium.db` stays
   backed up. The retired `jev-mail.db` stays on disk untouched. It sits inside the persisted
   `/var/lib/atrium`, so it needs no `persistence.*` entry of its own.
-- atrium's llama-server is `packages.llama-cpp-atrium`: nixpkgs
-  `llama-cpp-vulkan` pinned to an upstream release, because nixpkgs's 0.6.0
-  does not load the `gemma-embedding2` architecture EmbeddingGemma 2 needs
-  (first in v0.7.0). Drop the override once nixpkgs ships a release that has it.
 - Long builds run on artemis, not on zakkart and not on a CI runner:
   `nix build --eval-store auto --store ssh-ng://artemis.jeiang.vpn
   <installable>` evaluates here and builds there, over the operator's own ssh
