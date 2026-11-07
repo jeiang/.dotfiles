@@ -94,6 +94,16 @@
       }).overrideAttrs (old:
         pin old
         // {
+          # nixpkgs' pnpmDeps track its own netbird version, so the pin
+          # must rebuild them from the pinned source.
+          pnpmDeps = pkgs.fetchPnpmDeps {
+            pname = "netbird";
+            inherit (pin old) version src;
+            sourceRoot = "${(pin old).src.name}/client/ui/frontend";
+            pnpm = pkgs.pnpm_11;
+            fetcherVersion = 4;
+            hash = "sha256-T4E4GJgsoMZnLokJRuDm1L43OrYF99PLF4x/4HRIB4E=";
+          };
           # Same bundle layout as client/ui/build/darwin/Taskfile.yml's create:app:bundle.
           postInstall =
             old.postInstall
