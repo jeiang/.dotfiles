@@ -216,6 +216,21 @@
         "type": "github"
       }
     },
+    "crane_3": {
+      "locked": {
+        "lastModified": 1793836618,
+        "narHash": "sha256-TREenflwEjxOSq292FYwbc3kEm7TDRtXCZRNWEdjBmg=",
+        "owner": "ipetkov",
+        "repo": "crane",
+        "rev": "79fd63528501446749c09f08cad486a58c7d173e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ipetkov",
+        "repo": "crane",
+        "type": "github"
+      }
+    },
     "crate2nix": {
       "flake": false,
       "locked": {
@@ -653,14 +668,15 @@
     },
     "garret_2": {
       "inputs": {
+        "crane": "crane_3",
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1793803291,
-        "narHash": "sha256-EbOnTFgxt+Jwp1WnmLGXu71sdeXoXfO90C5HiGS3A2k=",
+        "lastModified": 1794084482,
+        "narHash": "sha256-Wht+ap0+upA/1fh2vtTe4AVUqDC4+1dsmNQ5AAmBDpI=",
         "owner": "jeiang",
         "repo": "garret",
-        "rev": "77e7515e1176ca3ebf2af71d0f9dece50b792822",
+        "rev": "1843710aadb2b05c0624bf5a2b40c580375a0e03",
         "type": "github"
       },
       "original": {
@@ -1278,11 +1294,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793921730,
-        "narHash": "sha256-m/WKQ44bIz5BDC3oHsgwnN0scfV9BXNkYQ0bfn3mUmA=",
+        "lastModified": 1794058610,
+        "narHash": "sha256-VoCNvUpTixsLxKJS804LGW0s5rH0SUgYdWoIuGArPdM=",
         "owner": "jeiang",
         "repo": "nanolight",
-        "rev": "af5bb22deb2b6d8a695f34915a8f45a03b7c7445",
+        "rev": "21fcd41d6b1108d5309a981784d121134f6f42f0",
         "type": "github"
       },
       "original": {
