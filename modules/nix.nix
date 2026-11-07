@@ -5,7 +5,24 @@
   self,
   ...
 }: let
-  nixpkgsConfig.allowUnfree = true;
+  nixpkgsConfig = {
+    allowUnfree = true;
+    # prismlauncher's wrapped zulu-ca-jdk-8 still links gtk2, which nixpkgs
+    # now marks broken ahead of its 27.05 removal.
+    problems.handlers."gtk+".broken = "warn";
+  };
+
+  # nixpkgs' darwin skips for xcp's socket tests still use the 0.24.1 test
+  # names, so 0.24.9's renamed tests fail the darwin suite; drop this when
+  # nixpkgs catches up.
+  overlays = [
+    (_final: prev:
+      lib.optionalAttrs prev.stdenv.hostPlatform.isDarwin {
+        xcp = prev.xcp.overrideAttrs (old: {
+          checkFlags = (old.checkFlags or []) ++ ["--skip=test_socket_file" "--skip=test_sockets_dir"];
+        });
+      })
+  ];
 
   caches = [
     {
@@ -39,7 +56,7 @@
 in {
   perSystem = {system, ...}: {
     _module.args.pkgs = import inputs.nixpkgs {
-      inherit system;
+      inherit system overlays;
       config = nixpkgsConfig;
     };
   };

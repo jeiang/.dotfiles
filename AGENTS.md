@@ -387,6 +387,13 @@ behavior for its own sake.
   The `portfolio` flake input supplies only the NixOS module and the
   fallback package used until a first build exists; bump it when the
   module changes.
+- The website on alda's edge follows the same pattern as the portfolio:
+  `website-update` builds `github:jeiang/website` as the `caddy` user
+  nightly (and 2 minutes after activation) into
+  `/var/lib/website-update/current`, the GC root Caddy and Anubis read
+  per request, so a new build needs no restart. `website-fallback` holds
+  the root at the pinned `website` input until a first build exists; that
+  input is only the fallback.
 - `dns/dnsconfig.js` is the source of truth for the Cloudflare zones. CI
   applies it on merge with full purge; only `_acme-challenge` TXT records
   are ignored. The DNS-only A/AAAA records of Legion services come from each
@@ -473,8 +480,8 @@ behavior for its own sake.
 - `atrium` is the code-owned service on artemis, built and documented in
   the `atrium` input (`jeiang/atrium`); its own `AGENTS.md` holds the mail,
   assistant, web auth and media decisions. `modules/atrium/` only wires
-  `services.atrium` into artemis: `mode = "live"`, the sops environment file
-  (`atrium/env`, which carries the IMAP, SMTP, Notion, Google and Anthropic
+  `services.atrium` into artemis: `settings.mail.mail_mode = "live"`, the
+  sops environment file (`atrium/env`, which carries the IMAP, SMTP, Notion,
   credentials, so what the assistant reads leaves the house), the shared
   hostname and port (`flake.lib.atriumHostname`, `atriumWebPort`), the
   llama-server units (`self.lib.llamaServer`, models from
@@ -494,10 +501,6 @@ behavior for its own sake.
   directory is excluded from the artemis restic job; `atrium.db` stays
   backed up. The retired `jev-mail.db` stays on disk untouched. It sits inside the persisted
   `/var/lib/atrium`, so it needs no `persistence.*` entry of its own.
-- atrium's llama-server is `packages.llama-cpp-atrium`: nixpkgs
-  `llama-cpp-vulkan` pinned to an upstream release, because nixpkgs's 0.6.0
-  does not load the `gemma-embedding2` architecture EmbeddingGemma 2 needs
-  (first in v0.7.0). Drop the override once nixpkgs ships a release that has it.
 - Long builds run on artemis, not on zakkart and not on a CI runner:
   `nix build --eval-store auto --store ssh-ng://artemis.jeiang.vpn
   <installable>` evaluates here and builds there, over the operator's own ssh

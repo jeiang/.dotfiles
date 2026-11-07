@@ -43,7 +43,7 @@ in {
       modelsDir,
       servers,
     }: let
-      llama = self.packages.${pkgs.stdenv.hostPlatform.system}.llama-cpp-atrium;
+      llama = pkgs.llama-cpp-vulkan;
       fetchName = "${name}-models-fetch";
       models = lib.concatMap (server: [server.model] ++ lib.optional (server ? projector) server.projector) (lib.attrValues servers);
 
