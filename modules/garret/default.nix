@@ -184,7 +184,7 @@ in {
           # Its own key, limited to GetObject on the bucket: the Puller only
           # presigns GETs, so this public-facing process cannot write or
           # delete cache objects.
-          s3 = s3 // {credentialsFile = config.sops.templates."garret-puller-s3.env".path;};
+          s3.credentialsFile = config.sops.templates."garret-puller-s3.env".path;
           # narinfo and NAR routes stay anonymous; only the browse API is
           # gated.
           browseOidc = pocketIdIssuer;
