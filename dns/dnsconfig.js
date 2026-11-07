@@ -93,6 +93,9 @@ D("jeiang.dev", REG_NONE,
   // GitHub Pages for the atrium docs; grey-clouded so GitHub can issue the certificate.
   CNAME("atrium.docs", "jeiang.github.io.", CF_PROXY_OFF),
 
+  // GitHub Pages for the garret docs; grey-clouded so GitHub can issue the certificate.
+  CNAME("garret.docs", "jeiang.github.io.", CF_PROXY_OFF),
+
   SVR,
 
   ICLOUD_MAIL("jeiang.dev", "8AB1Gv2EQH9k61Dp", 3600),
