@@ -387,6 +387,13 @@ behavior for its own sake.
   The `portfolio` flake input supplies only the NixOS module and the
   fallback package used until a first build exists; bump it when the
   module changes.
+- The website on alda's edge follows the same pattern as the portfolio:
+  `website-update` builds `github:jeiang/website` as the `caddy` user
+  nightly (and 2 minutes after activation) into
+  `/var/lib/website-update/current`, the GC root Caddy and Anubis read
+  per request, so a new build needs no restart. `website-fallback` holds
+  the root at the pinned `website` input until a first build exists; that
+  input is only the fallback.
 - `dns/dnsconfig.js` is the source of truth for the Cloudflare zones. CI
   applies it on merge with full purge; only `_acme-challenge` TXT records
   are ignored. The DNS-only A/AAAA records of Legion services come from each
