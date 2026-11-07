@@ -5,6 +5,7 @@
 }: {
   nixos.modules.base = {
     config,
+    lib,
     pkgs,
     ...
   }: let
@@ -53,7 +54,7 @@
       wants = [self.lib.netbirdUnit];
       # The mesh address appears only once NetBird connects; keep retrying the bind until then.
       startLimitIntervalSec = 0;
-      serviceConfig.ExecStartPre = waitMeshAddress;
+      serviceConfig.ExecStartPre = lib.getExe waitMeshAddress;
     };
   };
 
