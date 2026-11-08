@@ -491,8 +491,7 @@ behavior for its own sake.
   the key it was made under, so the key also has an offline copy.
   cod4e-vision is stopped (`enabled = false` in `modules/cod4e-vision.nix`)
   so its servers do not compete with atrium's for the GPU; its persisted
-  state directory and user stay. The atrium units stay off
-  (`enabled = false` in `modules/atrium`) until the v1 rules are imported.
+  state directory and user stay.
   Bumping the input is how a code change reaches artemis.
 - The public listener (`atrium-web`, `--auth proxy`) is reached through
   alda's Caddy at `atrium.jeiang.dev` behind tinyauth (Pocket ID group
