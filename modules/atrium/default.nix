@@ -10,7 +10,6 @@
   webPort = 8480;
   webLocalPort = webPort + 1;
   atriumHostname = "atrium.jeiang.dev";
-  enabled = false;
   appUnits = ["atrium-agent-scheduler.service" "atrium-notion-sync.service" "atrium-dav-sync.service" "atrium-watch.service" "atrium-web.service" "atrium-web-local.service"];
 in {
   flake.lib = {
@@ -59,7 +58,6 @@ in {
       };
     };
     secret = name: config.sops.secrets."atrium/${name}".path;
-    off = names: lib.genAttrs names (_: {enable = false;});
   in {
     imports = [inputs.atrium.nixosModules.default];
 
@@ -121,7 +119,7 @@ in {
       };
     };
 
-    gaming.pauseUnits = lib.mkIf enabled llamaServer.units;
+    gaming.pauseUnits = llamaServer.units;
 
     persistence.directories = [
       {
@@ -142,12 +140,6 @@ in {
       restartUnits = appUnits;
     });
 
-    systemd = {
-      timers = lib.mkIf (!enabled) (off ["atrium-sync" "atrium-notion-sync" "atrium-scan" "atrium-dav-sync" "atrium-backup"]);
-
-      services =
-        llamaServer.services
-        // lib.optionalAttrs (!enabled) (off ["atrium-llm" "atrium-embed" "atrium-watch" "atrium-agent-scheduler" "atrium-web" "atrium-web-local"]);
-    };
+    systemd.services = llamaServer.services;
   };
 }
