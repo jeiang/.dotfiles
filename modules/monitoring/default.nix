@@ -151,6 +151,7 @@ in {
                 };
               }) ["pusher" "puller"];
             }
+            (scrape "victoriatraces" "monitoring" ["127.0.0.1:${toString vtPort}"])
             (scrape "gatus" "probe" (at "gatus" "app" ""))
             (probe "blackbox-http" "http_2xx" {
               critical = http (at "pocket-id" "app" "/healthz");
@@ -483,6 +484,46 @@ in {
                 annotations = {
                   summary = "garret fsck found {{ $labels.kind }} rows on {{ $labels.instance }}";
                   description = "The latest garret-admin fsck on {{ $labels.instance }} found {{ $value }} {{ $labels.kind }} rows. See docs/runbooks/garret.md before running fsck --repair.";
+                };
+              }
+              {
+                alert = "VictoriaTracesDiskFilling";
+                expr = "sum by (job, instance) (vt_data_size_bytes) / (sum by (job, instance) (vt_free_disk_space_bytes) + sum by (job, instance) (vt_data_size_bytes)) > 0.8";
+                for = "30m";
+                labels.severity = "critical";
+                annotations = {
+                  summary = "VictoriaTraces data fills its disk on {{ $labels.instance }}";
+                  description = "Trace data on {{ $labels.instance }} takes over 80% of the disk it shares with the free space. Lower -retention.maxDiskSpaceUsageBytes or the ingestion rate.";
+                };
+              }
+              {
+                alert = "VictoriaTracesQueryLimit";
+                expr = "avg_over_time(vt_concurrent_select_current[1m]) >= vt_concurrent_select_capacity";
+                for = "15m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "VictoriaTraces on {{ $labels.instance }} keeps hitting its concurrent query limit";
+                  description = "Queries on {{ $labels.instance }} have been at -search.maxConcurrentRequests for 15 minutes.";
+                };
+              }
+              {
+                alert = "VictoriaTracesQueryTimeouts";
+                expr = "increase(vt_concurrent_select_limit_timeout_total[5m]) > 0";
+                for = "15m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "VictoriaTraces queries time out on {{ $labels.instance }}";
+                  description = "Queries on {{ $labels.instance }} waited past -search.maxQueueDuration and failed in the last 15 minutes.";
+                };
+              }
+              {
+                alert = "VictoriaTracesSpansDropped";
+                expr = "rate(vt_rows_dropped_total[5m]) > 0";
+                for = "0m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "VictoriaTraces drops spans on {{ $labels.instance }}";
+                  description = "{{ $labels.instance }} rejected spans with timestamps outside the retention window; the sender's clock or batching is wrong.";
                 };
               }
               {
