@@ -68,6 +68,7 @@ in {
         "db.key" = secret "db-key";
         "notion.notion_token" = secret "notion-token";
         "grafana.grafana_viewer_token" = secret "grafana-viewer-token";
+        "media.media_tmdb_token" = secret "tmdb-token";
       };
       mailAccounts = {
         icloud = {
@@ -135,7 +136,7 @@ in {
       exclude = ["${stateDir}/cache"];
     };
 
-    sops.secrets = lib.genAttrs (map (name: "atrium/${name}") ["env" "db-key" "notion-token" "grafana-viewer-token" "icloud-app-password" "gmail-app-password"]) (_: {
+    sops.secrets = lib.genAttrs (map (name: "atrium/${name}") ["env" "db-key" "notion-token" "grafana-viewer-token" "tmdb-token" "icloud-app-password" "gmail-app-password"]) (_: {
       sopsFile = ./secrets.yaml;
       mode = "0400";
       restartUnits = appUnits;
