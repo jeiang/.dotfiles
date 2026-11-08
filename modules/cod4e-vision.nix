@@ -3,6 +3,7 @@
   stateDir = "/var/lib/${name}";
   embedPort = 8189;
   reviewPort = 8190;
+  enabled = false;
 in {
   nixos.modules.artemis = {
     lib,
@@ -65,8 +66,8 @@ in {
       }
     ];
 
-    gaming.pauseUnits = llamaServer.units;
+    gaming.pauseUnits = lib.mkIf enabled llamaServer.units;
 
-    systemd.services = llamaServer.services;
+    systemd.services = lib.mapAttrs (_: service: service // {enable = enabled;}) llamaServer.services;
   };
 }
