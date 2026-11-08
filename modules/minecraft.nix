@@ -82,6 +82,12 @@ in {
           home_limit = 5;
         };
 
+        # Broadcasts the server as a joinable Xbox Live session, so consoles can join from the Friends tab.
+        symlinks."config/Geyser-Fabric/extensions/MCXboxBroadcastExtension.jar" = pkgs.fetchurl {
+          url = "https://github.com/MCXboxBroadcast/Broadcaster/releases/download/162/MCXboxBroadcastExtension.jar";
+          sha256 = "71237d611de81a5563ee5ecc4adb5139e0dee841e64dd0e5b1b3a2f29fd36af8";
+        };
+
         symlinks.mods = pkgs.linkFarmFromDrvs "mods" (builtins.attrValues {
           Fabric-API = pkgs.fetchurl {
             url = "https://cdn.modrinth.com/data/P7dR8mSH/versions/LEklt8GT/fabric-api-0.164.0%2B26.3.jar";
