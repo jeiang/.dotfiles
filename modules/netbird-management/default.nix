@@ -30,6 +30,7 @@
       [
         services.crowdsec.ports.lapi
         services.monitoring.ports.victoria-logs
+        services.monitoring.ports.victoria-traces
       ]
       ++ map (node: self.nixosConfigurations.${node}.config.services.prometheus.exporters.node.port) meshOnlyNodes
       ++ [
