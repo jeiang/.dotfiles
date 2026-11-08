@@ -105,8 +105,8 @@ in {
           };
           # Floodgate authentication and the shared Bedrock port are Geyser defaults.
           Geyser = pkgs.fetchurl {
-            url = "https://cdn.modrinth.com/data/wKkoqHrH/versions/W6A5MAm6/Geyser-Fabric-2.12.0-b1267.jar";
-            sha512 = "e56ca2f630f916a1846d6c3e1b5f6eebc69ba631ff5132d8c7483b4e9306e9019e50e01d8dc21639810f1bc3822f2263fb90e240e859b7f969604ecc37e0f7d2";
+            url = "https://cdn.modrinth.com/data/wKkoqHrH/versions/FJEiET7L/Geyser-Fabric-2.12.1-b1295.jar";
+            sha512 = "b050a5697beccb5b1bf66358aaaf21e99585b1f41b8efc35e5a2a353fc91acf587105290069cbba36b3123e70fb1a52b05a682f4f113abee0158bb26bd55607c";
           };
           Floodgate = pkgs.fetchurl {
             url = "https://cdn.modrinth.com/data/bWrNNfkb/versions/m9eO07Zi/Floodgate-Fabric-2.2.7-b69.jar";
