@@ -506,10 +506,8 @@ behavior for its own sake.
   message cache live in `/var/lib/atrium/cache`, never in the Nix store. The
   directory is excluded from the artemis restic job. `atrium-backup` writes a
   daily `atrium backup` archive to `/var/lib/atrium/backups`, which the restic
-  job carries; the module never prunes those archives. The v1 database stays
-  at `/var/lib/atrium/atrium.v1.db`, with its pre-upgrade backups under
-  `/var/lib/atrium/backups/v1-*`. The directory is persisted, so neither
-  needs a `persistence.*` entry of its own.
+  job carries; the module never prunes those archives. The directory is
+  persisted, so it needs no `persistence.*` entry of its own.
 - Long builds run on artemis, not on zakkart and not on a CI runner:
   `nix build --eval-store auto --store ssh-ng://artemis.jeiang.vpn
   <installable>` evaluates here and builds there, over the operator's own ssh
