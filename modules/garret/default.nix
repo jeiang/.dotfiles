@@ -254,7 +254,13 @@ in {
         };
         # Ordering only: a backup must never start a Pusher stopped for a restore.
         restic-backups-garret.after = ["garret-pusher.service"];
-        caddy.environment = self.lib.otlpTracesEnv config.networking.hostName "caddy-garret";
+        caddy.environment =
+          self.lib.otlpTracesEnv config.networking.hostName "caddy-garret"
+          // {
+            # Caddy is the root span for cache traffic; garret is ParentBased and follows it.
+            OTEL_TRACES_SAMPLER = "parentbased_traceidratio";
+            OTEL_TRACES_SAMPLER_ARG = "0.05";
+          };
       };
     };
 
