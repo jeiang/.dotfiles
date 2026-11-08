@@ -350,6 +350,11 @@ behavior for its own sake.
   included in artemis's six-hourly `/persist` backup. Both games stop only
   while the read-only snapshot is created. Geyser advertises Atlanta's
   public addresses for ICE; the stream proxy does not preserve player IPs.
+  Consoles have no "Add server", so console players join from the Friends
+  tab through the MCXboxBroadcast Geyser extension, signed in as a dedicated
+  Xbox account. Its token is `extensions/mcxboxbroadcast/cache.json` in the
+  persisted server directory, not sops; when it expires, someone signs in
+  again with the device code the extension prints in the server log.
 - artemis and Legion back up to separate S4 buckets with separate keys, and
   one repository password covers all of Legion. A host that owns no backup
   job is therefore not a recipient of a backups shard, and adding one back

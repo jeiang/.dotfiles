@@ -73,6 +73,8 @@ in {
           justinmybubble = "e90cc15c-5885-4670-96c6-be196e9e73c7";
           ".FrostFire2601" = "00000000-0000-0000-0009-01f15eafad18";
           ".Enadiz7" = "00000000-0000-0000-0009-01fb6ae2c9e6";
+          ".Ix_Saint_vI" = "00000000-0000-0000-0009-01f6b69583e2";
+          ".Shanannyyyy" = "00000000-0000-0000-0009-01fb58c7cc39";
           Rebecurrr = "e8bfcd6e-2544-4c3e-a8f7-774910636312";
           Irana = "032acdbb-acd6-4e74-ae3d-01f32405e08b";
           Chae_anator101 = "9993c72e-5afc-477a-9a79-28b912df2d3f";
@@ -80,6 +82,15 @@ in {
 
         files."config/EssentialCommands.properties".value = {
           home_limit = 5;
+        };
+
+        # Broadcasts the server as a joinable Xbox Live session, so consoles can join from the Friends tab.
+        symlinks."config/Geyser-Fabric/extensions/MCXboxBroadcastExtension.jar" = pkgs.fetchurl {
+          url = "https://github.com/MCXboxBroadcast/Broadcaster/releases/download/162/MCXboxBroadcastExtension.jar";
+          sha256 = "71237d611de81a5563ee5ecc4adb5139e0dee841e64dd0e5b1b3a2f29fd36af8";
+        };
+        files."config/Geyser-Fabric/extensions/mcxboxbroadcast/config.yml".value = {
+          friend-sync.expiry.enabled = false;
         };
 
         symlinks.mods = pkgs.linkFarmFromDrvs "mods" (builtins.attrValues {
@@ -105,8 +116,8 @@ in {
           };
           # Floodgate authentication and the shared Bedrock port are Geyser defaults.
           Geyser = pkgs.fetchurl {
-            url = "https://cdn.modrinth.com/data/wKkoqHrH/versions/W6A5MAm6/Geyser-Fabric-2.12.0-b1267.jar";
-            sha512 = "e56ca2f630f916a1846d6c3e1b5f6eebc69ba631ff5132d8c7483b4e9306e9019e50e01d8dc21639810f1bc3822f2263fb90e240e859b7f969604ecc37e0f7d2";
+            url = "https://cdn.modrinth.com/data/wKkoqHrH/versions/FJEiET7L/Geyser-Fabric-2.12.1-b1295.jar";
+            sha512 = "b050a5697beccb5b1bf66358aaaf21e99585b1f41b8efc35e5a2a353fc91acf587105290069cbba36b3123e70fb1a52b05a682f4f113abee0158bb26bd55607c";
           };
           Floodgate = pkgs.fetchurl {
             url = "https://cdn.modrinth.com/data/bWrNNfkb/versions/m9eO07Zi/Floodgate-Fabric-2.2.7-b69.jar";
