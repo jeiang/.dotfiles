@@ -14,6 +14,7 @@
 in {
   flake.lib = {
     atriumWebPort = webPort;
+    atriumOpsPort = 9180;
     inherit atriumHostname;
   };
 
@@ -97,8 +98,10 @@ in {
         enable = true;
         directory = "${stateDir}/backups";
       };
+      observability.tracesEndpoint = "http://${self.lib.serviceMeshAddress "monitoring"}:${toString config.legion.services.monitoring.ports.victoria-traces}/insert/opentelemetry/v1/traces";
       settings = {
         core.public_url = "https://${atriumHostname}";
+        core.ops_listen = "${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumOpsPort}";
         mail = {
           mail_mode = "live";
           mail_chat_url = "http://127.0.0.1:${toString chatPort}/v1";

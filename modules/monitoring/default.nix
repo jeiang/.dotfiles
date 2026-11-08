@@ -39,6 +39,7 @@ in {
     config,
     lib,
     pkgs,
+    inputs,
     ...
   }: let
     sopsFile = ./secrets.yaml;
@@ -126,6 +127,8 @@ in {
     # "1" = one month; unsuffixed retentionPeriod values count months.
     retentionPeriod = "1";
   in {
+    imports = [inputs.atrium.nixosModules.default];
+
     services = {
       victoriametrics = {
         enable = true;
@@ -135,6 +138,7 @@ in {
           [
             (scrape "node" "node" (map (ip: "${ip}:${nodeExporterPort}") legionNodeAddresses ++ ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.node.port}"]))
             (scrape "smartctl" "node" ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.smartctl.port}"])
+            (scrape "atrium" "app" ["${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumOpsPort}"])
             (scrape "caddy" "edge" (at "caddy" "metrics" ""))
             (scrape "crowdsec" "edge" (at "crowdsec" "metrics" ""))
             (scrape "netbird-server" "netbird" (at "netbird-server" "metrics" ""))
@@ -260,6 +264,13 @@ in {
               name = "default";
               options.path = ./dashboards;
             }
+            {
+              name = "atrium";
+              options.path = pkgs.runCommand "atrium-dashboards" {} ''
+                mkdir -p $out
+                cp ${config.services.atrium.monitoring.dashboardFile} $out/atrium.json
+              '';
+            }
           ];
         };
         declarativePlugins = with pkgs.grafanaPlugins; [prometheus victoriametrics-logs-datasource jaeger];
@@ -270,6 +281,7 @@ in {
         settings = {
           "datasource.url" = "http://127.0.0.1:${toString vmPort}";
           "notifier.url" = ["http://127.0.0.1:${toString config.services.prometheus.alertmanager.port}"];
+          rule = [config.services.atrium.monitoring.ruleFile];
         };
         rules.groups = [
           {
