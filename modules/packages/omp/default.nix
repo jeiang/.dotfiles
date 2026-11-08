@@ -23,7 +23,7 @@
         statusLine = {
           contextLine = "off";
           preset = "nerd";
-          separator = "powerline";
+          separator = "powerline-thin";
           transparent = true;
           compactThinkingLevel = true;
           sessionAccent = true;
