@@ -73,6 +73,8 @@ in {
           justinmybubble = "e90cc15c-5885-4670-96c6-be196e9e73c7";
           ".FrostFire2601" = "00000000-0000-0000-0009-01f15eafad18";
           ".Enadiz7" = "00000000-0000-0000-0009-01fb6ae2c9e6";
+          ".Ix_Saint_vI" = "00000000-0000-0000-0009-01f6b69583e2";
+          ".Shanannyyyy" = "00000000-0000-0000-0009-01fb58c7cc39";
           Rebecurrr = "e8bfcd6e-2544-4c3e-a8f7-774910636312";
           Irana = "032acdbb-acd6-4e74-ae3d-01f32405e08b";
           Chae_anator101 = "9993c72e-5afc-477a-9a79-28b912df2d3f";
