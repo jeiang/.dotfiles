@@ -203,6 +203,7 @@ in {
         # Caddy must drop its pooled upstream connections first or reuse one
         # mid-close (502).
         virtualHosts.${hostname}.extraConfig = ''
+          tracing
           reverse_proxy 127.0.0.1:${toString pullerPort} {
             transport http {
               keepalive 20s
@@ -210,6 +211,7 @@ in {
           }
         '';
         virtualHosts.${pushHostname}.extraConfig = ''
+          tracing
           reverse_proxy 127.0.0.1:${toString pusherPort} {
             transport http {
               keepalive 20s
@@ -242,6 +244,7 @@ in {
         };
         # Ordering only: a backup must never start a Pusher stopped for a restore.
         restic-backups-garret.after = ["garret-pusher.service"];
+        caddy.environment = self.lib.otlpTracesEnv config.networking.hostName "caddy-garret";
       };
     };
 
