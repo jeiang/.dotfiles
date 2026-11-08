@@ -11,6 +11,7 @@
   webLocalPort = webPort + 1;
   atriumHostname = "atrium.jeiang.dev";
   enabled = false;
+  appUnits = ["atrium-agent-scheduler.service" "atrium-notion-sync.service" "atrium-dav-sync.service" "atrium-watch.service" "atrium-web.service" "atrium-web-local.service"];
 in {
   flake.lib = {
     atriumWebPort = webPort;
@@ -57,13 +58,31 @@ in {
         };
       };
     };
+    secret = name: config.sops.secrets."atrium/${name}".path;
     off = names: lib.genAttrs names (_: {enable = false;});
   in {
     imports = [inputs.atrium.nixosModules.default];
 
     services.atrium = {
       enable = true;
-      environmentFiles = [config.sops.secrets."atrium/env".path];
+      environmentFiles = [(secret "env")];
+      secretFiles = {
+        "db.key" = secret "db-key";
+        "notion.notion_token" = secret "notion-token";
+        "grafana.grafana_viewer_token" = secret "grafana-viewer-token";
+      };
+      mailAccounts = {
+        icloud = {
+          preset = "icloud";
+          login = icloudAppleId;
+          passwordFile = secret "icloud-app-password";
+        };
+        gmail = {
+          preset = "gmail";
+          login = "otakuman86@gmail.com";
+          passwordFile = secret "gmail-app-password";
+        };
+      };
       modelServerUnits = llamaServer.units;
       port = webPort;
       web = {
@@ -73,6 +92,10 @@ in {
       media = {
         enable = true;
         group = self.lib.mediaGroup;
+      };
+      backup = {
+        enable = true;
+        directory = "${stateDir}/backups";
       };
       settings = {
         core.public_url = "https://${atriumHostname}";
@@ -113,14 +136,14 @@ in {
       exclude = ["${stateDir}/cache"];
     };
 
-    sops.secrets."atrium/env" = {
+    sops.secrets = lib.genAttrs (map (name: "atrium/${name}") ["env" "db-key" "notion-token" "grafana-viewer-token" "icloud-app-password" "gmail-app-password"]) (_: {
       sopsFile = ./secrets.yaml;
       mode = "0400";
-      restartUnits = ["atrium-agent-scheduler.service" "atrium-notion-sync.service" "atrium-dav-sync.service" "atrium-watch.service" "atrium-web.service" "atrium-web-local.service"];
-    };
+      restartUnits = appUnits;
+    });
 
     systemd = {
-      timers = lib.mkIf (!enabled) (off ["atrium-sync" "atrium-notion-sync" "atrium-scan" "atrium-dav-sync"]);
+      timers = lib.mkIf (!enabled) (off ["atrium-sync" "atrium-notion-sync" "atrium-scan" "atrium-dav-sync" "atrium-backup"]);
 
       services =
         llamaServer.services
