@@ -87,6 +87,9 @@ in {
           url = "https://github.com/MCXboxBroadcast/Broadcaster/releases/download/162/MCXboxBroadcastExtension.jar";
           sha256 = "71237d611de81a5563ee5ecc4adb5139e0dee841e64dd0e5b1b3a2f29fd36af8";
         };
+        files."config/Geyser-Fabric/extensions/mcxboxbroadcast/config.yml".value = {
+          friend-sync.expiry.enabled = false;
+        };
 
         symlinks.mods = pkgs.linkFarmFromDrvs "mods" (builtins.attrValues {
           Fabric-API = pkgs.fetchurl {
