@@ -98,7 +98,7 @@ in {
         enable = true;
         directory = "${stateDir}/backups";
       };
-      observability.tracesEndpoint = "http://${self.lib.serviceMeshAddress "monitoring"}:${toString config.legion.services.monitoring.ports.victoria-traces}/insert/opentelemetry/v1/traces";
+      observability.tracesEndpoint = "${self.lib.otlpTracesEndpoint config.networking.hostName}/v1/traces";
       settings = {
         core.public_url = "https://${atriumHostname}";
         core.ops_listen = "${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumOpsPort}";

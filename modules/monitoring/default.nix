@@ -1,5 +1,6 @@
 {
   self,
+  inputs,
   config,
   ...
 }: let
@@ -42,7 +43,6 @@ in {
     config,
     lib,
     pkgs,
-    inputs,
     ...
   }: let
     sopsFile = ./secrets.yaml;
