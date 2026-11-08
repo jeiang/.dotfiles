@@ -481,13 +481,18 @@ behavior for its own sake.
   the `atrium` input (`jeiang/atrium`); its own `AGENTS.md` holds the mail,
   assistant, web auth and media decisions. `modules/atrium/` only wires
   `services.atrium` into artemis: `settings.mail.mail_mode = "live"`, the
-  sops environment file (`atrium/env`, which carries the IMAP, SMTP, Notion,
-  credentials, so what the assistant reads leaves the house), the shared
+  sops secrets (`atrium/env` for `ANTHROPIC_API_KEY`; one key per secret
+  setting through `secretFiles`, the database key `atrium/db-key` included,
+  and one app password per `mailAccounts` entry), the shared
   hostname and port (`flake.lib.atriumHostname`, `atriumWebPort`), the
   llama-server units (`self.lib.llamaServer`, models from
   `self.lib.llamaModels`, shared with cod4e-vision), persistence and backup.
-  atrium is stopped for now (`enabled = false` in `modules/atrium`); the
-  operator turns it back on.
+  The database is encrypted with `atrium/db-key`; an archive opens only with
+  the key it was made under, so the key also has an offline copy.
+  cod4e-vision is stopped (`enabled = false` in `modules/cod4e-vision.nix`)
+  so its servers do not compete with atrium's for the GPU; its persisted
+  state directory and user stay. The atrium units stay off
+  (`enabled = false` in `modules/atrium`) until the v1 rules are imported.
   Bumping the input is how a code change reaches artemis.
 - The public listener (`atrium-web`, `--auth proxy`) is reached through
   alda's Caddy at `atrium.jeiang.dev` behind tinyauth (Pocket ID group
@@ -498,9 +503,12 @@ behavior for its own sake.
   tunnel. Never open either port on another interface.
 - atrium's model weights (Qwen3.5-9B chat, EmbeddingGemma 2) and the raw
   message cache live in `/var/lib/atrium/cache`, never in the Nix store. The
-  directory is excluded from the artemis restic job; `atrium.db` stays
-  backed up. The retired `jev-mail.db` stays on disk untouched. It sits inside the persisted
-  `/var/lib/atrium`, so it needs no `persistence.*` entry of its own.
+  directory is excluded from the artemis restic job. `atrium-backup` writes a
+  daily `atrium backup` archive to `/var/lib/atrium/backups`, which the restic
+  job carries; the module never prunes those archives. The v1 database stays
+  at `/var/lib/atrium/atrium.v1.db`, with its pre-upgrade backups under
+  `/var/lib/atrium/backups/v1-*`. The directory is persisted, so neither
+  needs a `persistence.*` entry of its own.
 - Long builds run on artemis, not on zakkart and not on a CI runner:
   `nix build --eval-store auto --store ssh-ng://artemis.jeiang.vpn
   <installable>` evaluates here and builds there, over the operator's own ssh
