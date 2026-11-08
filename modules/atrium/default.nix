@@ -84,6 +84,7 @@ in {
       modelServerUnits = llamaServer.units;
       port = webPort;
       web = {
+        auth = "proxy+oidc";
         allowedHost = atriumHostname;
         local.port = webLocalPort;
       };
