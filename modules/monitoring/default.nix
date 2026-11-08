@@ -13,12 +13,15 @@ in {
   flake.lib = {
     grafanaHostname = "grafana.jeiang.dev";
 
+    # OTLP/HTTP base URL; an OTel SDK appends /v1/traces.
+    otlpTracesEndpoint = fromNode: "http://${self.lib.serviceAddress fromNode "monitoring"}:${toString legionServices.monitoring.ports.victoria-traces}/insert/opentelemetry";
+
     # Environment for an OTel SDK that exports traces from fromNode.
     otlpTracesEnv = fromNode: serviceName: {
       OTEL_SERVICE_NAME = serviceName;
       OTEL_TRACES_EXPORTER = "otlp";
       OTEL_EXPORTER_OTLP_PROTOCOL = "http/protobuf";
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "http://${self.lib.serviceAddress fromNode "monitoring"}:${toString legionServices.monitoring.ports.victoria-traces}/insert/opentelemetry/v1/traces";
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "${self.lib.otlpTracesEndpoint fromNode}/v1/traces";
     };
   };
 
