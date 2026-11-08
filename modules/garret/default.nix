@@ -132,6 +132,11 @@ in {
           enable = true;
           listen = "0.0.0.0:${toString pusherPort}";
           metricsListen = "0.0.0.0:${toString pusherMetricsPort}";
+          telemetry = {
+            enable = true;
+            endpoint = self.lib.otlpTracesEndpoint config.networking.hostName;
+            sampleRatio = 1.0;
+          };
           inherit s3;
           signingKeyFiles = [config.sops.secrets."garret/signing-key".path];
 
@@ -181,6 +186,11 @@ in {
           enable = true;
           listen = "0.0.0.0:${toString pullerPort}";
           metricsListen = "0.0.0.0:${toString pullerMetricsPort}";
+          telemetry = {
+            enable = true;
+            endpoint = self.lib.otlpTracesEndpoint config.networking.hostName;
+            sampleRatio = 1.0;
+          };
           # Its own key, limited to GetObject on the bucket: the Puller only
           # presigns GETs, so this public-facing process cannot write or
           # delete cache objects.
