@@ -242,6 +242,7 @@ in {
           # identity headers tinyauth just copied in.
           ${self.lib.atriumHostname}.config = ''
             route {
+              tracing
               request_header -Remote-User
               request_header -Remote-Email
               request_header -Remote-Name
@@ -353,7 +354,10 @@ in {
 
       systemd = {
         services = {
-          caddy.serviceConfig.MemoryMax = "256M";
+          caddy = {
+            serviceConfig.MemoryMax = "256M";
+            environment = self.lib.otlpTracesEnv host "caddy-edge";
+          };
 
           # The build runs unprivileged, so third-party flake evaluation
           # never runs as root. Caddy and Anubis read the root per request,
