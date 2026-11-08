@@ -5,6 +5,7 @@
 }: let
   vmPort = 8428;
   vlPort = 9428;
+  vtPort = 10428;
   grafanaPort = 3000;
 
   legionServices = config.legion.services;
@@ -14,10 +15,11 @@ in {
   legion.services.monitoring = {
     node = "zantark";
     module = "monitoring";
-    units = ["grafana" "victoriametrics" "victorialogs" "vmalert-default" "alertmanager" "prometheus-blackbox-exporter"];
+    units = ["grafana" "victoriametrics" "victorialogs" "victoriatraces" "vmalert-default" "alertmanager" "prometheus-blackbox-exporter"];
     ports = {
       grafana = grafanaPort;
       victoria-logs = vlPort;
+      victoria-traces = vtPort;
     };
   };
 
@@ -149,6 +151,7 @@ in {
                 };
               }) ["pusher" "puller"];
             }
+            (scrape "victoriatraces" "monitoring" ["127.0.0.1:${toString vtPort}"])
             (scrape "gatus" "probe" (at "gatus" "app" ""))
             (probe "blackbox-http" "http_2xx" {
               critical = http (at "pocket-id" "app" "/healthz");
@@ -173,6 +176,15 @@ in {
         enable = true;
         listenAddress = ":${toString vlPort}";
         extraOptions = ["-retentionPeriod=${retentionPeriod}"];
+      };
+
+      # OTLP over HTTP at /insert/opentelemetry/v1/traces.
+      victoriatraces = {
+        enable = true;
+        listenAddress = ":${toString vtPort}";
+        inherit retentionPeriod;
+        # A chatty sender must not fill the root disk the metrics and logs share.
+        extraOptions = ["-retention.maxDiskSpaceUsageBytes=5GiB"];
       };
 
       grafana = {
@@ -226,6 +238,12 @@ in {
               uid = "victorialogs";
               url = "http://127.0.0.1:${toString vlPort}";
             }
+            {
+              name = "VictoriaTraces";
+              type = "jaeger";
+              uid = "victoriatraces";
+              url = "http://127.0.0.1:${toString vtPort}/select/jaeger";
+            }
           ];
           dashboards.settings.providers = [
             {
@@ -234,7 +252,7 @@ in {
             }
           ];
         };
-        declarativePlugins = with pkgs.grafanaPlugins; [prometheus victoriametrics-logs-datasource];
+        declarativePlugins = with pkgs.grafanaPlugins; [prometheus victoriametrics-logs-datasource jaeger];
       };
 
       vmalert.instances.default = {
@@ -469,6 +487,46 @@ in {
                 };
               }
               {
+                alert = "VictoriaTracesDiskFilling";
+                expr = "sum by (job, instance) (vt_data_size_bytes) / (sum by (job, instance) (vt_free_disk_space_bytes) + sum by (job, instance) (vt_data_size_bytes)) > 0.8";
+                for = "30m";
+                labels.severity = "critical";
+                annotations = {
+                  summary = "VictoriaTraces data fills its disk on {{ $labels.instance }}";
+                  description = "Trace data on {{ $labels.instance }} takes over 80% of the disk it shares with the free space. Lower -retention.maxDiskSpaceUsageBytes or the ingestion rate.";
+                };
+              }
+              {
+                alert = "VictoriaTracesQueryLimit";
+                expr = "avg_over_time(vt_concurrent_select_current[1m]) >= vt_concurrent_select_capacity";
+                for = "15m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "VictoriaTraces on {{ $labels.instance }} keeps hitting its concurrent query limit";
+                  description = "Queries on {{ $labels.instance }} have been at -search.maxConcurrentRequests for 15 minutes.";
+                };
+              }
+              {
+                alert = "VictoriaTracesQueryTimeouts";
+                expr = "increase(vt_concurrent_select_limit_timeout_total[5m]) > 0";
+                for = "15m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "VictoriaTraces queries time out on {{ $labels.instance }}";
+                  description = "Queries on {{ $labels.instance }} waited past -search.maxQueueDuration and failed in the last 15 minutes.";
+                };
+              }
+              {
+                alert = "VictoriaTracesSpansDropped";
+                expr = "rate(vt_rows_dropped_total[5m]) > 0";
+                for = "0m";
+                labels.severity = "warning";
+                annotations = {
+                  summary = "VictoriaTraces drops spans on {{ $labels.instance }}";
+                  description = "{{ $labels.instance }} rejected spans with timestamps outside the retention window; the sender's clock or batching is wrong.";
+                };
+              }
+              {
                 # Fires unconditionally so a dead vmalert, Alertmanager, or
                 # webhook shows up in healthchecks.io instead of going quiet.
                 alert = "Watchdog";
@@ -545,6 +603,7 @@ in {
       };
       victoriametrics.serviceConfig.MemoryMax = "640M";
       victorialogs.serviceConfig.MemoryMax = "448M";
+      victoriatraces.serviceConfig.MemoryMax = "256M";
       grafana = {
         # services.grafana has no environmentFile option, so this is wired
         # directly onto the systemd unit.
