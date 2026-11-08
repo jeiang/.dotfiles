@@ -18,9 +18,16 @@
       # rather than --config, which only the launch, acp and models commands take.
       settings = (pkgs.formats.yaml {}).generate "omp-config.yml" {
         symbolPreset = "nerd";
-        theme.dark = "dark-tundra";
-        composer.shape = "band";
-        statusLine.contextLine = "off";
+        theme.dark = "dark-lunar";
+        composer.shape = "claude";
+        statusLine = {
+          contextLine = "off";
+          preset = "nerd";
+          separator = "powerline-thin";
+          transparent = true;
+          compactThinkingLevel = true;
+          sessionAccent = true;
+        };
         display = {
           pinnedAgents = "full";
           showTurnTime = true;
@@ -44,7 +51,10 @@
         };
         cycleOrder = ["smol" "default" "slow" "max-reasoning"];
         tier.subagent = "none";
-        tui.completeScrollback = true;
+        tui = {
+          completeScrollback = true;
+          codexResetFireworks = true;
+        };
         startup.checkUpdate = false;
         secrets.enabled = true;
         lsp.diagnosticsOnEdit = true;
