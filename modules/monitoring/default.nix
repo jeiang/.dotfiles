@@ -5,6 +5,7 @@
 }: let
   vmPort = 8428;
   vlPort = 9428;
+  vtPort = 10428;
   grafanaPort = 3000;
 
   legionServices = config.legion.services;
@@ -14,10 +15,11 @@ in {
   legion.services.monitoring = {
     node = "zantark";
     module = "monitoring";
-    units = ["grafana" "victoriametrics" "victorialogs" "vmalert-default" "alertmanager" "prometheus-blackbox-exporter"];
+    units = ["grafana" "victoriametrics" "victorialogs" "victoriatraces" "vmalert-default" "alertmanager" "prometheus-blackbox-exporter"];
     ports = {
       grafana = grafanaPort;
       victoria-logs = vlPort;
+      victoria-traces = vtPort;
     };
   };
 
@@ -175,6 +177,15 @@ in {
         extraOptions = ["-retentionPeriod=${retentionPeriod}"];
       };
 
+      # OTLP over HTTP at /insert/opentelemetry/v1/traces.
+      victoriatraces = {
+        enable = true;
+        listenAddress = ":${toString vtPort}";
+        inherit retentionPeriod;
+        # A chatty sender must not fill the root disk the metrics and logs share.
+        extraOptions = ["-retention.maxDiskSpaceUsageBytes=5GiB"];
+      };
+
       grafana = {
         enable = true;
         settings = {
@@ -226,6 +237,12 @@ in {
               uid = "victorialogs";
               url = "http://127.0.0.1:${toString vlPort}";
             }
+            {
+              name = "VictoriaTraces";
+              type = "jaeger";
+              uid = "victoriatraces";
+              url = "http://127.0.0.1:${toString vtPort}/select/jaeger";
+            }
           ];
           dashboards.settings.providers = [
             {
@@ -234,7 +251,7 @@ in {
             }
           ];
         };
-        declarativePlugins = with pkgs.grafanaPlugins; [prometheus victoriametrics-logs-datasource];
+        declarativePlugins = with pkgs.grafanaPlugins; [prometheus victoriametrics-logs-datasource jaeger];
       };
 
       vmalert.instances.default = {
@@ -545,6 +562,7 @@ in {
       };
       victoriametrics.serviceConfig.MemoryMax = "640M";
       victorialogs.serviceConfig.MemoryMax = "448M";
+      victoriatraces.serviceConfig.MemoryMax = "256M";
       grafana = {
         # services.grafana has no environmentFile option, so this is wired
         # directly onto the systemd unit.
