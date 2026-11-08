@@ -493,9 +493,11 @@ behavior for its own sake.
   so its servers do not compete with atrium's for the GPU; its persisted
   state directory and user stay.
   Bumping the input is how a code change reaches artemis.
-- The public listener (`atrium-web`, `--auth proxy`) is reached through
-  alda's Caddy at `atrium.jeiang.dev` behind tinyauth (Pocket ID group
-  `atrium_access`). Its port is open to every NetBird peer, because artemis
+- The public listener (`atrium-web`, `--auth proxy --auth oidc`) is reached
+  through alda's Caddy at `atrium.jeiang.dev` behind tinyauth (Pocket ID group
+  `atrium_access`). atrium trusts `Remote-Groups` before an OIDC session, so
+  the edge must keep deleting the client's `Remote-*` headers before
+  `forward_auth` copies tinyauth's in. Its port is open to every NetBird peer, because artemis
   trusts the NetBird interface; the NetBird ACLs, which admit only the
   operator's machines and the fleet, are the boundary. `atrium-web-local`
   (`--auth local`) listens on loopback only for emergency access over an SSH
