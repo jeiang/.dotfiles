@@ -113,6 +113,7 @@ in {
           ntfy_url = self.lib.ntfyBaseUrl;
           ntfy_topic = self.lib.ntfyAtriumTopic;
           ntfy_media_topic = self.lib.ntfyMediaTopic;
+          webpush_subject = "mailto:aidan@aidanpinard.co";
         };
         media = {
           media_root = self.lib.mediaDir;
