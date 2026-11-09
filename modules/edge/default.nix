@@ -7,6 +7,7 @@
 }: let
   legionServices = config.legion.services;
   metricsPort = 2020;
+  httpsPort = 443;
   apex = "jeiang.dev";
   websiteHostnames = [apex "aidanpinard.co" "pinard.co.tt"];
   toolSites =
@@ -28,13 +29,14 @@ in {
     module = "edge";
     units = ["caddy" "website-update"];
     ports.metrics = metricsPort;
+    ports.https = httpsPort;
     publicPorts = [
       {
         port = 80;
         proto = "tcp";
       }
       {
-        port = 443;
+        port = httpsPort;
         proto = "tcp";
       }
     ];

@@ -139,6 +139,8 @@
           infra_admin = {};
           vpn = {};
           members = {};
+          edge.peers = [services.caddy.node];
+          gatus-atl.peers = [services.gatus-atl.node];
         }
         // lib.mapAttrs (_: z: {inherit (z) peers;}) zones;
 
@@ -296,6 +298,12 @@
           admin-to-legion = policy "Admin to Legion" {
             sources = ["infra_admin"];
             destinations = ["Legion"];
+          };
+          gatus-atl-edge = policy "Gatus ATL to Edge (TCP)" {
+            sources = ["gatus-atl"];
+            destinations = ["edge"];
+            protocol = "tcp";
+            ports = [(toString services.caddy.ports.https)];
           };
           legion-mesh-tcp = policy "Legion Mesh (TCP)" {
             sources = ["Legion"];
