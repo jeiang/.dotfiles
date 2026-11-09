@@ -14,6 +14,7 @@
 in {
   flake.lib = {
     atriumWebPort = webPort;
+    atriumOpsPort = 9180;
     inherit atriumHostname;
   };
 
@@ -97,8 +98,10 @@ in {
         enable = true;
         directory = "${stateDir}/backups";
       };
+      observability.tracesEndpoint = "${self.lib.otlpTracesEndpoint config.networking.hostName}/v1/traces";
       settings = {
         core.public_url = "https://${atriumHostname}";
+        core.ops_listen = "${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumOpsPort}";
         mail = {
           mail_mode = "live";
           mail_chat_url = "http://127.0.0.1:${toString chatPort}/v1";
@@ -110,6 +113,7 @@ in {
           ntfy_url = self.lib.ntfyBaseUrl;
           ntfy_topic = self.lib.ntfyAtriumTopic;
           ntfy_media_topic = self.lib.ntfyMediaTopic;
+          webpush_subject = "mailto:aidan@aidanpinard.co";
         };
         media = {
           media_root = self.lib.mediaDir;
