@@ -143,7 +143,7 @@
           slow = "anthropic/claude-opus-5-5:high";
           plan = "anthropic/claude-opus-5-5:high";
           max-reasoning = "anthropic/claude-opus-5-5:xhigh";
-          advisor = "openai-codex/gpt-6.1-sol:medium";
+          advisor = "anthropic/claude-fable-5-2:low";
           task = "openai-codex/gpt-6.1-sol:medium";
           smol = "openai-codex/gpt-6.1-terra:high";
           fast = light;
@@ -162,7 +162,7 @@
             slow = strong;
             plan = strong;
             max-reasoning = ["openai-codex/gpt-6.1-sol:xhigh" "mistral/zai-glm-5-3:xhigh"];
-            advisor = ["anthropic/claude-opus-5-5:medium" "mistral/deepseek-v4-1-flash-1017:max"];
+            advisor = ["openai-codex/gpt-6.1-sol:medium" "anthropic/claude-opus-5-5:medium" "mistral/deepseek-v4-1-flash-1017:max"];
             task = [
               "anthropic/claude-opus-5-5:medium"
               "mistral/zai-glm-5-3-flash:high"
@@ -188,12 +188,6 @@
         tag = "v${pinned.version}";
         inherit (pinned) hash;
       };
-      # omp refuses to start on a Bun runtime older than 1.4.4; nixpkgs here and in llm-agents ships 1.4.2. Built from
-      # llm-agents' nixpkgs so the embedded runtime shares ICU (Darwin) and glibc (Linux) with the rest of omp's closure.
-      bun = inputs.llm-agents.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system}.bun.overrideAttrs {
-        inherit (pinned.bun) version;
-        src = pkgs.fetchurl pinned.bun.sources.${pkgs.stdenv.hostPlatform.system};
-      };
     in
       inputs.wrapper-modules.lib.wrapPackage (_: {
         inherit pkgs;
@@ -202,29 +196,22 @@
           if lib.versionOlder upstream.version pinned.version
           then
             (upstream.override (prev: {
-              inherit bun;
-              # pi-builtins requires rustc 1.99; llm-agents' nixpkgs ships 1.98.
-              inherit (pkgs) rustc cargo;
-              rustPlatform =
-                pkgs.rustPlatform
-                // {
-                  fetchCargoVendor = args:
-                    pkgs.rustPlatform.fetchCargoVendor (args
-                      // {
-                        inherit src;
-                        name = "omp-${pinned.version}-cargo-vendor";
-                        hash = pinned.cargoHash;
-                      });
-                };
               bun2nixLib = prev.bun2nixLib // {fetchBunDeps = args: prev.bun2nixLib.fetchBunDeps (args // {bunNix = ./_bun.nix;});};
             })).overrideAttrs (prev: {
               inherit (pinned) version;
               inherit src;
-              # bun2nix's hook installs node_modules with its own bun 1.4.2: bun 1.4.4 re-extracts some packages into
-              # the read-only cache and fails. bun build --compile embeds the bun that runs it, so the build runs 1.4.4.
-              preBuild = (prev.preBuild or "") + ''export PATH="${bun}/bin:$PATH"'';
-              # llm-agents' buildPhase runs build-tool-views.ts, which this release lacks: exports load a hosted viewer pinned by the committed viewer.generated.json.
-              buildPhase = lib.replaceStrings ["bun --cwd packages/collab-web scripts/build-tool-views.ts"] [""] prev.buildPhase;
+              cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
+                inherit src;
+                name = "omp-${pinned.version}-cargo-vendor";
+                hash = pinned.cargoHash;
+              };
+              # pi-shell and pi-natives target rustc 1.101, where VecDeque::is_empty is const and extern "C-unwind" fn items implement Fn; llm-agents builds with 1.99.
+              postPatch =
+                prev.postPatch
+                + ''
+                  substituteInPlace crates/pi-shell/src/bash/vm/proc.rs --replace-fail "pub const fn has_work" "pub fn has_work"
+                  substituteInPlace crates/pi-natives/src/desktop/macos/session.rs --replace-fail "&online_displays(), CGDisplayIsAsleep)" "&online_displays(), |id| CGDisplayIsAsleep(id))"
+                '';
             })
           else upstream;
         runShell = [
