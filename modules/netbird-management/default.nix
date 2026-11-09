@@ -39,6 +39,7 @@
         artemisExporters.node.port
         artemisExporters.smartctl.port
         self.lib.atriumWebPort
+        self.lib.atriumOpsPort
         services.monitoring.ports.grafana
         services.atuin.ports.app
       ]
