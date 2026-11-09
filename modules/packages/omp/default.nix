@@ -161,6 +161,7 @@
             default = strong;
             slow = strong;
             plan = strong;
+            max-reasoning = [];
             advisor = ["openai-codex/gpt-6.1-sol:medium" "anthropic/claude-opus-5-5:medium" "mistral/deepseek-v4-1-flash-1017:max"];
             task = [
               "anthropic/claude-opus-5-5:medium"
