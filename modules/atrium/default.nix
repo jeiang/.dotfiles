@@ -109,12 +109,7 @@ in {
         };
         calendar.icloud_apple_id = icloudAppleId;
         grafana.grafana_url = self.lib.grafanaMeshUrl;
-        notify = {
-          ntfy_url = self.lib.ntfyBaseUrl;
-          ntfy_topic = self.lib.ntfyAtriumTopic;
-          ntfy_media_topic = self.lib.ntfyMediaTopic;
-          webpush_subject = "mailto:aidan@aidanpinard.co";
-        };
+        notify.webpush_subject = "mailto:aidan@aidanpinard.co";
         media = {
           media_root = self.lib.mediaDir;
           media_qbittorrent_url = "http://127.0.0.1:${toString self.lib.qbittorrentWebuiPort}";

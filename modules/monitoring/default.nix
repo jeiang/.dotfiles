@@ -176,8 +176,7 @@ in {
               # so revoked S3 credentials or an S4 outage fail it; the Pusher's
               # service port is fully token-gated, so its probe targets the
               # metrics listener's /healthz instead.
-              warning = http (at "ntfy" "app" "/v1/health"
-                ++ at "garret" "puller" "/ready/deep"
+              warning = http (at "garret" "puller" "/ready/deep"
                 ++ at "garret" "pusher-metrics" "/healthz"
                 ++ at "netbird-relay" "health" "/health"
                 ++ lib.concatMap (service: at service "health" "/healthz") self.lib.netbirdProxyServices);
