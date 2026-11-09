@@ -8,7 +8,7 @@ atrium's code, module and operating procedures live in
 [jeiang/atrium](https://github.com/jeiang/atrium) (`docs/runbook.md` there).
 `modules/atrium/default.nix` wires `services.atrium` into artemis: the sops
 environment file, the llama-server units behind `chatUrl` and `embedUrl`,
-persistence, and the public hostname the edge Caddy and tinyauth use. The
+persistence, and the public hostname the edge Caddy uses. The
 `atrium` input pins the release; bump it with `nix flake update atrium` in a
 branch.
 
@@ -51,9 +51,9 @@ ssh artemis.jeiang.vpn journalctl -u atrium-watch.service -e
 
 ## Access
 
-`https://atrium.jeiang.dev` is the edge Caddy in front of tinyauth (Pocket ID
-group `atrium_access`) proxying to artemis's mesh address on
-`self.lib.atriumWebPort`. Emergency access without the edge: forward
+`https://atrium.jeiang.dev` is the edge Caddy proxying to artemis's mesh address on
+`self.lib.atriumWebPort`; atrium signs users in itself through Pocket ID OIDC
+(groups `atrium_access` and `atrium_admin`). Emergency access without the edge: forward
 `services.atrium.web.local.port` from artemis's loopback, e.g.
 
 ```fish

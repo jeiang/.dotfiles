@@ -49,7 +49,6 @@ in {
     host = config.networking.hostName;
     system = pkgs.stdenv.hostPlatform.system;
     upstream = service: port: "${self.lib.serviceAddress host service}:${toString legionServices.${service}.ports.${port}}";
-    tinyauth = "127.0.0.1:${toString legionServices.tinyauth.ports.app}";
     atrium = "${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumWebPort}";
 
     websiteUpdateDir = "/var/lib/website-update";
@@ -227,31 +226,9 @@ in {
             config = "reverse_proxy ${upstream "gatus" "app"}";
           };
 
-          ${self.lib.tinyauthHostname}.config = "reverse_proxy ${tinyauth}";
-
-          # `route` keeps the written order: Caddy's default order runs
-          # request_header after forward_auth, which would delete the
-          # identity headers tinyauth just copied in.
           ${self.lib.atriumHostname}.config = ''
-            route {
-              tracing
-              request_header -Remote-User
-              request_header -Remote-Email
-              request_header -Remote-Name
-              request_header -Remote-Groups
-              # Signed media links are public: atrium verifies the HMAC.
-              # Remote-* stays stripped above, so nothing can be spoofed.
-              handle /media/file/* {
-                reverse_proxy ${atrium}
-              }
-              handle {
-                forward_auth ${tinyauth} {
-                  uri /api/auth/caddy
-                  copy_headers Remote-User Remote-Email Remote-Groups
-                }
-                reverse_proxy ${atrium}
-              }
-            }
+            tracing
+            reverse_proxy ${atrium}
           '';
 
           ${toolSites.bill-split.hostname} = {

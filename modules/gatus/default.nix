@@ -51,7 +51,6 @@
         (ok "NetBird" "Services" "https://${self.lib.netbirdDomain}/oauth2/.well-known/openid-configuration")
         # nix-cache-info is the first request every substituter client makes.
         (ok "Nix cache" "Services" "https://${self.lib.cacheHostname}/nix-cache-info")
-        (ok "tinyauth" "Services" "https://${self.lib.tinyauthHostname}")
 
         # netbird-proxy has no stable unauthenticated HTTP response, so plain
         # TCP reachability, per replica: proxy.jeiang.dev resolves to all of them.

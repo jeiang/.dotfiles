@@ -328,8 +328,7 @@ behavior for its own sake.
   Prometheus). Its challenge store stays in memory. Both Gatus instances
   resolve the content sites to the edge's private or mesh address, and the
   edge serves exactly those two sources without a challenge.
-- Stateless by choice: Gatus stores results in memory, and tinyauth's
-  database holds only sessions.
+- Stateless by choice: Gatus stores results in memory.
 - `gatus-atl` on ricklent is the independent Atlanta watchdog: the same
   endpoints as zantark's `gatus`, alerting straight to Discord with
   `modules/gatus/secrets.yaml`, so it does not depend on zantark.
@@ -469,9 +468,8 @@ behavior for its own sake.
   (movies) and 8085 (tv), mesh-only like the downloads listing on 8082.
 - atrium's Media section owns filing and the EZTV watches (the former
   media-organizer is gone). `services.atrium.media` gives it the `media`
-  group and `/var/lib/media`. `/media/file/*` is the one public path on the
-  atrium vhost: Caddy skips tinyauth for it (still stripping `Remote-*`),
-  and atrium serves the bytes only for a valid HMAC-signed, expiring link.
+  group and `/var/lib/media`. `/media/file/*` needs no session: atrium
+  serves the bytes only for a valid HMAC-signed, expiring link.
   The zakkart shim opens atrium's `/media/add` page instead of calling
   qBittorrent.
 - qBittorrent runs in a network namespace on artemis whose only link besides
@@ -498,11 +496,11 @@ behavior for its own sake.
   so its servers do not compete with atrium's for the GPU; its persisted
   state directory and user stay.
   Bumping the input is how a code change reaches artemis.
-- The public listener (`atrium-web`, `--auth proxy --auth oidc`) is reached
-  through alda's Caddy at `atrium.jeiang.dev` behind tinyauth (Pocket ID group
-  `atrium_access`). atrium trusts `Remote-Groups` before an OIDC session, so
-  the edge must keep deleting the client's `Remote-*` headers before
-  `forward_auth` copies tinyauth's in. Its port is open to every NetBird peer, because artemis
+- The public listener (`atrium-web`, `--auth oidc`) is reached through
+  alda's Caddy at `atrium.jeiang.dev`, which proxies every path with no
+  forward auth. atrium signs users in itself through Pocket ID (groups
+  `atrium_access` and `atrium_admin`), and `/api/v1` takes only bearer
+  tokens for the iOS app's client (`settings.auth.oidc_api_client_id`). Its port is open to every NetBird peer, because artemis
   trusts the NetBird interface; the NetBird ACLs, which admit only the
   operator's machines and the fleet, are the boundary. `atrium-web-local`
   (`--auth local`) listens on loopback only for emergency access over an SSH
