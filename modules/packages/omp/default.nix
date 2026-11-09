@@ -142,7 +142,7 @@
           default = "anthropic/claude-opus-5-5:medium";
           slow = "anthropic/claude-opus-5-5:high";
           plan = "anthropic/claude-opus-5-5:high";
-          max-reasoning = "anthropic/claude-opus-5-5:xhigh";
+          max-reasoning = "anthropic/claude-fable-5-2:medium";
           advisor = "anthropic/claude-fable-5-2:low";
           task = "openai-codex/gpt-6.1-sol:medium";
           smol = "openai-codex/gpt-6.1-terra:high";
@@ -161,7 +161,7 @@
             default = strong;
             slow = strong;
             plan = strong;
-            max-reasoning = ["openai-codex/gpt-6.1-sol:xhigh" "mistral/zai-glm-5-3:xhigh"];
+            max-reasoning = [];
             advisor = ["openai-codex/gpt-6.1-sol:medium" "anthropic/claude-opus-5-5:medium" "mistral/deepseek-v4-1-flash-1017:max"];
             task = [
               "anthropic/claude-opus-5-5:medium"
