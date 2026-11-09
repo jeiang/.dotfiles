@@ -42,6 +42,7 @@
         self.lib.atriumOpsPort
         services.monitoring.ports.grafana
         services.atuin.ports.app
+        services.caddy.ports.https
       ]
     )
     ++ services.game-ingress.publicPorts;
