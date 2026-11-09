@@ -28,9 +28,6 @@ in {
     module = "edge";
     units = ["caddy" "website-update"];
     ports.metrics = metricsPort;
-    # ntfy's SSE/WebSocket streams stay off the Cloudflare proxy, and the
-    # client IP reaches ntfy's rate limiter.
-    publicHostnames = [self.lib.ntfyHostname];
     publicPorts = [
       {
         port = 80;
@@ -219,11 +216,6 @@ in {
           # for which a proof-of-work interstitial is an outage.
 
           ${self.lib.pocketIdHostname}.config = "reverse_proxy ${upstream "pocket-id" "app"}";
-
-          ${self.lib.ntfyHostname} = {
-            appsec = false;
-            config = "reverse_proxy ${upstream "ntfy" "app"}";
-          };
 
           ${self.lib.grafanaHostname}.config = "reverse_proxy ${upstream "monitoring" "grafana"}";
 

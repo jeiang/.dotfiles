@@ -52,7 +52,6 @@
         # nix-cache-info is the first request every substituter client makes.
         (ok "Nix cache" "Services" "https://${self.lib.cacheHostname}/nix-cache-info")
         (ok "tinyauth" "Services" "https://${self.lib.tinyauthHostname}")
-        (ok "ntfy" "Services" "${self.lib.ntfyBaseUrl}/v1/health")
 
         # netbird-proxy has no stable unauthenticated HTTP response, so plain
         # TCP reachability, per replica: proxy.jeiang.dev resolves to all of them.
@@ -68,13 +67,13 @@
       })
       self.lib.netbirdProxyServices
       ++ [
-        # ntfy.jeiang.dev is grey-clouded (DNS-only), so this reads
+        # netbird.jeiang.dev is grey-clouded (DNS-only), so this reads
         # Caddy's own *.jeiang.dev wildcard cert directly, not
         # Cloudflare's edge cert as a proxied hostname would.
         {
           name = "TLS certificate";
           group = "Edge";
-          url = "${self.lib.ntfyBaseUrl}/v1/health";
+          url = "https://${self.lib.netbirdDomain}/oauth2/.well-known/openid-configuration";
           interval = "1h";
           conditions = [
             "[STATUS] == 200"
