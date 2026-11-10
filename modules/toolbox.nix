@@ -27,8 +27,6 @@
         self.packages.${system}.git
         self.packages.${system}.difft
         pkgs.gh
-        pkgs.gh-dash
-        pkgs.lazygit
         pkgs.tokei
       ];
     };

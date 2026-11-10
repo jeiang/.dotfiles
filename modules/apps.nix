@@ -13,13 +13,11 @@
       iina
       moonlight-qt
       mos
-      obsidian
       prismlauncher
       telegram-desktop
       utm
       zed-editor
       wrapped.ghostty
-      wrapped.zeiger
 
       bat
       btop
