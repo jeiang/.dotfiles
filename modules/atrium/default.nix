@@ -103,6 +103,7 @@ in {
         core.public_url = "https://${atriumHostname}";
         core.ops_listen = "${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumOpsPort}";
         auth.oidc_api_client_id = "91089791-ffe4-4826-b616-2ce9f9c0eaa7";
+        assistant.ops_condenser = "local";
         mail = {
           mail_mode = "live";
           mail_chat_url = "http://127.0.0.1:${toString chatPort}/v1";
