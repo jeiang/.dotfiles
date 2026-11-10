@@ -10,6 +10,9 @@
   grafanaPort = 3000;
 
   legionServices = config.legion.services;
+  monitoringNode = legionServices.monitoring.node;
+  # A node outside the private network is scraped over the mesh and drops out until it has a peer entry.
+  nodeExporterAddresses = builtins.filter (a: a != null) (map (self.lib.legionAddress monitoringNode) (builtins.attrNames self.lib.legionNodes));
 in {
   flake.lib = {
     grafanaHostname = "grafana.jeiang.dev";
@@ -24,6 +27,17 @@ in {
       OTEL_EXPORTER_OTLP_PROTOCOL = "http/protobuf";
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "${self.lib.otlpTracesEndpoint fromNode}/v1/traces";
     };
+
+    grafanaMetricsDatasourceUid = "victoriametrics";
+
+    nodeExporterHosts = nodeExporterAddresses ++ [self.lib.netbirdPeers.artemis];
+
+    nodeExporterTargets = let
+      nodePort = toString self.nixosConfigurations.${monitoringNode}.config.services.prometheus.exporters.node.port;
+      artemisPort = toString self.nixosConfigurations.artemis.config.services.prometheus.exporters.node.port;
+    in
+      map (ip: "${ip}:${nodePort}") nodeExporterAddresses
+      ++ ["${self.lib.netbirdPeers.artemis}:${artemisPort}"];
   };
 
   legion.services.monitoring = {
@@ -47,10 +61,7 @@ in {
   }: let
     sopsFile = ./secrets.yaml;
     serviceAddress = self.lib.serviceAddress config.networking.hostName;
-    nodeExporterPort = toString config.services.prometheus.exporters.node.port;
     artemisExporters = self.nixosConfigurations.artemis.config.services.prometheus.exporters;
-    # A node outside the private network is scraped over the mesh and drops out until it has a peer entry.
-    legionNodeAddresses = builtins.filter (a: a != null) (map (self.lib.legionAddress config.networking.hostName) (builtins.attrNames self.lib.legionNodes));
 
     # Where this node reaches a service port; empty while its node is mesh-only without a peer entry.
     at = svc: key: path: let
@@ -139,7 +150,7 @@ in {
         inherit retentionPeriod;
         prometheusConfig.scrape_configs =
           [
-            (scrape "node" "node" (map (ip: "${ip}:${nodeExporterPort}") legionNodeAddresses ++ ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.node.port}"]))
+            (scrape "node" "node" self.lib.nodeExporterTargets)
             (scrape "smartctl" "node" ["${self.lib.netbirdPeers.artemis}:${toString artemisExporters.smartctl.port}"])
             (scrape "atrium" "app" ["${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumOpsPort}"])
             (scrape "caddy" "edge" (at "caddy" "metrics" ""))
@@ -244,7 +255,7 @@ in {
             {
               name = "VictoriaMetrics";
               type = "prometheus";
-              uid = "victoriametrics";
+              uid = self.lib.grafanaMetricsDatasourceUid;
               url = "http://127.0.0.1:${toString vmPort}";
               isDefault = true;
             }

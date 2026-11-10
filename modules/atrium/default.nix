@@ -109,7 +109,11 @@ in {
           mail_embed_url = "http://127.0.0.1:${toString embedPort}/v1";
         };
         calendar.icloud_apple_id = icloudAppleId;
-        grafana.grafana_url = self.lib.grafanaMeshUrl;
+        grafana = {
+          grafana_url = self.lib.grafanaMeshUrl;
+          ops_hosts = lib.concatStringsSep "," self.lib.nodeExporterHosts;
+          grafana_metrics_uid = self.lib.grafanaMetricsDatasourceUid;
+        };
         notify.webpush_subject = "mailto:aidan@aidanpinard.co";
         media = {
           media_root = self.lib.mediaDir;
