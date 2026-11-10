@@ -53,11 +53,12 @@ in {
       defaults = {
         dock = {
           autohide = true;
-          orientation = "right";
-          # BL = App Windows, BR = Mission Control, TR = Notification Center.
-          wvous-bl-corner = 3;
-          wvous-br-corner = 2;
-          wvous-tr-corner = 12;
+          orientation = "left";
+          # 1 disables a corner; removing the keys would keep the old actions.
+          wvous-tl-corner = 1;
+          wvous-tr-corner = 1;
+          wvous-bl-corner = 1;
+          wvous-br-corner = 1;
           show-recents = false;
         };
 
