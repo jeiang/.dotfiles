@@ -29,7 +29,6 @@
         "homebrew/homebrew-core" = inputs.homebrew-core;
         "homebrew/homebrew-cask" = inputs.homebrew-cask;
         "k06a/homebrew-tap" = inputs.k06a-tap;
-        "notprotonnot/homebrew-notproton" = inputs.notproton-tap;
         "omlahore/homebrew-tap" = inputs.omlahore-tap;
       };
     };
@@ -63,8 +62,6 @@
         "claude"
         "notion"
         "codex-app"
-        # Unsigned: the first install needs `xattr -dr com.apple.quarantine /Applications/NotProton.app`.
-        "notprotonnot/notproton/notproton"
       ];
 
       brews = [
