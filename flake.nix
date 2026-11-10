@@ -94,6 +94,8 @@
     rex.inputs.nixpkgs.follows = "nixpkgs";
     nanolight.url = "github:jeiang/nanolight";
     nanolight.inputs.nixpkgs.follows = "nixpkgs";
+    nanoview.url = "github:jeiang/nanoview";
+    nanoview.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);
