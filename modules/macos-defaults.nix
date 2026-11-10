@@ -53,7 +53,7 @@ in {
       defaults = {
         dock = {
           autohide = true;
-          orientation = "left";
+          orientation = "right";
           # 1 disables a corner; removing the keys would keep the old actions.
           wvous-tl-corner = 1;
           wvous-tr-corner = 1;
