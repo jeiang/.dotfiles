@@ -1202,11 +1202,11 @@
         "zig-overlay": "zig-overlay"
       },
       "locked": {
-        "lastModified": 1794315646,
-        "narHash": "sha256-32AEJKQNkH/V1DifbKnXqtKQMhZvmFfMCzYDWx3U4As=",
+        "lastModified": 1794319670,
+        "narHash": "sha256-eRhixgn95C39jDmLfRcWMX0jL5WRz2rgeIS95HsZZoE=",
         "owner": "jeiang",
         "repo": "nanoview",
-        "rev": "b501820db27293a3ffad48650241bce2cae40344",
+        "rev": "48e6c51b0b06bb22734f1260d3562aaec97ed3e6",
         "type": "github"
       },
       "original": {
