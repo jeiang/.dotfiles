@@ -1,9 +1,5 @@
 {inputs, ...}: {
-  perSystem = {
-    pkgs,
-    lib,
-    ...
-  }: {
+  perSystem = {pkgs, ...}: {
     packages.omp = let
       strong = ["openai-codex/gpt-6.1-sol:high" "mistral/zai-glm-5-3:high"];
       light = "opencode-zen/deepseek-v4.1-flash-free:high";
@@ -47,6 +43,7 @@
         tools = {
           approvalMode = "yolo";
           xdevNotices = false;
+          xdevDocs = "builtins";
           restrictedFolders = ["~/.ssh" "~/.gnupg" "~/.config/sops" "~/Library" "/etc"];
         };
         cycleOrder = ["smol" "default" "slow" "max-reasoning"];
@@ -182,44 +179,17 @@
           };
         };
       };
-      upstream = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.omp;
-      pinned = lib.importJSON ./hashes.json;
-      src = upstream.src.override {
-        tag = "v${pinned.version}";
-        inherit (pinned) hash;
-      };
     in
       inputs.wrapper-modules.lib.wrapPackage (_: {
         inherit pkgs;
-        # llm-agents lags omp's releases; ./hashes.json and ./_bun.nix supply a newer release until llm-agents catches up.
-        package =
-          if lib.versionOlder upstream.version pinned.version
-          then
-            (upstream.override (prev: {
-              bun2nixLib = prev.bun2nixLib // {fetchBunDeps = args: prev.bun2nixLib.fetchBunDeps (args // {bunNix = ./_bun.nix;});};
-            })).overrideAttrs (prev: {
-              inherit (pinned) version;
-              inherit src;
-              cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
-                inherit src;
-                name = "omp-${pinned.version}-cargo-vendor";
-                hash = pinned.cargoHash;
-              };
-              # pi-shell and pi-natives target rustc 1.101, where VecDeque::is_empty is const and extern "C-unwind" fn items implement Fn; llm-agents builds with 1.99.
-              postPatch =
-                prev.postPatch
-                + ''
-                  substituteInPlace crates/pi-shell/src/bash/vm/proc.rs --replace-fail "pub const fn has_work" "pub fn has_work"
-                  substituteInPlace crates/pi-natives/src/desktop/macos/session.rs --replace-fail "&online_displays(), CGDisplayIsAsleep)" "&online_displays(), |id| CGDisplayIsAsleep(id))"
-                '';
-            })
-          else upstream;
+        package = inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.omp;
         runShell = [
           "export PI_CONFIG_FILES=${settings}"
           # Deliberate retain/learn writes carry veracity "tool" (0.5), below auto-retained transcripts (0.8).
           "export MNEMOPI_TOOL_WEIGHT=1.0"
-          # nixd, not nil: nil publishes nothing for a clean file, so omp waits out the diagnostics timeout. Suffix: the devshell's nixd still wins inside direnv.
-          ''export PATH="$PATH:${pkgs.lib.makeBinPath [pkgs.nixd]}"''
+          # nixd, not nil, and no marksman: neither publishes for a clean file, so omp waits out the diagnostics timeout. Suffix: a devshell's tools still win inside direnv.
+          # python3 only on Linux: darwin's Xcode /usr/bin/python3 runs the eval runner, and nixpkgs' darwin python3 closure carries clang and the SDK.
+          ''export PATH="$PATH:${pkgs.lib.makeBinPath (with pkgs; [nixd bash-language-server yaml-language-server uv ffmpeg-headless] ++ lib.optional stdenv.hostPlatform.isLinux python3)}"''
         ];
       });
   };

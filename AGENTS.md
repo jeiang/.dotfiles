@@ -47,11 +47,11 @@ behavior for its own sake.
   profile path that differs from `origin/main`, builds the zakkart toplevel
   here if it differs, and pushes the closures to garret. Make no PR until it
   finishes: a PR run never pushes to garret, so whatever CI must compile
-  (the full-LTO artemis kernel, a source-built package such as the omp
-  override, deploy-rs after a rustc bump) builds on a shared runner against
-  its job time limit. A slow build that no host closure contains is built the
-  same way with `nix build --eval-store auto --store ssh-ng://artemis.jeiang.vpn`
-  and pushed from artemis with `garret push`.
+  (the full-LTO artemis kernel, deploy-rs after a rustc bump) builds on a
+  shared runner against its job time limit. A slow build that no host
+  closure contains is built the same way with
+  `nix build --eval-store auto --store ssh-ng://artemis.jeiang.vpn` and
+  pushed from artemis with `garret push`.
 - A command that runs more than once becomes a `justfile` recipe.
   `just --list` is the recipe index.
 
