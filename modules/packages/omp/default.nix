@@ -43,6 +43,7 @@
         tools = {
           approvalMode = "yolo";
           xdevNotices = false;
+          xdevDocs = "builtins";
           restrictedFolders = ["~/.ssh" "~/.gnupg" "~/.config/sops" "~/Library" "/etc"];
         };
         cycleOrder = ["smol" "default" "slow" "max-reasoning"];
@@ -186,8 +187,9 @@
           "export PI_CONFIG_FILES=${settings}"
           # Deliberate retain/learn writes carry veracity "tool" (0.5), below auto-retained transcripts (0.8).
           "export MNEMOPI_TOOL_WEIGHT=1.0"
-          # nixd, not nil, and no marksman: neither publishes for a clean file, so omp waits out the diagnostics timeout. Suffix: a devshell's servers still win inside direnv.
-          ''export PATH="$PATH:${pkgs.lib.makeBinPath (with pkgs; [nixd bash-language-server yaml-language-server])}"''
+          # nixd, not nil, and no marksman: neither publishes for a clean file, so omp waits out the diagnostics timeout. Suffix: a devshell's tools still win inside direnv.
+          # python3 only on Linux: darwin's /usr/bin/python3 precedes the suffix, and nixpkgs' darwin python3 closure carries clang and the SDK.
+          ''export PATH="$PATH:${pkgs.lib.makeBinPath (with pkgs; [nixd bash-language-server yaml-language-server uv ffmpeg-headless] ++ lib.optional stdenv.hostPlatform.isLinux python3)}"''
         ];
       });
   };
