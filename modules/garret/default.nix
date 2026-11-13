@@ -95,7 +95,7 @@ in {
       };
       renpy_proj = {
         id = "1395832586";
-        workflows = ["garret.yml@refs/heads/main"];
+        workflows = ["garret.yml@refs/heads/main" "garret.yml@refs/tags/v*"];
       };
       atrium = {
         id = "1423661628";
