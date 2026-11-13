@@ -79,9 +79,9 @@ in {
       runtimeInputs = [rex self.packages.${pkgs.stdenv.hostPlatform.system}.netbird pkgs.jq];
       text = ''
         for _ in $(seq 60); do
-          ip=$(netbird status --json 2>/dev/null | jq -r '.netbirdIp // empty')
+          ip=$(netbird status --json 2>/dev/null | jq -r '.netbirdIp // empty' || true)
           ip=''${ip%/*}
-          if [[ -n $ip ]] && ifconfig | grep -q "inet $ip "; then
+          if [[ -n $ip ]] && ifconfig | grep "inet $ip " >/dev/null; then
             exec rex server run --extra-listen "$ip:${port}" --allow-anonymous
           fi
           sleep 1
