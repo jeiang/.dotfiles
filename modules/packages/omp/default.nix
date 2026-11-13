@@ -86,6 +86,7 @@
         task = {
           showResolvedModelBadge = true;
           enableEffort = false;
+          enableLsp = true;
           file = true;
           perCallModel = "eval";
           perCallModelAllow = [
