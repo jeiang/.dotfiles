@@ -2,7 +2,9 @@
   self,
   inputs,
   ...
-}: {
+}: let
+  port = "7297";
+in {
   nixos.modules.base = {
     config,
     lib,
@@ -11,7 +13,6 @@
   }: let
     user = self.lib.facts.userName;
     meshIP = self.lib.netbirdPeers.${config.networking.hostName};
-    port = "7297";
     # netbird.service being active does not mean the mesh address exists
     # yet: a switch that restarts both races NetBird's reconnect, and a
     # failed bind fails the whole switch. Hold the start until it is there.
@@ -64,4 +65,36 @@
       mode = "0700";
     }
   ];
+
+  # The Rex app starts its own server without a network listener. This one
+  # takes the default socket first, and the app attaches to it.
+  darwin.modules.base = {
+    lib,
+    pkgs,
+    ...
+  }: let
+    rex = inputs.rex.packages.${pkgs.stdenv.hostPlatform.system}.rex;
+    rexServer = pkgs.writeShellApplication {
+      name = "rex-server";
+      runtimeInputs = [rex self.packages.${pkgs.stdenv.hostPlatform.system}.netbird pkgs.jq];
+      text = ''
+        for _ in $(seq 60); do
+          ip=$(netbird status --json 2>/dev/null | jq -r '.netbirdIp // empty' || true)
+          ip=''${ip%/*}
+          if [[ -n $ip ]] && ifconfig | grep "inet $ip " >/dev/null; then
+            exec rex server run --extra-listen "$ip:${port}" --allow-anonymous
+          fi
+          sleep 1
+        done
+        exit 1
+      '';
+    };
+  in {
+    launchd.user.agents.rex-server.serviceConfig = {
+      ProgramArguments = [(lib.getExe rexServer)];
+      EnvironmentVariables.TERMINFO_DIRS = "${rex}/share/terminfo:";
+      RunAtLoad = true;
+      KeepAlive = true;
+    };
+  };
 }
