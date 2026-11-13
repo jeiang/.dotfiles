@@ -452,7 +452,7 @@ behavior for its own sake.
   (`~/.omp/agent/mcp.json`). Claude Code keeps user-scope servers in
   `~/.claude.json` and Codex in `~/.codex/config.toml`, both of which those
   clients rewrite, so `just mcp-register` copies the list into them.
-  Grafana is reached over the mesh, never through the edge. REA is not in
+  REA is not in
   that list, because its tool catalog would ride along in every session: a
   reverse-engineering project registers it itself, in `.omp/mcp.json`
   (`"rea": {"command": "rea", "args": ["mcp"]}`) and at project scope in

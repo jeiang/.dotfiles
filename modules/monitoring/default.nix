@@ -17,6 +17,9 @@ in {
   flake.lib = {
     grafanaHostname = "grafana.jeiang.dev";
 
+    # Mesh address, not grafanaHostname: probing the edge gets the client banned by CrowdSec.
+    grafanaMeshUrl = "http://${self.lib.serviceMeshAddress "monitoring"}:${toString grafanaPort}";
+
     # OTLP/HTTP base URL; an OTel SDK appends /v1/traces.
     otlpTracesEndpoint = fromNode: "http://${self.lib.serviceAddress fromNode "monitoring"}:${toString legionServices.monitoring.ports.victoria-traces}/insert/opentelemetry";
 

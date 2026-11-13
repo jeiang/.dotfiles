@@ -170,16 +170,6 @@ creation_rules:
       - *user_aidanp_se
       - *server_artemis
 
-  - path_regex: modules/mcp/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_artemis
-      - *server_zakkart
-
   - path_regex: modules/monitoring/secrets\.yaml$
     key_groups:
     - age:

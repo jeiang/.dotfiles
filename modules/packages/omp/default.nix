@@ -42,8 +42,7 @@
         session.warnCost = 50;
         tools = {
           approvalMode = "yolo";
-          xdevNotices = false;
-          xdevDocs = "builtins";
+          xdev = false;
           restrictedFolders = ["~/.ssh" "~/.gnupg" "~/.config/sops" "~/Library" "/etc"];
         };
         cycleOrder = ["smol" "default" "slow" "max-reasoning"];
