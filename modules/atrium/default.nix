@@ -5,12 +5,13 @@
 }: let
   icloudAppleId = "aidan@aidanpinard.co";
   stateDir = "/var/lib/atrium";
-  chatPort = 8187;
+  agentStateDir = "/var/lib/atrium-media-agent";
   embedPort = 8188;
   webPort = 8480;
-  webLocalPort = webPort + 1;
+  emergencyPort = webPort + 1;
   atriumHostname = "atrium.jeiang.dev";
-  appUnits = ["atrium-agent-scheduler.service" "atrium-notion-sync.service" "atrium-dav-sync.service" "atrium-watch.service" "atrium-web.service" "atrium-web-local.service"];
+  # Pocket ID client of atrium: the web sign-in and the iOS app share it.
+  oidcClientId = "91089791-ffe4-4826-b616-2ce9f9c0eaa7";
 in {
   flake.lib = {
     atriumWebPort = webPort;
@@ -25,23 +26,13 @@ in {
     ...
   }: let
     models = self.lib.llamaModels;
+    # Embedding server only: the local chat server is retired in v3 (mail
+    # classification uses the service/anthropic connection).
     llamaServer = self.lib.llamaServer {
       inherit lib pkgs;
       name = "atrium";
       modelsDir = "${stateDir}/cache/models";
       servers = {
-        llm = {
-          description = "Qwen3.5-9B chat server for atrium";
-          model = models.qwen35;
-          port = chatPort;
-          args = [
-            "--ctx-size"
-            "8192"
-            "--jinja"
-            "--chat-template-kwargs"
-            (builtins.toJSON {enable_thinking = false;})
-          ];
-        };
         embed = {
           description = "EmbeddingGemma 2 embedding server for atrium";
           model = models.embeddinggemma;
@@ -59,18 +50,14 @@ in {
       };
     };
     secret = name: config.sops.secrets."atrium/${name}".path;
+    # atrium.service and the media agent read these; a rotation restarts both.
+    appUnits = ["atrium.service" "atrium-media-agent.service"];
   in {
     imports = [inputs.atrium.nixosModules.default];
 
     services.atrium = {
       enable = true;
-      environmentFiles = [(secret "env")];
-      secretFiles = {
-        "db.key" = secret "db-key";
-        "notion.notion_token" = secret "notion-token";
-        "grafana.grafana_viewer_token" = secret "grafana-viewer-token";
-        "media.media_tmdb_token" = secret "tmdb-token";
-      };
+      database.keyFile = secret "db-key";
       mailAccounts = {
         icloud = {
           preset = "icloud";
@@ -83,50 +70,101 @@ in {
           passwordFile = secret "gmail-app-password";
         };
       };
-      modelServerUnits = llamaServer.units;
+      embeddingServerUnits = llamaServer.units;
       port = webPort;
       web = {
+        # Pinned: v3 also defaults to oidc, but the host states it.
         auth = "oidc";
         allowedHost = atriumHostname;
-        local.port = webLocalPort;
+        emergency.port = emergencyPort;
+        # alda's Caddy overwrites CF-Connecting-IP with the client address it resolved.
+        trustedProxyCidrs = ["${self.lib.netbirdPeers.alda}/32"];
+      };
+      host = {
+        core.public_url = "https://${atriumHostname}";
+        core.ops_listen = "${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumOpsPort}";
+        grafana.ops_hosts = lib.concatStringsSep "," self.lib.nodeExporterHosts;
+        media.media_download_path_prefix = self.lib.mediaDownloadDir;
+      };
+      connections = {
+        "service/anthropic" = {
+          kind = "service/anthropic";
+          capabilities = ["models"];
+          credentialFiles.api_key = secret "anthropic-api-key";
+        };
+        "service/oidc" = {
+          kind = "service/oidc";
+          config = {
+            preset = "pocket_id";
+            issuer = self.lib.pocketIdUrl;
+            client_id = oidcClientId;
+            api_client_id = oidcClientId;
+            access_groups = "atrium_access,atrium_admin";
+          };
+          capabilities = ["discovery" "client_auth"];
+          credentialFiles.client_secret = secret "oidc-client-secret";
+        };
+        "service/embedding" = {
+          kind = "service/embedding";
+          config = {
+            url = "http://127.0.0.1:${toString embedPort}/v1";
+            model = "embeddinggemma";
+          };
+          capabilities = ["embeddings"];
+        };
+        "service/grafana" = {
+          kind = "service/grafana";
+          config = {
+            url = self.lib.grafanaMeshUrl;
+            metrics_uid = self.lib.grafanaMetricsDatasourceUid;
+          };
+          capabilities = ["viewer"];
+          credentialFiles.viewer_token = secret "grafana-viewer-token";
+        };
+        "service/notion" = {
+          kind = "service/notion";
+          config.api = "https://api.notion.com";
+          capabilities = ["api"];
+          credentialFiles.token = secret "notion-token";
+        };
+        "service/tmdb" = {
+          kind = "service/tmdb";
+          capabilities = ["api" "images"];
+          credentialFiles.read_token = secret "tmdb-token";
+        };
+        "service/qbittorrent" = {
+          kind = "service/qbittorrent";
+          config.url = "http://127.0.0.1:${toString self.lib.qbittorrentWebuiPort}";
+          capabilities = ["api"];
+        };
       };
       media = {
         enable = true;
         group = self.lib.mediaGroup;
+      };
+      # The only process with access to the media tree. All four roots sit
+      # under self.lib.mediaDir, the one directory it may write.
+      mediaAgent = {
+        enable = true;
+        bearerFile = secret "media-agent-bearer";
+        capabilities = ["scan" "thumbnail" "file" "stream"];
+        roots = {
+          movies = "${self.lib.mediaDir}/movies";
+          tv = "${self.lib.mediaDir}/tv";
+          downloads = self.lib.mediaDownloadDir;
+          import = self.lib.mediaImportDir;
+        };
       };
       backup = {
         enable = true;
         directory = "${stateDir}/backups";
       };
       observability.tracesEndpoint = "${self.lib.otlpTracesEndpoint config.networking.hostName}/v1/traces";
-      settings = {
-        core.public_url = "https://${atriumHostname}";
-        core.ops_listen = "${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumOpsPort}";
-        auth.oidc_api_client_id = "91089791-ffe4-4826-b616-2ce9f9c0eaa7";
-        assistant.ops_condenser = "local";
-        mail = {
-          mail_mode = "live";
-          mail_chat_url = "http://127.0.0.1:${toString chatPort}/v1";
-          mail_embed_url = "http://127.0.0.1:${toString embedPort}/v1";
-        };
-        calendar.icloud_apple_id = icloudAppleId;
-        grafana = {
-          grafana_url = self.lib.grafanaMeshUrl;
-          ops_hosts = lib.concatStringsSep "," self.lib.nodeExporterHosts;
-          grafana_metrics_uid = self.lib.grafanaMetricsDatasourceUid;
-        };
-        notify.webpush_subject = "mailto:aidan@aidanpinard.co";
-        media = {
-          media_root = self.lib.mediaDir;
-          media_qbittorrent_url = "http://127.0.0.1:${toString self.lib.qbittorrentWebuiPort}";
-          media_movies_url = "http://${self.deploy.nodes.artemis.hostname}:${toString self.lib.mediaMoviesPort}";
-          media_tv_url = "http://${self.deploy.nodes.artemis.hostname}:${toString self.lib.mediaTvPort}";
-        };
-        notion.wiki_root = "3f47a0cdb63e812c9030ffb39de864be";
-      };
     };
 
     gaming.pauseUnits = llamaServer.units;
+
+    monitoredUnits = ["atrium.service" "atrium-media-agent.service"];
 
     persistence.directories = [
       {
@@ -135,18 +173,33 @@ in {
         group = "atrium";
         mode = "0750";
       }
+      {
+        # Filing receipts: losing them loses replay and undo of past filings.
+        directory = agentStateDir;
+        user = config.services.atrium.mediaAgent.user;
+        group = config.services.atrium.mediaAgent.group;
+        mode = "0700";
+      }
     ];
     backups.persist = {
-      paths = [stateDir];
-      exclude = ["${stateDir}/cache"];
+      paths = [stateDir agentStateDir];
+      # cache/: model weights, raw messages, media caches. Lock files hold no data.
+      exclude = ["${stateDir}/cache" "${stateDir}/*.lock" "${stateDir}/**/*.lock" "${agentStateDir}/*.lock"];
     };
 
-    sops.secrets = lib.genAttrs (map (name: "atrium/${name}") ["env" "db-key" "notion-token" "grafana-viewer-token" "tmdb-token" "icloud-app-password" "gmail-app-password"]) (_: {
+    sops.secrets = lib.genAttrs (map (name: "atrium/${name}") ["db-key" "anthropic-api-key" "oidc-client-secret" "notion-token" "grafana-viewer-token" "tmdb-token" "icloud-app-password" "gmail-app-password" "media-agent-bearer"]) (_: {
       sopsFile = ./secrets.yaml;
       mode = "0400";
       restartUnits = appUnits;
     });
 
-    systemd.services = llamaServer.services;
+    systemd.services =
+      llamaServer.services
+      // {
+        # Cutover hold: the v2 database stays in place until the import, so a
+        # boot that falls back to the previous generation still finds it. The
+        # import creates the marker. Remove both after the cutover.
+        atrium.unitConfig.ConditionPathExists = "${stateDir}/v3-imported";
+      };
   };
 }

@@ -230,7 +230,10 @@ in {
 
           ${self.lib.atriumHostname}.config = ''
             tracing
-            reverse_proxy ${atrium}
+            # atrium trusts this header only from alda (web.trustedProxyCidrs).
+            reverse_proxy ${atrium} {
+              header_up Cf-Connecting-Ip {client_ip}
+            }
           '';
 
           ${toolSites.bill-split.hostname} = {

@@ -22,9 +22,9 @@ func base64url(_ data: Data) -> String {
 func addPage(for url: URL) -> URL? {
     if url.isFileURL {
         guard let data = try? Data(contentsOf: url) else { return nil }
-        return URL(string: "\(atrium)/media/add#torrent=\(base64url(data))&name=\(encode(url.lastPathComponent))")
+        return URL(string: "\(atrium)/apps/media/add#torrent=\(base64url(data))&name=\(encode(url.lastPathComponent))")
     }
-    return URL(string: "\(atrium)/media/add?magnet=\(encode(url.absoluteString))")
+    return URL(string: "\(atrium)/apps/media/add?magnet=\(encode(url.absoluteString))")
 }
 
 func notify(_ title: String, _ body: String) {

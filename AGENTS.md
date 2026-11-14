@@ -467,11 +467,15 @@ behavior for its own sake.
   downloaded again. Two darkhttpd units serve the library read-only on 8084
   (movies) and 8085 (tv), mesh-only like the downloads listing on 8082.
 - atrium's Media section owns filing and the EZTV watches (the former
-  media-organizer is gone). `services.atrium.media` gives it the `media`
-  group and `/var/lib/media`. `/media/file/*` needs no session: atrium
-  serves the bytes only for a valid HMAC-signed, expiring link.
-  The zakkart shim opens atrium's `/media/add` page instead of calling
-  qBittorrent.
+  media-organizer is gone). `services.atrium.mediaAgent` runs
+  `atrium-media-agent` (user `atrium-media-agent`, group `media`), the only
+  process that reads or writes `/var/lib/media`; `atrium.service` cannot see
+  the tree. Its filing receipts live in `/var/lib/atrium-media-agent`,
+  persisted and backed up. The agent's mesh TLS listener
+  (`mediaAgent.vpn`) is off until a certificate the players trust exists;
+  the darkhttpd units stay until then. `/apps/media/file/*` needs no session: atrium serves the
+  bytes only for a valid HMAC-signed, expiring link. The zakkart shim opens
+  atrium's `/apps/media/add` page instead of calling qBittorrent.
 - qBittorrent runs in a network namespace on artemis whose only link besides
   loopback is a WireGuard interface to ricklent (`modules/qbittorrent/`), so
   with the tunnel down it has no route. ricklent masquerades its traffic and
@@ -483,34 +487,43 @@ behavior for its own sake.
 - `atrium` is the code-owned service on artemis, built and documented in
   the `atrium` input (`jeiang/atrium`); its own `AGENTS.md` holds the mail,
   assistant, web auth and media decisions. `modules/atrium/` only wires
-  `services.atrium` into artemis: `settings.mail.mail_mode = "live"`, the
-  sops secrets (`atrium/env` for `ANTHROPIC_API_KEY`; one key per secret
-  setting through `secretFiles`, the database key `atrium/db-key` included,
-  and one app password per `mailAccounts` entry), the shared
-  hostname and port (`flake.lib.atriumHostname`, `atriumWebPort`), the
-  llama-server units (`self.lib.llamaServer`, models from
-  `self.lib.llamaModels`, shared with cod4e-vision), persistence and backup.
+  `services.atrium` into artemis: the host requirements (`host.*`), the
+  declared connections (`connections.*`, one sops key per credential file:
+  Anthropic, Pocket ID, Notion, Grafana, TMDB), the database key
+  `atrium/db-key` (`database.keyFile`), one app password per
+  `mailAccounts` entry, the media agent and its bearer, the shared hostname
+  and port (`flake.lib.atriumHostname`, `atriumWebPort`), the embedding server (`self.lib.llamaServer`,
+  models from `self.lib.llamaModels`, shared with cod4e-vision),
+  persistence and backup. Operator choices such as `mail_mode` and
+  `wiki_root` are database settings changed in the UI or with
+  `atrium-run settings set`, not host configuration.
   The database is encrypted with `atrium/db-key`; an archive opens only with
   the key it was made under, so the key also has an offline copy.
   cod4e-vision is stopped (`enabled = false` in `modules/cod4e-vision.nix`)
   so its servers do not compete with atrium's for the GPU; its persisted
   state directory and user stay.
   Bumping the input is how a code change reaches artemis.
-- The public listener (`atrium-web`, `--auth oidc`) is reached through
+- The public listener (`atrium.service`, `--auth oidc`) is reached through
   alda's Caddy at `atrium.jeiang.dev`, which proxies every path with no
   forward auth. atrium signs users in itself through Pocket ID (groups
   `atrium_access` and `atrium_admin`), and `/api/v1` takes only bearer
-  tokens for the iOS app's client (`settings.auth.oidc_api_client_id`). Its port is open to every NetBird peer, because artemis
+  tokens for the iOS app's client (`api_client_id` of the
+  `service/oidc` connection). Caddy overwrites `Cf-Connecting-Ip` with the
+  client address it resolved, and atrium trusts that header only from alda
+  (`web.trustedProxyCidrs`). Its port is open to every NetBird peer, because artemis
   trusts the NetBird interface; the NetBird ACLs, which admit only the
-  operator's machines and the fleet, are the boundary. `atrium-web-local`
-  (`--auth local`) listens on loopback only for emergency access over an SSH
-  tunnel. Never open either port on another interface.
-- atrium's model weights (Qwen3.5-9B chat, EmbeddingGemma 2) and the raw
-  message cache live in `/var/lib/atrium/cache`, never in the Nix store. The
-  directory is excluded from the artemis restic job. `atrium-backup` writes a
-  daily `atrium backup` archive to `/var/lib/atrium/backups`, which the restic
-  job carries; the module never prunes those archives. The directory is
-  persisted, so it needs no `persistence.*` entry of its own.
+  operator's machines and the fleet, are the boundary. The same process
+  serves emergency access (`--auth local`) on loopback port
+  `web.emergency.port` only, for an SSH tunnel. Never open either port on
+  another interface.
+- atrium's embedding model weights (EmbeddingGemma 2; there is no local
+  chat model) and the raw message cache live in `/var/lib/atrium/cache`,
+  never in the Nix store. The directory is excluded from the artemis restic
+  job. `atrium.service` writes a daily backup archive to
+  `/var/lib/atrium/backups`, which the restic job carries, and prunes it to
+  the newest 5 archives within 14 days (`atrium-*.backup` only; any other
+  file there is left alone). The directory is persisted, so it needs no
+  `persistence.*` entry of its own.
 - Long builds run on artemis, not on zakkart and not on a CI runner:
   `nix build --eval-store auto --store ssh-ng://artemis.jeiang.vpn
   <installable>` evaluates here and builds there, over the operator's own ssh
