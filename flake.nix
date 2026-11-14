@@ -27,7 +27,8 @@
     hjem.inputs.nixpkgs.follows = "nixpkgs";
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
-    atrium.url = "github:jeiang/atrium";
+    # v3 cutover: back to github:jeiang/atrium once v3 is merged into main.
+    atrium.url = "github:jeiang/atrium/v3";
     atrium.inputs.nixpkgs.follows = "nixpkgs";
     nb-nix.url = "github:jeiang/nb-nix";
     nb-nix.inputs.nixpkgs.follows = "nixpkgs";
