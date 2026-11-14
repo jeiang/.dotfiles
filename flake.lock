@@ -1181,11 +1181,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794098640,
-        "narHash": "sha256-aeR3MIfOSH6Wyijx0bX+Ksb1/XY8Mf77hzf2EUM2e70=",
+        "lastModified": 1794615853,
+        "narHash": "sha256-G395G5Mu5cGi/wIYQVZ0c5l3Vq3E8sYz12ZFlHmwdUk=",
         "owner": "jeiang",
         "repo": "nanolight",
-        "rev": "c7b8bf29ab899bbcf2c9993934d912de28f62a28",
+        "rev": "e5c17a93385022488633d5242c5ab32cb471abe1",
         "type": "github"
       },
       "original": {
