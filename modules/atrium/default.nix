@@ -193,13 +193,6 @@ in {
       restartUnits = appUnits;
     });
 
-    systemd.services =
-      llamaServer.services
-      // {
-        # Cutover hold: the v2 database stays in place until the import, so a
-        # boot that falls back to the previous generation still finds it. The
-        # import creates the marker. Remove both after the cutover.
-        atrium.unitConfig.ConditionPathExists = "${stateDir}/v3-imported";
-      };
+    systemd.services = llamaServer.services;
   };
 }
