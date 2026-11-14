@@ -64,16 +64,15 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1794657955,
-        "narHash": "sha256-+nYCGiOAY+/fNU2ITwqbNBMO4G4ip+Oe87WkOjTbkuM=",
+        "lastModified": 1794673331,
+        "narHash": "sha256-tSTz8XeU63sBPYl3pzQfMTnHbl+SZfHgZ0RFaew7HNY=",
         "owner": "jeiang",
         "repo": "atrium",
-        "rev": "6646fedc572d1cb9f7a25db2c45a1cad3719ac73",
+        "rev": "44098ab9d41580e38877c58dd4c8a24029837608",
         "type": "github"
       },
       "original": {
         "owner": "jeiang",
-        "ref": "v3",
         "repo": "atrium",
         "type": "github"
       }
