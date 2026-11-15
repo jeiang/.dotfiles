@@ -1181,11 +1181,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794740461,
-        "narHash": "sha256-t0IksKD9B0Umns+QijINZUyUW8dk7kuVqkDiTCEVTVs=",
+        "lastModified": 1794748413,
+        "narHash": "sha256-H+S1u9xp4oFbQ5tXTKU+rRlsnUMABl5lCklgcpm7Xps=",
         "owner": "jeiang",
         "repo": "mini-md-view",
-        "rev": "94384fad16bd72d8e318234a164c55473cd3eee1",
+        "rev": "5fc01ead411686c1145ecd7c361e14b95f34852e",
         "type": "github"
       },
       "original": {
