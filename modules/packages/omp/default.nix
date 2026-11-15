@@ -117,6 +117,7 @@
             security-reviewer = "@slow";
             change-reviewer = "@task";
             designer = "@task";
+            docs-author = "@task";
             scout = "@smol";
             sonic = "@smol";
           };
