@@ -40,7 +40,10 @@
       };
     }
     // links "skills"
-    // links "agents";
+    // links "agents"
+    // lib.optionalAttrs (entries ? rules) {
+      "${root}/${entries.rules}".source = "${tree}/${entries.rules}";
+    };
 
   files = pkgs: lib.concatMapAttrs (name: root: harness pkgs root name) homes;
 in {
