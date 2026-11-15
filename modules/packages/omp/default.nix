@@ -34,6 +34,22 @@
         composer.tokenRate = true;
         error.notify = "on";
         bash.gitGuard = true;
+        bashInterceptor = {
+          enabled = true;
+          # A patterns list replaces omp's default rules, so only these two apply.
+          patterns = [
+            {
+              pattern = ''^(?![\s\S]*\bssh\s)[\s\S]*\bpython3?(?:\.\d+)?\s+-?\s*<<(?=[\s\S]*(?:\.replace\(|re\.sub\())(?=[\s\S]*(?:write_text\(|\.write\())'';
+              tool = "edit";
+              message = "Change files with the `edit` tool, or `write` for a new file, not a Python script.";
+            }
+            {
+              pattern = ''^\s*python3?(?:\.\d+)?\s+(?:-c\b|-?\s*<<)'';
+              tool = "eval";
+              message = "Run ad hoc Python in the `eval` tool. It starts in the session directory: use absolute paths or `%cd`. Code that needs a project interpreter or its packages goes in a script file.";
+            }
+          ];
+        };
         github.enabled = true;
         marketplace.autoUpdate = "off";
         plan.autosave = true;
