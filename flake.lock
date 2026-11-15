@@ -1174,6 +1174,26 @@
         "type": "github"
       }
     },
+    "mini-md-view": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794740461,
+        "narHash": "sha256-t0IksKD9B0Umns+QijINZUyUW8dk7kuVqkDiTCEVTVs=",
+        "owner": "jeiang",
+        "repo": "mini-md-view",
+        "rev": "94384fad16bd72d8e318234a164c55473cd3eee1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "mini-md-view",
+        "type": "github"
+      }
+    },
     "nanolight": {
       "inputs": {
         "nixpkgs": [
@@ -1768,6 +1788,7 @@
         "llm-agents": "llm-agents",
         "markdown-table-live-editor": "markdown-table-live-editor",
         "mcp-servers-nix": "mcp-servers-nix",
+        "mini-md-view": "mini-md-view",
         "nanolight": "nanolight",
         "nanoview": "nanoview",
         "nb-nix": "nb-nix",
