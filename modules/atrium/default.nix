@@ -121,12 +121,6 @@ in {
           capabilities = ["viewer"];
           credentialFiles.viewer_token = secret "grafana-viewer-token";
         };
-        "service/notion" = {
-          kind = "service/notion";
-          config.api = "https://api.notion.com";
-          capabilities = ["api"];
-          credentialFiles.token = secret "notion-token";
-        };
         "service/tmdb" = {
           kind = "service/tmdb";
           capabilities = ["api" "images"];
@@ -159,6 +153,9 @@ in {
         enable = true;
         directory = "${stateDir}/backups";
       };
+      # Markdown knowledge export. Below stateDir, so it is persisted and backed
+      # up with the database and needs no extra unit access.
+      knowledgeExport.obsidianDirectory = "${stateDir}/knowledge-export";
       observability.tracesEndpoint = "${self.lib.otlpTracesEndpoint config.networking.hostName}/v1/traces";
     };
 
@@ -187,7 +184,7 @@ in {
       exclude = ["${stateDir}/cache" "${stateDir}/*.lock" "${stateDir}/**/*.lock" "${agentStateDir}/*.lock"];
     };
 
-    sops.secrets = lib.genAttrs (map (name: "atrium/${name}") ["db-key" "anthropic-api-key" "oidc-client-secret" "notion-token" "grafana-viewer-token" "tmdb-token" "icloud-app-password" "gmail-app-password" "media-agent-bearer"]) (_: {
+    sops.secrets = lib.genAttrs (map (name: "atrium/${name}") ["db-key" "anthropic-api-key" "oidc-client-secret" "grafana-viewer-token" "tmdb-token" "icloud-app-password" "gmail-app-password" "media-agent-bearer"]) (_: {
       sopsFile = ./secrets.yaml;
       mode = "0400";
       restartUnits = appUnits;
