@@ -62,12 +62,10 @@ in {
         icloud = {
           preset = "icloud";
           login = icloudAppleId;
-          passwordFile = secret "icloud-app-password";
         };
         gmail = {
           preset = "gmail";
           login = "otakuman86@gmail.com";
-          passwordFile = secret "gmail-app-password";
         };
       };
       embeddingServerUnits = llamaServer.units;
