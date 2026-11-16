@@ -147,7 +147,7 @@ in {
       mediaAgent = {
         enable = true;
         bearerFile = secret "media-agent-bearer";
-        capabilities = ["scan" "thumbnail" "file" "stream"];
+        capabilities = ["scan" "file" "stream"];
         roots = {
           movies = "${self.lib.mediaDir}/movies";
           tv = "${self.lib.mediaDir}/tv";
