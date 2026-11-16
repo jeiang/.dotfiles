@@ -497,7 +497,7 @@ behavior for its own sake.
   assistant, web auth and media decisions. `modules/atrium/` only wires
   `services.atrium` into artemis: the host requirements (`host.*`), the
   declared connections (`connections.*`, one sops key per credential file:
-  Anthropic, Pocket ID, Notion, Grafana, TMDB; qBittorrent's API key comes
+  Anthropic, Pocket ID, Grafana, TMDB; qBittorrent's API key comes
   from `self.lib.qbittorrentApiKeyFile`), the database key
   `atrium/db-key` (`database.keyFile`), one app password per
   `mailAccounts` entry, the media agent and its bearer, the shared hostname
