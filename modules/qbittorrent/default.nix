@@ -7,6 +7,8 @@
   filesPort = 8082;
   torrentingPort = 32881;
   stateDir = "/var/lib/qbittorrent";
+  apiKeyFile = "${stateDir}/api-key";
+  apiKeyUnit = "qbittorrent-api-key";
   downloadDir = self.lib.mediaDownloadDir;
 
   exitNode = self.lib.legionNodes.${config.legion.services.qbittorrent-exit.node};
@@ -21,7 +23,11 @@
   exitClientPublicKey = "m+sxbQiaqKHzsaroCGK8KUR1DOgo+oUwxSbKkySrbjI=";
   exitServerPublicKey = "hIn9a8Tqq/9BMilfiiUOdP1qDFrAX3VFQslfBARfggw=";
 in {
-  flake.lib.qbittorrentWebuiPort = webuiPort;
+  flake.lib = {
+    qbittorrentWebuiPort = webuiPort;
+    qbittorrentApiKeyFile = apiKeyFile;
+    qbittorrentApiKeyUnit = "${apiKeyUnit}.service";
+  };
 
   legion.services.qbittorrent-exit = {
     node = "ricklent";
@@ -53,6 +59,21 @@ in {
     ip = lib.getExe' pkgs.iproute2 "ip";
     resolvConf = pkgs.writeText "qbittorrent-resolv.conf" (lib.concatMapStringsSep "\n" (n: "nameserver ${n}") exitResolvers + "\n");
     tunnelUnit = "wireguard-${exitInterface}";
+    configDir = "${stateDir}/qBittorrent/config";
+    # The key goes into the config the unit just reinstalled, read from its
+    # file so it never reaches the Nix store or an argument list.
+    apiKeyConfig = pkgs.writeShellScript "qbittorrent-api-key-config" ''
+      set -eu
+      umask 077
+      chmod 0700 ${configDir}
+      ${lib.getExe pkgs.gawk} -v keyfile=${apiKeyFile} '
+        BEGIN { if ((getline key < keyfile) <= 0) exit 1 }
+        { print }
+        $0 == "[WebUI]" { print "APIKey=" key; added = 1 }
+        END { exit !added }
+      ' ${configDir}/qBittorrent.conf > ${configDir}/qBittorrent.conf.new
+      mv ${configDir}/qBittorrent.conf.new ${configDir}/qBittorrent.conf
+    '';
   in {
     persistence.directories = [stateDir];
     monitoredUnits = ["qbittorrent.service" "darkhttpd.service"];
@@ -103,13 +124,12 @@ in {
           };
           # The exit forwards the peer port with a static DNAT.
           Network.PortForwardingEnabled = false;
-          Preferences.WebUI = {
-            # Every Web UI connection arrives from the socket proxy on the
-            # namespace's loopback; the firewall is the real boundary.
-            # Without a match qBittorrent logs a single-use password at each
-            # start.
-            AuthSubnetWhitelistEnabled = true;
-            AuthSubnetWhitelist = "127.0.0.1/32";
+          # The socket proxy makes every Web UI client loopback, so loopback
+          # must authenticate: atrium with the API key, a browser with the
+          # temporary password qBittorrent prints to its journal at each start.
+          WebUI = {
+            LocalHostAuth = true;
+            AuthSubnetWhitelistEnabled = false;
           };
         };
       };
@@ -134,6 +154,23 @@ in {
       };
 
       services = {
+        ${apiKeyUnit} = {
+          description = "qBittorrent Web API key";
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            UMask = "0077";
+          };
+          script = ''
+            [ -s ${apiKeyFile} ] && exit 0
+            key=$(head -c 21 /dev/urandom | base64 | tr '+/' '-_')
+            printf 'qbt_%s' "$key" > ${apiKeyFile}.new
+            chown ${config.services.qbittorrent.user} ${apiKeyFile}.new
+            chmod 0400 ${apiKeyFile}.new
+            mv ${apiKeyFile}.new ${apiKeyFile}
+          '';
+        };
+
         qbittorrent-netns = {
           description = "Network namespace for qBittorrent";
           serviceConfig = {
@@ -154,9 +191,11 @@ in {
 
         qbittorrent = {
           bindsTo = ["${tunnelUnit}.service"];
+          requires = ["${apiKeyUnit}.service"];
           wants = ["${tunnelUnit}.target"];
-          after = ["${tunnelUnit}.service" "${tunnelUnit}.target"];
+          after = ["${tunnelUnit}.service" "${tunnelUnit}.target" "${apiKeyUnit}.service"];
           serviceConfig = {
+            ExecStartPre = lib.mkAfter ["${apiKeyConfig}"];
             NetworkNamespacePath = exitNamespacePath;
             UMask = "0002";
             # The namespace has no resolver of its own; the host's would leak

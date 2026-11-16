@@ -130,6 +130,7 @@ in {
           kind = "service/qbittorrent";
           config.url = "http://127.0.0.1:${toString self.lib.qbittorrentWebuiPort}";
           capabilities = ["api"];
+          credentialFiles.api_key = self.lib.qbittorrentApiKeyFile;
         };
       };
       media = {
@@ -190,6 +191,14 @@ in {
       restartUnits = appUnits;
     });
 
-    systemd.services = llamaServer.services;
+    systemd.services = lib.mkMerge [
+      llamaServer.services
+      {
+        atrium = {
+          wants = [self.lib.qbittorrentApiKeyUnit];
+          after = [self.lib.qbittorrentApiKeyUnit];
+        };
+      }
+    ];
   };
 }

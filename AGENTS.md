@@ -481,15 +481,24 @@ behavior for its own sake.
   with the tunnel down it has no route. ricklent masquerades its traffic and
   DNATs peer port 32881 to artemis's tunnel address. The namespace resolves
   through Quad9 over the tunnel, and the Web UI reaches the host through a
-  socket proxy, so qBittorrent sees every Web UI client as loopback and
-  whitelists it. The tunnel endpoint is ricklent's public IP, not its name:
-  `wg` resolves inside the namespace, before any resolver is reachable.
+  socket proxy, so qBittorrent sees every Web UI client as loopback; loopback
+  must therefore authenticate, and no subnet is whitelisted. atrium uses a
+  Web API key that `qbittorrent-api-key.service` generates once into
+  `/var/lib/qbittorrent/api-key` (not sops, not backed up: deleting it,
+  then restarting that unit, which restarts qBittorrent, and atrium rotates
+  it) and qBittorrent's start
+  writes into its config directory, which only the qbittorrent user can
+  read. A browser signs in with the temporary password qBittorrent prints
+  to its journal at each start. The tunnel endpoint is ricklent's public
+  IP, not its name: `wg` resolves inside the namespace, before any resolver
+  is reachable.
 - `atrium` is the code-owned service on artemis, built and documented in
   the `atrium` input (`jeiang/atrium`); its own `AGENTS.md` holds the mail,
   assistant, web auth and media decisions. `modules/atrium/` only wires
   `services.atrium` into artemis: the host requirements (`host.*`), the
   declared connections (`connections.*`, one sops key per credential file:
-  Anthropic, Pocket ID, Notion, Grafana, TMDB), the database key
+  Anthropic, Pocket ID, Notion, Grafana, TMDB; qBittorrent's API key comes
+  from `self.lib.qbittorrentApiKeyFile`), the database key
   `atrium/db-key` (`database.keyFile`), one app password per
   `mailAccounts` entry, the media agent and its bearer, the shared hostname
   and port (`flake.lib.atriumHostname`, `atriumWebPort`), the embedding server (`self.lib.llamaServer`,
