@@ -71,12 +71,13 @@ in {
         name = "auto-upgrade";
         runtimeInputs = [config.nix.package pkgs.coreutils pkgs.curl pkgs.jq apply];
         text = ''
-          status=$(curl -fsS --max-time 30 "https://api.github.com/repos/${repo}/commits/main/status?per_page=100")
+          status=$(curl -fsS --retry 3 --max-time 30 "https://api.github.com/repos/${repo}/commits/main/status?per_page=100")
           rev=$(jq -r .sha <<<"$status")
           reported=$(jq -r '[.statuses[] | select(.context == "system/${host}")][0].description // empty' <<<"$status")
 
-          # CI reports a system once garret holds it. A system that waits for a reboot is the profile, not the running one.
-          if [[ -z $reported || $reported == "$(readlink -f /run/current-system)" || $reported == "$(readlink -f ${profile})" ]]; then
+          # CI reports a system once garret holds it. A system that waits for a reboot is the profile, not the
+          # running one, and deploy-rs sets the profile to a wrapper whose files link into the system.
+          if [[ -z $reported || $reported == "$(readlink -f /run/current-system)" || $reported == "$(dirname "$(readlink -f ${profile}/init)")" ]]; then
             exit 0
           fi
           if [[ $reported == "$(cat "$STATE_DIRECTORY/failed" 2>/dev/null)" ]]; then
