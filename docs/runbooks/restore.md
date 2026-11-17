@@ -2,8 +2,7 @@
 
 Restore one Legion service's backup set, or artemis's `/persist` allowlist.
 Read [`AGENTS.md`](../../AGENTS.md) first. Every Legion command runs on the
-node that owns the service. `sudo` (Legion) and `doas` (artemis) need no
-password inside an SSH session.
+node that owns the service. `sudo` needs no password inside an SSH session.
 
 ## Where the Legion backups are
 
@@ -103,22 +102,22 @@ the btrfs snapshot it was read from, so a restore never writes straight back
 over the live path. Restore, then copy:
 
 ```sh
-ssh artemis.jeiang.vpn doas restic-persist snapshots
+ssh artemis.jeiang.vpn sudo restic-persist snapshots
 ```
 
 ```sh
-ssh artemis.jeiang.vpn doas restic-persist restore <snapshot-id> --target /tmp/restore-persist --include '/persist/.backup-snapshot/data/home/aidanp/.gnupg'
+ssh artemis.jeiang.vpn sudo restic-persist restore <snapshot-id> --target /tmp/restore-persist --include '/persist/.backup-snapshot/data/home/aidanp/.gnupg'
 ```
 
 Check the copy, then put it back with `rsync -a` (`--delete` only when the
 live directory must end up identical, and never with `/` as the target):
 
 ```sh
-ssh artemis.jeiang.vpn doas rsync -a /tmp/restore-persist/persist/.backup-snapshot/data/home/aidanp/.gnupg/ /home/aidanp/.gnupg/
+ssh artemis.jeiang.vpn sudo rsync -a /tmp/restore-persist/persist/.backup-snapshot/data/home/aidanp/.gnupg/ /home/aidanp/.gnupg/
 ```
 
 ```sh
-ssh artemis.jeiang.vpn doas rm -rf /tmp/restore-persist
+ssh artemis.jeiang.vpn sudo rm -rf /tmp/restore-persist
 ```
 
 `/persist/data/home/aidanp/...` and the path under `/home/aidanp` are the

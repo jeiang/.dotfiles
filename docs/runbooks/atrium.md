@@ -52,9 +52,9 @@ in `gaming.pauseUnits`, so a game session stops it.
 and credentials:
 
 ```fish
-ssh artemis.jeiang.vpn doas atrium-run live status
-ssh artemis.jeiang.vpn doas atrium-run connections test --all
-ssh artemis.jeiang.vpn doas atrium-run rules import - < rules.json
+ssh artemis.jeiang.vpn sudo atrium-run live status
+ssh artemis.jeiang.vpn sudo atrium-run connections test --all
+ssh artemis.jeiang.vpn sudo atrium-run rules import - < rules.json
 ssh artemis.jeiang.vpn systemctl status atrium.service atrium-media-agent.service
 ssh artemis.jeiang.vpn journalctl -u atrium.service -e
 ```

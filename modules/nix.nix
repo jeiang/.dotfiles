@@ -7,9 +7,6 @@
 }: let
   nixpkgsConfig = {
     allowUnfree = true;
-    # prismlauncher's wrapped zulu-ca-jdk-8 still links gtk2, which nixpkgs
-    # now marks broken ahead of its 27.05 removal.
-    problems.handlers."gtk+".broken = "warn";
   };
 
   # nixpkgs' darwin skips for xcp's socket tests still use the 0.24.1 test

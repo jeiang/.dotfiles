@@ -138,16 +138,7 @@ in {
       };
 
       sops.secrets."netbird/setup-key".sopsFile = ./secrets.yaml;
-      monitoredUnits = ["systemd-journal-upload.service"] ++ map (unit: "${unit}.service") (lib.concatMap (s: s.units) (servicesByNode config.networking.hostName));
-      services = {
-        # systemd-journal-upload appends `/upload` itself and VictoriaLogs' route is /insert/journald/upload, so this URL must end at /insert/journald.
-        journald.upload = {
-          enable = true;
-          settings.Upload.URL = "http://${serviceAddress config.networking.hostName "monitoring"}:${toString legionServices.monitoring.ports.victoria-logs}/insert/journald";
-        };
-
-        journald.settings.Journal.SystemMaxUse = "1G";
-      };
+      monitoredUnits = map (unit: "${unit}.service") (lib.concatMap (s: s.units) (servicesByNode config.networking.hostName));
 
       backups.jobs = lib.listToAttrs (
         map (s:

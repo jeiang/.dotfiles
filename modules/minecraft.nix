@@ -45,8 +45,8 @@ in {
       eula = true;
       servers.${serverName} = {
         enable = true;
-        # nix-minecraft's Fabric launcher defaults to nixpkgs' Java 21; 26.x needs 25.
-        package = pkgs.fabricServers.fabric-26_3.override {jre_headless = pkgs.jdk25_headless;};
+        # nix-minecraft's Fabric launcher defaults to nixpkgs' Java 21; 26.x needs 25. The full JDK is already in the closure, the headless one would be a second copy.
+        package = pkgs.fabricServers.fabric-26_3.override {jre_headless = pkgs.jdk25;};
         # Bedrock 26.60 drops RakNet, which is still Geyser's default transport.
         # ICE must announce the game ingress's forwarded UDP endpoint, not artemis's home address.
         # A fixed, pre-touched heap with ZGC (generational on JDK 25) keeps GC pauses out of the tick loop.

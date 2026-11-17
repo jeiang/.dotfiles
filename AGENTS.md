@@ -126,7 +126,7 @@ behavior for its own sake.
 
 ### Guardrails
 
-- Never run `sudo` or `doas` yourself, and never reboot a host, unless the
+- Never run `sudo` yourself, and never reboot a host, unless the
   user explicitly permits it for the current task; that permission covers
   only that task. Otherwise give the operator the exact command. The
   operator's shell is fish on every machine: write fish syntax, and wrap
@@ -147,8 +147,8 @@ behavior for its own sake.
   operator's key can open; a console session needs the password
   (`modules/openssh.nix`).
 - artemis: `artemis.jeiang.vpn`. A bare `artemis` resolves through the
-  wildcard record and does not reach the host. `doas` follows the same rule
-  as Legion's `sudo`. deploy-rs logs in as the `deploy` user on every NixOS
+  wildcard record and does not reach the host. `sudo` follows the same rule
+  as on Legion. deploy-rs logs in as the `deploy` user on every NixOS
   host. When NetBird is down, `alda` reaches artemis at `10.100.0.2` over
   the `wg-backup` WireGuard tunnel.
 - artemis has an EDID dummy plug on `HDMI-A-1`. The motherboard does not
@@ -226,13 +226,14 @@ behavior for its own sake.
 ## Decisions that constrain changes
 
 - The deploy user is a Nix trusted user on every NixOS host, so it is
-  root-equivalent. Its elevation rules (sudo on Legion, doas on artemis) are
-  for audit, not containment. Removing that trust needs a signed-closure
-  delivery design.
-- `sudo`/`doas` skip the password only for a caller inside an sshd logind
+  root-equivalent. Its sudo rules are for audit, not containment. Removing
+  that trust needs a signed-closure delivery design.
+- `sudo` skips the password only for a caller inside an sshd logind
   session of the same user; sshd accepts only keys, so that session proves
-  the operator's key. gamemode stops and starts `gaming.pauseUnits` through
-  a polkit rule, not elevation.
+  the operator's key. Any other session (console, desktop, Rex) asks for the
+  password, and sudo then remembers the authentication for two hours for
+  every session of that user on the host (`timestamp_type=global`). gamemode
+  stops and starts `gaming.pauseUnits` through a polkit rule, not elevation.
 - Hetzner servers, Volumes, and Cloud Firewalls are provisioned outside the
   flake, and are Hetzner-only. A Volume is for state that cannot suffer loss
   if the server fails. A stateful Legion service that keeps such state uses
@@ -251,7 +252,10 @@ behavior for its own sake.
   `self.lib.hetznerServerDisk` (LUN 0 by path), never `/dev/sdX`: an
   attached Volume can take `sda`.
 - The Hetzner private network (`172.16.0.0/12`, `enp7s0`) exists only on
-  Hetzner nodes, and no NetBird route reaches it from the mesh. Hetzner
+  Hetzner nodes, and no NetBird route reaches it from the mesh: an exit
+  route (`0.0.0.0/0`) forwards its sources to any destination, so each
+  Hetzner node drops what it would forward from the NetBird interface to
+  that network. Hetzner
   nodes address each other by `privateIPv4`; every pair involving ricklent
   uses the target's
   mesh IP from `modules/netbird-peers.nix`, through
@@ -264,8 +268,10 @@ behavior for its own sake.
   policies allow; a new one needs an entry there. NetBird DNS clients use
   Blocky on vida and ricklent at their mesh IPs (port 553, TCP and UDP).
 - Legion host firewalls are on. `legion.services.<name>.publicPorts` and
-  `publicPortRanges` are the internet openings; `enp7s0` (Hetzner nodes) and the
-  NetBird interface are trusted interfaces. On a Hetzner node a public
+  `publicPortRanges` are the internet openings. The NetBird interface is
+  trusted; `enp7s0` (Hetzner nodes) admits only the node exporter and the
+  `ports` of the services placed on the node, so a port that another Hetzner
+  node reaches needs a `ports` entry. On a Hetzner node a public
   opening also needs a rule in `legion`, the one Hetzner Cloud Firewall the
   four Hetzner nodes share. It is attached by
   server ID, so a new Hetzner node must be attached to it explicitly. Public
@@ -329,6 +335,11 @@ behavior for its own sake.
   resolve the content sites to the edge's private or mesh address, and the
   edge serves exactly those two sources without a challenge.
 - Stateless by choice: Gatus stores results in memory.
+- Every NixOS host uploads its journal to VictoriaLogs on zantark and keeps
+  1 GB locally (`modules/journald.nix`). On artemis the upload cursor is in
+  `/var/lib/private`, persisted as a whole because systemd refuses a private
+  root that is not `0700`. A unit whose routine messages are noise carries
+  `LogFilterPatterns`; a filtered message never reaches the journal.
 - `gatus-atl` on ricklent is the independent Atlanta watchdog: the same
   endpoints as zantark's `gatus`, alerting straight to Discord with
   `modules/gatus/secrets.yaml`, so it does not depend on zantark.
@@ -387,7 +398,9 @@ behavior for its own sake.
   main builds: `portfolio-update` builds it as the `portfolio` user at
   00:00 UTC (and 2 minutes after activation) into
   `/var/lib/portfolio-update/current`, the GC root, and restarts the
-  service when the path changes. Its owner's pushes go live without review.
+  service when the path changes. Its owner's pushes go live without review,
+  so the service exchanges packets only with the edge (`IPAddressAllow`): it
+  reaches neither the internet, the private network, nor loopback.
   The `portfolio` flake input supplies only the NixOS module and the
   fallback package used until a first build exists; bump it when the
   module changes.
@@ -502,15 +515,12 @@ behavior for its own sake.
   `atrium/db-key` (`database.keyFile`), one app password per
   `mailAccounts` entry, the media agent and its bearer, the shared hostname
   and port (`flake.lib.atriumHostname`, `atriumWebPort`), the embedding server (`self.lib.llamaServer`,
-  models from `self.lib.llamaModels`, shared with cod4e-vision),
+  models from `self.lib.llamaModels`),
   persistence and backup. Operator choices such as `mail_mode` and
   `wiki_root` are database settings changed in the UI or with
   `atrium-run settings set`, not host configuration.
   The database is encrypted with `atrium/db-key`; an archive opens only with
   the key it was made under, so the key also has an offline copy.
-  cod4e-vision is stopped (`enabled = false` in `modules/cod4e-vision.nix`)
-  so its servers do not compete with atrium's for the GPU; its persisted
-  state directory and user stay.
   Bumping the input is how a code change reaches artemis.
 - The public listener (`atrium.service`, `--auth oidc`) is reached through
   alda's Caddy at `atrium.jeiang.dev`, which proxies every path with no

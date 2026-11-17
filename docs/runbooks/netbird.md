@@ -71,7 +71,7 @@ secret holds a copy of the key. The mesh drops while it re-enrolls, so the
 command runs detached on artemis:
 
 1. On artemis (bash):
-    `nb=$(readlink -f "$(command -v netbird)"); doas systemd-run --unit=nb-reenroll --on-active=45 /bin/sh -c "$nb down; sleep 3; $nb up --setup-key-file /run/secrets/netbird/setup-key"`.
+    `nb=$(readlink -f "$(command -v netbird)"); sudo systemd-run --unit=nb-reenroll --on-active=45 /bin/sh -c "$nb down; sleep 3; $nb up --setup-key-file /run/secrets/netbird/setup-key"`.
 2. Within 45 seconds, delete the `artemis` peer in the dashboard. artemis
     enrolls as a new `artemis` peer in `Legion` with a new address. If it
     does not come back, reach it from `alda` at `10.100.0.2`.
