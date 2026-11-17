@@ -138,6 +138,49 @@ not with anything on the host. Restore `/persist/etc/ssh` first anyway: the
 rebuilt host then decrypts every existing shard with its old key, instead of
 needing new recipients in `.sops.yaml`.
 
+## Second copies on artemis
+
+After each successful backup, `restic-copy-<service>` copies the newest
+snapshot to a rest-server on artemis, which stores it on the Mumei drive as
+`/mnt/Mumei/Backup/<host>/<service>`. A copy has the password and the
+retention of its source repository. artemis has no Legion password, so it
+cannot read the Legion copies.
+
+Use a copy when S4 is not available. Give the wrapper the copy as its
+repository, on the host that owns the backup:
+
+```sh
+ssh -t <node>.svr.jeiang.dev sudo restic-<service> -r rest:http://100.89.148.91:8000/<node>/<service> snapshots
+```
+
+```sh
+ssh -t artemis.jeiang.vpn sudo restic-persist -r rest:http://127.0.0.1:8000/artemis/persist snapshots
+```
+
+The server starts only while the drive is mounted, and the copy units fail
+while it is not. After the drive is attached again:
+
+```sh
+ssh -t artemis.jeiang.vpn sudo systemctl restart mnt-Mumei.mount restic-rest-server.socket
+```
+
+## zakkart
+
+zakkart backs up only `~/.omp`, without its caches, daily at 13:00 to
+`rest:http://100.89.148.91:8000/zakkart/omp` on artemis. There is no S4
+copy. The password is `restic/password` in
+`modules/backups/secrets.zakkart.yaml`. The log is
+`~/Library/Logs/omp-backup.log`; nothing alerts when a run fails.
+
+```sh
+RESTIC_PASSWORD_FILE=/run/secrets/restic/password nix run nixpkgs#restic -- -r rest:http://100.89.148.91:8000/zakkart/omp snapshots
+```
+
+A snapshot holds `~/.omp` without its SQLite databases, and an online copy
+of each database under `~/Library/Caches/omp-backup`. Stop omp, restore
+`~/.omp`, then copy the databases from that path to the same places under
+`~/.omp`.
+
 ## Retention
 
 Each `restic-backups-<service>` run, on its job's own schedule, only backs
