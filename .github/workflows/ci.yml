@@ -64,10 +64,16 @@ jobs:
         continue-on-error: true
         run: ./.ci/garret.sh watch
 
+      # A pull request pushes nothing, so an output garret already serves is not downloaded again.
       - name: Build check
         env:
           CHECK: ${{ matrix.check }}
-        run: nix build --keep-going --show-trace --no-link --print-out-paths ".#checks.x86_64-linux.$CHECK" >"$RUNNER_TEMP/garret-outputs"
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = pull_request ] && nix path-info --eval-store auto --store https://cache.jeiang.dev ".#checks.x86_64-linux.$CHECK" >/dev/null 2>&1; then
+            echo "garret already serves this check's output."
+            exit 0
+          fi
+          nix build --keep-going --show-trace --no-link --print-out-paths ".#checks.x86_64-linux.$CHECK" >"$RUNNER_TEMP/garret-outputs"
 
       # Also after a failed build, so the next run substitutes what this one built.
       - name: Push to garret what the watcher has not
