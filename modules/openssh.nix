@@ -16,12 +16,6 @@
       show() { ${config.systemd.package}/bin/loginctl show-session "$session" --value -p "$1"; }
       [ "$(show Remote)" = yes ] && [ "$(show Service)" = sshd ] && [ "$(show Name)" = "$PAM_USER" ]
     '';
-    sshSessionRule = service: {
-      order = config.security.pam.services.${service}.rules.auth.unix.order - 10;
-      control = "sufficient";
-      modulePath = "${pkgs.linux-pam}/lib/security/pam_exec.so";
-      args = ["quiet" "${sshSession}"];
-    };
   in {
     services.openssh = {
       enable = true;
@@ -39,10 +33,20 @@
       };
     };
 
-    security.pam.services = lib.mkMerge [
-      (lib.mkIf config.security.sudo.enable {sudo.rules.auth.ssh-session = sshSessionRule "sudo";})
-      (lib.mkIf config.security.doas.enable {doas.rules.auth.ssh-session = sshSessionRule "doas";})
-    ];
+    security = {
+      pam.services.sudo.rules.auth.ssh-session = {
+        order = config.security.pam.services.sudo.rules.auth.unix.order - 10;
+        control = "sufficient";
+        modulePath = "${pkgs.linux-pam}/lib/security/pam_exec.so";
+        args = ["quiet" "${sshSession}"];
+      };
+
+      # Rex sessions never satisfy the rule above, so one password covers every session of the user on the host for two hours.
+      sudo.extraConfig = ''
+        Defaults timestamp_type=global
+        Defaults timestamp_timeout=120
+      '';
+    };
   };
 
   nixos.modules.artemis.monitoredUnits = ["sshd.service"];

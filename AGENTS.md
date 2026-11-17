@@ -126,7 +126,7 @@ behavior for its own sake.
 
 ### Guardrails
 
-- Never run `sudo` or `doas` yourself, and never reboot a host, unless the
+- Never run `sudo` yourself, and never reboot a host, unless the
   user explicitly permits it for the current task; that permission covers
   only that task. Otherwise give the operator the exact command. The
   operator's shell is fish on every machine: write fish syntax, and wrap
@@ -147,8 +147,8 @@ behavior for its own sake.
   operator's key can open; a console session needs the password
   (`modules/openssh.nix`).
 - artemis: `artemis.jeiang.vpn`. A bare `artemis` resolves through the
-  wildcard record and does not reach the host. `doas` follows the same rule
-  as Legion's `sudo`. deploy-rs logs in as the `deploy` user on every NixOS
+  wildcard record and does not reach the host. `sudo` follows the same rule
+  as on Legion. deploy-rs logs in as the `deploy` user on every NixOS
   host. When NetBird is down, `alda` reaches artemis at `10.100.0.2` over
   the `wg-backup` WireGuard tunnel.
 - artemis has an EDID dummy plug on `HDMI-A-1`. The motherboard does not
@@ -226,13 +226,14 @@ behavior for its own sake.
 ## Decisions that constrain changes
 
 - The deploy user is a Nix trusted user on every NixOS host, so it is
-  root-equivalent. Its elevation rules (sudo on Legion, doas on artemis) are
-  for audit, not containment. Removing that trust needs a signed-closure
-  delivery design.
-- `sudo`/`doas` skip the password only for a caller inside an sshd logind
+  root-equivalent. Its sudo rules are for audit, not containment. Removing
+  that trust needs a signed-closure delivery design.
+- `sudo` skips the password only for a caller inside an sshd logind
   session of the same user; sshd accepts only keys, so that session proves
-  the operator's key. gamemode stops and starts `gaming.pauseUnits` through
-  a polkit rule, not elevation.
+  the operator's key. Any other session (console, desktop, Rex) asks for the
+  password, and sudo then remembers the authentication for two hours for
+  every session of that user on the host (`timestamp_type=global`). gamemode
+  stops and starts `gaming.pauseUnits` through a polkit rule, not elevation.
 - Hetzner servers, Volumes, and Cloud Firewalls are provisioned outside the
   flake, and are Hetzner-only. A Volume is for state that cannot suffer loss
   if the server fails. A stateful Legion service that keeps such state uses

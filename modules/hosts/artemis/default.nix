@@ -9,7 +9,7 @@ in {
   flake.deploy.nodes.artemis = {
     hostname = "artemis.${self.lib.netbirdDnsDomain}";
     sshUser = self.lib.deployUser;
-    sudo = "doas -u";
+    sudo = "sudo -u";
     profiles.system = {
       user = "root";
       path = inputs.deploy-rs.lib.x86_64-linux.activate.nixos self.nixosConfigurations.artemis;
