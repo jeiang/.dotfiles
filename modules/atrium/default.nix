@@ -62,7 +62,6 @@ in {
         icloud = {
           preset = "icloud";
           login = icloudAppleId;
-          enabled = false;
         };
         gmail = {
           preset = "gmail";
