@@ -297,6 +297,11 @@ in {
             client_ip_headers Cf-Connecting-Ip
             # No UDP 443 is open, so advertising HTTP/3 only sends clients on a failed QUIC attempt.
             protocols h1 h2
+            # Caddy 2.11 aborts a request body that is idle for 1m, which cuts NetBird's gRPC
+            # streams every minute. A per-route `timeouts` cannot loosen it before 2.11.8.
+            timeouts {
+              read_body_idle -1s
+            }
           }
         '';
 
