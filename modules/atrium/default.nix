@@ -58,7 +58,7 @@ in {
     services.atrium = {
       enable = true;
       database.keyFile = secret "db-key";
-      mailAccounts = {
+      accounts = {
         icloud = {
           preset = "icloud";
           login = icloudAppleId;
