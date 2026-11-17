@@ -251,7 +251,10 @@ behavior for its own sake.
   `self.lib.hetznerServerDisk` (LUN 0 by path), never `/dev/sdX`: an
   attached Volume can take `sda`.
 - The Hetzner private network (`172.16.0.0/12`, `enp7s0`) exists only on
-  Hetzner nodes, and no NetBird route reaches it from the mesh. Hetzner
+  Hetzner nodes, and no NetBird route reaches it from the mesh: an exit
+  route (`0.0.0.0/0`) forwards its sources to any destination, so each
+  Hetzner node drops what it would forward from the NetBird interface to
+  that network. Hetzner
   nodes address each other by `privateIPv4`; every pair involving ricklent
   uses the target's
   mesh IP from `modules/netbird-peers.nix`, through
@@ -264,8 +267,10 @@ behavior for its own sake.
   policies allow; a new one needs an entry there. NetBird DNS clients use
   Blocky on vida and ricklent at their mesh IPs (port 553, TCP and UDP).
 - Legion host firewalls are on. `legion.services.<name>.publicPorts` and
-  `publicPortRanges` are the internet openings; `enp7s0` (Hetzner nodes) and the
-  NetBird interface are trusted interfaces. On a Hetzner node a public
+  `publicPortRanges` are the internet openings. The NetBird interface is
+  trusted; `enp7s0` (Hetzner nodes) admits only the node exporter and the
+  `ports` of the services placed on the node, so a port that another Hetzner
+  node reaches needs a `ports` entry. On a Hetzner node a public
   opening also needs a rule in `legion`, the one Hetzner Cloud Firewall the
   four Hetzner nodes share. It is attached by
   server ID, so a new Hetzner node must be attached to it explicitly. Public

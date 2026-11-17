@@ -121,7 +121,27 @@ in {
       };
     };
 
-    networking.firewall.trustedInterfaces = [privateInterface];
+    networking = {
+      firewall.interfaces.${privateInterface} = let
+        ports =
+          [config.services.prometheus.exporters.node.port]
+          ++ lib.concatMap (s: builtins.attrValues s.ports) (builtins.filter (s: s.node == config.networking.hostName) (builtins.attrValues legionServices));
+      in {
+        allowedTCPPorts = ports;
+        allowedUDPPorts = ports;
+      };
+
+      # A NetBird exit route forwards its sources to any destination, this network and the metadata service included.
+      nftables.tables.private-network-guard = {
+        family = "ip";
+        content = ''
+          chain forward {
+            type filter hook forward priority filter; policy accept;
+            iifname "${config.services.netbird.clients.default.interface}" ip daddr { ${self.lib.hetznerPrivateCidr}, 169.254.0.0/16 } drop
+          }
+        '';
+      };
+    };
 
     # The label is the service name, applied once by the operator; nofail keeps a missing Volume from blocking boot.
     fileSystems = lib.listToAttrs (
