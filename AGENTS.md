@@ -335,6 +335,11 @@ behavior for its own sake.
   resolve the content sites to the edge's private or mesh address, and the
   edge serves exactly those two sources without a challenge.
 - Stateless by choice: Gatus stores results in memory.
+- Every NixOS host uploads its journal to VictoriaLogs on zantark and keeps
+  1 GB locally (`modules/journald.nix`). On artemis the upload cursor is in
+  `/var/lib/private`, persisted as a whole because systemd refuses a private
+  root that is not `0700`. A unit whose routine messages are noise carries
+  `LogFilterPatterns`; a filtered message never reaches the journal.
 - `gatus-atl` on ricklent is the independent Atlanta watchdog: the same
   endpoints as zantark's `gatus`, alerting straight to Discord with
   `modules/gatus/secrets.yaml`, so it does not depend on zantark.

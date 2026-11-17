@@ -54,7 +54,10 @@ in {
     };
   };
 
-  nixos.modules.artemis.services.prometheus.exporters.smartctl.enable = true;
+  nixos.modules.artemis.services.prometheus.exporters.smartctl = {
+    enable = true;
+    extraFlags = ["--log.level=warn"];
+  };
 
   nixos.modules.monitoring = {
     config,
@@ -205,7 +208,7 @@ in {
       victorialogs = {
         enable = true;
         listenAddress = ":${toString vlPort}";
-        extraOptions = ["-retentionPeriod=${retentionPeriod}"];
+        extraOptions = ["-retentionPeriod=${retentionPeriod}" "-retention.maxDiskSpaceUsageBytes=10GiB"];
       };
 
       # OTLP over HTTP at /insert/opentelemetry/v1/traces.
