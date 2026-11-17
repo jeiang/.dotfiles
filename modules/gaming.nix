@@ -22,11 +22,7 @@
           # ffmpeg required by some mod
           additionalPrograms = [ffmpeg];
 
-          jdks = [
-            zulu8
-            zulu17
-            zulu
-          ];
+          jdks = [jdk25];
         })
         (heroic.override {
           extraPkgs = pkgs':
