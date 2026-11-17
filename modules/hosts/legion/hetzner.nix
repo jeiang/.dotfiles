@@ -132,11 +132,12 @@ in {
       };
 
       # A NetBird exit route forwards its sources to any destination, this network and the metadata service included.
+      # NetBird puts an accept for its interface at the head of every forward and input chain, so the drop is in prerouting.
       nftables.tables.private-network-guard = {
         family = "ip";
         content = ''
-          chain forward {
-            type filter hook forward priority filter; policy accept;
+          chain prerouting {
+            type filter hook prerouting priority filter; policy accept;
             iifname "${config.services.netbird.clients.default.interface}" ip daddr { ${self.lib.hetznerPrivateCidr}, 169.254.0.0/16 } drop
           }
         '';
