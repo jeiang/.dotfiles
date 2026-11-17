@@ -38,6 +38,7 @@
         services.netbird-proxy-atl.ports.health
         artemisExporters.node.port
         artemisExporters.smartctl.port
+        self.lib.backupCopyPort
         self.lib.atriumWebPort
         self.lib.atriumOpsPort
         services.monitoring.ports.grafana
