@@ -183,7 +183,7 @@ in {
       exclude = ["${stateDir}/cache" "${stateDir}/*.lock" "${stateDir}/**/*.lock" "${agentStateDir}/*.lock"];
     };
 
-    sops.secrets = lib.genAttrs (map (name: "atrium/${name}") ["db-key" "anthropic-api-key" "oidc-client-secret" "grafana-viewer-token" "tmdb-token" "icloud-app-password" "gmail-app-password" "media-agent-bearer"]) (_: {
+    sops.secrets = lib.genAttrs (map (name: "atrium/${name}") ["db-key" "anthropic-api-key" "oidc-client-secret" "grafana-viewer-token" "tmdb-token" "media-agent-bearer"]) (_: {
       sopsFile = ./secrets.yaml;
       mode = "0400";
       restartUnits = appUnits;
