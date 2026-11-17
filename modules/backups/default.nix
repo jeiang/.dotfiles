@@ -45,10 +45,51 @@
       Persistent = true;
     };
   };
+
+  # artemis holds a second copy of every repository, as `<host>/<job>`, on a drive of its own.
+  copyRoot = "/mnt/Mumei/Backup";
+  copyPort = 8000;
+  copyRepository = server: host: name: "rest:http://${server}:${toString copyPort}/${host}/${name}";
+
+  # Only the newest snapshot is copied: the copy applies the same retention, and
+  # a copy of every snapshot would fetch again the ones it has just forgotten.
+  copyService = {
+    pkgs,
+    lib,
+    name,
+    repository,
+    copy,
+    passwordFile,
+    environmentFile,
+  }: {
+    description = "Restic copy of ${name} to artemis";
+    after = ["network-online.target"];
+    wants = ["network-online.target"];
+    environment = {
+      RESTIC_CACHE_DIR = "/var/cache/restic-backups-${name}";
+      RESTIC_FROM_REPOSITORY = repository;
+      RESTIC_FROM_PASSWORD_FILE = passwordFile;
+      RESTIC_REPOSITORY = copy;
+      RESTIC_PASSWORD_FILE = passwordFile;
+    };
+    serviceConfig = {
+      Type = "oneshot";
+      EnvironmentFile = environmentFile;
+      ExecStart = toString (pkgs.writeShellScript "restic-copy-${name}" ''
+        set -eu
+        restic=${lib.getExe pkgs.restic}
+        $restic cat config >/dev/null 2>&1 || $restic init --copy-chunker-params
+        $restic copy --retry-lock 2h latest
+        $restic forget --prune ${retention}
+      '');
+    };
+  };
 in {
+  flake.lib.backupCopyPort = copyPort;
+
   nixos.modules = {
     # The backup-freshness alert reads the timers' last trigger.
-    base.monitoredUnits = ["restic-backups-*.service" "restic-backups-*.timer" "restic-maintenance-*.service" "restic-maintenance-*.timer"];
+    base.monitoredUnits = ["restic-backups-*.service" "restic-backups-*.timer" "restic-maintenance-*.service" "restic-maintenance-*.timer" "restic-copy-*.service"];
 
     legion = {
       config,
@@ -163,12 +204,22 @@ in {
           lib.mapAttrs' (name: job:
             lib.nameValuePair "restic-backups-${name}" {
               unitConfig.RequiresMountsFor = lib.optional (job.volume != null) job.volume;
+              onSuccess = ["restic-copy-${name}.service"];
             })
           cfg.jobs
           // lib.mapAttrs' (name: _job:
             lib.nameValuePair "restic-maintenance-${name}" (maintenanceService {
               inherit lib name pkgs;
               repository = repositoryFor name;
+              passwordFile = config.sops.secrets."restic/password".path;
+              environmentFile = config.sops.secrets."restic/s4-env".path;
+            }))
+          cfg.jobs
+          // lib.mapAttrs' (name: _job:
+            lib.nameValuePair "restic-copy-${name}" (copyService {
+              inherit lib name pkgs;
+              repository = repositoryFor name;
+              copy = copyRepository self.lib.netbirdPeers.artemis config.networking.hostName name;
               passwordFile = config.sops.secrets."restic/password".path;
               environmentFile = config.sops.secrets."restic/s4-env".path;
             }))
@@ -291,19 +342,94 @@ in {
           '';
         };
 
+        # The NetBird policies are the boundary, and each owner prunes its own copy.
+        services.restic.server = {
+          enable = true;
+          listenAddress = toString copyPort;
+          dataDir = copyRoot;
+          extraFlags = ["--no-auth"];
+        };
+        monitoredUnits = ["restic-rest-server.service" "restic-rest-server.socket"];
+
         systemd = {
           services = {
-            restic-backups-persist.unitConfig.RequiresMountsFor = ["/persist"];
+            restic-backups-persist = {
+              unitConfig.RequiresMountsFor = ["/persist"];
+              onSuccess = ["restic-copy-persist.service"];
+            };
             restic-maintenance-persist = maintenanceService {
               inherit lib pkgs repository;
               name = "persist";
               passwordFile = config.sops.secrets."restic/password".path;
               environmentFile = config.sops.secrets."restic/s4-env".path;
             };
+            restic-copy-persist = copyService {
+              inherit lib pkgs repository;
+              name = "persist";
+              copy = copyRepository "127.0.0.1" config.networking.hostName "persist";
+              passwordFile = config.sops.secrets."restic/password".path;
+              environmentFile = config.sops.secrets."restic/s4-env".path;
+            };
+            # The drive is not always attached, and without it the directory is on the root that every boot wipes.
+            restic-rest-server = {
+              unitConfig.RequiresMountsFor = [copyRoot];
+              serviceConfig.ExecStartPre = "+${pkgs.coreutils}/bin/install -d -o restic -g restic -m 0750 ${copyRoot}";
+            };
           };
           timers.restic-maintenance-persist = maintenanceTimer;
         };
       };
+    };
+  };
+
+  darwin.modules.base = {
+    config,
+    lib,
+    pkgs,
+    ...
+  }: let
+    user = self.lib.facts.userName;
+    log = "${config.users.users.${user}.home}/Library/Logs/omp-backup.log";
+    # Caches, browser profiles and runtime files that omp makes again.
+    skipped = ["cache" "puppeteer" "run" "webcache" "natives" "browser-profiles" "tmp" "logs" "ssh-control" "agent/cache"];
+    ompBackup = pkgs.writeShellApplication {
+      name = "omp-backup";
+      runtimeInputs = [pkgs.restic pkgs.sqlite];
+      text = ''
+        omp=$HOME/${dirOf self.lib.agentHomes.omp}
+        stage=$HOME/Library/Caches/omp-backup
+        export RESTIC_REPOSITORY=${copyRepository self.lib.netbirdPeers.artemis config.networking.hostName "omp"}
+        export RESTIC_PASSWORD_FILE=${config.sops.secrets."restic/password".path}
+
+        # A live SQLite database read file by file can be torn, so each one is backed up as an online copy.
+        rm -rf "$stage"
+        trap 'rm -rf "$stage"' EXIT
+        (cd "$omp" && find . \( ${lib.concatMapStringsSep " -o " (dir: "-path ./${dir}") skipped} \) -prune -o -name '*.db' -print0) | while IFS= read -r -d "" db; do
+          mkdir -p "$stage/$(dirname "$db")"
+          sqlite3 -cmd '.timeout 5000' "$omp/$db" ".backup '$stage/$db'"
+        done
+
+        restic cat config >/dev/null 2>&1 || restic init
+        restic backup ${lib.concatMapStringsSep " " (pattern: ''--exclude "$omp/${pattern}"'') (skipped ++ ["**/*.db" "**/*.db-wal" "**/*.db-shm"])} "$omp" "$stage"
+        restic forget --prune ${retention}
+      '';
+    };
+  in {
+    sops.secrets."restic/password" = {
+      sopsFile = ./secrets.zakkart.yaml;
+      owner = user;
+    };
+
+    launchd.user.agents.omp-backup.serviceConfig = {
+      ProgramArguments = [(lib.getExe ompBackup)];
+      StartCalendarInterval = [
+        {
+          Hour = 13;
+          Minute = 0;
+        }
+      ];
+      StandardOutPath = log;
+      StandardErrorPath = log;
     };
   };
 }

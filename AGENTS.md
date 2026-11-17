@@ -278,8 +278,10 @@ behavior for its own sake.
 - The Hetzner private network (`172.16.0.0/12`, `enp7s0`) exists only on
   Hetzner nodes, and no NetBird route reaches it from the mesh: an exit
   route (`0.0.0.0/0`) forwards its sources to any destination, so each
-  Hetzner node drops what it would forward from the NetBird interface to
-  that network. Hetzner
+  Hetzner node drops what arrives on the NetBird interface for that
+  network. The drop is in a prerouting chain: NetBird puts an accept for its
+  interface at the head of every forward and input chain of other tables,
+  so a rule there never runs. Hetzner
   nodes address each other by `privateIPv4`; every pair involving ricklent
   uses the target's
   mesh IP from `modules/netbird-peers.nix`, through
@@ -393,6 +395,16 @@ behavior for its own sake.
   one repository password covers all of Legion. A host that owns no backup
   job is therefore not a recipient of a backups shard, and adding one back
   means rotating the key it could read.
+- Every repository has a second copy on artemis. After each successful
+  backup, `restic-copy-<job>` copies the newest snapshot to a rest-server
+  (`modules/backups/default.nix`) that stores it on the Mumei drive as
+  `/mnt/Mumei/Backup/<host>/<job>`, and applies the same retention. The
+  server has no authentication and is not append-only: the NetBird policies
+  are the boundary. artemis never gets Legion's repository password, so it
+  holds Legion data it cannot read. The drive is not always attached: the
+  server starts only while it is mounted, and a missing drive fails the copy
+  units, not the backups. zakkart backs up only `~/.omp`, and only there;
+  nothing alerts when that backup fails.
 - `cache.jeiang.dev` and `cache-push.jeiang.dev` stay DNS-only in
   Cloudflare. Cloudflare rejects push bodies over 100 MB, and a proxied
   puller gets shared-PoP bans. The signing key `cache.jeiang.dev-1` is named
