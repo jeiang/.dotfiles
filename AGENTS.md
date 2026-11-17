@@ -502,15 +502,12 @@ behavior for its own sake.
   `atrium/db-key` (`database.keyFile`), one app password per
   `mailAccounts` entry, the media agent and its bearer, the shared hostname
   and port (`flake.lib.atriumHostname`, `atriumWebPort`), the embedding server (`self.lib.llamaServer`,
-  models from `self.lib.llamaModels`, shared with cod4e-vision),
+  models from `self.lib.llamaModels`),
   persistence and backup. Operator choices such as `mail_mode` and
   `wiki_root` are database settings changed in the UI or with
   `atrium-run settings set`, not host configuration.
   The database is encrypted with `atrium/db-key`; an archive opens only with
   the key it was made under, so the key also has an offline copy.
-  cod4e-vision is stopped (`enabled = false` in `modules/cod4e-vision.nix`)
-  so its servers do not compete with atrium's for the GPU; its persisted
-  state directory and user stay.
   Bumping the input is how a code change reaches artemis.
 - The public listener (`atrium.service`, `--auth oidc`) is reached through
   alda's Caddy at `atrium.jeiang.dev`, which proxies every path with no

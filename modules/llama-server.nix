@@ -1,6 +1,5 @@
 {self, ...}: let
   embeddinggemma = self.lib.huggingface "ggml-org/embeddinggemma-2-GGUF" "bfcd298762cc34d0357ece5ebdd31791a3a374d8";
-  qwen = self.lib.huggingface "lmstudio-community/Qwen3.5-9B-GGUF" "1379f25c6b505a3fc737bd7818cb09389cf807c1";
 in {
   flake.lib = {
     huggingface = repo: rev: path: sha256: {
@@ -28,14 +27,11 @@ in {
 
     llamaModels = {
       embeddinggemma = embeddinggemma "embeddinggemma-2-Q8_0.gguf" "2188ac1deca4b77dffefd603c2776a9d76d9d74ec01841392982ebb840b09135";
-      embeddinggemmaProjector = embeddinggemma "mmproj-embeddinggemma-2-Q8_0.gguf" "c4a8a52691ecef40618438928bdf9e68379b854e24166f292592353db0aab64f";
-      qwen35 = qwen "Qwen3.5-9B-Q4_K_M.gguf" "cd76ec205963b3b33350093e6904d9de16c4e666fd104e1f632d25c7f15f2a13";
-      qwen35Projector = qwen "mmproj-Qwen3.5-9B-BF16.gguf" "330d17547bfdbcd0e7a0cb3f4b06b4ceeac0aaa1e449122d9d66ef957aeb74b3";
     };
 
     # A set of llama-server units `<name>-<server>`, plus the `<name>-models-fetch`
     # unit they require, all running as the system user `name` with weights under
-    # /var/lib/<name>. Each server is {description, model, projector?, port, host?, args}.
+    # /var/lib/<name>. Each server is {description, model, port, args}.
     llamaServer = {
       lib,
       pkgs,
@@ -45,7 +41,7 @@ in {
     }: let
       llama = pkgs.llama-cpp-vulkan;
       fetchName = "${name}-models-fetch";
-      models = lib.concatMap (server: [server.model] ++ lib.optional (server ? projector) server.projector) (lib.attrValues servers);
+      models = map (server: server.model) (lib.attrValues servers);
 
       modelsFetch = pkgs.writeShellApplication {
         name = fetchName;
@@ -60,9 +56,7 @@ in {
       service = unit: {
         description,
         model,
-        projector ? null,
         port,
-        host ? "127.0.0.1",
         args,
       }: {
         inherit description;
@@ -76,7 +70,7 @@ in {
               "--model"
               "${modelsDir}/${model.file}"
               "--host"
-              host
+              "127.0.0.1"
               "--port"
               (toString port)
               "--n-gpu-layers"
@@ -84,7 +78,6 @@ in {
               "--parallel"
               "1"
             ]
-            ++ lib.optionals (projector != null) ["--mmproj" "${modelsDir}/${projector.file}"]
             ++ args);
           User = name;
           Group = name;
