@@ -17,9 +17,9 @@ embedding model; `atrium-models-fetch.service` downloads its weights.
 
 `just sops-edit modules/atrium/secrets.yaml` edits the `atrium.*` keys: one
 file per connection credential (`anthropic-api-key`, `oidc-client-secret`,
-`notion-token`, `grafana-viewer-token`, `tmdb-token`), one app password per
-mail account, the database key `db-key`, the media agent bearer
-`media-agent-bearer`. A change
+`grafana-viewer-token`, `tmdb-token`), the database key `db-key`, the media
+agent bearer `media-agent-bearer`. Mail app passwords are not here: the
+operator enters them on the mail connection in atrium. A change
 reaches the units through `restartUnits` on deploy; the bearer restarts both
 units, since both read it. Never change `db-key` this way: the database and
 every backup archive open only with the key they were written under; rotate
