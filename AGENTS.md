@@ -393,7 +393,9 @@ behavior for its own sake.
   main builds: `portfolio-update` builds it as the `portfolio` user at
   00:00 UTC (and 2 minutes after activation) into
   `/var/lib/portfolio-update/current`, the GC root, and restarts the
-  service when the path changes. Its owner's pushes go live without review.
+  service when the path changes. Its owner's pushes go live without review,
+  so the service exchanges packets only with the edge (`IPAddressAllow`): it
+  reaches neither the internet, the private network, nor loopback.
   The `portfolio` flake input supplies only the NixOS module and the
   fallback package used until a first build exists; bump it when the
   module changes.

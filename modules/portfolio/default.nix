@@ -67,6 +67,12 @@ in {
     };
 
     systemd = {
+      # The site is its owner's unreviewed code: it answers the edge and reaches nothing else.
+      services.portfolio.serviceConfig = {
+        IPAddressDeny = "any";
+        IPAddressAllow = [(self.lib.serviceAddress config.networking.hostName "caddy")];
+      };
+
       # The build runs unprivileged, so third-party flake evaluation never
       # runs as root; only the restart does.
       services.portfolio-update = {
