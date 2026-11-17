@@ -180,6 +180,22 @@ deploy-legion *args:
   printf '%s' "$summary"
   exit "$failed"
 
+# Compare each NixOS host's running system with the one CI reported for main
+status:
+  #!/usr/bin/env bash
+  set -euo pipefail
+  reported=$(gh api 'repos/jeiang/.dotfiles/commits/main/status?per_page=100' --jq '.statuses[] | "\(.context) \(.description)"')
+  for entry in $(nix eval --raw '.#deploy.nodes' --apply 'nodes: builtins.concatStringsSep "\n" (builtins.attrValues (builtins.mapAttrs (name: node: "${name}=${node.hostname}") nodes))'); do
+    node=${entry%%=*}
+    want=$(awk -v context="system/$node" '$1 == context {print $2}' <<<"$reported")
+    running=$(ssh "${entry#*=}" readlink -f /run/current-system)
+    if [ "$running" = "$want" ]; then
+      echo "$node: on main"
+    else
+      echo "$node: runs $running, main is ${want:-not reported yet}"
+    fi
+  done
+
 # Run a command over SSH on every Legion node; prints a per-node summary and fails if any node failed
 legion-run *command:
   #!/usr/bin/env bash

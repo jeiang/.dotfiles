@@ -158,6 +158,23 @@ behavior for its own sake.
 
 - Deploy only after the pull request is merged and CI has pushed the
   closures to garret, so targets substitute instead of building.
+- Every NixOS host upgrades itself (`modules/auto-upgrade.nix`). A `main`
+  run reports each host's system as the commit status `system/<host>` once
+  garret holds it. `auto-upgrade.service` runs hourly, ten minutes apart
+  per host. When the status differs from the running system, it evaluates
+  that commit of `main`, substitutes the system and switches. It arms a
+  timer that switches back after 10 minutes, and disarms it only when sshd
+  is active and NetBird reports its management server connected within 2
+  minutes. A system that was rolled back is not tried again. It never
+  reboots a host, so a new kernel waits for the operator. On artemis it
+  fails instead of switching when the kernel, the initrd or a persistence
+  entry differs from the booted system, and its timer stops while a game
+  runs. A failed run raises `SystemdUnitFailed`. `just status` compares
+  each host with `main`.
+- A manual deploy is for what the upgrade cannot do: artemis with `--boot`,
+  a host whose upgrade failed, and zakkart. The next run puts a host that
+  runs anything else back on `main`; stop `auto-upgrade.timer` on the host
+  to keep a test deploy.
 - zakkart activates itself: `just nh darwin switch`. Give the operator that
   command, not `darwin-rebuild`.
 - From the Mac: `just deploy <host> --skip-checks --remote-build`. The fleet
@@ -228,6 +245,13 @@ behavior for its own sake.
 - The deploy user is a Nix trusted user on every NixOS host, so it is
   root-equivalent. Its sudo rules are for audit, not containment. Removing
   that trust needs a signed-closure delivery design.
+- A merge to `main` reaches every NixOS host without the operator's SSH
+  key, so the protection of `main` (signed commits, a pull request,
+  `all-checks`) is what guards root on the fleet. The commit status only
+  tells a host when to look: the system comes from the host's own
+  evaluation of `main` and from paths garret signed. The health check
+  cannot see broken inbound access, so a system on which sshd runs but
+  refuses the operator stays.
 - `sudo` skips the password only for a caller inside an sshd logind
   session of the same user; sshd accepts only keys, so that session proves
   the operator's key. Any other session (console, desktop, Rex) asks for the
@@ -570,7 +594,10 @@ behavior for its own sake.
   and drains the rest even when the build fails; a garret failure never
   fails the job. zakkart builds on a macOS runner, on a PR only when its
   toplevel derivation differs from the base. `all-checks` is the only
-  required status.
+  required status. On a pull request, a leg whose output garret already
+  serves builds nothing. On `main`, each `toplevel-<host>` leg then sets the
+  commit status `system/<host>` to the system's store path, which that
+  host's auto-upgrade reads.
 - Only a `main` run pushes to garret, so a PR run cannot substitute a
   rebuilt artemis kernel or any other long source build and would compile it
   on a shared runner against its job time limit (see Workflow for

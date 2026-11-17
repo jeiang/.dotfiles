@@ -1,9 +1,5 @@
 {self, ...}: {
-  nixos.modules.artemis = {
-    config,
-    lib,
-    ...
-  }: {
+  nixos.modules.artemis = {config, ...}: {
     systemd.services.boot-health = {
       description = "Bless this boot only once NetBird and sshd are reachable";
       requiredBy = ["boot-complete.target"];
@@ -28,8 +24,7 @@
       script = ''
         SECONDS=0
         while ((SECONDS < 300)); do
-          if systemctl is-active --quiet sshd.service \
-            && grep -qx "Management: Connected" <<<"$(timeout 15 ${lib.getExe config.services.netbird.clients.default.wrapper} status 2>/dev/null)"; then
+          if ${config.autoUpgrade.healthCheck}; then
             exit 0
           fi
           sleep 5

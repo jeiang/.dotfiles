@@ -41,6 +41,8 @@ jobs:
       contents: read
       # Exchanged for a short-lived push token; the server only grants push to main and v* tags.
       id-token: write
+      # A main run reports each host's system as a commit status.
+      statuses: write
     strategy:
       fail-fast: false
       # Bounds cache-server load, not build capacity: legs mostly substitute from a warm cache.
@@ -64,17 +66,34 @@ jobs:
         continue-on-error: true
         run: ./.ci/garret.sh watch
 
+      # A pull request pushes nothing, so an output garret already serves is not downloaded again.
       - name: Build check
         env:
           CHECK: ${{ matrix.check }}
-        run: nix build --keep-going --show-trace --no-link --print-out-paths ".#checks.x86_64-linux.$CHECK" >"$RUNNER_TEMP/garret-outputs"
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = pull_request ] && nix path-info --eval-store auto --store https://cache.jeiang.dev ".#checks.x86_64-linux.$CHECK" >/dev/null 2>&1; then
+            echo "garret already serves this check's output."
+            exit 0
+          fi
+          nix build --keep-going --show-trace --no-link --print-out-paths ".#checks.x86_64-linux.$CHECK" >"$RUNNER_TEMP/garret-outputs"
 
       # Also after a failed build, so the next run substitutes what this one built.
       - name: Push to garret what the watcher has not
+        id: drain
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.check != 'statix' && matrix.check != 'treefmt'
         continue-on-error: true
         timeout-minutes: 30
         run: ./.ci/garret.sh drain
+
+      # A host's auto-upgrade waits for this status, so it is set only once garret holds the system.
+      # Without it the host stays on its system until the next run.
+      - name: Report the system to its host
+        continue-on-error: true
+        if: steps.drain.outcome == 'success' && startsWith(matrix.check, 'toplevel-')
+        env:
+          CHECK: ${{ matrix.check }}
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state=success -f "context=system/${CHECK#toplevel-}" -f "description=$(cat "$RUNNER_TEMP/garret-outputs")" >/dev/null
 
   # A PR whose zakkart derivation matches its base skips the macOS runner;
   # main always builds it so garret holds the closure. Any evaluation
