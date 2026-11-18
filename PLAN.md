@@ -472,10 +472,10 @@ reuses to its devshell.
 
 - Chains:
   - `chain/strong`: Opus 5.5 medium → GPT-6.1 Sol high. Main session.
-  - `chain/light`: GPT-6.1 Luna xhigh → Haiku 5.5 xhigh. scout, worker,
-    and commit messages.
+  - `chain/light`: GPT-6 Luna xhigh → Haiku 5.5 xhigh. scout, worker, and
+    commit messages.
   - `chain/task`: GPT-6.1 Sol high → DeepSeek V4.1 Flash high (Mistral) →
-    Sonnet 5.5. change-reviewer, security-reviewer, researcher.
+    Sonnet 5.5 high. change-reviewer, security-reviewer, researcher.
   - Unchanged: max-reasoning on Fable 5.2 medium, no chain; advisor on
     Fable 5.2 low (fallback GPT-6.1 Sol medium → Opus 5.5 medium →
     DeepSeek V4.1 Flash max); vision on Mistral Large 4 medium → GPT-6
@@ -518,9 +518,39 @@ reuses to its devshell.
   its bundled rules trimmed, after checking it accepts Nix rules; otherwise
   an own ast-grep runner.
 
+## Before implementation
+
+Spikes, run first in a scratch pi on zakkart and artemis; each result goes
+back into this file:
+
+- Model ids and levels in pi's providers: `openai-codex/gpt-6-luna` at
+  xhigh, `gpt-6.1-sol`, Fable 5.2 and Haiku 5.5 xhigh on Anthropic OAuth,
+  Mistral DeepSeek V4.1 Flash, Cloudflare `clef-flash`.
+- `@oh-my-pi/pi-natives` loads from an extension in the `llm-agents#pi`
+  build on both hosts (hashline).
+- A virtual model works as a pi-subagents child model with the extension
+  listed, and which model compaction settings key on.
+- Codemode `only`: the two-worker limit with parallel in-process children.
+- `ctx.executeTool("grep")` from `shell` with grep re-registered as
+  `exposure: "codemode"`.
+- `deliverAs: "followUp"` and `buildContextEntries` in the 1.5.2 types
+  (advisor).
+- pi-lens: Nix ast-grep rules, and its rule runner with format, autofix, and
+  the read guard off.
+- `registerMessageRenderer` replacing assistant rendering in place
+  (images).
+- Whether pi accepts a read-only or overlay settings file (omp used
+  `PI_CONFIG_FILES`); otherwise hjem installs a writable copy that each
+  switch resets.
+
 ## Questions
 
-- GPT-6.1 Luna: omp's Codex model list (provider cache 0.159.0) has
-  `gpt-6-luna`, `gpt-6.1-sol`, `gpt-6.1-terra`, `gpt-6-sol`, `gpt-6-astra`;
-  no `gpt-6.1-luna`. Which model leads `chain/light`?
-- Sonnet 5.5 thinking level at the end of `chain/task` (proposed: high).
+- Agent set for the pi harness: scout, worker, change-reviewer,
+  security-reviewer, researcher, max-reasoning; designer, docs-author,
+  fast, smol, and sonic go (proposed).
+- `jeiang/pi-extensions`: public or private (proposed: public, like
+  agent-skills).
+- npm packages (pi-subagents fork, pi-lsp, pi-lens, pi-web-access): built
+  by Nix and loaded by path, never installed by pi at runtime (proposed).
+- zakkart's restic job backs up `~/.omp`; at cutover it moves to
+  `~/.pi` (proposed).
