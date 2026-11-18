@@ -220,7 +220,7 @@ Before building the hashline port:
   directory inside the checkout. The fork changes allocation to
   `.worktrees/<name>` and has children commit on their branch.
 
-Trigger rule (proposed):
+Trigger rule (approved 2026-11-18):
 
 - Only `edit` and `write` create the worktree. Shell commands are opaque,
   so `shell` and script bash run wherever the session is.
@@ -232,9 +232,13 @@ Trigger rule (proposed):
   work that starts with a shell command that writes files (a formatter, a
   generator, an input bump).
 - A session that starts in a linked worktree uses it and creates nothing.
-  Outside a git repository nothing triggers. The main checkout is never
-  switched, reset, or stashed, whatever its branch or dirty state; the new
-  worktree branches from `origin/<default>` after `git fetch`.
+  Outside a git repository nothing triggers. A repository the task itself
+  creates (`git init`) is worked on directly by the main session; only
+  subagents get worktrees there, which needs at least one commit to branch
+  from. The main checkout is never switched, reset, or stashed, whatever
+  its branch or dirty state; the new worktree branches from
+  `origin/<default>` after `git fetch`, or from the local default branch
+  when the repository has no remote.
 
 ## Devshell
 
@@ -564,14 +568,20 @@ back into this file:
   operator approval; until then pi's logins on artemis are lost at each
   boot.
 
-## Questions
+## Approvals (2026-11-18)
 
 - Agent set for the pi harness: scout, worker, change-reviewer,
-  security-reviewer, researcher, max-reasoning; designer, docs-author,
-  fast, smol, and sonic go (proposed).
-- `jeiang/pi-extensions`: public or private (proposed: public, like
-  agent-skills).
+  security-reviewer, researcher, max-reasoning. designer, docs-author,
+  fast, smol, and sonic go; scout and security-reviewer need pi bodies.
+- Creating `jeiang/pi-extensions` on GitHub (public, like agent-skills).
+- zakkart's restic job moves from `~/.omp` to `~/.pi` at cutover.
+- The Parallel API key sops shard, and the cutover changes.
+- The artemis `--boot` deploy and reboot for the `~/.pi/agent`
+  persistence entry.
+- The worktree trigger rule above.
+
+## Questions
+
 - npm packages (pi-subagents fork, pi-lsp, pi-lens, pi-web-access): built
-  by Nix and loaded by path, never installed by pi at runtime (proposed).
-- zakkart's restic job backs up `~/.omp`; at cutover it moves to
-  `~/.pi` (proposed).
+  by Nix and loaded by path, never installed by pi at runtime (proposed;
+  not answered yet).
