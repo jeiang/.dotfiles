@@ -473,13 +473,15 @@ reuses to its devshell.
 - Chains:
   - `chain/strong`: Opus 5.5 medium → GPT-6.1 Sol high. Main session.
   - `chain/light`: GPT-6.1 Luna xhigh → Haiku 5.5 xhigh. scout, worker,
-    and the light roles (commit, vision).
+    and commit messages.
   - `chain/task`: GPT-6.1 Sol high → DeepSeek V4.1 Flash high (Mistral) →
     Sonnet 5.5. change-reviewer, security-reviewer, researcher.
   - Unchanged: max-reasoning on Fable 5.2 medium, no chain; advisor on
-    Fable 5.2 low; judge on Cloudflare `clef-flash` → light.
-  - Mistral's GLM 5.3 and Mistral Large 4 leave the chains; `enabledModels`
-    keeps only what the chains name.
+    Fable 5.2 low (fallback GPT-6.1 Sol medium → Opus 5.5 medium →
+    DeepSeek V4.1 Flash max); vision on Mistral Large 4 medium → GPT-6
+    Luna high → Haiku 5.5 high; judge on Cloudflare `clef-flash` → light.
+  - Mistral's GLM 5.3 and GLM 5.3 Flash leave; `enabledModels` keeps only
+    the models the chains name.
 - Advisor: every agent end.
 - Direct tools under codemode `only`: `read`, `edit`, `write`, `shell`,
   `github`, `ask`, `todo`, the subagent tool, `advise`, pi-lsp's navigation
