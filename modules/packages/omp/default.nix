@@ -51,6 +51,8 @@
           ];
         };
         github.enabled = true;
+        extensions = ["${./emphasis.ts}"];
+        extensionRenderers.assistantText = true;
         marketplace.autoUpdate = "off";
         plan.autosave = true;
         btw.inject = true;
