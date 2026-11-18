@@ -78,10 +78,10 @@ in {
     # old generations only (no store GC, which would be a second collector); the next switch drops their
     # boot entries.
     systemd.services.prune-generations = {
-      description = "Delete system generations beyond the newest 14";
-      startAt = "weekly";
+      description = "Delete system generations beyond the newest 5";
+      startAt = "daily";
       serviceConfig.Type = "oneshot";
-      script = "${config.nix.package}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +14";
+      script = "${config.nix.package}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +5";
     };
     systemd.timers.prune-generations.timerConfig.Persistent = true;
 
@@ -124,34 +124,62 @@ in {
           extra-trusted-users = ["@admin"];
         };
     };
+
+    launchd.daemons.prune-generations = {
+      command = "/nix/var/nix/profiles/default/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +5";
+      serviceConfig.StartCalendarInterval = [
+        {
+          Hour = 12;
+          Minute = 0;
+        }
+      ];
+    };
   };
 
-  nixos.modules.artemis = {
-    imports = [
-      inputs.nix-index-database.nixosModules.nix-index
-    ];
-
-    programs = {
-      nix-index-database.comma.enable = true;
-      nix-ld.enable = true;
-    };
-
-    nix = {
-      # Builds yield to games and streaming.
-      daemonCPUSchedPolicy = "idle";
-      daemonIOSchedClass = "idle";
-
-      settings =
-        workstationSettings
-        // {
-          substituters = urls workstationCaches;
-          trusted-public-keys = keys workstationCaches;
+  nixos.modules = {
+    # The same nixpkgs pin, fetched on use instead of kept in every Legion closure.
+    legion = {lib, ...}: {
+      nixpkgs.flake = {
+        setFlakeRegistry = false;
+        setNixPath = false;
+      };
+      nix.registry.nixpkgs = lib.mkForce {
+        to = {
+          type = "github";
+          owner = "NixOS";
+          repo = "nixpkgs";
+          inherit (inputs.nixpkgs) rev;
         };
+      };
     };
 
-    persistence = {
-      data.directories = [".local/share/direnv" ".local/share/devenv"];
-      cache.directories = [".cache/devenv" ".cache/direnv" ".cache/nix-direnv" ".local/state/nix"];
+    artemis = {
+      imports = [
+        inputs.nix-index-database.nixosModules.nix-index
+      ];
+
+      programs = {
+        nix-index-database.comma.enable = true;
+        nix-ld.enable = true;
+      };
+
+      nix = {
+        # Builds yield to games and streaming.
+        daemonCPUSchedPolicy = "idle";
+        daemonIOSchedClass = "idle";
+
+        settings =
+          workstationSettings
+          // {
+            substituters = urls workstationCaches;
+            trusted-public-keys = keys workstationCaches;
+          };
+      };
+
+      persistence = {
+        data.directories = [".local/share/direnv" ".local/share/devenv"];
+        cache.directories = [".cache/devenv" ".cache/direnv" ".cache/nix-direnv" ".local/state/nix"];
+      };
     };
   };
 }
