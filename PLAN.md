@@ -602,8 +602,11 @@ The next spikes used a scripted fake provider extension
   HTML. Nix, shell, YAML, Rust, and Python (not Zig) go through its
   ast-grep language server, which starts at the nearest `sgconfig.yml`
   root, else runs pi-lens's shipped baseline (`rules/ast-grep-rules`). A
-  project Nix rule with `severity: error` reached the `write` result as a
-  blocker; `warning` stayed out of the result (advisory). Limits: both
+  project Nix rule with `severity: error`, run with `--no-autoformat
+  --no-autofix --no-read-guard`, reached the model in the `write` result
+  as `🔴 STOP — 1 issue(s) must be fixed: L1: avoid with pkgs` plus the
+  line; with those flags nothing was formatted. `warning` stayed out of
+  the result (advisory). Limits: both
   ast-grep paths skip test files, and auxiliary language servers are off in
   subagent sessions. So user-level rules are added to the baseline in the
   Nix build of pi-lens, rules about tests go in the own lint extension, and
@@ -629,9 +632,9 @@ The next spikes used a scripted fake provider extension
 - The artemis `--boot` deploy and reboot for the `~/.pi/agent`
   persistence entry.
 - The worktree trigger rule above.
-
-## Questions
-
-- npm packages (pi-subagents fork, pi-lsp, pi-lens, pi-web-access): built
-  by Nix and loaded by path, never installed by pi at runtime (proposed;
-  not answered yet).
+- npm packages (pi-subagents fork, pi-lsp, pi-lens, pi-web-access,
+  pi-natives): built by Nix (`buildNpmPackage` from each package's lock,
+  install scripts off) and loaded by path through `settings.json`
+  `packages`/`extensions`; pi never installs them at runtime. Spikes showed
+  npm-installed copies of pi-natives, pi-subagents, and pi-lens load from
+  a path with the `@earendil-works/*` peers supplied by pi.
