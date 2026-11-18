@@ -16,9 +16,9 @@ The networks connecting every host.
 
 The hosts, their services, and the connections between them.
 
-- [`AGENTS.md`](AGENTS.md): layout, operation, and the decisions that
-  constrain changes.
-- [`docs/runbooks/`](docs/runbooks/): atrium, garret, Legion service moves,
-  NetBird, restore, wallpaper, and zakkart bootstrap procedures.
+- [`AGENTS.md`](AGENTS.md): workflow, layout, and the rules for changes.
+- [`docs/runbooks/`](docs/runbooks/): atrium, deploy, garret, Legion service
+  moves, NetBird, restore, secrets, wallpaper, and zakkart bootstrap
+  procedures.
 - [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md): project name and source
   credits.
