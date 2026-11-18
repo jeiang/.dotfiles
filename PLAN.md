@@ -571,15 +571,31 @@ far (2026-11-18):
   which enter the model context. The display-only route is
   `pi.appendEntry` plus `registerEntryRenderer` (custom entries stay out of
   context), drawn below the reply; assistant text cannot render in place.
-- Partial: models: pi's catalog has every chain model with these thinking
-  maps: GPT-6 Luna and GPT-6.1 Sol up to `xhigh`/`max`; Opus, Sonnet,
-  Haiku 5.5 `low` to `max` (Haiku also `off`); Fable 5.2 maps only `xhigh`
-  and `max` explicitly; pi-ai treats a missing key as the provider default
-  and only `null` as unsupported, so `low` and `medium` should pass
-  (unverified live); Mistral DeepSeek V4.1
-  Flash `off`, `low`, `high`, `max` (no `medium`/`xhigh`); Mistral Large 4
-  `low` to `high`; Cloudflare `@cf/cloudflare/clef-flash` without
-  reasoning. Live calls need logins.
+- Done: models, live on zakkart with Anthropic OAuth: Opus 5.5 `medium`,
+  Sonnet 5.5 `high`, Haiku 5.5 `xhigh`, Fable 5.2 `low` and `medium` all
+  answer, and the JSON events record the requested level (pi-ai sends a
+  level missing from the map as the provider default; only `null` is
+  unsupported). Codex is logged in with no usage left: GPT-6 Luna `xhigh`
+  and GPT-6.1 Sol `high` are accepted and fail with `Codex error: The usage
+  limit has been reached`. Mistral is not logged in (no usage); from the
+  catalog, DeepSeek V4.1 Flash has `off`, `low`, `high`, `max` (no
+  `medium`/`xhigh`). The models are the same build on artemis, so the live
+  calls were not repeated there.
+- Done: usage-limit fallback, live. Pi retries only errors that match its
+  retryable pattern (overloaded, rate limit, 429/5xx); `The usage limit has
+  been reached` matches neither list, so `route()` never sees a `retry`
+  for it. What works: track the last assistant `errorMessage` in
+  `message_end`, and in `agent_before_settle` mark the provider cooled and
+  return `{continue: true, entries: [<custom_message, display false>]}`;
+  the next `route()` (reason `continuation`) picks the next model, and
+  Haiku answered. `continue: true` alone fails with "requested continuation
+  without runnable model context". The errored assistant message stays in
+  the transcript before the custom message. A provider whose `streamSimple`
+  tries each target through `ctx.modelRegistry.streamSimple` (with
+  `apiKey`/`headers` cleared so each target resolves its own auth) also
+  falls back, invisibly, but loses virtual-model routing state and
+  physical limits; the plan keeps virtual models plus
+  `agent_before_settle`.
 
 The next spikes used a scripted fake provider extension
 (`registerProvider` with its own `streamSimple`) behind a virtual model
