@@ -95,9 +95,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state=success -f "context=system/${CHECK#toplevel-}" -f "description=$(cat "$RUNNER_TEMP/garret-outputs")" >/dev/null
 
-  # A PR whose zakkart derivation matches its base skips the macOS runner;
-  # main always builds it so garret holds the closure. Any evaluation
-  # failure counts as changed.
+  # The macOS runner is skipped when garret already serves the zakkart
+  # system, or when a PR's zakkart derivation matches its base; otherwise
+  # main builds it so garret holds the closure. Any evaluation failure
+  # counts as changed.
   darwin-changed:
     runs-on: ubuntu-latest
     outputs:
@@ -111,17 +112,17 @@ jobs:
       - name: Install Nix
         uses: ./.github/actions/install-nix
 
-      - name: Compare the zakkart derivation with the base
+      - name: Compare the zakkart derivation with the base and garret
         id: compare
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           changed=true
-          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
-            attr=darwinConfigurations.zakkart.config.system.build.toplevel.drvPath
-            if new=$(nix eval --raw ".#$attr") && old=$(nix eval --raw "git+file://$PWD?rev=$BASE_SHA#$attr") && [ "$new" = "$old" ]; then
-              changed=false
-            fi
+          attr=darwinConfigurations.zakkart.config.system.build.toplevel.drvPath
+          if nix path-info --eval-store auto --store https://cache.jeiang.dev ".#checks.aarch64-darwin.zakkart-system" >/dev/null 2>&1; then
+            changed=false
+          elif [ "$GITHUB_EVENT_NAME" = pull_request ] && new=$(nix eval --raw ".#$attr") && old=$(nix eval --raw "git+file://$PWD?rev=$BASE_SHA#$attr") && [ "$new" = "$old" ]; then
+            changed=false
           fi
           echo "changed=$changed" >>"$GITHUB_OUTPUT"
 

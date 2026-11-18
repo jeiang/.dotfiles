@@ -592,8 +592,9 @@ behavior for its own sake.
 - `ci.yml` evaluates `checks.x86_64-linux` and builds each check in a matrix
   job. On `main`, `.ci/garret.sh` pushes each path to garret as it is built,
   and drains the rest even when the build fails; a garret failure never
-  fails the job. zakkart builds on a macOS runner, on a PR only when its
-  toplevel derivation differs from the base. `all-checks` is the only
+  fails the job. zakkart builds on a macOS runner only when garret does not
+  already serve its system and, on a PR, its toplevel derivation differs
+  from the base. `all-checks` is the only
   required status. On a pull request, a leg whose output garret already
   serves builds nothing. On `main`, each `toplevel-<host>` leg then sets the
   commit status `system/<host>` to the system's store path, which that
