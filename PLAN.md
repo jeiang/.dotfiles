@@ -502,6 +502,11 @@ reuses to its devshell.
     Luna high → Haiku 5.5 high; judge on Cloudflare `clef-flash` → light.
   - Mistral's GLM 5.3 and GLM 5.3 Flash leave; `enabledModels` keeps only
     the models the chains name.
+  - omp's vision, judge, commit, widget, and memory roles have no consumer
+    in pi: pi sends images to the session model, and nothing in the plan
+    writes commit messages, judges tables, or builds widgets with a model.
+    Those chains are not ported; Mistral Large 4 and Cloudflare
+    `clef-flash` drop out unless a later extension needs them.
 - Advisor: every agent end.
 - Direct tools under codemode `only`: `read`, `edit`, `write`, `shell`,
   `github`, `ask`, `todo`, the subagent tool, `advise`, pi-lsp's navigation
