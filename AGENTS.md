@@ -154,91 +154,19 @@ behavior for its own sake.
 - artemis has an EDID dummy plug on `HDMI-A-1`. The motherboard does not
   POST without a powered display, so the plug must stay in.
 
-### Deploying
+### Deploying, persistence, and secrets
 
-- Deploy only after the pull request is merged and CI has pushed the
-  closures to garret, so targets substitute instead of building.
-- Every NixOS host upgrades itself (`modules/auto-upgrade.nix`). A `main`
-  run reports each host's system as the commit status `system/<host>` once
-  garret holds it. `auto-upgrade.service` runs hourly, ten minutes apart
-  per host. When the status differs from the running system, it evaluates
-  that commit of `main`, substitutes the system and switches. It arms a
-  timer that switches back after 10 minutes, and disarms it only when sshd
-  is active and NetBird reports its management server connected within 2
-  minutes. A system that was rolled back is not tried again. It never
-  reboots a host, so a new kernel waits for the operator. On artemis it
-  fails instead of switching when the kernel, the initrd or a persistence
-  entry differs from the booted system, and its timer stops while a game
-  runs. A failed run raises `SystemdUnitFailed`. `just status` compares
-  each host with `main`.
-- A manual deploy is for what the upgrade cannot do: artemis with `--boot`,
-  a host whose upgrade failed, and zakkart. The next run puts a host that
-  runs anything else back on `main`; stop `auto-upgrade.timer` on the host
-  to keep a test deploy.
-- zakkart activates itself: `just nh darwin switch`. Give the operator that
-  command, not `darwin-rebuild`.
-- From the Mac: `just deploy <host> --skip-checks --remote-build`. The fleet
-  form is `just deploy-legion --remote-build`: it passes `--skip-checks`
-  itself, so do not pass it again. Check each node after its deploy; `just
-  deploy-legion` does not replace that.
-- deploy-rs magic rollback protects only a live switch. On artemis,
-  removing a service that owns an impermanence bind mount cannot switch
-  live: deploy with `--boot`, then reboot. Kernel and initrd changes also
-  need `--boot` and a reboot.
-- artemis boots a new generation with 2 tries. `boot-health.service`
-  blesses it once sshd is active and NetBird reports its management server
-  connected, within 5 minutes; otherwise the host reboots, and the second
-  failure falls back to the previous generation. After a reboot, confirm
-  `readlink /run/current-system` is the deployed closure. A redeploy of the
-  same closure reuses the spent entry: to retry it, the operator renames
-  `/boot/loader/entries/nixos-<hash>+0-2.conf` to `nixos-<hash>+2.conf`.
+Read the runbook before you act:
 
-### artemis persistence
-
-- The root subvolume is rolled back to empty on every boot. Only
-  `persistence.*` paths survive, and impermanence never copies existing
-  data into `/persist`.
-- Before deploying any change to `persistence.*` (an added entry, or an
-  entry moved between system, data, and cache), run
-  `just migrate-persist <checkout>` on artemis as root from a checkout of
-  the new revision, then deploy with `--boot` and reboot. After the reboot
-  the old data is only in `old_roots`.
-- Persisting a path does not back it up. A backup set is an explicit
-  allowlist, and every path in it must also be a `persistence.*` path: each
-  module adds its own paths, excludes and snapshot-stop units to
-  `backups.persist` next to its persistence entries. artemis backs them up
-  from a read-only btrfs snapshot of `/persist`, so the paths in its snapshots
-  carry a `/persist/.backup-snapshot` prefix. A btrfs snapshot is not
-  recursive: a backup path that is, or contains, a nested subvolume would
-  back up as an empty directory.
-
-### Secrets
-
-- sops-nix on every host, zakkart included. One shard per consuming module,
-  encrypted to the admin key and exactly the hosts that run the consumer. A
-  host's recipient is its ed25519 host key through `ssh-to-age`, declared in
-  `modules/sops/default.nix`. There is no `defaultSopsFile`, so a secret
-  without a shard fails evaluation.
-- `.sops.yaml` is generated from the `sops.secrets` each host declares; do
-  not edit it. To add a shard, declare the secret in its consumer, run
-  `just sops-config`, then `just sops-edit <path>`; run `just
-  sops-updatekeys` after a recipient change. The `sops-config` check fails
-  while the committed file is stale. Shard paths must match
-  `lib.sopsShardRegex`.
-- A rotated secret reaches a running process only through that secret's
-  `restartUnits`.
-- On NixOS, `sops-install-secrets.service` (`useSystemdActivation`)
-  installs the secrets before `sysinit.target`, not an activation script,
-  because NixOS is removing restarts requested from activation scripts. It
-  requests `restartUnits` with `systemctl --no-block try-restart`, outside
-  switch-to-configuration's own jobs: a consumer that has failed when the
-  switch ends still fails the deploy, but one that fails later does not,
-  and its restart is not listed in the deploy output. A consumer that starts before
-  `sysinit.target` or reads a secret in an activation script needs its own
-  ordering or a start-time copy (alda's `systemd-networkd`). Secrets with
-  `neededForUsers` still install from an activation script.
-- `modules/sops/secrets.admin.yaml` is the admin's own stash. No module
-  consumes it.
+- A deploy, a reboot, or a question about auto-upgrade:
+  [`docs/runbooks/deploy.md`](docs/runbooks/deploy.md). Deploy only after
+  the pull request is merged and CI has pushed the closures to garret.
+- A change to artemis `persistence.*` or to a backup set: the persistence
+  section of the same runbook. Such a change needs
+  `just migrate-persist` and a `--boot` deploy.
+- A sops secret, shard, or recipient:
+  [`docs/runbooks/secrets.md`](docs/runbooks/secrets.md). Never edit
+  `.sops.yaml`; it is generated.
 
 ## Decisions that constrain changes
 
