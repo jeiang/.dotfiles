@@ -496,7 +496,19 @@ reuses to its devshell.
   wires it.
 - Claude Code and Codex harnesses stay as they are.
 - Compaction: 200k tokens for sessions on `chain/light` and `chain/task`,
-  400k for the rest (`compaction.modelOverrides`).
+  400k for the rest. Pi has no threshold key: compaction starts when
+  `contextTokens > contextWindow - reserveTokens`, and
+  `compaction.modelOverrides` (exact `provider/modelId`) sets only
+  `reserveTokens` and `keepRecentTokens` (`docs/compaction.md:30-32,
+  441-465`). For a virtual model, the pre-turn check is skipped and the
+  routed check uses the routed model's `contextWindow` with the settings of
+  the session model (`dist/core/agent-session.js:476, 482, 535`); the
+  session model is presumably the virtual one [Inferred]. A fixed
+  reserve then gives a different threshold per routed model (Opus and
+  Haiku have 1M windows). So the fallback-chains extension triggers
+  compaction itself at each chain's token threshold (`ctx.getContextUsage()`
+  plus `ctx.compact()`, as in `examples/extensions/trigger-compact.ts`),
+  and the global `reserveTokens` stays the safety net.
 - No cost warning.
 - Cutover: pi beside omp on artemis and zakkart for a week; switch when
   first-request tokens and the core flows (worktree, subagents, prepush, CI
