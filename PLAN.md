@@ -662,11 +662,36 @@ in the Nix build:
 
 - Done: `chains`, `guards`, `workspace` (worktree, devshell, hashline,
   `shell`), `advisor`, `lint`, `emphasis`, `turn-time`, `github`
-  (`run_watch`, `pr_view`), `images` (needs `resvg` on `PATH`).
+  (`run_watch`, `pr_view`), `images` (needs `resvg` on `PATH`), `loadout`.
+  The package also bundles pi-lens, pi-lsp, and pi-web-access.
+- `loadout`: hides tools from the model's list through `prepareLoadout`
+  `hiddenDeclarations`; they stay callable from codemode and findable with
+  `searchTools()`. `defaultTools` cannot do it: extension tools register
+  active after it applies, and a deactivated direct tool is not callable
+  from codemode. `defaultTools: ["-bash", "+codemode"]` takes bash out of
+  the list (it is in pi's default set, so its codemode exposure alone does
+  not hide it).
+- First request with the full set and the loadout: system prompt 18.6k
+  characters, tool declarations 31.3k (54.8k before the loadout).
 - todo and questionnaire: load pi's own `examples/extensions/todo.ts` and
   `questionnaire.ts` from the pi package by path; no copy.
 - Advisor in subagents: agents list their `extensions` explicitly and leave
   `advisor` out; pi-subagents marks children only through environment
   variables, which in-process children share with the parent.
-- Left: pi-subagents fork worktrees, agent-skills `pi` harness,
-  cornn-flaek `modules/packages/pi/`, GitHub repo.
+- pi-subagents fork, branch `feat/in-repo-worktrees` (local): a git-ignored
+  `worktreeBaseDir` inside the checkout is allowed, and a relative base
+  directory resolves from the main checkout. The source checkout must be
+  clean before a worktree launch.
+- agent-skills, branch `feat/pi-harness` (local): `pi` harness,
+  `instructions/pi-personal.md` (v2), pi agents, diagnosis-only
+  `devshell-preflight`, ponytail hidden from automatic invocation.
+- cornn-flaek, branch `feat/pi` (local): `modules/pi.nix`,
+  `modules/packages/pi/`, pi home in `modules/agent-skills.nix`, pi
+  `mcp.json`. Its `flake.lock` lacks the new inputs until the three repos
+  are on GitHub.
+- Smoke test in a temporary home with the hjem layout: startup, tool list,
+  advisor follow-up, and two parallel workers with `worktree: true`, which
+  got `.worktrees/<repo>/pi-worktree-*` and edited there; their commits
+  failed only because the temporary home had no GPG keyring.
+- Left: Parallel API key shard (pi-web-access runs keyless until then),
+  pi-lens Nix rules, the side-by-side week, cutover.
