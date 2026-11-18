@@ -36,6 +36,39 @@
     defaultTools = ["-bash" "+codemode"];
     codemode.mode = "on";
     enableInstallTelemetry = false;
+    # pi-lsp ships no server catalog; these binaries are on the wrapper's PATH.
+    lsp.servers = {
+      nix = {
+        command = "nixd";
+        args = [];
+        languages = [
+          {
+            extensions = [".nix"];
+            languageId = "nix";
+          }
+        ];
+      };
+      yaml = {
+        command = "yaml-language-server";
+        args = ["--stdio"];
+        languages = [
+          {
+            extensions = [".yaml" ".yml"];
+            languageId = "yaml";
+          }
+        ];
+      };
+      bash = {
+        command = "bash-language-server";
+        args = ["start"];
+        languages = [
+          {
+            extensions = [".sh" ".bash"];
+            languageId = "shellscript";
+          }
+        ];
+      };
+    };
   };
 
   # Agents from agent-skills load their extensions by these names.
