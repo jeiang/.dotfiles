@@ -51,7 +51,7 @@
           ];
         };
         github.enabled = true;
-        extensions = ["${pkgs.replaceVars ./emphasis.ts {piEmphasis = inputs.pi-emphasis;}}"];
+        extensions = ["${./emphasis.ts}"];
         extensionRenderers.assistantText = true;
         marketplace.autoUpdate = "off";
         plan.autosave = true;

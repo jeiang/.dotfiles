@@ -1651,22 +1651,6 @@
         "type": "github"
       }
     },
-    "pi-emphasis": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1794808715,
-        "narHash": "sha256-e04mn0aCfyLYyGfMEQJEtjQogY4R9h3Zus3j9i7SfZ4=",
-        "owner": "johnlindquist",
-        "repo": "pi-emphasis",
-        "rev": "f884b736c489944ee778ab951c7f78580f137b02",
-        "type": "github"
-      },
-      "original": {
-        "owner": "johnlindquist",
-        "repo": "pi-emphasis",
-        "type": "github"
-      }
-    },
     "portfolio": {
       "inputs": {
         "nixpkgs": [
@@ -1816,7 +1800,6 @@
         "nix-topology": "nix-topology",
         "nixpkgs": "nixpkgs_6",
         "omlahore-tap": "omlahore-tap",
-        "pi-emphasis": "pi-emphasis",
         "portfolio": "portfolio",
         "renpy-proj": "renpy-proj",
         "rex": "rex",
