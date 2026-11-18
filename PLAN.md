@@ -59,13 +59,13 @@ See "Questions" at the end.
 
 ## Lint
 
-Own extension; no pi package runs project-defined rules. Three rule
-sources, cheapest first:
+Three rule sources, cheapest first:
 
 - Added-line rules: regexes over the lines an `edit`/`write` adds, any
   language. Catches history comments ("previously", "no longer", "was
   reworked", "used to"), `TODO`/`FIXME` left behind, and debug output.
-  Findings are appended to the tool result, like LSP diagnostics.
+  Findings are appended to the tool result, like LSP diagnostics. No pi
+  package found does this; own extension.
 - Structural rules: ast-grep rule files (YAML) per language, run on the
   changed file after `edit`/`write`. Catches code patterns, for example
   empty catch blocks or tests that assert only that a call did not throw.
@@ -74,8 +74,22 @@ sources, cheapest first:
   code), unneeded abstractions, comments that restate code. These need a
   model, so they ride on the advisor call instead of a separate one.
 
-Rules live in agent-skills (global) with optional per-repository additions
-in `.pi/lint/`.
+pi-lens 4.5.1 already runs custom structural rules (`docs/custom-rules.md`):
+ast-grep and tree-sitter YAML rules, loaded per project from
+`rules/ast-grep-rules/rules/` and per user from `<PI_LENS_HOME>/rules/`,
+picked up without restart, project over user over bundled. Its 485 bundled
+ast-grep rules cover TypeScript, JavaScript, Python, Java, Go, Ruby, C/C++,
+Kotlin, C#, Rust, Swift, Scala, PHP; none for Nix, Zig, or shell. Bundled
+rules are on by default and disabled per rule (`rules.<id>.disable`) or per
+tree-sitter language directory. Format, autofix, and the read guard have
+separate switches. [Unverified] whether its ast-grep engine accepts Nix
+rules, and whether the structural runner works with `format.enabled: false`
+and `readGuard.enabled: false`.
+
+So the structural source is either pi-lens with those three features off
+(beside pi-lsp, or replacing it for LSP too), or an own ast-grep runner in
+the lint extension. Rules live in agent-skills (global) with optional
+per-repository additions.
 
 ## Images
 
@@ -483,3 +497,6 @@ Each has a proposed default.
   week; switch when first-request tokens and the core flows (worktree,
   subagents, prepush, CI watch, `garret login`) work; then remove omp.
   Logins (Anthropic, Codex, Mistral) are done again in pi by the operator.
+- Structural lint rules. Default: pi-lens with format, autofix, and the read
+  guard off and its bundled rules trimmed, after checking it accepts Nix
+  rules; otherwise an own ast-grep runner.
