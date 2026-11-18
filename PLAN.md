@@ -540,28 +540,52 @@ reuses to its devshell.
 
 ## Before implementation
 
-Spikes, run first in a scratch pi on zakkart and artemis; each result goes
-back into this file:
+Spikes in a scratch pi (`llm-agents#pi` 1.5.2,
+`PI_CODING_AGENT_DIR=/tmp/pi-spike`) on zakkart and artemis. Results so
+far (2026-11-18):
 
-- Model ids and levels in pi's providers: `openai-codex/gpt-6-luna` at
-  xhigh, `gpt-6.1-sol`, Fable 5.2 and Haiku 5.5 xhigh on Anthropic OAuth,
-  Mistral DeepSeek V4.1 Flash, Cloudflare `clef-flash`.
-- `@oh-my-pi/pi-natives` loads from an extension in the `llm-agents#pi`
-  build on both hosts (hashline).
-- A virtual model works as a pi-subagents child model with the extension
-  listed, and which model compaction settings key on.
-- Codemode `only`: the two-worker limit with parallel in-process children.
-- `ctx.executeTool("grep")` from `shell` with grep re-registered as
-  `exposure: "codemode"`.
-- `deliverAs: "followUp"` and `buildContextEntries` in the 1.5.2 types
-  (advisor).
-- pi-lens: Nix ast-grep rules, and its rule runner with format, autofix, and
-  the read guard off.
-- `registerMessageRenderer` replacing assistant rendering in place
-  (images).
-- Whether pi accepts a read-only or overlay settings file (omp used
-  `PI_CONFIG_FILES`); otherwise hjem installs a writable copy that each
-  switch resets.
+- Done: `@oh-my-pi/pi-natives` 18.22.2, installed from npm, loads from an
+  extension in the bytecode `llm-agents#pi` build on zakkart (darwin-arm64)
+  and artemis (linux-x64, NixOS) without patching; `EditStore` (the
+  hashline snapshot store) constructs and exposes `recordSnapshot`,
+  `byHashText`, `seenLines`.
+- Done: advisor APIs exist in the 1.5.2 types: `deliverAs` takes
+  `"steer" | "followUp" | "nextTurn"`, `buildContextEntries()` is on the
+  read-only session manager, and `ctx.modelRegistry.streamSimple` routes a
+  virtual model through its `route()` (`dist/core/model-runtime.js:504-522`).
+- Done: codemode workers: `PI_CODEMODE_MAX_WORKERS` (default 2) sets the
+  process-wide limit, and the docs say to raise it for in-process
+  subagents. The wrapper sets it (proposed 8).
+- Done: settings: pi has no overlay or extra settings file. It writes only
+  the fields a change touches, merged into the file under a lock in the
+  agent directory, and records a failed write as a diagnostic instead of
+  crashing. So hjem installs `settings.json` as a writable copy (like
+  `CLAUDE.md`); in-session changes last until the next switch that changes
+  the Nix side.
+- Done: images: `registerMessageRenderer` covers only custom messages,
+  which enter the model context. The display-only route is
+  `pi.appendEntry` plus `registerEntryRenderer` (custom entries stay out of
+  context), drawn below the reply; assistant text cannot render in place.
+- Partial: models: pi's catalog has every chain model with these thinking
+  maps: GPT-6 Luna and GPT-6.1 Sol up to `xhigh`/`max`; Opus, Sonnet,
+  Haiku 5.5 `low` to `max` (Haiku also `off`); Fable 5.2 maps only `xhigh`
+  and `max` explicitly (low and medium unverified); Mistral DeepSeek V4.1
+  Flash `off`, `low`, `high`, `max` (no `medium`/`xhigh`); Mistral Large 4
+  `low` to `high`; Cloudflare `@cf/cloudflare/clef-flash` without
+  reasoning. Live calls need logins.
+- Partial: pi-lens: its per-edit ast-grep runner covers only JS/TS, CSS,
+  and HTML and skips test files. Other languages, Nix, shell, YAML, Rust,
+  Python included (not Zig), go through its ast-grep language server,
+  rooted at a project `sgconfig.yml` or the shipped baseline. ast-grep
+  0.51 itself matches Nix rules (checked with `ast-grep scan`). Unverified:
+  whether user-level rules reach that server without a project
+  `sgconfig.yml`, and that it runs with format, autofix, and the read guard
+  off. Because the per-edit runner skips test files, rules about tests need
+  the language server or the own lint extension.
+- Open (needs logins): live calls for each chain model and level; a virtual
+  model as a pi-subagents child, and which model compaction keys on;
+  `ctx.executeTool("grep")` from `shell` with grep `exposure: "codemode"`;
+  pi-lens live.
 - artemis: `~/.pi/agent` is a new `persistence.*` entry (data for logins,
   cache directories as for omp). Even the side-by-side week needs
   `just migrate-persist` and a `--boot` deploy with a reboot, which need
