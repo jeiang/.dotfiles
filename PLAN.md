@@ -574,23 +574,44 @@ far (2026-11-18):
 - Partial: models: pi's catalog has every chain model with these thinking
   maps: GPT-6 Luna and GPT-6.1 Sol up to `xhigh`/`max`; Opus, Sonnet,
   Haiku 5.5 `low` to `max` (Haiku also `off`); Fable 5.2 maps only `xhigh`
-  and `max` explicitly (low and medium unverified); Mistral DeepSeek V4.1
+  and `max` explicitly; pi-ai treats a missing key as the provider default
+  and only `null` as unsupported, so `low` and `medium` should pass
+  (unverified live); Mistral DeepSeek V4.1
   Flash `off`, `low`, `high`, `max` (no `medium`/`xhigh`); Mistral Large 4
   `low` to `high`; Cloudflare `@cf/cloudflare/clef-flash` without
   reasoning. Live calls need logins.
-- Partial: pi-lens: its per-edit ast-grep runner covers only JS/TS, CSS,
-  and HTML and skips test files. Other languages, Nix, shell, YAML, Rust,
-  Python included (not Zig), go through its ast-grep language server,
-  rooted at a project `sgconfig.yml` or the shipped baseline. ast-grep
-  0.51 itself matches Nix rules (checked with `ast-grep scan`). Unverified:
-  whether user-level rules reach that server without a project
-  `sgconfig.yml`, and that it runs with format, autofix, and the read guard
-  off. Because the per-edit runner skips test files, rules about tests need
-  the language server or the own lint extension.
-- Open (needs logins): live calls for each chain model and level; a virtual
-  model as a pi-subagents child, and which model compaction keys on;
-  `ctx.executeTool("grep")` from `shell` with grep `exposure: "codemode"`;
-  pi-lens live.
+
+The next spikes used a scripted fake provider extension
+(`registerProvider` with its own `streamSimple`) behind a virtual model
+`chain/test`, so they ran without logins:
+
+- Done: `ctx.executeTool("grep", …)` from a model-only tool reaches the
+  built-in grep re-registered with `exposure: "codemode"` and returns its
+  output. In a pi-subagents child with a strict `tools` allowlist the same
+  call returns `Tool grep not found`: agents whose `shell` routes to grep
+  must list `grep` in `tools`, or `shell` falls back to running `rg`.
+- Done: a virtual model works as a pi-subagents child model (`model:
+  chain/test`, `extensions:` naming the chain extension): the child routes
+  with reason `user`, runs its tool, and returns to the parent.
+- Done: compaction settings key on the virtual model id. A
+  `compaction.modelOverrides["chain/test"]` override applied; one for the
+  routed `fake/script` did not. Compaction's summary call routes with
+  reason `direct`. The extension-driven trigger stays, because the window
+  differs per routed model.
+- Done: pi-lens: its per-edit ast-grep runner covers only JS/TS, CSS, and
+  HTML. Nix, shell, YAML, Rust, and Python (not Zig) go through its
+  ast-grep language server, which starts at the nearest `sgconfig.yml`
+  root, else runs pi-lens's shipped baseline (`rules/ast-grep-rules`). A
+  project Nix rule with `severity: error` reached the `write` result as a
+  blocker; `warning` stayed out of the result (advisory). Limits: both
+  ast-grep paths skip test files, and auxiliary language servers are off in
+  subagent sessions. So user-level rules are added to the baseline in the
+  Nix build of pi-lens, rules about tests go in the own lint extension, and
+  subagent edits get no structural lint from pi-lens. pi-lens keeps state
+  in `~/.pi-lens` (artemis needs it as a cache persistence entry). Its npm
+  install needs `--ignore-scripts`: the `prepare` script deletes `dist`.
+- Open (needs logins): live calls for each chain model and level, on both
+  hosts.
 - artemis: `~/.pi/agent` is a new `persistence.*` entry (data for logins,
   cache directories as for omp). Even the side-by-side week needs
   `just migrate-persist` and a `--boot` deploy with a reboot, which need
