@@ -629,8 +629,6 @@ The next spikes used a scripted fake provider extension
   subagent edits get no structural lint from pi-lens. pi-lens keeps state
   in `~/.pi-lens` (artemis needs it as a cache persistence entry). Its npm
   install needs `--ignore-scripts`: the `prepare` script deletes `dist`.
-- Open (needs logins): live calls for each chain model and level, on both
-  hosts.
 - artemis: `~/.pi/agent` is a new `persistence.*` entry (data for logins,
   cache directories as for omp). Even the side-by-side week needs
   `just migrate-persist` and a `--boot` deploy with a reboot, which need
