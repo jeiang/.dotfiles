@@ -32,26 +32,29 @@ decisions close.
   `extensions` frontmatter.
 - OpenCode models are gone (#607).
 - Codemode in `only` mode. File work goes through `read`, `edit`, `write`
-  and codemode; bash is script-only (`exposure: "codemode"`). Whether a
-  direct process tool remains is open (see "Bash and codemode").
+  and codemode; bash is script-only (`exposure: "codemode"`).
 - Footer: pi's built-in footer (cost, tokens, cache, context %, model and
   routed model, branch) plus a status entry for turn time. No tokens/s.
-- cornn-flaek `AGENTS.md`: procedures in `docs/runbooks/` (#606), topic
-  decisions in `docs/decisions/` (#608).
+- Memory: dropped. No mnemopi replacement.
+- Hashline: direct port of omp's `read`/`edit`, omp source as reference.
+- Subagents: fork of pi-subagents at `jeiang/pi-subagents` (clone in
+  `~/Projects/pi-subagents`), changed to allocate worktrees in `.worktrees/`.
+- `devshell-preflight` becomes a diagnosis-only skill (draft below).
+- cornn-flaek `AGENTS.md`: need-to-know rules only, procedures in
+  `docs/runbooks/` (#606, #609); the decision files are gone.
 - Other repositories' `AGENTS.md` files are out of scope here.
 
 ## Open decisions
 
-- Memory (mnemopi): drop, or replace.
-- Advisor: drop, or `pi-advisor-flow`.
-- `personal.md` v2 (draft below).
-- Direct `shell` tool for long-running, streaming, and background processes,
-  or none.
-- Subagent worktree location: pi-subagents' `../worktrees/<project>/`, or
-  own allocation in `.worktrees/`.
-- Hashline: own same-name `read`/`edit` port on `@oh-my-pi/pi-natives`, or
-  `@jangmanj/pi-hashline` as published.
-- LSP: `@ian-pascoe/pi-lsp` (recommended) or `pi-lens`.
+- Advisor: own extension, about 300 lines (recommended), or
+  `pi-advisor-flow` with a restricted config. See "Advisor".
+- LSP: `@ian-pascoe/pi-lsp` (recommended) or `pi-lens`. See "LSP".
+- `shell` tool: own (recommended), or `pi-background` plus script-only
+  bash. See "Bash and codemode".
+- `personal.md` v2 adoption (draft below).
+- The `*.jeiang.dev` wildcard DNS record: remove it, or keep it. Removing
+  it ends single-label names resolving to the edge, but every edge site
+  without its own record stops resolving.
 
 ## Work items
 
@@ -87,28 +90,64 @@ process tool:
   `just prepush`, CI watches), 4.8k background jobs, 1.3k named services,
   4.3k `sleep` polls.
 
-Proposal: bash `exposure: "codemode"`, plus one `model-only` tool `shell`
-for long-running, streaming, or background processes (builds, deploys, CI
-watches, servers) with a job list and wait. File reading and search never go
-through it. Without it, every build and watch holds a worker for its whole
-run.
+Proposal: bash `exposure: "codemode"`, plus one own `model-only` tool,
+`shell`, for processes. It holds, in one place:
+
+- Background jobs that return early: `wait_on` regex or N seconds, with the
+  process still running. A matching output line (the `garret login` URL and
+  code) or the exit wakes the model through
+  `pi.sendMessage(..., {triggerTurn: true, deliverAs: "steer"})`.
+  `pi-background` (`bg_run` with `wake_on`) is the reference; `pi-processes`
+  adds byte-cursor reads (`process_output`) worth copying.
+- A job list, cursor reads, wait, and kill.
+- Routing: a single `rg`/`grep` with no pipe or chain runs the grep tool
+  through `ctx.executeTool("grep", ...)` and renders with the exported grep
+  renderer. A `tool_call` handler cannot change the tool name, so routing
+  lives inside `shell`. A pipe chain cannot become codemode automatically
+  (codemode runs model-written JavaScript); `shell` runs it, or blocks
+  pure text-processing chains with a reason pointing at codemode.
+- The devshell spawn hook and the guards.
+
+File reading and search never go through `shell`.
 
 ## Hashline
 
-`@jangmanj/pi-hashline` uses omp's own engine (`@oh-my-pi/pi-natives`,
-darwin-arm64 build exists): `[path#TAG]` headers, `N:line`, `PUT`/`CUT`/`MV`/
-`REM` patches. Two gaps: it leaves nested codemode reads untagged, so under
-`only` the model never sees tags, and it adds `hashline_edit` instead of
-`edit`, so pi-lsp's post-edit diagnostics (which key on `edit`/`write` with a
-`path`) never fire.
+Direct port of omp's hashline `read` and `edit`, with omp's source as the
+reference and `@jangmanj/pi-hashline` (which uses `@oh-my-pi/pi-natives`) as
+a second reference. Re-register `read` and `edit` under their own names, tags
+added inside `read` so nested codemode reads get them; `edit` keeps a `path`
+field and returns `details.diff` in the built-in shape so the diff renderer
+and LSP diagnostics keep working; copy `promptSnippet`/`promptGuidelines`.
 
-Own port: re-register `read` and `edit` under their own names, delegating to
-the built-in definitions, tags added inside `read` so nested calls get them;
-`edit` keeps a `path` field and returns `details.diff` in the built-in shape
-so the diff renderer and LSP diagnostics keep working; copy
-`promptSnippet`/`promptGuidelines`.
+## LSP
 
-Checks before building the port:
+`pi-lens` does not override `read`/`edit`/`write`; it works through hooks.
+Reasons not to choose it here:
+
+- Auto-format runs `nixfmt` on the whole file whenever `nixfmt` is on PATH.
+  This repository formats Nix with alejandra through treefmt, and pi-lens
+  has no treefmt support, so it would rewrite files into the wrong style.
+  `format.enabled: false` turns it off.
+- Its read-before-edit guard records reads from `offset`/`limit` and
+  understands two hashline edit shapes (`set_line`/`replace_lines` with
+  `N:hash` anchors, and anchor plus direction). omp's `PUT N.=M` patches
+  match neither, so every edit takes its "no line info" branch. Its
+  `tool_call` handler also rewrites `oldText` and `edits` on tools named
+  `edit`, which can misfire on a foreign schema. Hashline already rejects
+  an edit against a stale or unread snapshot, so the guard adds nothing.
+- It installs tools by itself (off with `PI_LENS_DISABLE_TOOL_INSTALL` and
+  `PI_LENS_DISABLE_LSP_INSTALL`); 29 GitHub-release downloads carry no
+  checksum (issue #5665). The bundle is 6.3 MB with a native ast-grep
+  dependency, and it runs linters (knip, jscpd, madge, opengrep, typos)
+  whose findings are injected into turns.
+
+With format, autofix, and the read guard off, what remains of pi-lens is
+LSP plus linters. `@ian-pascoe/pi-lsp` does LSP only: diagnostics new since
+a pre-edit baseline appended to `edit`/`write` results, rename, definition,
+references, hover, symbols, code actions, servers declared in
+`settings.json` (nixd, zls, rust-analyzer, and the rest from Nix).
+
+Before building the hashline port:
 
 - `@oh-my-pi/pi-natives` 18.22.2 publishes `linux-x64`, `linux-arm64`,
   `darwin-arm64`, and `darwin-x64` builds as optional dependencies. Confirm
@@ -129,17 +168,19 @@ Checks before building the port:
   worktree, update the prompt cwd in `before_agent_start`. The alternative,
   fork plus `switchSession` (`@narumitw/pi-worktree`), only works from a
   command context, not mid-turn.
-- Subagents: pi-subagents `worktree: true` with `baseRef: origin/main`.
-  Clean worktrees are removed after a patch is captured; branches with
-  commits are kept (`keptBranchTip`). It refuses a base directory inside the
-  checkout, so children land in `../worktrees/<project>/` with prefix
-  `pi-subagents/`. Children commit when their prompt says so.
+- Subagents: the pi-subagents fork, `worktree: true` with `baseRef:
+  origin/main`. Upstream removes clean worktrees after capturing a patch,
+  keeps branches with commits (`keptBranchTip`), and refuses a base
+  directory inside the checkout. The fork changes allocation to
+  `.worktrees/<name>` and has children commit on their branch.
 
 ## Devshell
 
-Own `spawnHook` on the bash override: find the repository root, run through
-`direnv exec <root>` when `.envrc` is allowed, else the cached devshell
-environment when the flake has a devShell, else plain. The same hook covers
+Own `spawnHook` on the bash override: find the repository root, then use
+the first that applies: `direnv exec <root>` when `.envrc` is allowed;
+`devenv shell --` when `devenv.nix` exists; the cached devshell environment
+when `flake.nix` has a devShell; `nix-shell --run` for `shell.nix`; plain
+otherwise. The same hook covers
 codemode's `tools.bash` and the worktree cwd; `user_bash` covers `!`
 commands. `pi-direnv` loads the env once at session start and does not
 follow a worktree switch, so it does not fit.
@@ -152,6 +193,33 @@ call re-evaluates the flake each time (9.4k such calls in the baseline). So:
 - Without direnv, the hook caches `nix print-dev-env --json` per root and
   `flake.lock` hash, and spawns with that environment.
 
+With the hook enforcing the entry point, `devshell-preflight` becomes a
+diagnosis skill, invoked only when the environment fails to load:
+
+```markdown
+---
+name: devshell-preflight
+description: Diagnose a repository's Nix development environment when it
+  fails to load (direnv error, nix develop or devenv evaluation failure,
+  missing toolchain inside the shell). The harness already runs every
+  command inside the devshell; do not load this skill otherwise.
+---
+
+# Devshell diagnosis
+
+- Reproduce outside the hook: `direnv status`, then `nix develop <root> -c
+  true`, `devenv shell -- true`, or `nix-shell --run true`, whichever the
+  repository declares. Read the first evaluation error.
+- A repository with `devenv.nix` but no `flake.nix` fails `nix develop`
+  with "not part of a flake": wrong entry point, not a broken repository.
+- Fix the cause in the repository's environment files when it is in scope;
+  otherwise report the error and the command that shows it.
+- Never run checks in another checkout and claim they validated these
+  files. A tool the repository does not provide comes from
+  `nix shell nixpkgs#<pkg> -c <cmd>`; a Python library from
+  `nix-shell -p "python3.withPackages(p: [p.<lib>])" --run '<cmd>'`.
+```
+
 ## Tool UI
 
 omp features worth keeping, and the pi route:
@@ -160,7 +228,8 @@ omp features worth keeping, and the pi route:
 |---|---|
 |Background job widgets: charts, bars, status grids from job output (`async.widgets`, `widget` role)|Own `setWidget` component on the `shell` job list; per-command duration sparkline from `tool_execution_end.durationMs` history|
 |GitHub cards: CI jobs and steps with state and duration, Ctrl+O expands|Own `github` tool, `model-only`, `renderResult` with themed icons and step durations|
-|`tui.autoGraph`: charts numeric tables in answers|Markdown transformer in the emphasis port, or drop|
+|`tui.autoGraph`: charts numeric tables in answers|Own markdown transformer or message renderer drawing a `Component`|
+|Mermaid in answers|Built in: `markdown.mermaid` (`off`, `final`, `streaming`; default `streaming`) renders fenced mermaid as Unicode box art|
 |Subagent live preview, pinned agents|pi-subagents FleetView and `/subagents-fleet`|
 |Emphasis pills and reply_style|Port `emphasis.ts` to `registerMarkdownTransformer` and `before_agent_start`|
 |eval cell rendering (tables, JSON trees)|Drop with eval|
@@ -169,28 +238,58 @@ omp features worth keeping, and the pi route:
 |Read summarizer, shell output minimizer, artifact spill|Pi truncates at 1 MiB head/tail with a full-output file; no summarizer|
 
 `pi.registerToolRenderer((name, next) => …)` restyles any tool row, built-in
-or not. Pi has no chart API; charts are hand-drawn components.
+or not. Pi has no chart API, but an extension draws charts as a pi-tui
+`Component` (`render(width): string[]` with ANSI colors) from a tool
+renderer, a message renderer, or a widget; bitmap charts go through the
+`Image` component over the Kitty or iTerm2 protocol. Images and inline SVG
+inside assistant markdown do not render.
+
+## Advisor
+
+Kept; implementation reviewed:
+
+- `pi-advisor-flow` (82.5k/month): about 23.8k lines, too large to review.
+  No automatic agent-end review: its gates are prompt lines asking the
+  agent to call `ask_advisor`. Each review sends up to 15k characters of
+  transcript, 20k of git summary, and 16 KiB of `AGENTS.md` uncached. Its
+  loop gate blocks the whole session when the advisor fails
+  (`gateFailureMode: block-session` by default). It turns on in subagents.
+- `@ian-pascoe/pi-advisor` (1.3k/month): closest to omp (reviews after
+  each non-read-only turn, prompt-cached advisor session, corrective turn
+  capped at one), but the advisor runs `read`, `grep`, `find`, `ls` and
+  recreates other extensions, and it finds the session through pi
+  internals.
+
+Recommended: own extension, about 300 lines. Off in subagents; model call
+through `ctx.modelRegistry.streamSimple` (works with `chain/...`) with a
+90 s timeout and no tools; an `advise` tool; an advisor message list that
+only appends new turns so reviews hit the prompt cache, rebuilt after
+compaction; review in `agent_settled` every `reviewInterval`, non-LGTM
+advice sent with `pi.sendMessage(..., {triggerTurn: true})`; at most one
+advisor-started turn per user input; failures notify and never block.
+Check before building: `deliverAs: "followUp"` and `buildContextEntries`
+in the 1.5.2 type definitions.
 
 ## Feature table
 
 |omp feature|Used (45 days)|Pi replacement|
 |---|---|---|
-|read, edit, write|76.9k, 26.9k, 13.5k|Native, with the hashline port|
-|bash|190k|Script-only bash in codemode, plus `shell` for processes (open)|
-|grep, glob, find|23.9k, 1.9k, 815|Native grep, find, ls|
+|read, edit, write|76.9k, 26.9k, 13.5k|Native, with the direct hashline port|
+|bash|190k|Script-only bash in codemode, plus own `shell` for processes|
+|grep, glob, find|23.9k, 1.9k, 815|Native grep, find, ls; `shell` routes a lone `rg`/`grep` to grep|
 |eval (Python)|7.6k|Codemode for logic; `uv run` scripts through `shell` for real Python|
-|task + custom agents|1.9k|pi-subagents, agents from agent-skills|
-|wait, async jobs, services|32.1k, 4.8k, 1.3k|`shell` job list (open)|
-|Subagent isolation|Not enabled|pi-subagents worktrees|
+|task + custom agents|1.9k|pi-subagents fork, agents from agent-skills|
+|wait, async jobs, services|32.1k, 4.8k, 1.3k|`shell` jobs: early return on regex or time, wake on match or exit, cursor reads|
+|Subagent isolation|Not enabled|pi-subagents fork, worktrees in `.worktrees/`|
 |todo|1.6k|Official `todo.ts` example|
 |ask|501|Official `questionnaire.ts` example|
 |web_search|1.6k|`pi-web-access`|
-|advise (advisor)|1.3k|Drop, or `pi-advisor-flow` (open)|
+|advise (advisor)|1.3k|Own advisor extension (recommended, open)|
 |github tool|111|Own `github` tool with rich rendering|
-|lsp tool, diagnostics on edit|41 calls; diagnostics on every edit|`@ian-pascoe/pi-lsp`|
+|lsp tool, diagnostics on edit|41 calls; diagnostics on every edit|`@ian-pascoe/pi-lsp` (recommended, open)|
 |ast_grep, ast_edit|1, 31|Drop; `ast-grep` CLI through `shell` when needed|
 |MCP (nixos)|33|Native MCP, codemode exposure|
-|Memory (mnemopi), recall/retain|23 calls, auto-retain every turn|Drop (open)|
+|Memory (mnemopi), recall/retain|23 calls, auto-retain every turn|Dropped|
 |vibe workers|about 1.2k|Drop|
 |seance|5|Drop|
 |Model roles, fallback chains, usage-limit fallback|Every request|Own fallback-chains extension|
@@ -201,7 +300,8 @@ or not. Pi has no chart API; charts are hand-drawn components.
 |bashInterceptor, gitGuard|Every shell call|Guard extension on `tool_call`|
 |Secrets masking|On|None found; keep the prose rule|
 |Emphasis extension|Every reply|Port|
-|Status line, token rate, turn time|Always|Built-in footer plus turn-time status|
+|Status line, turn time|Always|Built-in footer plus turn-time status|
+|Mermaid and SVG in answers|Always|Mermaid built in; SVG does not render|
 |Compaction (400k)|Long sessions|Native compaction; lower threshold|
 |Codex and Claude reset redemption|On|Drop|
 |Prewalk, plan autosave, `btw`|Off or rare|Drop; official `plan-mode/` if wanted|
@@ -240,10 +340,9 @@ item, and `off`. The v1 trimmed draft then lost these, which v2 restores:
   one-liner that needs decoding is not short.
 - Moved or merged code keeps its error handling and validation.
 - Between options of equal size, take the one correct on edge cases.
-- Upstream's test criterion, kept without the assert option: new
-  non-trivial logic (a branch, a loop, a parser, money or security, a new
-  script) gets one small test; trivial changes get none. This is the line
-  between a useful and a useless test.
+- Upstream's test criterion is too loose: "a branch or a loop" admits
+  tests whose upkeep outweighs their value. v2 limits regression tests to
+  code that must be correct.
 
 ## personal.md v2 draft
 
@@ -294,9 +393,10 @@ Comments state only a constraint the code cannot show, in one line. Never
 leave history in code, docs, or config: no "previously", "was reworked",
 "no longer", or migration notes. Git history explains change.
 
-New non-trivial logic (a branch, a loop, a parser, money or security, a new
-script) gets one small test that would catch a real regression. Trivial
-changes get none. Never test wiring, echoes, or defaults.
+Add a regression test only where correctness is critical: security,
+authentication, data loss or corruption, parsing of untrusted input, and
+public contracts. Everything else gets no new test; tests carry
+maintenance cost. Never test wiring, echoes, or defaults.
 
 Validate with the repository's checks. Report what passed, failed, or could
 not run; never call an untested result validated.
