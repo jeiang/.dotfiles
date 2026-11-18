@@ -61,6 +61,10 @@
     agent-skills.inputs.nixpkgs.follows = "nixpkgs";
     # Deliberately no follows: cache.numtide.com only has the agents built against this flake's own nixpkgs pin.
     llm-agents.url = "github:numtide/llm-agents.nix";
+    pi-emphasis = {
+      url = "github:johnlindquist/pi-emphasis";
+      flake = false;
+    };
     mcp-servers-nix.url = "github:natsukium/mcp-servers-nix";
     mcp-servers-nix.inputs.nixpkgs.follows = "nixpkgs";
     wrapper-modules.url = "github:BirdeeHub/nix-wrapper-modules";
