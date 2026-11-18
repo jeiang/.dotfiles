@@ -17,8 +17,11 @@
     };
 in {
   shared.modules.workstation = {pkgs, ...}: {
-    # Only omp reads a declarative user-level MCP file; Claude Code and Codex
+    # Only omp and pi read a declarative user-level MCP file; Claude Code and Codex
     # rewrite their own config, so `just mcp-register` copies these into it.
-    hjem.users.${self.lib.facts.userName}.files."${self.lib.agentHomes.omp}/mcp.json".source = servers pkgs;
+    hjem.users.${self.lib.facts.userName}.files = {
+      "${self.lib.agentHomes.omp}/mcp.json".source = servers pkgs;
+      "${self.lib.agentHomes.pi}/mcp.json".source = servers pkgs;
+    };
   };
 }

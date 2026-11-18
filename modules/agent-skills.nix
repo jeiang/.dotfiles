@@ -9,6 +9,7 @@
     claude = ".claude";
     codex = ".codex";
     omp = ".omp/agent";
+    pi = ".pi/agent";
   };
 
   # The clients write inside these directories themselves (Claude Code syncs

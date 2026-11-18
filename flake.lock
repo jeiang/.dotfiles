@@ -7,11 +7,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794758012,
-        "narHash": "sha256-4/zanj7f5pEY63LiPVF5zQ8reCz/XAsE+LBGG75D5rs=",
+        "lastModified": 1795038543,
+        "narHash": "sha256-jp5YtXK7ACOB7TfvCaijynkOAy/1vGAD3vFkk6VpxWE=",
         "owner": "jeiang",
         "repo": "agent-skills",
-        "rev": "8b80ab0579d58224181b82f945b8bb521487dc0e",
+        "rev": "a1e274cfafd403f8ac2e2fbfd2e738b9b3027ecc",
         "type": "github"
       },
       "original": {
@@ -1651,6 +1651,42 @@
         "type": "github"
       }
     },
+    "pi-extensions": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1795038002,
+        "narHash": "sha256-CTwoBgFX6QWvI1kFRZV9ZqsGp5Dn5LhCMZYanoyJJvU=",
+        "owner": "jeiang",
+        "repo": "pi-extensions",
+        "rev": "6a6676099ce8b91c552c89d0d48ccbe9df62cb9b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "pi-extensions",
+        "type": "github"
+      }
+    },
+    "pi-subagents": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1795038531,
+        "narHash": "sha256-HTmzaibXkZ2WC8mdnO8KH3KfWK5398eDz/gp427I4vA=",
+        "owner": "jeiang",
+        "repo": "pi-subagents",
+        "rev": "1b0821d72d6fd45f210a4e19953d2e4988318e6a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "pi-subagents",
+        "type": "github"
+      }
+    },
     "portfolio": {
       "inputs": {
         "nixpkgs": [
@@ -1800,6 +1836,8 @@
         "nix-topology": "nix-topology",
         "nixpkgs": "nixpkgs_6",
         "omlahore-tap": "omlahore-tap",
+        "pi-extensions": "pi-extensions",
+        "pi-subagents": "pi-subagents",
         "portfolio": "portfolio",
         "renpy-proj": "renpy-proj",
         "rex": "rex",
