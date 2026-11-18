@@ -32,6 +32,13 @@ in {
   };
 
   shared.modules.workstation = client;
+  # The login token; without it every artemis boot makes `just prepush` wait for a device approval.
+  nixos.modules.artemis.persistence.data.directories = [
+    {
+      directory = ".config/garret";
+      mode = "0700";
+    }
+  ];
 
   legion.services.garret = {
     node = "peria";

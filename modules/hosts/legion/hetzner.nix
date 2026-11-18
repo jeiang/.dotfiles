@@ -32,6 +32,9 @@ in {
   in {
     imports = [inputs.disko.nixosModules.disko];
 
+    # facter enables it for the virtual GPU; a headless server needs no Mesa.
+    hardware.graphics.enable = false;
+
     disko.devices = {
       disk.disk1 = {
         device = self.lib.hetznerServerDisk;
