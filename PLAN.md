@@ -31,8 +31,10 @@ decisions close.
   low `retry.baseDelayMs`, loop guard. Subagents list the extension in their
   `extensions` frontmatter.
 - OpenCode models are gone (#607).
-- Codemode in `only` mode. File work goes through `read`, `edit`, `write`
-  and codemode; bash is script-only (`exposure: "codemode"`).
+- Codemode in `on` mode, with per-tool exposure: `only` mode hides every
+  direct tool (`prepareCodemodeLoadout` `hiddenDeclarations`). `read`,
+  `edit`, `write`, `shell` stay direct; `grep`, `find`, `ls`, and `bash`
+  are re-registered with `exposure: "codemode"`.
 - Footer: pi's built-in footer (cost, tokens, cache, context %, model and
   routed model, branch) plus a status entry for turn time. No tokens/s.
 - Memory: dropped. No mnemopi replacement.
@@ -508,9 +510,9 @@ reuses to its devshell.
     Those chains are not ported; Mistral Large 4 and Cloudflare
     `clef-flash` drop out unless a later extension needs them.
 - Advisor: every agent end.
-- Direct tools under codemode `only`: `read`, `edit`, `write`, `shell`,
+- Direct tools under codemode `on`: `read`, `edit`, `write`, `shell`,
   `github`, `ask`, `todo`, the subagent tool, `advise`, pi-lsp's navigation
-  tools. Everything else, MCP included, through codemode.
+  tools. `grep`, `find`, `ls`, `bash`, and MCP through codemode.
 - Web search: `pi-web-access` with its Parallel provider. The Parallel API
   key is a new sops shard for artemis and zakkart (a sops change: approval
   at implementation).
@@ -652,3 +654,19 @@ The next spikes used a scripted fake provider extension
   `packages`/`extensions`; pi never installs them at runtime. Spikes showed
   npm-installed copies of pi-natives, pi-subagents, and pi-lens load from
   a path with the `@earendil-works/*` peers supplied by pi.
+
+## Implementation status
+
+`~/Projects/pi-extensions` (local, not yet on GitHub), tests run under Bun
+in the Nix build:
+
+- Done: `chains`, `guards`, `workspace` (worktree, devshell, hashline,
+  `shell`), `advisor`, `lint`, `emphasis`, `turn-time`, `github`
+  (`run_watch`, `pr_view`), `images` (needs `resvg` on `PATH`).
+- todo and questionnaire: load pi's own `examples/extensions/todo.ts` and
+  `questionnaire.ts` from the pi package by path; no copy.
+- Advisor in subagents: agents list their `extensions` explicitly and leave
+  `advisor` out; pi-subagents marks children only through environment
+  variables, which in-process children share with the parent.
+- Left: pi-subagents fork worktrees, agent-skills `pi` harness,
+  cornn-flaek `modules/packages/pi/`, GitHub repo.
