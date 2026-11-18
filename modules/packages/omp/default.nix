@@ -2,11 +2,9 @@
   perSystem = {pkgs, ...}: {
     packages.omp = let
       strong = ["openai-codex/gpt-6.1-sol:high" "mistral/zai-glm-5-3:high"];
-      light = "opencode-zen/deepseek-v4.1-flash-free:high";
+      light = "openai-codex/gpt-6.1-terra:low";
       lightChain = [
-        "opencode-zen/glm-5.3-flash-free:high"
         "mistral/deepseek-v4-1-flash-1017:high"
-        "openai-codex/gpt-6.1-terra:low"
         "anthropic/claude-haiku-5-5:high"
       ];
       # An overlay, not a file in ~/.omp/agent: omp owns config.yml there and
@@ -77,12 +75,10 @@
           anthropic.slowMode = "auto";
           openaiLiveSteering = true;
         };
-        # Paid OpenCode Zen models are off limits; only its free tier is used.
         # Mistral bills per token, so only the models placed in roles are enabled.
         enabledModels = [
           "anthropic/*"
           "openai-codex/*"
-          "opencode-zen/*-free"
           "mistral/mistral-large-4"
           "mistral/deepseek-v4-1-flash-1017"
           "mistral/zai-glm-5-3"
@@ -184,7 +180,7 @@
             commit = lightChain;
             widget = lightChain;
             memory = lightChain;
-            judge = ["opencode-zen/jev-1.13-free" "@smol"];
+            judge = ["@smol"];
             vision = [
               "mistral/mistral-large-4:medium"
               "openai-codex/gpt-6-luna:high"
