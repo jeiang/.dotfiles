@@ -108,6 +108,17 @@ the built-in definitions, tags added inside `read` so nested calls get them;
 so the diff renderer and LSP diagnostics keep working; copy
 `promptSnippet`/`promptGuidelines`.
 
+Checks before building the port:
+
+- `@oh-my-pi/pi-natives` 18.22.2 publishes `linux-x64`, `linux-arm64`,
+  `darwin-arm64`, and `darwin-x64` builds as optional dependencies. Confirm
+  the linux-x64 addon loads on artemis from a Nix-built extension (no FHS
+  loader path: package it with `autoPatchelfHook` the way `llm-agents#omp`
+  does).
+- Confirm the `llm-agents#pi` build (bytecode) can load a native addon from
+  an extension at all; if not, the port needs a pure TypeScript hashing and
+  patch engine.
+
 ## Worktrees
 
 - Main session: pi has no cwd setter. Re-register `read`, `edit`, `write`,
@@ -127,11 +138,19 @@ so the diff renderer and LSP diagnostics keep working; copy
 ## Devshell
 
 Own `spawnHook` on the bash override: find the repository root, run through
-`direnv exec <root>` when `.envrc` is allowed, else `nix develop <root> -c`
-when the flake has a devShell, else plain. The same hook covers codemode's
-`tools.bash` and the worktree cwd; `user_bash` covers `!` commands.
-`pi-direnv` loads the env once at session start and does not follow a
-worktree switch, so it does not fit.
+`direnv exec <root>` when `.envrc` is allowed, else the cached devshell
+environment when the flake has a devShell, else plain. The same hook covers
+codemode's `tools.bash` and the worktree cwd; `user_bash` covers `!`
+commands. `pi-direnv` loads the env once at session start and does not
+follow a worktree switch, so it does not fit.
+
+A new worktree's `.envrc` is never allowed, and `nix develop <root> -c` per
+call re-evaluates the flake each time (9.4k such calls in the baseline). So:
+
+- The worktree extension runs `direnv allow` in a worktree it creates when
+  the main checkout's `.envrc` is allowed and identical.
+- Without direnv, the hook caches `nix print-dev-env --json` per root and
+  `flake.lock` hash, and spawns with that environment.
 
 ## Tool UI
 
