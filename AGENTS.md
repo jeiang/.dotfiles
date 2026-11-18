@@ -163,6 +163,11 @@ on its `legion.services.<name>.node`.
   input. Entry names come from its `lib.entries`, never from the built
   package.
 - The `llm-agents` input's `nixpkgs` must not follow ours.
+- pi extensions change by bumping the `pi-extensions` input, which also
+  pins pi-lens, pi-lsp, and pi-web-access; pi-subagents is the
+  `pi-subagents` fork input. Every extension is linked into
+  `~/.pi/agent/extensions/<name>`, the path agent-skills' pi agents load.
+  pi rewrites `settings.json`, so hjem copies it.
 
 ## CI
 
