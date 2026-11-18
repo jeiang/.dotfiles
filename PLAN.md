@@ -41,20 +41,52 @@ decisions close.
   `~/Projects/pi-subagents`), changed to allocate worktrees in `.worktrees/`.
 - `devshell-preflight` becomes a diagnosis-only skill (draft below).
 - cornn-flaek `AGENTS.md`: need-to-know rules only, procedures in
-  `docs/runbooks/` (#606, #609); the decision files are gone.
+  `docs/runbooks/` (#606, #609); the decision files are gone. Approved.
 - Other repositories' `AGENTS.md` files are out of scope here.
+- Advisor: own extension (see "Advisor").
+- LSP: `@ian-pascoe/pi-lsp`; linting through the own lint extension (see
+  "Lint").
+- `shell`: own tool (see "Bash and codemode").
+- `personal.md` v2 adopted for the pi harness. The omp profile keeps the
+  current text until cutover, because v2 relies on the worktree, devshell,
+  and guard extensions that omp does not have.
+- The `*.jeiang.dev` DNS record stays; single-label names come from
+  NetBird DNS wildcard domains, not from the record.
 
 ## Open decisions
 
-- Advisor: own extension, about 300 lines (recommended), or
-  `pi-advisor-flow` with a restricted config. See "Advisor".
-- LSP: `@ian-pascoe/pi-lsp` (recommended) or `pi-lens`. See "LSP".
-- `shell` tool: own (recommended), or `pi-background` plus script-only
-  bash. See "Bash and codemode".
-- `personal.md` v2 adoption (draft below).
-- The `*.jeiang.dev` wildcard DNS record: remove it, or keep it. Removing
-  it ends single-label names resolving to the edge, but every edge site
-  without its own record stops resolving.
+See "Questions" at the end.
+
+## Lint
+
+Own extension; no pi package runs project-defined rules. Three rule
+sources, cheapest first:
+
+- Added-line rules: regexes over the lines an `edit`/`write` adds, any
+  language. Catches history comments ("previously", "no longer", "was
+  reworked", "used to"), `TODO`/`FIXME` left behind, and debug output.
+  Findings are appended to the tool result, like LSP diagnostics.
+- Structural rules: ast-grep rule files (YAML) per language, run on the
+  changed file after `edit`/`write`. Catches code patterns, for example
+  empty catch blocks or tests that assert only that a call did not throw.
+- Judgement rules: a rubric the advisor applies to the turn's diff at agent
+  end: unnecessary tests (wiring, echoes, defaults, tests outside critical
+  code), unneeded abstractions, comments that restate code. These need a
+  model, so they ride on the advisor call instead of a separate one.
+
+Rules live in agent-skills (global) with optional per-repository additions
+in `.pi/lint/`.
+
+## Images
+
+pi-tui renders images (Kitty, iTerm2) only through its `Image` component in
+tool results, widgets, and custom messages; assistant markdown does not
+render `![]()` or inline SVG [INFERENCE from `components/markdown.js`].
+Route: an extension that, at `message_end`, finds SVG blocks or image paths
+in the assistant text, rasterizes SVG (resvg), and posts a custom message
+whose renderer draws `Image` components below the reply. Check before
+building: whether `registerMessageRenderer` can replace the assistant
+message rendering in place, which would put the image inline.
 
 ## Work items
 
@@ -260,7 +292,7 @@ Kept; implementation reviewed:
   recreates other extensions, and it finds the session through pi
   internals.
 
-Recommended: own extension, about 300 lines. Off in subagents; model call
+Chosen: own extension, about 300 lines. Off in subagents; model call
 through `ctx.modelRegistry.streamSimple` (works with `chain/...`) with a
 90 s timeout and no tools; an `advise` tool; an advisor message list that
 only appends new turns so reviews hit the prompt cache, rebuilt after
@@ -284,9 +316,9 @@ in the 1.5.2 type definitions.
 |todo|1.6k|Official `todo.ts` example|
 |ask|501|Official `questionnaire.ts` example|
 |web_search|1.6k|`pi-web-access`|
-|advise (advisor)|1.3k|Own advisor extension (recommended, open)|
+|advise (advisor)|1.3k|Own advisor extension; also applies the lint rubric|
 |github tool|111|Own `github` tool with rich rendering|
-|lsp tool, diagnostics on edit|41 calls; diagnostics on every edit|`@ian-pascoe/pi-lsp` (recommended, open)|
+|lsp tool, diagnostics on edit|41 calls; diagnostics on every edit|`@ian-pascoe/pi-lsp`; custom rules in the lint extension|
 |ast_grep, ast_edit|1, 31|Drop; `ast-grep` CLI through `shell` when needed|
 |MCP (nixos)|33|Native MCP, codemode exposure|
 |Memory (mnemopi), recall/retain|23 calls, auto-retain every turn|Dropped|
@@ -421,3 +453,33 @@ login shell is fish: wrap POSIX constructs run over ssh in `bash -c '...'`.
 Ad hoc tools come from `nix shell` or `nix run`; add a tool a repository
 reuses to its devshell.
 ```
+
+## Questions
+
+Each has a proposed default.
+
+- Models per agent. Default: main session `chain/strong` (Opus 5.5
+  medium first); scout and worker `chain/light`; change-reviewer,
+  security-reviewer, researcher on GPT-6.1 Sol through a `chain/task`;
+  max-reasoning Fable 5.2 with no chain; advisor Fable 5.2 low.
+- Advisor cadence. Default: every agent end, as today.
+- Direct tools under codemode `only`. Default: `read`, `edit`, `write`,
+  `shell`, `github`, `ask`, `todo`, the subagent tool, `advise`, and pi-lsp's
+  navigation tools; everything else, MCP included, through codemode.
+- Web search backend for `pi-web-access`. omp used Codex web search (GPT-6
+  Luna). Default: whichever backend works with the existing Codex
+  subscription, else one API key in sops.
+- Restricted folders and secret masking. omp blocked `~/.ssh`, `~/.gnupg`,
+  `~/.config/sops`, `~/Library`, `/etc` and masked secrets in output; pi has
+  neither. Default: port both into the guard extension.
+- Where the extensions live. Default: one repository (`jeiang/pi-extensions`)
+  with its own TypeScript checks and tests, consumed as a flake input, like
+  agent-skills; cornn-flaek only wires it.
+- Claude Code and Codex. Default: keep their agent-skills harnesses as they
+  are; only omp is replaced.
+- Compaction threshold. Default: 200k tokens.
+- Cost warning at USD 50. Default: drop.
+- Cutover. Default: pi and omp side by side on artemis and zakkart for a
+  week; switch when first-request tokens and the core flows (worktree,
+  subagents, prepush, CI watch, `garret login`) work; then remove omp.
+  Logins (Anthropic, Codex, Mistral) are done again in pi by the operator.
