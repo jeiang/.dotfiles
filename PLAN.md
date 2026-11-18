@@ -468,35 +468,45 @@ Ad hoc tools come from `nix shell` or `nix run`; add a tool a repository
 reuses to its devshell.
 ```
 
+## Settled answers (2026-11-18)
+
+- Chains:
+  - `chain/strong`: Opus 5.5 medium → GPT-6.1 Sol high. Main session.
+  - `chain/light`: GPT-6.1 Luna xhigh → Haiku 5.5 xhigh. scout, worker,
+    and the light roles (commit, vision).
+  - `chain/task`: GPT-6.1 Sol high → DeepSeek V4.1 Flash high (Mistral) →
+    Sonnet 5.5. change-reviewer, security-reviewer, researcher.
+  - Unchanged: max-reasoning on Fable 5.2 medium, no chain; advisor on
+    Fable 5.2 low; judge on Cloudflare `clef-flash` → light.
+  - Mistral's GLM 5.3 and Mistral Large 4 leave the chains; `enabledModels`
+    keeps only what the chains name.
+- Advisor: every agent end.
+- Direct tools under codemode `only`: `read`, `edit`, `write`, `shell`,
+  `github`, `ask`, `todo`, the subagent tool, `advise`, pi-lsp's navigation
+  tools. Everything else, MCP included, through codemode.
+- Web search: `pi-web-access` with its Parallel provider. The Parallel API
+  key is a new sops shard for artemis and zakkart (a sops change: approval
+  at implementation).
+- Guard extension ports omp's restricted folders (`~/.ssh`, `~/.gnupg`,
+  `~/.config/sops`, `~/Library`, `/etc`) and secret masking in tool output.
+- Extensions live in a new repository, `jeiang/pi-extensions`, with its own
+  TypeScript checks and tests, consumed as a flake input; cornn-flaek only
+  wires it.
+- Claude Code and Codex harnesses stay as they are.
+- Compaction: 200k tokens for sessions on `chain/light` and `chain/task`,
+  400k for the rest (`compaction.modelOverrides`).
+- No cost warning.
+- Cutover: pi beside omp on artemis and zakkart for a week; switch when
+  first-request tokens and the core flows (worktree, subagents, prepush, CI
+  watch, `garret login`) work; then remove omp. The operator logs in again
+  to Anthropic, Codex, and Mistral in pi.
+- Structural lint: pi-lens with format, autofix, and the read guard off and
+  its bundled rules trimmed, after checking it accepts Nix rules; otherwise
+  an own ast-grep runner.
+
 ## Questions
 
-Each has a proposed default.
-
-- Models per agent. Default: main session `chain/strong` (Opus 5.5
-  medium first); scout and worker `chain/light`; change-reviewer,
-  security-reviewer, researcher on GPT-6.1 Sol through a `chain/task`;
-  max-reasoning Fable 5.2 with no chain; advisor Fable 5.2 low.
-- Advisor cadence. Default: every agent end, as today.
-- Direct tools under codemode `only`. Default: `read`, `edit`, `write`,
-  `shell`, `github`, `ask`, `todo`, the subagent tool, `advise`, and pi-lsp's
-  navigation tools; everything else, MCP included, through codemode.
-- Web search backend for `pi-web-access`. omp used Codex web search (GPT-6
-  Luna). Default: whichever backend works with the existing Codex
-  subscription, else one API key in sops.
-- Restricted folders and secret masking. omp blocked `~/.ssh`, `~/.gnupg`,
-  `~/.config/sops`, `~/Library`, `/etc` and masked secrets in output; pi has
-  neither. Default: port both into the guard extension.
-- Where the extensions live. Default: one repository (`jeiang/pi-extensions`)
-  with its own TypeScript checks and tests, consumed as a flake input, like
-  agent-skills; cornn-flaek only wires it.
-- Claude Code and Codex. Default: keep their agent-skills harnesses as they
-  are; only omp is replaced.
-- Compaction threshold. Default: 200k tokens.
-- Cost warning at USD 50. Default: drop.
-- Cutover. Default: pi and omp side by side on artemis and zakkart for a
-  week; switch when first-request tokens and the core flows (worktree,
-  subagents, prepush, CI watch, `garret login`) work; then remove omp.
-  Logins (Anthropic, Codex, Mistral) are done again in pi by the operator.
-- Structural lint rules. Default: pi-lens with format, autofix, and the read
-  guard off and its bundled rules trimmed, after checking it accepts Nix
-  rules; otherwise an own ast-grep runner.
+- GPT-6.1 Luna: omp's Codex model list (provider cache 0.159.0) has
+  `gpt-6-luna`, `gpt-6.1-sol`, `gpt-6.1-terra`, `gpt-6-sol`, `gpt-6-astra`;
+  no `gpt-6.1-luna`. Which model leads `chain/light`?
+- Sonnet 5.5 thinking level at the end of `chain/task` (proposed: high).
