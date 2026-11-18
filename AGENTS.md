@@ -278,10 +278,8 @@ behavior for its own sake.
 - The Hetzner private network (`172.16.0.0/12`, `enp7s0`) exists only on
   Hetzner nodes, and no NetBird route reaches it from the mesh: an exit
   route (`0.0.0.0/0`) forwards its sources to any destination, so each
-  Hetzner node drops what arrives on the NetBird interface for that
-  network. The drop is in a prerouting chain: NetBird puts an accept for its
-  interface at the head of every forward and input chain of other tables,
-  so a rule there never runs. Hetzner
+  Hetzner node drops what it would forward from the NetBird interface to
+  that network. Hetzner
   nodes address each other by `privateIPv4`; every pair involving ricklent
   uses the target's
   mesh IP from `modules/netbird-peers.nix`, through
