@@ -100,7 +100,7 @@ D("jeiang.dev", REG_NONE,
 
   ICLOUD_MAIL("jeiang.dev", "8AB1Gv2EQH9k61Dp", 3600),
   TXT("_github-pages-challenge-jeiang", "040396bc2f5ef7498c71107fc31a86"),
-  TXT("_dmarc", "v=DMARC1; p=none; rua=mailto:851edc98efe04afca1508fe551f2454f@dmarc-reports.cloudflare.net")
+  TXT("_dmarc", "v=DMARC1; p=quarantine; rua=mailto:851edc98efe04afca1508fe551f2454f@dmarc-reports.cloudflare.net")
 );
 
 D("aidanpinard.co", REG_NONE,
@@ -114,7 +114,7 @@ D("aidanpinard.co", REG_NONE,
   CAA_LETSENCRYPT,
 
   ICLOUD_MAIL("aidanpinard.co", "KtGOnEzA64COppD1", 3600),
-  TXT("_dmarc", "v=DMARC1; p=none"),
+  TXT("_dmarc", "v=DMARC1; p=quarantine"),
 
   TXT("_discord", "dh=8577d34f7a7252abc1cdaaf90b0db536220d1269")
 );
@@ -130,5 +130,5 @@ D("pinard.co.tt", REG_NONE,
   CAA_LETSENCRYPT,
 
   ICLOUD_MAIL("pinard.co.tt", "IHmL11YHHwhfMYPl", 86400),
-  TXT("_dmarc", "v=DMARC1; p=none", TTL(3600))
+  TXT("_dmarc", "v=DMARC1; p=quarantine", TTL(3600))
 );
