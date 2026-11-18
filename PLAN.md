@@ -220,6 +220,22 @@ Before building the hashline port:
   directory inside the checkout. The fork changes allocation to
   `.worktrees/<name>` and has children commit on their branch.
 
+Trigger rule (proposed):
+
+- Only `edit` and `write` create the worktree. Shell commands are opaque,
+  so `shell` and script bash run wherever the session is.
+- Before a worktree exists, the guard blocks shell commands that change git
+  state in the main checkout (`git add`, `commit`, `checkout`, `switch`,
+  `merge`, `rebase`, `reset`, `stash`, `branch -d/-D`, `worktree remove`)
+  with a reason to start the worktree first.
+- A `worktree` tool and a `/worktree` command create it on request, for
+  work that starts with a shell command that writes files (a formatter, a
+  generator, an input bump).
+- A session that starts in a linked worktree uses it and creates nothing.
+  Outside a git repository nothing triggers. The main checkout is never
+  switched, reset, or stashed, whatever its branch or dirty state; the new
+  worktree branches from `origin/<default>` after `git fetch`.
+
 ## Devshell
 
 Own `spawnHook` on the bash override: find the repository root, then use
@@ -542,6 +558,11 @@ back into this file:
 - Whether pi accepts a read-only or overlay settings file (omp used
   `PI_CONFIG_FILES`); otherwise hjem installs a writable copy that each
   switch resets.
+- artemis: `~/.pi/agent` is a new `persistence.*` entry (data for logins,
+  cache directories as for omp). Even the side-by-side week needs
+  `just migrate-persist` and a `--boot` deploy with a reboot, which need
+  operator approval; until then pi's logins on artemis are lost at each
+  boot.
 
 ## Questions
 
