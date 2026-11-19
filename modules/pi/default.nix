@@ -133,6 +133,7 @@ in {
           autofix.enabled = false;
           readGuard.enabled = false;
         };
+        ".pi-lens/rules/ast-grep-rules/rules/nix.yml".source = ./nix-rules.yml;
       }
       // lib.mapAttrs' (name: source: lib.nameValuePair "${home}/extensions/${name}" {inherit source;}) extensions;
   };

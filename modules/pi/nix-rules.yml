@@ -1,0 +1,14 @@
+id: nix-impure-builtin
+language: nix
+severity: error
+message: "Impure builtin: pure evaluation returns an empty or fixed value, or fails"
+rule:
+  kind: select_expression
+  regex: '^builtins\.(getEnv|currentSystem|currentTime)$'
+---
+id: nix-search-path
+language: nix
+severity: error
+message: "<...> search path: pure evaluation has no NIX_PATH; use a flake input"
+rule:
+  kind: spath_expression
