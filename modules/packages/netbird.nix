@@ -1,4 +1,4 @@
-{
+{self, ...}: {
   perSystem = {
     pkgs,
     lib,
@@ -7,7 +7,7 @@
     inherit (pkgs.stdenv.hostPlatform) isDarwin;
 
     # Pinned ahead of nixpkgs; one shared override for every component built from the netbird monorepo.
-    pin = _:
+    pin = old:
       rec {
         version = "0.81.4";
         src = pkgs.fetchFromGitHub {
@@ -17,6 +17,14 @@
           hash = "sha256-TeogciNE+STwCaE99smcWXrgKwAkkg79LcrkSDWLpWA=";
         };
         vendorHash = "sha256-e6gG99OhfYcygQIqKyC9M4TajbH/6+L/IoMa3lzoq5k=";
+        # Management sends the peer zone as a search domain with no setting to turn it off; keep it a match domain only.
+        postPatch =
+          (old.postPatch or "")
+          + ''
+            substituteInPlace client/internal/dns/host.go \
+              --replace-fail 'MatchOnly: customZone.SearchDomainDisabled,' \
+                'MatchOnly: customZone.SearchDomainDisabled || strings.EqualFold(dns.Fqdn(customZone.Domain), "${self.lib.netbirdDnsDomain}."),'
+          '';
       }
       # macOS requests AAAA records only from resolvers whose service is IPv6-routable, so names behind an IPv6 exit node do not resolve without a global IPv6 address on the physical link. Drop once netbirdio/netbird#8446 is released.
       // lib.optionalAttrs isDarwin {
