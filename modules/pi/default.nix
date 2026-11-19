@@ -36,8 +36,65 @@
     defaultTools = ["-bash" "+codemode"];
     codemode.mode = "on";
     enableInstallTelemetry = false;
-    # pi-lsp ships no server catalog; these binaries are on the wrapper's PATH.
+    # pi-lsp ships no server catalog; these binaries are on the wrapper's PATH. Toolchain-bound
+    # servers run under pi-devshell-exec, which loads the devshell of their root (a worktree's own).
     lsp.servers = {
+      rust = {
+        command = "pi-devshell-exec";
+        args = ["rust-analyzer"];
+        rootMarkers = ["Cargo.toml"];
+        languages = [
+          {
+            extensions = [".rs"];
+            languageId = "rust";
+          }
+        ];
+      };
+      zig = {
+        command = "pi-devshell-exec";
+        args = ["zls"];
+        rootMarkers = ["build.zig"];
+        languages = [
+          {
+            extensions = [".zig" ".zon"];
+            languageId = "zig";
+          }
+        ];
+      };
+      go = {
+        command = "pi-devshell-exec";
+        args = ["gopls"];
+        rootMarkers = ["go.mod"];
+        languages = [
+          {
+            extensions = [".go"];
+            languageId = "go";
+          }
+        ];
+      };
+      typescript = {
+        command = "pi-devshell-exec";
+        args = ["typescript-language-server" "--stdio"];
+        rootMarkers = ["tsconfig.json" "package.json"];
+        languages = [
+          {
+            extensions = [".ts" ".mts" ".cts"];
+            languageId = "typescript";
+          }
+          {
+            extensions = [".tsx"];
+            languageId = "typescriptreact";
+          }
+          {
+            extensions = [".js" ".mjs" ".cjs"];
+            languageId = "javascript";
+          }
+          {
+            extensions = [".jsx"];
+            languageId = "javascriptreact";
+          }
+        ];
+      };
       nix = {
         command = "nixd";
         args = [];
