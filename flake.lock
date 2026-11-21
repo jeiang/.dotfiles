@@ -7,11 +7,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1795276321,
-        "narHash": "sha256-l2w60SoWWMXzZhsRgqCnYq5cgFj3IstizTl/oRUAQC4=",
+        "lastModified": 1795304777,
+        "narHash": "sha256-e6Z/nMJmIfwhTYKY5bIIE13kDoym5snlZOLXriqRfBY=",
         "owner": "jeiang",
         "repo": "agent-skills",
-        "rev": "3997915706efda35e954c9a2c9e2d076c5b8d7d1",
+        "rev": "a75f702f1e83a2ba0328b534c282e65ba683a420",
         "type": "github"
       },
       "original": {
@@ -1658,11 +1658,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1795275098,
-        "narHash": "sha256-/HVdozEhi4hpBDDm/sxiVEQucCPl4AgoozcwaHuyK8E=",
+        "lastModified": 1795304627,
+        "narHash": "sha256-o5WvzvHoHU97QXRsXKGQ7RSoJT7ms9IzEt+BWH7Viic=",
         "owner": "jeiang",
         "repo": "pi-extensions",
-        "rev": "22e833387a6ad96097a42726d760e8126aaa9510",
+        "rev": "4208ae0e6c6b5728b2ee4cc8160d9c9d9c6d78d8",
         "type": "github"
       },
       "original": {
