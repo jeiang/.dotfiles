@@ -28,73 +28,92 @@
     models = ["anthropic/claude-fable-5-2:low" "openai-codex/gpt-6.1-sol:medium" "anthropic/claude-opus-5-5:medium" "mistral/deepseek-v4-1-flash-1017:max"];
   };
 
+  language = languageId: extensions: {inherit languageId extensions;};
+  # A catalog server runs under pi-devshell-exec: inside the devshell of its root (a worktree's own)
+  # and, when that lacks the command, from nixpkgs. pi-lsp starts a server on the first file of its
+  # language, so an unused entry costs nothing and the pi closure carries none of them.
+  fromNix = attr: command: args: {
+    command = "pi-devshell-exec";
+    args = [command] ++ args;
+    environment.PI_LSP_NIX = attr;
+  };
+
   # pi rewrites settings.json when a session changes a setting, so it is a copy.
-  settings = {
+  settings = pkgs: {
     defaultProvider = "chain";
     defaultModel = "strong";
     # bash stays callable from codemode; the shell tool runs processes.
     defaultTools = ["-bash" "+codemode"];
     codemode.mode = "on";
     enableInstallTelemetry = false;
-    # pi-lsp ships no server catalog; these binaries are on the wrapper's PATH. Toolchain-bound
-    # servers run under pi-devshell-exec, which loads the devshell of their root (a worktree's own).
+    # The first start of a catalog server can fetch it from the binary cache.
+    lsp.timeouts.initializeMs = 180000;
+    # pi-lsp ships no server catalog. nixd, yaml, and bash are on the wrapper's PATH: almost every session uses them.
     lsp.servers = {
-      rust = {
-        command = "pi-devshell-exec";
-        args = ["rust-analyzer"];
-        rootMarkers = ["Cargo.toml"];
-        languages = [
-          {
-            extensions = [".rs"];
-            languageId = "rust";
+      rust =
+        fromNix "rust-analyzer" "rust-analyzer" []
+        // {
+          rootMarkers = ["Cargo.toml"];
+          languages = [(language "rust" [".rs"])];
+        };
+      zig =
+        fromNix "zls" "zls" []
+        // {
+          rootMarkers = ["build.zig"];
+          languages = [(language "zig" [".zig" ".zon"])];
+        };
+      go =
+        fromNix "gopls" "gopls" []
+        // {
+          rootMarkers = ["go.mod"];
+          languages = [(language "go" [".go"])];
+        };
+      typescript =
+        fromNix "typescript-language-server" "typescript-language-server" ["--stdio"]
+        // {
+          rootMarkers = ["tsconfig.json" "package.json"];
+          languages = [
+            (language "typescript" [".ts" ".mts" ".cts"])
+            (language "typescriptreact" [".tsx"])
+            (language "javascript" [".js" ".mjs" ".cjs"])
+            (language "javascriptreact" [".jsx"])
+          ];
+        };
+      clangd =
+        fromNix "clang-tools" "clangd" []
+        // {
+          rootMarkers = ["compile_commands.json" "CMakeLists.txt"];
+          languages = [
+            (language "c" [".c" ".h"])
+            (language "cpp" [".cc" ".cpp" ".cxx" ".hh" ".hpp" ".hxx"])
+          ];
+        };
+      kotlin =
+        fromNix "kotlin-language-server" "kotlin-language-server" []
+        // {
+          rootMarkers = ["settings.gradle.kts" "build.gradle.kts"];
+          languages = [(language "kotlin" [".kt" ".kts"])];
+        };
+      swift =
+        (
+          # The nixpkgs build does not know the iOS SDK; the Xcode toolchain's server does.
+          if pkgs.stdenv.hostPlatform.isDarwin
+          then {
+            command = "xcrun";
+            args = ["sourcekit-lsp"];
           }
-        ];
-      };
-      zig = {
-        command = "pi-devshell-exec";
-        args = ["zls"];
-        rootMarkers = ["build.zig"];
-        languages = [
-          {
-            extensions = [".zig" ".zon"];
-            languageId = "zig";
-          }
-        ];
-      };
-      go = {
-        command = "pi-devshell-exec";
-        args = ["gopls"];
-        rootMarkers = ["go.mod"];
-        languages = [
-          {
-            extensions = [".go"];
-            languageId = "go";
-          }
-        ];
-      };
-      typescript = {
-        command = "pi-devshell-exec";
-        args = ["typescript-language-server" "--stdio"];
-        rootMarkers = ["tsconfig.json" "package.json"];
-        languages = [
-          {
-            extensions = [".ts" ".mts" ".cts"];
-            languageId = "typescript";
-          }
-          {
-            extensions = [".tsx"];
-            languageId = "typescriptreact";
-          }
-          {
-            extensions = [".js" ".mjs" ".cjs"];
-            languageId = "javascript";
-          }
-          {
-            extensions = [".jsx"];
-            languageId = "javascriptreact";
-          }
-        ];
-      };
+          else fromNix "sourcekit-lsp" "sourcekit-lsp" []
+        )
+        // {
+          rootMarkers = ["Package.swift"];
+          languages = [(language "swift" [".swift"])];
+        };
+      python =
+        fromNix "basedpyright" "basedpyright-langserver" ["--stdio"]
+        // {
+          rootMarkers = ["pyproject.toml"];
+          languages = [(language "python" [".py"])];
+        };
       nix = {
         command = "nixd";
         args = [];
@@ -176,7 +195,7 @@ in {
     hjem.users.${self.lib.facts.userName}.files =
       {
         "${home}/settings.json" = {
-          source = json pkgs "pi-settings.json" settings;
+          source = json pkgs "pi-settings.json" (settings pkgs);
           type = "copy";
           permissions = "0600";
         };
