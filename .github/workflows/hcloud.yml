@@ -20,10 +20,13 @@ permissions:
 
 jobs:
   drift:
-    # Fork PRs are excluded explicitly. GitHub already withholds secrets
-    # from them, so a fork run could only fail with an auth error — this
-    # just skips it instead of leaving a red herring on the PR.
-    if: github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork
+    # Fork and Dependabot PRs are excluded explicitly. GitHub withholds
+    # Actions secrets from them, so a run could only fail with an auth
+    # error — this just skips it instead of leaving a red herring on the PR.
+    if: >-
+      github.event_name != 'pull_request' ||
+      (!github.event.pull_request.head.repo.fork &&
+      github.event.pull_request.user.login != 'dependabot[bot]')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
