@@ -129,7 +129,7 @@
   };
 
   # Agents from agent-skills load their extensions by these names.
-  ownExtensions = ["advisor" "chains" "emphasis" "github" "guards" "images" "lint" "loadout" "turn-time" "usage" "workspace"];
+  ownExtensions = ["advisor" "chains" "emphasis" "github" "guards" "images" "lint" "loadout" "skill-mentions" "turn-time" "usage" "workspace"];
 
   # Direct in the tool list: file tools, shell, github, todo, questionnaire, subagent, advise, and pi-lsp navigation.
   loadout.hidden = [
