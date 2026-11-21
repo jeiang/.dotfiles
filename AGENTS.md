@@ -159,15 +159,16 @@ on its `legion.services.<name>.node`.
   go in `determinateNix.customSettings` with `extra-*` keys.
 - zakkart applications come from nixpkgs; a Homebrew cask only when no
   working darwin package exists or the app must manage itself.
-- Agent skills and instructions change by bumping the `agent-skills`
-  input. Entry names come from its `lib.entries`, never from the built
-  package.
+- Shared agent skills, and omp's instructions and agents, change by
+  bumping the `agent-skills` input. Entry names come from its
+  `lib.entries`, never from the built package.
 - The `llm-agents` input's `nixpkgs` must not follow ours.
-- pi extensions change by bumping the `pi-extensions` input, which also
-  pins pi-lens, pi-lsp, and pi-web-access; pi-subagents is the
-  `pi-subagents` fork input. Every extension is linked into
-  `~/.pi/agent/extensions/<name>`, the path agent-skills' pi agents load.
-  pi rewrites `settings.json`, so hjem copies it.
+- pi's extensions, instructions, agents, and own skills change by bumping
+  the `pi-extensions` input, which also pins pi-lens, pi-lsp, and
+  pi-web-access; pi-subagents is the `pi-subagents` fork input. Every
+  extension is linked into `~/.pi/agent/extensions/<name>`, the path the
+  pi agents load. A skill in pi-extensions replaces the shared skill of
+  the same name. pi rewrites `settings.json`, so hjem copies it.
 
 ## CI
 

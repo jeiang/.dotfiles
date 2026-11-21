@@ -128,7 +128,7 @@
     };
   };
 
-  # Agents from agent-skills load their extensions by these names.
+  # The agents in pi-extensions load their extensions by these names.
   ownExtensions = ["advisor" "chains" "emphasis" "github" "guards" "images" "lint" "loadout" "skill-mentions" "turn-time" "usage" "workspace"];
 
   # Direct in the tool list: file tools, shell, github, todo, questionnaire, subagent, advise, and pi-lsp navigation.
@@ -167,6 +167,10 @@ in {
         "todo.ts" = "${examples}/todo.ts";
         "questionnaire.ts" = "${examples}/questionnaire.ts";
       };
+    # The instructions, agents, and pi's own skills live with the extensions they describe.
+    own = kind:
+      lib.mapAttrs' (name: _: lib.nameValuePair "${home}/${kind}/${name}" {source = "${piExtensions}/${kind}/${name}";})
+      (builtins.readDir "${inputs.pi-extensions}/${kind}");
   in {
     environment.systemPackages = [self.packages.${system}.pi];
 
@@ -191,8 +195,11 @@ in {
           readGuard.enabled = false;
         };
         ".pi-lens/rules/ast-grep-rules/rules/nix.yml".source = ./nix-rules.yml;
+        "${home}/AGENTS.md".source = "${piExtensions}/prompts/AGENTS.md";
       }
-      // lib.mapAttrs' (name: source: lib.nameValuePair "${home}/extensions/${name}" {inherit source;}) extensions;
+      // lib.mapAttrs' (name: source: lib.nameValuePair "${home}/extensions/${name}" {inherit source;}) extensions
+      // own "agents"
+      // own "skills";
   };
 
   nixos.modules.artemis.persistence.cache.directories = [".pi-lens"];

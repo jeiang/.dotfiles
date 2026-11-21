@@ -6,24 +6,25 @@
 }: let
   profile = "personal";
   homes = {
-    claude = ".claude";
-    codex = ".codex";
     omp = ".omp/agent";
     pi = ".pi/agent";
   };
 
-  # The clients write inside these directories themselves (Claude Code syncs
-  # skills, Codex ships .system), so hjem owns the entries, never the directory.
+  # pi takes only skills from agent-skills. Its instructions, agents, and own skills come from
+  # pi-extensions (modules/pi), and a skill of the same name there replaces the shared one.
+  ownSkills = name: lib.optionals (name == "pi") (builtins.attrNames (builtins.readDir "${inputs.pi-extensions}/skills"));
+
+  # The clients write inside these directories themselves, so hjem owns the entries, never the directory.
   harness = pkgs: root: name: let
     entries = inputs.agent-skills.lib.entries.${name}.${profile};
     tree = inputs.agent-skills.packages.${pkgs.stdenv.hostPlatform.system}."${name}-${profile}";
-    links = kind:
+    links = kind: names:
       lib.listToAttrs (map
         (entry:
           lib.nameValuePair "${root}/${kind}/${entry}" {
             source = "${tree}/${kind}/${entry}";
           })
-        entries.${kind});
+        names);
   in
     {
       "${root}" = {
@@ -32,16 +33,16 @@
       };
       "${root}/skills".type = "directory";
       "${root}/agents".type = "directory";
-
-      # Claude Code ignores a symlinked CLAUDE.md in Cowork sessions and refuses to edit through one.
+    }
+    // links "skills" (lib.subtractLists (ownSkills name) entries.skills)
+    // links "agents" (entries.agents or [])
+    // lib.optionalAttrs (entries ? instructions) {
       "${root}/${entries.instructions}" = {
         source = "${tree}/${entries.instructions}";
         type = "copy";
         permissions = "0600";
       };
     }
-    // links "skills"
-    // links "agents"
     // lib.optionalAttrs (entries ? rules) {
       "${root}/${entries.rules}".source = "${tree}/${entries.rules}";
     };
@@ -55,8 +56,9 @@ in {
   };
 
   # The homes hold OAuth tokens (omp's agent.db among them): persisted, never in the backup allowlist.
+  # .claude stays: Claude Code is still installed (modules/claude-code.nix) and keeps its login there.
   nixos.modules.artemis.persistence.data.directories = map (directory: {
     inherit directory;
     mode = "0700";
-  }) (lib.attrValues homes);
+  }) (lib.attrValues homes ++ [".claude"]);
 }
