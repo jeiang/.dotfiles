@@ -46,6 +46,15 @@
     defaultTools = ["-bash" "+codemode"];
     codemode.mode = "on";
     enableInstallTelemetry = false;
+    # Mid-run compaction, which does not stop the run (the chains' compactAt waits for the run to
+    # end). pi keys this by the session model and compacts at the answering target's window minus
+    # the reserve, so a reserve must stay below the smallest window of its chain: 500k for
+    # gpt-6.1-sol, 272k for gpt-6-luna. That gives 200k on those and 700k to 928k on the 1M models.
+    compaction.modelOverrides = {
+      "chain/strong".reserveTokens = 300000;
+      "chain/light".reserveTokens = 72000;
+      "chain/task".reserveTokens = 300000;
+    };
     # The first start of a catalog server can fetch it from the binary cache.
     lsp.timeouts.initializeMs = 180000;
     # pi-lsp ships no server catalog. nixd, yaml, and bash are on the wrapper's PATH: almost every session uses them.
