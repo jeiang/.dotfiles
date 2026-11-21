@@ -63,10 +63,6 @@
     llm-agents.url = "github:numtide/llm-agents.nix";
     pi-extensions.url = "github:jeiang/pi-extensions";
     pi-extensions.inputs.nixpkgs.follows = "nixpkgs";
-    pi-subagents = {
-      url = "github:jeiang/pi-subagents";
-      flake = false;
-    };
     mcp-servers-nix.url = "github:natsukium/mcp-servers-nix";
     mcp-servers-nix.inputs.nixpkgs.follows = "nixpkgs";
     wrapper-modules.url = "github:BirdeeHub/nix-wrapper-modules";

@@ -163,7 +163,6 @@ in {
         pi-lens = "${piExtensions}/node_modules/pi-lens";
         pi-lsp = "${piExtensions}/node_modules/@ian-pascoe/pi-lsp";
         pi-web-access = "${piExtensions}/node_modules/pi-web-access";
-        pi-subagents = self.packages.${system}.pi-subagents;
         "todo.ts" = "${examples}/todo.ts";
         "questionnaire.ts" = "${examples}/questionnaire.ts";
       };
@@ -184,10 +183,7 @@ in {
         "${home}/chains.json".source = json pkgs "chains.json" chains;
         "${home}/advisor.json".source = json pkgs "advisor.json" advisor;
         "${home}/loadout.json".source = json pkgs "loadout.json" loadout;
-        "${home}/extensions/subagent/config.json".source = json pkgs "pi-subagents.json" {
-          worktreeBaseDir = ".worktrees";
-          worktreeProvider = "native";
-        };
+        "${home}/subagent.json".source = json pkgs "subagent.json" {maxConcurrent = 3;};
         # pi-lens formats, autofixes, and guards reads by default; only its diagnostics are wanted.
         ".pi-lens/config.json".source = json pkgs "pi-lens.json" {
           format.enabled = false;

@@ -1671,22 +1671,6 @@
         "type": "github"
       }
     },
-    "pi-subagents": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1795038531,
-        "narHash": "sha256-HTmzaibXkZ2WC8mdnO8KH3KfWK5398eDz/gp427I4vA=",
-        "owner": "jeiang",
-        "repo": "pi-subagents",
-        "rev": "1b0821d72d6fd45f210a4e19953d2e4988318e6a",
-        "type": "github"
-      },
-      "original": {
-        "owner": "jeiang",
-        "repo": "pi-subagents",
-        "type": "github"
-      }
-    },
     "portfolio": {
       "inputs": {
         "nixpkgs": [
@@ -1837,7 +1821,6 @@
         "nixpkgs": "nixpkgs_6",
         "omlahore-tap": "omlahore-tap",
         "pi-extensions": "pi-extensions",
-        "pi-subagents": "pi-subagents",
         "portfolio": "portfolio",
         "renpy-proj": "renpy-proj",
         "rex": "rex",

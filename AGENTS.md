@@ -165,9 +165,8 @@ on its `legion.services.<name>.node`.
 - The `llm-agents` input's `nixpkgs` must not follow ours.
 - pi's extensions, instructions, agents, and own skills change by bumping
   the `pi-extensions` input, which also pins pi-lens, pi-lsp, and
-  pi-web-access; pi-subagents is the `pi-subagents` fork input. Every
-  extension is linked into `~/.pi/agent/extensions/<name>`, the path the
-  pi agents load. A skill in pi-extensions replaces the shared skill of
+  pi-web-access. Every extension is linked into
+  `~/.pi/agent/extensions/<name>`, the path the pi agents load. A skill in pi-extensions replaces the shared skill of
   the same name. pi rewrites `settings.json`, so hjem copies it.
 
 ## CI
