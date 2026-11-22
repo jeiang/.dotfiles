@@ -27,7 +27,7 @@ in {
   legion.services.caddy = {
     node = "alda";
     module = "edge";
-    units = ["caddy" "website-update"];
+    units = ["caddy"];
     ports.metrics = metricsPort;
     ports.https = httpsPort;
     publicPorts = [
@@ -53,13 +53,7 @@ in {
     upstream = service: port: "${self.lib.serviceAddress host service}:${toString legionServices.${service}.ports.${port}}";
     atrium = "${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumWebPort}";
 
-    websiteUpdateDir = "/var/lib/website-update";
-
-    # website-update builds upstream main into this GC root, so the site's
-    # owner's changes land without a flake bump. The pinned input serves
-    # until the first build exists.
-    website = "${websiteUpdateDir}/current";
-    pinnedWebsite = inputs.website.packages.${system}.default;
+    website = inputs.website.packages.${system}.default;
 
     serveRoot = root: ''
       root * ${root}
@@ -331,61 +325,9 @@ in {
         };
       };
 
-      systemd = {
-        services = {
-          caddy = {
-            serviceConfig.MemoryMax = "256M";
-            environment = self.lib.otlpTracesEnv host "caddy-edge";
-          };
-
-          # The build runs unprivileged, so third-party flake evaluation
-          # never runs as root. Caddy and Anubis read the root per request,
-          # so repointing the GC root needs no restart.
-          website-update = {
-            description = "Build the website from upstream main";
-            after = ["network-online.target"];
-            wants = ["network-online.target"];
-            path = [config.nix.package];
-            serviceConfig = {
-              Type = "oneshot";
-              User = config.services.caddy.user;
-              Group = config.services.caddy.group;
-              WorkingDirectory = websiteUpdateDir;
-              StateDirectory = "website-update";
-            };
-            script = ''
-              set -euo pipefail
-              export HOME=${websiteUpdateDir}
-              nix build --refresh --out-link current github:jeiang/website
-            '';
-          };
-
-          # Keeps the GC root at the pinned input until the first build
-          # exists, so Caddy never serves a missing root.
-          website-fallback = {
-            description = "Point the website GC root at the pinned input until the first build";
-            wantedBy = ["multi-user.target"];
-            before = ["caddy.service"];
-            serviceConfig = {
-              Type = "oneshot";
-              User = config.services.caddy.user;
-              Group = config.services.caddy.group;
-              StateDirectory = "website-update";
-            };
-            script = ''
-              [ -e ${websiteUpdateDir}/current ] || ln -s ${pinnedWebsite} ${websiteUpdateDir}/current
-            '';
-          };
-        };
-
-        timers.website-update = {
-          wantedBy = ["timers.target"];
-          timerConfig = {
-            OnCalendar = "*-*-* 00:00:00 UTC";
-            Persistent = true;
-            OnActiveSec = "2m";
-          };
-        };
+      systemd.services.caddy = {
+        serviceConfig.MemoryMax = "256M";
+        environment = self.lib.otlpTracesEnv host "caddy-edge";
       };
     };
   };
