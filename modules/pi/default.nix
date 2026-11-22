@@ -217,6 +217,7 @@ in {
           format.enabled = false;
           autofix.enabled = false;
           readGuard.enabled = false;
+          widget.visible = false;
         };
         ".pi-lens/rules/ast-grep-rules/rules/nix.yml".source = ./nix-rules.yml;
         "${home}/AGENTS.md".source = "${piExtensions}/prompts/AGENTS.md";
