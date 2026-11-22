@@ -1,6 +1,14 @@
 # Runs a language server inside the devshell that governs the working directory (pi-lsp starts
 # servers in their root), the same lookup as the workspace extension's shell. Without one, or when
-# it fails to evaluate, the server runs directly.
+# it fails to evaluate, the server runs directly. A command that is then still missing runs from
+# the nixpkgs attribute in PI_LSP_NIX; the first use fetches it.
+run() {
+  if [ -n "${PI_LSP_NIX:-}" ] && ! command -v "$1" >/dev/null; then
+    exec nix shell "nixpkgs#$PI_LSP_NIX" -c "$@"
+  fi
+  exec "$@"
+}
+
 inherited=$PATH
 root=$PWD
 while :; do
@@ -15,7 +23,7 @@ while :; do
     break
   fi
   if [ "$root" = "$HOME" ] || [ "$root" = / ]; then
-    exec "$@"
+    run "$@"
   fi
   root=$(dirname "$root")
 done
@@ -31,4 +39,4 @@ if exports=$(cd "$root" && "${dev[@]}" | jq -r '
 else
   echo "pi-devshell-exec: devshell at $root failed; running $1 without it" >&2
 fi
-exec "$@"
+run "$@"
