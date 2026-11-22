@@ -25,7 +25,7 @@
   };
 
   advisor = {
-    models = ["anthropic/claude-fable-5-2:low" "openai-codex/gpt-6.1-sol:medium" "anthropic/claude-opus-5-5:medium" "mistral/deepseek-v4-1-flash-1017:max"];
+    models = ["anthropic/claude-fable-5-2:medium" "openai-codex/gpt-6.1-sol:medium" "anthropic/claude-opus-5-5:medium" "mistral/deepseek-v4-1-flash-1017:max"];
   };
 
   language = languageId: extensions: {inherit languageId extensions;};
