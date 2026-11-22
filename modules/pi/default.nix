@@ -42,8 +42,10 @@
   settings = pkgs: {
     defaultProvider = "chain";
     defaultModel = "strong";
-    # bash stays callable from codemode; the shell tool runs processes.
-    defaultTools = ["-bash" "+codemode"];
+    # bash stays callable from codemode; the shell tool runs processes. pi starts grep inactive.
+    defaultTools = ["-bash" "+codemode" "+grep"];
+    # The codemode extension in pi-extensions wraps the built-in one.
+    extensions = ["-builtin:codemode"];
     # Scripts find the declarations left out with searchTools(); the rarely used lsp_* ones fill the rest.
     codemode = {
       mode = "on";
