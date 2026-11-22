@@ -44,7 +44,11 @@
     defaultModel = "strong";
     # bash stays callable from codemode; the shell tool runs processes.
     defaultTools = ["-bash" "+codemode"];
-    codemode.mode = "on";
+    # Scripts find the declarations left out with searchTools(); the rarely used lsp_* ones fill the rest.
+    codemode = {
+      mode = "on";
+      inlineBudget = 1500;
+    };
     enableInstallTelemetry = false;
     # Mid-run compaction, which does not stop the run (the chains' compactAt waits for the run to
     # end). pi keys this by the session model and compacts at the answering target's window minus
@@ -157,7 +161,7 @@
   };
 
   # The agents in pi-extensions load their extensions by these names.
-  ownExtensions = ["advisor" "chains" "emphasis" "footer" "github" "guards" "images" "lint" "loadout" "skill-mentions" "turn-time" "usage" "workspace"];
+  ownExtensions = ["advisor" "chains" "codemode" "emphasis" "footer" "github" "guards" "images" "lint" "loadout" "nix" "skill-mentions" "turn-time" "usage" "workspace"];
 
   # Direct in the tool list: file tools, shell, github, todo, questionnaire, subagent, advise, and pi-lsp navigation.
   loadout.hidden = [
