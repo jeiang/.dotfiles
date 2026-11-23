@@ -13,7 +13,8 @@ version.
 
 ## Make a change
 
-1. Edit `modules/netbird/management/default.nix`.
+1. Edit `modules/netbird/management/default.nix`, or the `netbird.meshFlows`
+    entry of the feature that owns a mesh port.
 2. `just netbird-plan` prints what would change and writes
     `.netbird-plan.json`. It only reads.
 3. `just netbird-apply` applies that plan. Deletes, address changes, group

@@ -95,6 +95,20 @@
     ];
   };
 in {
+  netbird.meshFlows.blocky = [{port = httpPort;}];
+
+  monitoring = {
+    scrape.blocky = {
+      type = "dns";
+      targets = self.lib.monitoringTargets "blocky" "http" "" ++ self.lib.monitoringTargets "blocky-ricklent" "http" "";
+    };
+    probes.blocky = {
+      module = "dns";
+      tier = "warning";
+      targets = self.lib.monitoringTargets "blocky" "dns" "";
+    };
+  };
+
   legion.services = {
     blocky = service "vida" "blocky";
     blocky-ricklent = service "ricklent" "blocky-ricklent";

@@ -42,6 +42,47 @@ in {
     ];
   };
 
+  netbird.meshFlows.caddy = [{port = httpsPort;}];
+
+  monitoring.scrape.caddy = {
+    type = "edge";
+    targets = self.lib.monitoringTargets "caddy" "metrics" "";
+  };
+
+  gatus.endpoints = let
+    # Status alone passes an empty 200.
+    home = host: {
+      group = "Web";
+      url = "https://${host}";
+      conditions = ["[STATUS] == 200" "[BODY] == pat(*Aidan Pinard - Home*)"];
+    };
+  in
+    {
+      Website = home apex;
+      "aidanpinard.co" = home "aidanpinard.co";
+      "pinard.co.tt" = home "pinard.co.tt";
+    }
+    // lib.mapAttrs' (_: site:
+      lib.nameValuePair site.title {
+        group = "Web";
+        url = "https://${site.hostname}";
+      })
+    toolSites
+    // {
+      # netbird.jeiang.dev is grey-clouded (DNS-only), so this reads
+      # Caddy's own *.jeiang.dev wildcard cert directly, not
+      # Cloudflare's edge cert as a proxied hostname would.
+      "TLS certificate" = {
+        group = "Edge";
+        url = "https://${self.lib.netbirdDomain}/oauth2/.well-known/openid-configuration";
+        interval = "1h";
+        conditions = [
+          "[STATUS] == 200"
+          "[CERTIFICATE_EXPIRATION] > 240h"
+        ];
+      };
+    };
+
   nixos.modules.edge = {
     config,
     lib,
@@ -51,7 +92,6 @@ in {
     host = config.networking.hostName;
     system = pkgs.stdenv.hostPlatform.system;
     upstream = service: port: "${self.lib.serviceAddress host service}:${toString legionServices.${service}.ports.${port}}";
-    atrium = "${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumWebPort}";
 
     website = inputs.website.packages.${system}.default;
 
@@ -206,29 +246,6 @@ in {
               unchallenged = ["/api/*" "/healthz" "/uploads/*"];
             };
           };
-
-          # Sites below are deliberately ungated: their clients are machines,
-          # for which a proof-of-work interstitial is an outage.
-
-          ${self.lib.pocketIdHostname}.config = "reverse_proxy ${upstream "pocket-id" "app"}";
-
-          ${self.lib.grafanaHostname}.config = "reverse_proxy ${upstream "monitoring" "grafana"}";
-
-          # Ungated deliberately: it reports on Pocket ID, so SSO (or
-          # netbird-proxy, which authenticates against it) would take the
-          # outage report down with the outage. appsec skipped, fail-open.
-          ${self.lib.statusHostname} = {
-            appsec = false;
-            config = "reverse_proxy ${upstream "gatus" "app"}";
-          };
-
-          ${self.lib.atriumHostname}.config = ''
-            tracing
-            # atrium trusts this header only from alda (web.trustedProxyCidrs).
-            reverse_proxy ${atrium} {
-              header_up Cf-Connecting-Ip {client_ip}
-            }
-          '';
 
           ${toolSites.bill-split.hostname} = {
             content = true;

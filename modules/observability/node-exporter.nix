@@ -1,4 +1,29 @@
 {
+  self,
+  config,
+  lib,
+  ...
+}: let
+  monitoringNode = config.legion.services.monitoring.node;
+  exporterPort = host: self.nixosConfigurations.${host}.config.services.prometheus.exporters.node.port;
+  # A node outside the private network is scraped over the mesh and drops out until it has a peer entry.
+  addresses = builtins.filter (a: a != null) (map (self.lib.legionAddress monitoringNode) (builtins.attrNames self.lib.legionNodes));
+  meshOnlyNodes = builtins.attrNames (lib.filterAttrs (_: n: n.privateIPv4 == null) self.lib.legionNodes);
+in {
+  flake.lib = {
+    nodeExporterHosts = addresses ++ [self.lib.netbirdPeers.artemis];
+    nodeExporterTargets =
+      map (ip: "${ip}:${toString (exporterPort monitoringNode)}") addresses
+      ++ ["${self.lib.netbirdPeers.artemis}:${toString (exporterPort "artemis")}"];
+  };
+
+  netbird.meshFlows.node-exporter = map (host: {port = exporterPort host;}) (meshOnlyNodes ++ ["artemis"]);
+
+  monitoring.scrape.node = {
+    type = "node";
+    targets = self.lib.nodeExporterTargets;
+  };
+
   nixos.modules.base = {
     config,
     lib,

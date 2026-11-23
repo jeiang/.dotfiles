@@ -119,8 +119,13 @@ on its `legion.services.<name>.node`.
 - Address a Hetzner server disk as `self.lib.hetznerServerDisk`, never
   `/dev/sdX`.
 - A new connection between Legion machines over the mesh needs a
-  `meshFlows` entry in `modules/netbird/management`. A port another Hetzner
-  node reaches over the private network needs a `ports` entry.
+  `netbird.meshFlows` entry in the feature that owns the port. A port
+  another Hetzner node reaches over the private network needs a `ports`
+  entry.
+- A feature registers its own monitoring: `monitoring.scrape`,
+  `monitoring.probes`, and `gatus.endpoints`, built from
+  `self.lib.monitoringTargets`. A public site is an `edge.sites` entry
+  set through `nixos.modules.edge` in the feature.
 - A public opening is `publicPorts` or `publicPortRanges`, plus a rule in
   the Hetzner `legion` Cloud Firewall or ricklent's Linode firewall, which
   the operator changes by hand. Tell the operator.

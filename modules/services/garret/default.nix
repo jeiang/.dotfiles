@@ -36,6 +36,54 @@ in {
     }
   ];
 
+  monitoring = {
+    scrape.garret = {
+      type = "cache";
+      settings.static_configs = map (component: {
+        targets = self.lib.monitoringTargets "garret" "${component}-metrics" "";
+        labels = {
+          type = "cache";
+          inherit component;
+        };
+      }) ["pusher" "puller"];
+    };
+
+    # /ready/deep reads a byte of a real NAR through a presigned URL,
+    # so revoked S3 credentials or an S4 outage fail it; the Pusher's
+    # service port is fully token-gated, so its probe targets the
+    # metrics listener's /healthz instead.
+    probes = {
+      garret-puller = {
+        module = "http_2xx";
+        tier = "warning";
+        targets = self.lib.monitoringTargets "garret" "puller" "/ready/deep";
+      };
+      garret-pusher = {
+        module = "http_2xx";
+        tier = "warning";
+        targets = self.lib.monitoringTargets "garret" "pusher-metrics" "/healthz";
+      };
+    };
+  };
+
+  gatus.endpoints = {
+    # nix-cache-info is the first request every substituter client makes.
+    "Nix cache" = {
+      group = "Services";
+      url = "https://${hostname}/nix-cache-info";
+    };
+    # The cache renews independently of the edge wildcard.
+    "${hostname} certificate" = {
+      group = "Edge";
+      url = "https://${hostname}/nix-cache-info";
+      interval = "1h";
+      conditions = [
+        "[STATUS] == 200"
+        "[CERTIFICATE_EXPIRATION] > 240h"
+      ];
+    };
+  };
+
   legion.services.garret = {
     node = "peria";
     module = "garret";

@@ -19,6 +19,9 @@
     }
   ];
 in {
+  # The proxy forwards to artemis over the mesh.
+  netbird.meshFlows.game-ingress = gamePorts;
+
   legion.services.game-ingress = {
     node = "ricklent";
     module = "game-ingress";

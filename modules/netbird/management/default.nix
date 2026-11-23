@@ -15,39 +15,9 @@
   blockyNodes = map (s: services.${s}.node) ["blocky" "blocky-ricklent"];
   blockyDnsPort = services.blocky.ports.dns;
 
-  meshOnlyNodes = builtins.attrNames (lib.filterAttrs (_: n: n.privateIPv4 == null) self.lib.legionNodes);
-  artemisExporters = self.nixosConfigurations.artemis.config.services.prometheus.exporters;
-
-  # Every port used across the mesh: Hetzner nodes reach each other on the
-  # private network, so these all involve a mesh-only node or artemis. The
-  # policies allow them between any Legion machines, so a re-enrolled peer
-  # needs no policy edit.
-  meshFlows =
-    map (port: {
-      proto = "tcp";
-      inherit port;
-    }) (
-      [
-        services.crowdsec.ports.lapi
-        services.monitoring.ports.victoria-logs
-        services.monitoring.ports.victoria-traces
-      ]
-      ++ map (node: self.nixosConfigurations.${node}.config.services.prometheus.exporters.node.port) meshOnlyNodes
-      ++ [
-        services.blocky-ricklent.ports.http
-        services.netbird-proxy-atl.ports.health
-        artemisExporters.node.port
-        artemisExporters.smartctl.port
-        self.lib.backupCopyPort
-        self.lib.atriumWebPort
-        self.lib.atriumOpsPort
-        services.monitoring.ports.grafana
-        services.atuin.ports.app
-        services.caddy.ports.https
-      ]
-    )
-    ++ services.game-ingress.publicPorts;
-  meshPorts = proto: lib.unique (map (f: toString f.port) (builtins.filter (f: f.proto == proto) meshFlows));
+  # The policies allow these between any Legion machines, so a re-enrolled peer needs no policy edit.
+  meshFlows = lib.concatLists (builtins.attrValues config.netbird.meshFlows);
+  meshPorts = proto: map toString (lib.sort lib.lessThan (lib.unique (map (f: f.port) (builtins.filter (f: f.proto == proto) meshFlows))));
 
   rule = name: r:
     {
@@ -325,7 +295,26 @@
     };
   };
 in {
-  perSystem = {pkgs, ...}: let
+  options.netbird.meshFlows = lib.mkOption {
+    type = lib.types.attrsOf (lib.types.listOf (lib.types.submodule {
+      options = {
+        port = lib.mkOption {type = lib.types.port;};
+        proto = lib.mkOption {
+          type = lib.types.enum ["tcp" "udp"];
+          default = "tcp";
+        };
+      };
+    }));
+    default = {};
+    description = ''
+      Ports one Legion machine reaches on another over the NetBird mesh,
+      keyed by the feature that needs them. Hetzner nodes reach each other
+      on the private network, so only flows involving a mesh-only node or
+      artemis belong here.
+    '';
+  };
+
+  config.perSystem = {pkgs, ...}: let
     desired =
       (inputs.nb-nix.lib.evalConfig {
         inherit pkgs;

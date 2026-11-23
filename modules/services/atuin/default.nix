@@ -3,6 +3,8 @@ _: let
   dataDir = "/var/lib/atuin";
   database = "${dataDir}/atuin.db";
 in {
+  netbird.meshFlows.atuin = [{inherit port;}];
+
   legion.services.atuin = {
     node = "zantark";
     module = "atuin";
