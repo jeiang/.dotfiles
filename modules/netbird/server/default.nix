@@ -20,6 +20,40 @@ in {
     netbirdDnsDomain = "jeiang.vpn";
   };
 
+  monitoring = {
+    scrape = {
+      netbird-server = {
+        type = "netbird";
+        targets = self.lib.monitoringTargets "netbird-server" "metrics" "";
+      };
+      netbird-relay = {
+        type = "netbird";
+        targets = self.lib.monitoringTargets "netbird-relay" "metrics" "";
+      };
+    };
+    probes = {
+      # :80 multiplexes gRPC + the management HTTP API, so a TCP connect
+      # (not a plain GET) is the reliable liveness signal.
+      netbird-server = {
+        module = "tcp_connect";
+        tier = "critical";
+        targets = self.lib.monitoringTargets "netbird-server" "http" "";
+      };
+      netbird-relay = {
+        module = "http_2xx";
+        tier = "warning";
+        targets = self.lib.monitoringTargets "netbird-relay" "health" "/health";
+      };
+    };
+  };
+
+  # "/" is the edge's static dashboard, up even with netbird-server
+  # down; this path is served by netbird-server itself.
+  gatus.endpoints.NetBird = {
+    group = "Services";
+    url = "https://${domain}/oauth2/.well-known/openid-configuration";
+  };
+
   legion.services = {
     # The edge serves the dashboard and fronts the API; long-lived
     # gRPC/WebSocket streams stay off the Cloudflare proxy.

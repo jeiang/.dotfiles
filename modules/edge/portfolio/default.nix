@@ -10,6 +10,19 @@
 in {
   flake.lib.portfolioHostnames = [siteHostname blogHostname];
 
+  gatus.endpoints = {
+    Portfolio = {
+      group = "Web";
+      url = "https://${siteHostname}";
+      conditions = ["[STATUS] == 200" "[BODY] == pat(*Joshua Noel*)"];
+    };
+    "Portfolio blog" = {
+      group = "Web";
+      url = "https://${blogHostname}";
+      conditions = ["[STATUS] == 200" "[BODY] == pat(*Writing*)"];
+    };
+  };
+
   legion.services.portfolio = {
     # Off the edge node: alda has no restic credentials, and this is
     # the node with the most memory headroom.

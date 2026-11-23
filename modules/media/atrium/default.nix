@@ -9,14 +9,26 @@
   embedPort = 8188;
   webPort = 8480;
   emergencyPort = webPort + 1;
+  opsPort = 9180;
   atriumHostname = "atrium.jeiang.dev";
   # Pocket ID client of atrium: the web sign-in and the iOS app share it.
   oidcClientId = "91089791-ffe4-4826-b616-2ce9f9c0eaa7";
 in {
-  flake.lib = {
-    atriumWebPort = webPort;
-    atriumOpsPort = 9180;
-    inherit atriumHostname;
+  flake.lib = {inherit atriumHostname;};
+
+  nixos.modules.edge.edge.sites.${atriumHostname}.config = ''
+    tracing
+    # atrium trusts this header only from the edge (web.trustedProxyCidrs).
+    reverse_proxy ${self.lib.netbirdPeers.artemis}:${toString webPort} {
+      header_up Cf-Connecting-Ip {client_ip}
+    }
+  '';
+
+  netbird.meshFlows.atrium = [{port = webPort;} {port = opsPort;}];
+
+  monitoring.scrape.atrium = {
+    type = "app";
+    targets = ["${self.lib.netbirdPeers.artemis}:${toString opsPort}"];
   };
 
   nixos.modules.artemis = {
@@ -80,7 +92,7 @@ in {
       };
       host = {
         core.public_url = "https://${atriumHostname}";
-        core.ops_listen = "${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumOpsPort}";
+        core.ops_listen = "${self.lib.netbirdPeers.artemis}:${toString opsPort}";
         grafana.ops_hosts = lib.concatStringsSep "," self.lib.nodeExporterHosts;
         media.media_download_path_prefix = self.lib.mediaDownloadDir;
       };

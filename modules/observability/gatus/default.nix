@@ -5,17 +5,7 @@
   ...
 }: let
   port = 8086;
-
-  https = name: group: url: conditions: {
-    inherit name group url conditions;
-    interval = "2m";
-  };
-
-  ok = name: group: url: https name group url ["[STATUS] == 200"];
-
-  # Status alone passes an empty 200.
-  page = name: group: url: needle:
-    https name group url ["[STATUS] == 200" "[BODY] == pat(*${needle}*)"];
+  statusHostname = "status.jeiang.dev";
 
   base = {
     web.port = port;
@@ -33,76 +23,7 @@
     };
 
     endpoints =
-      [
-        (page "Website" "Web" "https://jeiang.dev" "Aidan Pinard - Home")
-        (page "aidanpinard.co" "Web" "https://aidanpinard.co" "Aidan Pinard - Home")
-        (page "pinard.co.tt" "Web" "https://pinard.co.tt" "Aidan Pinard - Home")
-        (page "Portfolio" "Web" "https://noelejoshua.com" "Joshua Noel")
-        (page "Portfolio blog" "Web" "https://blog.noelejoshua.com" "Writing")
-      ]
-      ++ lib.mapAttrsToList (_: site: ok site.title "Web" "https://${site.hostname}") self.lib.toolSites
-      ++ [
-        # /healthz returns 204 No Content; 200 elsewhere is just the SPA
-        # fallback, which says nothing about backend health.
-        (https "Pocket ID" "Services" "${self.lib.pocketIdUrl}/healthz" ["[STATUS] == 204"])
-        (ok "Grafana" "Services" "https://${self.lib.grafanaHostname}/api/health")
-        # "/" is the edge's static dashboard, up even with netbird-server
-        # down; this path is served by netbird-server itself.
-        (ok "NetBird" "Services" "https://${self.lib.netbirdDomain}/oauth2/.well-known/openid-configuration")
-        # nix-cache-info is the first request every substituter client makes.
-        (ok "Nix cache" "Services" "https://${self.lib.cacheHostname}/nix-cache-info")
-
-        # netbird-proxy has no stable unauthenticated HTTP response, so plain
-        # TCP reachability, per replica: proxy.jeiang.dev resolves to all of them.
-      ]
-      ++ map (service: let
-        node = config.legion.services.${service}.node;
-      in {
-        name = "NetBird proxy (${node})";
-        group = "Services";
-        url = "tcp://${self.lib.legionNodes.${node}.publicIPv4}:443";
-        interval = "2m";
-        conditions = ["[CONNECTED] == true"];
-      })
-      self.lib.netbirdProxyServices
-      ++ [
-        # netbird.jeiang.dev is grey-clouded (DNS-only), so this reads
-        # Caddy's own *.jeiang.dev wildcard cert directly, not
-        # Cloudflare's edge cert as a proxied hostname would.
-        {
-          name = "TLS certificate";
-          group = "Edge";
-          url = "https://${self.lib.netbirdDomain}/oauth2/.well-known/openid-configuration";
-          interval = "1h";
-          conditions = [
-            "[STATUS] == 200"
-            "[CERTIFICATE_EXPIRATION] > 240h"
-          ];
-        }
-        # The cache and regional ingress renew independently of the edge wildcard.
-        {
-          name = "${self.lib.cacheHostname} certificate";
-          group = "Edge";
-          url = "https://${self.lib.cacheHostname}/nix-cache-info";
-          interval = "1h";
-          conditions = [
-            "[STATUS] == 200"
-            "[CERTIFICATE_EXPIRATION] > 240h"
-          ];
-        }
-        # proxy.jeiang.dev has its own security.acme cert on each replica,
-        # renewed separately from the edge wildcard; each run reaches one of them.
-        {
-          name = "${self.lib.netbirdProxyDomain} certificate";
-          group = "Edge";
-          url = "tls://${self.lib.netbirdProxyDomain}:443";
-          interval = "1h";
-          conditions = [
-            "[CONNECTED] == true"
-            "[CERTIFICATE_EXPIRATION] > 240h"
-          ];
-        }
-      ];
+      lib.mapAttrsToList (name: endpoint: {inherit name;} // endpoint) config.gatus.endpoints;
   };
 
   # The Anubis-protected sites resolve to the edge's private or mesh
@@ -139,49 +60,82 @@
     gatus-atl = "ricklent";
   };
 in {
-  flake.lib = {
-    statusHostname = "status.jeiang.dev";
-    gatusServices = builtins.attrNames placement;
+  options.gatus.endpoints = lib.mkOption {
+    type = lib.types.attrsOf (lib.types.submodule {
+      options = {
+        group = lib.mkOption {type = lib.types.str;};
+        url = lib.mkOption {type = lib.types.str;};
+        conditions = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = ["[STATUS] == 200"];
+        };
+        interval = lib.mkOption {
+          type = lib.types.str;
+          default = "2m";
+        };
+      };
+    });
+    default = {};
+    description = "Status page checks, keyed by the name Gatus shows; each feature adds its own.";
   };
 
-  legion.services =
-    lib.mapAttrs (module: node: {
-      inherit node module;
-      units = ["gatus"];
-      ports.app = port;
-    })
-    placement;
+  config = {
+    flake.lib.gatusServices = builtins.attrNames placement;
 
-  nixos.modules = {
-    gatus = instance {
-      # Scraped by VictoriaMetrics so a failed check reaches Alertmanager;
-      # the dashboard alone never notifies anyone.
-      settings.metrics = true;
+    monitoring.scrape.gatus = {
+      type = "probe";
+      targets = self.lib.monitoringTargets "gatus" "app" "";
     };
 
-    # Alerts straight to Discord so the watchdog does not depend on zantark.
-    gatus-atl = {config, ...}: {
-      imports = [
-        (instance {
-          settings.alerting.discord = {
-            webhook-url = "\${DISCORD_WEBHOOK_URL}";
-            default-alert = {
-              failure-threshold = 5;
-              success-threshold = 2;
-              send-on-resolved = true;
+    legion.services =
+      lib.mapAttrs (module: node: {
+        inherit node module;
+        units = ["gatus"];
+        ports.app = port;
+      })
+      placement;
+
+    nixos.modules = {
+      # Ungated deliberately: it reports on Pocket ID, so SSO (or
+      # netbird-proxy, which authenticates against it) would take the
+      # outage report down with the outage. appsec skipped, fail-open.
+      edge = {config, ...}: {
+        edge.sites.${statusHostname} = {
+          appsec = false;
+          config = "reverse_proxy ${self.lib.serviceAddress config.networking.hostName "gatus"}:${toString port}";
+        };
+      };
+
+      gatus = instance {
+        # Scraped by VictoriaMetrics so a failed check reaches Alertmanager;
+        # the dashboard alone never notifies anyone.
+        settings.metrics = true;
+      };
+
+      # Alerts straight to Discord so the watchdog does not depend on zantark.
+      gatus-atl = {config, ...}: {
+        imports = [
+          (instance {
+            settings.alerting.discord = {
+              webhook-url = "\${DISCORD_WEBHOOK_URL}";
+              default-alert = {
+                failure-threshold = 5;
+                success-threshold = 2;
+                send-on-resolved = true;
+              };
             };
+            alerts = [{type = "discord";}];
+          })
+        ];
+
+        services.gatus.environmentFile = config.sops.templates."gatus.env".path;
+
+        sops = {
+          secrets."discord-webhook".sopsFile = ./secrets.yaml;
+          templates."gatus.env" = {
+            restartUnits = ["gatus.service"];
+            content = "DISCORD_WEBHOOK_URL=${config.sops.placeholder."discord-webhook"}\n";
           };
-          alerts = [{type = "discord";}];
-        })
-      ];
-
-      services.gatus.environmentFile = config.sops.templates."gatus.env".path;
-
-      sops = {
-        secrets."discord-webhook".sopsFile = ./secrets.yaml;
-        templates."gatus.env" = {
-          restartUnits = ["gatus.service"];
-          content = "DISCORD_WEBHOOK_URL=${config.sops.placeholder."discord-webhook"}\n";
         };
       };
     };

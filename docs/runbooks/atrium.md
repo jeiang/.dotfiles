@@ -62,7 +62,7 @@ ssh artemis.jeiang.vpn journalctl -u atrium.service -e
 ## Access
 
 `https://atrium.jeiang.dev` is the edge Caddy proxying to artemis's mesh address on
-`self.lib.atriumWebPort`; atrium signs users in itself through Pocket ID OIDC
+its web port (`modules/media/atrium/default.nix` adds the edge site); atrium signs users in itself through Pocket ID OIDC
 (groups `atrium_access` and `atrium_admin`). Emergency access without the edge: forward
 `services.atrium.web.emergency.port` from artemis's loopback, e.g.
 

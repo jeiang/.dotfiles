@@ -5,9 +5,25 @@
   appPort = 1411;
   hostname = "auth.jeiang.dev";
 in {
-  flake.lib = {
-    pocketIdHostname = hostname;
-    pocketIdUrl = "https://${hostname}";
+  flake.lib.pocketIdUrl = "https://${hostname}";
+
+  # /healthz returns 204 No Content; 200 elsewhere is just the SPA
+  # fallback, which says nothing about backend health.
+  gatus.endpoints."Pocket ID" = {
+    group = "Services";
+    url = "${self.lib.pocketIdUrl}/healthz";
+    conditions = ["[STATUS] == 204"];
+  };
+
+  monitoring.probes.pocket-id = {
+    module = "http_2xx";
+    tier = "critical";
+    targets = self.lib.monitoringTargets "pocket-id" "app" "/healthz";
+  };
+
+  # Ungated: its clients are machines, for which a proof-of-work interstitial is an outage.
+  nixos.modules.edge = {config, ...}: {
+    edge.sites.${hostname}.config = "reverse_proxy ${self.lib.serviceAddress config.networking.hostName "pocket-id"}:${toString appPort}";
   };
 
   legion.services.pocket-id = {

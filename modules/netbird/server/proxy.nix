@@ -1,6 +1,7 @@
 {
   self,
   config,
+  lib,
   ...
 }: let
   domain = "proxy.jeiang.dev";
@@ -24,12 +25,49 @@
 
   serverNode = config.legion.services.netbird-server.node;
 in {
-  flake.lib = {
-    netbirdProxyDomain = domain;
-    netbirdProxyServices = builtins.attrNames replicas;
+  crowdsec.bouncers = builtins.mapAttrs (_: replica: replica.node) replicas;
+
+  netbird.meshFlows.netbird-proxy = [{port = healthPort;}];
+
+  monitoring = {
+    scrape =
+      builtins.mapAttrs (name: _: {
+        type = "netbird";
+        targets = self.lib.monitoringTargets name "health" "";
+      })
+      replicas;
+    probes =
+      builtins.mapAttrs (name: _: {
+        module = "http_2xx";
+        tier = "warning";
+        targets = self.lib.monitoringTargets name "health" "/healthz";
+      })
+      replicas;
   };
 
-  crowdsec.bouncers = builtins.mapAttrs (_: replica: replica.node) replicas;
+  gatus.endpoints =
+    # netbird-proxy has no stable unauthenticated HTTP response, so plain
+    # TCP reachability, per replica: ${domain} resolves to all of them.
+    lib.mapAttrs' (_: replica:
+      lib.nameValuePair "NetBird proxy (${replica.node})" {
+        group = "Services";
+        url = "tcp://${self.lib.legionNodes.${replica.node}.publicIPv4}:443";
+        conditions = ["[CONNECTED] == true"];
+      })
+    replicas
+    // {
+      # ${domain} has its own security.acme cert on each replica,
+      # renewed separately from the edge wildcard; each run reaches one of them.
+      "${domain} certificate" = {
+        group = "Edge";
+        url = "tls://${domain}:443";
+        interval = "1h";
+        conditions = [
+          "[CONNECTED] == true"
+          "[CERTIFICATE_EXPIRATION] > 240h"
+        ];
+      };
+    };
 
   legion.services =
     builtins.mapAttrs (name: replica: {

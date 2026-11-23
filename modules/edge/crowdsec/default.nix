@@ -70,6 +70,13 @@ in {
 
     crowdsec.bouncers.edge-caddy = legionServices.caddy.node;
 
+    netbird.meshFlows.crowdsec = [{port = lapiPort;}];
+
+    monitoring.scrape.crowdsec = {
+      type = "edge";
+      targets = self.lib.monitoringTargets "crowdsec" "metrics" "";
+    };
+
     nixos.modules = {
       legion = {config, ...}: let
         host = config.networking.hostName;

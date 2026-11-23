@@ -85,7 +85,7 @@
     };
   };
 in {
-  flake.lib.backupCopyPort = copyPort;
+  netbird.meshFlows.backups = [{port = copyPort;}];
 
   nixos.modules = {
     # The backup-freshness alert reads the timers' last trigger.
