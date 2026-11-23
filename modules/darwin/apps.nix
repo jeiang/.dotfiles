@@ -1,5 +1,5 @@
 {self, ...}: {
-  darwin.modules.base = {pkgs, ...}: let
+  darwin.modules.workstation = {pkgs, ...}: let
     wrapped = self.packages.${pkgs.stdenv.hostPlatform.system};
   in {
     # Ghostty.app ignores the wrapper's --config-file flag when launched from

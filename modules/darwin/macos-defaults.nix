@@ -8,7 +8,7 @@ in {
   # Activation runs as root; per-user preferences and LaunchServices need the user's launchd session.
   flake.lib.darwinAsUser = cmd: ''launchctl asuser "$(id -u -- ${userArg})" sudo --user=${userArg} -- ${cmd}'';
 
-  darwin.modules.base = {
+  darwin.modules.workstation = {
     config,
     pkgs,
     ...

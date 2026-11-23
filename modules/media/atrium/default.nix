@@ -31,7 +31,7 @@ in {
     targets = ["${self.lib.netbirdPeers.artemis}:${toString opsPort}"];
   };
 
-  nixos.modules.artemis = {
+  nixos.modules.media = {
     config,
     lib,
     pkgs,

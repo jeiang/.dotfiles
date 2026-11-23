@@ -50,7 +50,7 @@
       ];
     };
 
-    artemis = {
+    workstation = {
       pkgs,
       lib,
       ...

@@ -1,5 +1,5 @@
 {self, ...}: {
-  nixos.modules.artemis = {pkgs, ...}: {
+  nixos.modules.desktop = {pkgs, ...}: {
     # Fix Dolphin file associations on non-Plasma desktop environments
     # https://github.com/NixOS/nixpkgs/issues/409986; copy just the menu file
     # so the system doesn't pull in the rest of plasma-workspace for it.

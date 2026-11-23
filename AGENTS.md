@@ -36,11 +36,20 @@ on its `legion.services.<name>.node`.
   `edge/`, `observability/`, `services/`, `backups/`, `desktop/`,
   `gaming/`, `media/`, `ai/`, `shell/`, `agents/`, `darwin/`. A feature is
   `<domain>/<feature>.nix` or `<domain>/<feature>/`, holding every class it
-  applies to and its package (`package.nix`). It contributes to roles:
-  `nixos.modules.base`, `darwin.modules.base`, `shared.modules.base`,
-  `shared.modules.workstation` (artemis and zakkart),
-  `nixos.modules.artemis`, `nixos.modules.legion`, or
-  `nixos.modules.<service>`.
+  applies to and its package (`package.nix`). It contributes to aspects,
+  never to a host it does not own:
+  - every host: `shared.modules.base`, `nixos.modules.base`,
+    `darwin.modules.base`;
+  - artemis and zakkart: `shared.modules.workstation`,
+    `nixos.modules.workstation`, `darwin.modules.workstation`;
+  - artemis: `nixos.modules.desktop`, `gaming`, `media`, and
+    `impermanence`; `nixos.modules.artemis` holds only artemis's own
+    hardware, persist backup, and pairings;
+  - Legion: `nixos.modules.legion` and `nixos.modules.<service>`.
+- A registration option (`persistence.*`, `backups.persist.*`,
+  `gaming.pauseUnits`, `monitoredUnits`) is declared in
+  `nixos.modules.base`, so any aspect sets it; the aspect that implements it
+  reads it.
 - `modules/hosts/<host>/`: one host, assembled from modules, with its
   hardware, disko, and secrets. Legion nodes share `modules/hosts/legion/`,
   which also owns the Legion inventory, `legion.services`, and Hetzner.

@@ -17,7 +17,7 @@ in {
   };
 
   nixos.configurations.artemis.module = {
-    imports = [modules.base modules.artemis];
+    imports = with modules; [base workstation impermanence desktop gaming media artemis];
   };
 
   nixos.modules.artemis = {

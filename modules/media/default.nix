@@ -19,7 +19,7 @@ in {
     mediaIncomingDir = incomingDir;
   };
 
-  nixos.modules.artemis = {
+  nixos.modules.media = {
     lib,
     pkgs,
     ...

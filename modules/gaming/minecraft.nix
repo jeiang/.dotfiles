@@ -15,7 +15,7 @@ in {
     minecraftBedrockPort = bedrockPort;
   };
 
-  nixos.modules.artemis = {
+  nixos.modules.gaming = {
     config,
     lib,
     pkgs,

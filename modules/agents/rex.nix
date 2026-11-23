@@ -20,14 +20,14 @@
     '';
   };
 
-  nixos.modules.artemis.persistence.data.directories = [
+  nixos.modules.workstation.persistence.data.directories = [
     {
       directory = ".local/state/rex";
       mode = "0700";
     }
   ];
 
-  darwin.modules.base = {lib, ...}: let
+  darwin.modules.workstation = {lib, ...}: let
     user = self.lib.facts.userName;
     hosts = {artemis = "artemis.${self.lib.netbirdDnsDomain}";} // lib.mapAttrs (name: _: self.lib.nodeHostname name) self.lib.legionNodes;
   in {

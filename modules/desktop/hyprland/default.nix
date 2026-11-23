@@ -3,7 +3,7 @@
   inputs,
   ...
 }: {
-  nixos.modules.artemis = {
+  nixos.modules.desktop = {
     pkgs,
     lib,
     ...

@@ -3,7 +3,7 @@
     environment.systemPackages = [inputs.renpy-proj.packages.${pkgs.stdenv.hostPlatform.system}.urp];
   };
 
-  nixos.modules.artemis = {
+  nixos.modules.gaming = {
     persistence.data.directories = [".renpy"];
     backups.persist.homePaths = [".renpy"];
   };

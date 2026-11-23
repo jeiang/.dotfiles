@@ -57,7 +57,7 @@ in {
 
   # The homes hold OAuth tokens (omp's agent.db among them): persisted, never in the backup allowlist.
   # .claude stays: Claude Code is still installed (modules/agents/claude-code.nix) and keeps its login there.
-  nixos.modules.artemis.persistence.data.directories = map (directory: {
+  nixos.modules.workstation.persistence.data.directories = map (directory: {
     inherit directory;
     mode = "0700";
   }) (lib.attrValues homes ++ [".claude"]);

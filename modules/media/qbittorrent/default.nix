@@ -50,7 +50,7 @@ in {
 
   # Only the Web UI and file listing ride the NetBird interface. Peers reach
   # qBittorrent through the exit node, never through the home network.
-  nixos.modules.artemis = {
+  nixos.modules.media = {
     config,
     lib,
     pkgs,

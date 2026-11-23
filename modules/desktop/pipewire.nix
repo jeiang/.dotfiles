@@ -1,5 +1,5 @@
 {
-  nixos.modules.artemis = {pkgs, ...}: {
+  nixos.modules.desktop = {pkgs, ...}: {
     persistence.cache.directories = [
       ".local/state/wireplumber"
     ];

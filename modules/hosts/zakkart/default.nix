@@ -3,7 +3,7 @@
   name = "zakkart";
 in {
   darwin.configurations.${name}.module = {
-    imports = [modules.base];
+    imports = [modules.base modules.workstation];
 
     networking = {
       hostName = name;

@@ -1,5 +1,5 @@
 {self, ...}: {
-  nixos.modules.artemis = {
+  nixos.modules.desktop = {
     config,
     lib,
     pkgs,

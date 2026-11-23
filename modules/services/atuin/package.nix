@@ -4,7 +4,7 @@
   config,
   ...
 }: {
-  nixos.modules.artemis.persistence.data.directories = [
+  nixos.modules.workstation.persistence.data.directories = [
     {
       directory = ".local/share/atuin";
       mode = "0700";

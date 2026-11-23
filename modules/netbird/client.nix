@@ -49,10 +49,8 @@ in {
       ];
 
       monitoredUnits = [self.lib.netbirdUnit "${service}-login.service"];
-    };
 
-    # The NetBird peer keeps the address the flake hardcodes.
-    artemis = {
+      # The NetBird peer keeps the address the flake hardcodes.
       persistence.directories = ["/var/lib/netbird"];
       backups.persist.paths = ["/var/lib/netbird"];
     };
