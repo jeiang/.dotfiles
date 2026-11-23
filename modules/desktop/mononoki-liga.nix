@@ -15,9 +15,9 @@
         rev = "c4065187a544a8fab40826fc91db1c6180a2d342";
         hash = "sha256-89/6xEBybIG9OfeOkwh8bwvQpp8+SOCbUxIlqbdkvqU=";
       };
-      postPatch = ''
-        echo "ligatures = [l for l in ligatures if (l['firacode_ligature_name'] or ''').removesuffix('.liga') not in ${builtins.toJSON drop}]" >> ligatures.py
-      '';
+      postPatch = "cat ${pkgs.writeText "drop.py" ''
+        ligatures = [l for l in ligatures if (l['firacode_ligature_name'] or "").removesuffix('.liga') not in ${builtins.toJSON drop}]
+      ''} >> ligatures.py";
       installPhase = "cp -r . $out";
     };
 
@@ -85,7 +85,7 @@
           magick "a$i.png" "b$i.png" +append "col$i.png"
         done
         mkdir $out
-        magick col*.png +append $out/preview.png
+        magick col*.png -background "#1F1F28" +append $out/preview.png
       '';
   };
 }
