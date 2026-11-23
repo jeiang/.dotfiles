@@ -75,8 +75,8 @@ in {
         auth = "oidc";
         allowedHost = atriumHostname;
         emergency.port = emergencyPort;
-        # alda's Caddy overwrites CF-Connecting-IP with the client address it resolved.
-        trustedProxyCidrs = ["${self.lib.netbirdPeers.alda}/32"];
+        # The edge Caddy overwrites CF-Connecting-IP with the client address it resolved.
+        trustedProxyCidrs = ["${self.lib.serviceMeshAddress "caddy"}/32"];
       };
       host = {
         core.public_url = "https://${atriumHostname}";

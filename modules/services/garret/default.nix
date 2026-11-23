@@ -17,19 +17,15 @@
   pullerPort = 8081;
   pusherPort = 8082;
   pusherMetricsPort = 9091;
-  hostname = "cache.jeiang.dev";
-  pushHostname = "cache-push.jeiang.dev";
+  hostname = self.lib.cacheHostname;
+  pushHostname = self.lib.cachePushHostname;
   pullerMetricsPort = 9092;
 
   client = {pkgs, ...}: {
     environment.systemPackages = [inputs.garret.packages.${pkgs.stdenv.hostPlatform.system}.garret];
   };
 in {
-  flake.lib = {
-    garretHighWatermark = watermarks.high;
-    cacheHostname = hostname;
-    cachePushHostname = pushHostname;
-  };
+  flake.lib.garretHighWatermark = watermarks.high;
 
   shared.modules.workstation = client;
   # The login token; without it every artemis boot makes `just prepush` wait for a device approval.
