@@ -139,7 +139,8 @@ in {
     };
 
     impermanence = {config, ...}: {
-      environment.etc.persistence-entries.text = builtins.toJSON config.persistence.entries;
+      # Sorted, so reordering modules never reads as a persistence change.
+      environment.etc.persistence-entries.text = builtins.toJSON (lib.sort (a: b: builtins.toJSON a < builtins.toJSON b) config.persistence.entries);
 
       # A new kernel, initrd or persistence entry needs a reboot, which stays the operator's decision.
       autoUpgrade.guard = ''
