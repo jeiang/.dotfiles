@@ -218,6 +218,17 @@ in {
         "${home}/advisor.json".source = json pkgs "advisor.json" advisor;
         "${home}/loadout.json".source = json pkgs "loadout.json" loadout;
         "${home}/subagent.json".source = json pkgs "subagent.json" {maxConcurrent = 3;};
+        # pi rewrites mcp.json when /mcp changes exposure; sign in once with `pi mcp login superlogical` (Rex Beta Discord).
+        "${home}/mcp.json" = {
+          source = json pkgs "mcp.json" {
+            mcpServers.superlogical = {
+              url = "https://www.superlogical.com/rex/community-mcp";
+              description = "Rex documentation, changelog, and Rex Beta Discord discussions";
+            };
+          };
+          type = "copy";
+          permissions = "0600";
+        };
         # pi-lens formats, autofixes, and guards reads by default; only its diagnostics are wanted.
         ".pi-lens/config.json".source = json pkgs "pi-lens.json" {
           format.enabled = false;
