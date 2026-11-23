@@ -69,7 +69,7 @@ in {
 
       upgrade = pkgs.writeShellApplication {
         name = "auto-upgrade";
-        runtimeInputs = [config.nix.package pkgs.coreutils pkgs.curl pkgs.jq apply];
+        runtimeInputs = [config.nix.package pkgs.coreutils pkgs.curl pkgs.diffutils pkgs.jq apply];
         text = ''
           status=$(curl -fsS --retry 3 --max-time 30 "https://api.github.com/repos/${repo}/commits/main/status?per_page=100")
           rev=$(jq -r .sha <<<"$status")
