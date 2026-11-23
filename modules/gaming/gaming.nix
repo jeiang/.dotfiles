@@ -26,13 +26,6 @@
 
         jdks = [jdk25];
       })
-      (heroic.override {
-        extraPkgs = pkgs':
-          with pkgs'; [
-            gamescope
-            gamemode
-          ];
-      })
       umu-launcher
     ];
     programs = {
@@ -95,14 +88,11 @@
     persistence = {
       data.directories = [
         ".local/share/Steam"
-        ".config/heroic"
         ".config/PrismLauncher"
-        ".local/share/heroic"
         ".local/share/PrismLauncher"
         ".local/share/rivalsmodmanager"
       ];
       cache.directories = [
-        ".cache/heroic"
         ".cache/PrismLauncher"
         ".cache/protontricks"
       ];

@@ -8,7 +8,6 @@
         cp ${pkgs.kdePackages.plasma-workspace}/etc/xdg/menus/plasma-applications.menu $out
       '';
       systemPackages = with pkgs; [
-        btop-rocm
         kdePackages.dolphin
         # needed for dolphin's file associations
         kdePackages.kservice
