@@ -13,25 +13,6 @@ keys:
   - &server_zantark age1yc37qpvazdtfswa38057e73sh523q0exj75qqahzgax6kqaxeqmsq2wx9t
 
 creation_rules:
-  - path_regex: modules/atrium/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_artemis
-
-  - path_regex: modules/backup-tunnel/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_alda
-      - *server_artemis
-
   - path_regex: modules/backups/secrets\.artemis\.yaml$
     key_groups:
     - age:
@@ -61,7 +42,48 @@ creation_rules:
       - *user_aidanp_se
       - *server_zakkart
 
-  - path_regex: modules/cloudflare/secrets\.yaml$
+  - path_regex: modules/backups/tunnel/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_alda
+      - *server_artemis
+
+  - path_regex: modules/base/sops/secrets\.admin\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+
+  - path_regex: modules/base/user/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_alda
+      - *server_artemis
+      - *server_peria
+      - *server_ricklent
+      - *server_vida
+      - *server_zantark
+
+  - path_regex: modules/desktop/hypr-rdp/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_artemis
+
+  - path_regex: modules/edge/cloudflare/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -72,7 +94,7 @@ creation_rules:
       - *server_ricklent
       - *server_vida
 
-  - path_regex: modules/crowdsec/secrets\.alda\.yaml$
+  - path_regex: modules/edge/crowdsec/secrets\.alda\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -81,7 +103,7 @@ creation_rules:
       - *user_aidanp_se
       - *server_alda
 
-  - path_regex: modules/crowdsec/secrets\.peria\.yaml$
+  - path_regex: modules/edge/crowdsec/secrets\.peria\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -91,7 +113,7 @@ creation_rules:
       - *server_alda
       - *server_peria
 
-  - path_regex: modules/crowdsec/secrets\.ricklent\.yaml$
+  - path_regex: modules/edge/crowdsec/secrets\.ricklent\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -101,7 +123,7 @@ creation_rules:
       - *server_alda
       - *server_ricklent
 
-  - path_regex: modules/crowdsec/secrets\.vida\.yaml$
+  - path_regex: modules/edge/crowdsec/secrets\.vida\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -111,7 +133,7 @@ creation_rules:
       - *server_alda
       - *server_vida
 
-  - path_regex: modules/crowdsec/secrets\.zantark\.yaml$
+  - path_regex: modules/edge/crowdsec/secrets\.zantark\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -121,7 +143,16 @@ creation_rules:
       - *server_alda
       - *server_zantark
 
-  - path_regex: modules/factorio/secrets\.yaml$
+  - path_regex: modules/edge/portfolio/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_vida
+
+  - path_regex: modules/gaming/factorio/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -129,24 +160,6 @@ creation_rules:
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
       - *server_artemis
-
-  - path_regex: modules/garret/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_peria
-
-  - path_regex: modules/gatus/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_ricklent
 
   - path_regex: modules/hosts/artemis/secrets\.yaml$
     key_groups:
@@ -170,7 +183,7 @@ creation_rules:
       - *server_vida
       - *server_zantark
 
-  - path_regex: modules/hypr-rdp/secrets\.yaml$
+  - path_regex: modules/media/atrium/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -179,7 +192,61 @@ creation_rules:
       - *user_aidanp_se
       - *server_artemis
 
-  - path_regex: modules/monitoring/secrets\.yaml$
+  - path_regex: modules/media/qbittorrent/secrets\.exit\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_ricklent
+
+  - path_regex: modules/media/qbittorrent/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_artemis
+
+  - path_regex: modules/netbird/server/secrets\.proxy-atl\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_ricklent
+
+  - path_regex: modules/netbird/server/secrets\.proxy\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_vida
+
+  - path_regex: modules/netbird/server/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_vida
+
+  - path_regex: modules/observability/gatus/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_ricklent
+
+  - path_regex: modules/observability/monitoring/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -188,7 +255,16 @@ creation_rules:
       - *user_aidanp_se
       - *server_zantark
 
-  - path_regex: modules/nanolight/secrets\.yaml$
+  - path_regex: modules/services/garret/secrets\.yaml$
+    key_groups:
+    - age:
+      - *user_aidanp
+      - *user_aidanp_yubikey_a
+      - *user_aidanp_yubikey_b
+      - *user_aidanp_se
+      - *server_peria
+
+  - path_regex: modules/services/nanolight/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -198,16 +274,7 @@ creation_rules:
       - *server_zakkart
       - *server_zantark
 
-  - path_regex: modules/netbird-server/secrets\.proxy-atl\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_ricklent
-
-  - path_regex: modules/netbird-server/secrets\.proxy\.yaml$
+  - path_regex: modules/services/pocket-id/secrets\.yaml$
     key_groups:
     - age:
       - *user_aidanp
@@ -215,70 +282,3 @@ creation_rules:
       - *user_aidanp_yubikey_b
       - *user_aidanp_se
       - *server_vida
-
-  - path_regex: modules/netbird-server/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_vida
-
-  - path_regex: modules/pocket-id/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_vida
-
-  - path_regex: modules/portfolio/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_vida
-
-  - path_regex: modules/qbittorrent/secrets\.exit\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_ricklent
-
-  - path_regex: modules/qbittorrent/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_artemis
-
-  - path_regex: modules/sops/secrets\.admin\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-
-  - path_regex: modules/user/secrets\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_alda
-      - *server_artemis
-      - *server_peria
-      - *server_ricklent
-      - *server_vida
-      - *server_zantark

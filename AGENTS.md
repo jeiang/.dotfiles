@@ -31,19 +31,24 @@ on its `legion.services.<name>.node`.
 
 ## Layout
 
-- `modules/hosts/<host>/`: one host, assembled from modules, with its
-  hardware, disko, and secrets. Legion nodes share `modules/hosts/legion/`.
-- `modules/<feature>.nix` or `modules/<feature>/`: one feature for every
-  class it applies to. It contributes to roles: `nixos.modules.base`,
-  `darwin.modules.base`, `shared.modules.base`,
+- `modules/<domain>/`: related features grouped by domain, not by host:
+  `flake/` (flake-parts plumbing), `base/` (every host), `netbird/`,
+  `edge/`, `observability/`, `services/`, `backups/`, `desktop/`,
+  `gaming/`, `media/`, `ai/`, `shell/`, `agents/`, `darwin/`. A feature is
+  `<domain>/<feature>.nix` or `<domain>/<feature>/`, holding every class it
+  applies to and its package (`package.nix`). It contributes to roles:
+  `nixos.modules.base`, `darwin.modules.base`, `shared.modules.base`,
   `shared.modules.workstation` (artemis and zakkart),
   `nixos.modules.artemis`, `nixos.modules.legion`, or
   `nixos.modules.<service>`.
+- `modules/hosts/<host>/`: one host, assembled from modules, with its
+  hardware, disko, and secrets. Legion nodes share `modules/hosts/legion/`,
+  which also owns the Legion inventory, `legion.services`, and Hetzner.
 - A Legion service sets `legion.services.<name>` in its feature file (node,
   ports, public ports, Volume, backup set, hostnames);
   `modules/hosts/legion/` derives imports, firewall, monitoring, and
   backups from it.
-- `modules/packages/<name>`: a custom package or wrapped program.
+- A custom package or wrapped program lives beside its feature.
   Linux-only packages go in `perSystem.linuxPackages`, darwin-only ones in
   `perSystem.darwinPackages`.
 - A secret shard is `secrets.yaml` beside its consumer, or
@@ -114,7 +119,7 @@ on its `legion.services.<name>.node`.
 - Address a Hetzner server disk as `self.lib.hetznerServerDisk`, never
   `/dev/sdX`.
 - A new connection between Legion machines over the mesh needs a
-  `meshFlows` entry in `modules/netbird-management`. A port another Hetzner
+  `meshFlows` entry in `modules/netbird/management`. A port another Hetzner
   node reaches over the private network needs a `ports` entry.
 - A public opening is `publicPorts` or `publicPortRanges`, plus a rule in
   the Hetzner `legion` Cloud Firewall or ricklent's Linode firewall, which
@@ -123,7 +128,7 @@ on its `legion.services.<name>.node`.
   prerouting chain; NetBird's accepts preempt forward and input chains.
 - NetBird management is declarative: `just netbird-apply` deletes
   undeclared objects. Run `just netbird-plan` first. Keep the addresses in
-  `modules/netbird-peers.nix` when re-enrolling a peer.
+  `modules/netbird/peers.nix` when re-enrolling a peer.
 - Every CrowdSec credential is an entry in the `crowdsec.bouncers`
   registry; firewall bouncers are named `<node>-firewall`.
 - Blackbox probes target private backend addresses, never public URLs.
@@ -131,7 +136,7 @@ on its `legion.services.<name>.node`.
 - `cache.jeiang.dev` and `cache-push.jeiang.dev` stay DNS-only in
   Cloudflare.
 - A new repository or workflow that pushes to garret needs its entry in
-  `job_workflow_refs` (`modules/garret/default.nix`).
+  `job_workflow_refs` (`modules/services/garret/default.nix`).
 - garret's units must not start without the index: an empty index makes
   the Pusher delete every bucket object older than 24 hours.
 - The portfolio runs unreviewed upstream code: its `IPAddressAllow` stays

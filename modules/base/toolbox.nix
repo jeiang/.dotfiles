@@ -72,7 +72,7 @@
           '')
         ]
         # Shadows base's yazi: this one's T and d keys shell out to rip instead
-        # of yazi's built-in trash crate (modules/packages/yazi/keymap.rip.toml).
+        # of yazi's built-in trash crate (modules/shell/yazi/keymap.rip.toml).
         ++ [(lib.hiPrio self.packages.${system}.yazi-artemis)];
 
       # rip's zsh completions live under share/zsh, which NixOS doesn't link into the profile by default.

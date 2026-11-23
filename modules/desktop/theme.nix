@@ -42,7 +42,7 @@
   };
 in {
   flake.lib = {
-    wallpapers = ../assets/wallpapers-kanabox;
+    wallpapers = ../../assets/wallpapers-kanabox;
 
     palette = rec {
       kanaboxDarkHard =

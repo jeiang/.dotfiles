@@ -2,7 +2,7 @@
 
 atrium's code, module and operating procedures live in
 [jeiang/atrium](https://github.com/jeiang/atrium) (`docs/operator/` there).
-`modules/atrium/default.nix` wires `services.atrium` into artemis: the host
+`modules/media/atrium/default.nix` wires `services.atrium` into artemis: the host
 requirements, the declared connections and their credential files, the
 embedding server behind `service/embedding`, the media agent, persistence,
 and the public hostname the edge Caddy uses. The `atrium` input pins the
@@ -15,7 +15,7 @@ embedding model; `atrium-models-fetch.service` downloads its weights.
 
 ## Secrets
 
-`just sops-edit modules/atrium/secrets.yaml` edits the `atrium.*` keys: one
+`just sops-edit modules/media/atrium/secrets.yaml` edits the `atrium.*` keys: one
 file per connection credential (`anthropic-api-key`, `oidc-client-secret`,
 `grafana-viewer-token`, `tmdb-token`), the database key `db-key`, the media
 agent bearer `media-agent-bearer`. Mail app passwords are not here: the
@@ -37,8 +37,8 @@ agent's filing receipts; it is persisted and backed up too.
 
 ## Models
 
-`modules/atrium/default.nix` declares the embedding server through
-`self.lib.llamaServer` (`modules/llama-server.nix`). Its weights come from
+`modules/media/atrium/default.nix` declares the embedding server through
+`self.lib.llamaServer` (`modules/ai/llama-server.nix`). Its weights come from
 `atrium-models-fetch`, which runs only when a file in `cache/models` is
 missing. A checksum mismatch deletes the partial file and fails the fetch
 unit, which keeps the embedding unit down. Changing the model means changing its entry in

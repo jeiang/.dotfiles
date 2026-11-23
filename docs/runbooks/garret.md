@@ -70,7 +70,7 @@ renewed automatically), then the GitHub Actions environment, then the stored
 login. `.ci/garret.toml` is the GitHub Actions shape and needs no login.
 
 GitHub Actions tokens are accepted only from the repositories and workflows
-listed in `githubPushers` in `modules/garret/default.nix`. A new repository
+listed in `githubPushers` in `modules/services/garret/default.nix`. A new repository
 or workflow that pushes needs its entry there first.
 
 ## Operations
@@ -106,7 +106,7 @@ Negotiation and uploads pause while an applied prune runs.
 ### Deleting what one identity pushed
 
 For a leaked or misused push identity, first revoke it (`githubPushers` in
-`modules/garret/default.nix`, or the Pocket ID client or user),
+`modules/services/garret/default.nix`, or the Pocket ID client or user),
 then list everything that subject first pushed. The subject is
 `<issuer>#<sub>`, as the browse API's `pushed_by` shows it; `--since` takes a
 UTC date or an age:
@@ -134,7 +134,7 @@ nix run github:jeiang/garret#garret-admin -- key show ./key
 ```
 
 `signingKeyFiles` is a list precisely so a rotation can overlap: add the new
-key to `modules/garret/secrets.yaml` alongside the old, with the same
+key to `modules/services/garret/secrets.yaml` alongside the old, with the same
 `owner = "garret"` and no `mode` or `group` (sops-nix's 0400), since a
 group-readable key is one the Puller can read. Deploy and run
 `garret-admin resign` to backfill signatures; from then on every path
@@ -142,9 +142,9 @@ carries both signatures.
 
 The public key lives in three places:
 
-- `cacheKey` in `modules/facts.nix`, which `modules/nix.nix` reads into
+- `cacheKey` in `modules/base/facts.nix`, which `modules/base/nix.nix` reads into
   every host's `trusted-public-keys`. It holds one key, so for the overlap
-  add a second `caches` entry in `modules/nix.nix` with
+  add a second `caches` entry in `modules/base/nix.nix` with
   `url = self.lib.facts.cacheUrl` and the new key, and deploy every host.
 - `GARRET_PUBLIC_KEY` in `.github/actions/install-nix/action.yml`. It holds
   one key (`.ci/garret.sh` writes it as the hook's only public key); replace
@@ -153,7 +153,7 @@ The public key lives in three places:
 
 Only after every host trusts the new key, set `cacheKey` to it, remove the
 extra `caches` entry, deploy, and drop the old key from
-`modules/garret/secrets.yaml` and `signingKeyFiles`.
+`modules/services/garret/secrets.yaml` and `signingKeyFiles`.
 
 ## Backup
 

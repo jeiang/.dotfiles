@@ -64,11 +64,11 @@ dns-nodes:
 
 # Preview dns/dnsconfig.js against live Cloudflare; read-only — the push happens in CI on merge to main
 dns-preview *args:
-  CLOUDFLARE_API_TOKEN=$(sops -d --extract '["cloudflare"]["dns-token"]' modules/cloudflare/secrets.yaml) dnscontrol preview --config dns/dnsconfig.js --creds dns/creds.json {{args}}
+  CLOUDFLARE_API_TOKEN=$(sops -d --extract '["cloudflare"]["dns-token"]' modules/edge/cloudflare/secrets.yaml) dnscontrol preview --config dns/dnsconfig.js --creds dns/creds.json {{args}}
 
 # Compare live Hetzner Cloud firewall/Volume state to the flake; read-only, uses the operator's hcloud context
 hcloud-drift:
-  ./modules/hcloud-drift/check.sh
+  ./modules/hosts/legion/hcloud-drift/check.sh
 
 # Run from the installer: wipe, partition, format and mount the host's disks per its disko config
 disko-format system sudo="sudo":
@@ -133,9 +133,9 @@ icloud-media-import +paths:
 _netbird-token:
   #!/usr/bin/env bash
   set -euo pipefail
-  if [ -n "${NETBIRD_TOKEN_FILE:-}" ]; then cat "$NETBIRD_TOKEN_FILE"; else sops -d --extract '["netbird"]["nb-nix-token"]' modules/sops/secrets.admin.yaml; fi
+  if [ -n "${NETBIRD_TOKEN_FILE:-}" ]; then cat "$NETBIRD_TOKEN_FILE"; else sops -d --extract '["netbird"]["nb-nix-token"]' modules/base/sops/secrets.admin.yaml; fi
 
-# Plan NetBird management changes (modules/netbird-management) against live state; read-only. Token: $NETBIRD_TOKEN_FILE, else the nb-nix token in the admin stash
+# Plan NetBird management changes (modules/netbird/management) against live state; read-only. Token: $NETBIRD_TOKEN_FILE, else the nb-nix token in the admin stash
 netbird-plan *args:
   #!/usr/bin/env bash
   set -euo pipefail
