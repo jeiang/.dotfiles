@@ -2,8 +2,10 @@
   inputs,
   self,
   lib,
+  config,
   ...
 }: let
+  tunnelNode = config.legion.services.backup-tunnel.node;
   hetznerNodeNames = builtins.attrNames self.lib.hetznerNodes;
 
   mkMeshInterface = address: {
@@ -66,10 +68,10 @@ in {
               enp16s0.network = "artemis-lan";
             }
             // lib.recursiveUpdate (mkBackupTunnelInterface "artemis") {
-              wg-backup.physicalConnections = [(mkConnection "alda" "wg-backup")];
+              wg-backup.physicalConnections = [(mkConnection tunnelNode "wg-backup")];
             };
 
-          alda.interfaces = mkBackupTunnelInterface "alda";
+          ${tunnelNode}.interfaces = mkBackupTunnelInterface tunnelNode;
 
           # nix-topology has no darwin module, so zakkart cannot self-describe.
           zakkart = mkDevice "zakkart" {
