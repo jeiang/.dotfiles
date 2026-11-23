@@ -27,6 +27,17 @@
     }
   ];
 
-  # Rex over SSH looks in ~/.local/bin; the app keeps its own updated copy of the CLI here.
-  darwin.modules.base.hjem.users.${self.lib.facts.userName}.files.".local/bin/rex".source = "/Users/${self.lib.facts.userName}/Library/Application Support/com.superlogical.rex/RexServer/Versions/Current/Rex Server.app/Contents/MacOS/rex";
+  darwin.modules.base = {lib, ...}: let
+    user = self.lib.facts.userName;
+    hosts = {artemis = "artemis.${self.lib.netbirdDnsDomain}";} // lib.mapAttrs (name: _: self.lib.nodeHostname name) self.lib.legionNodes;
+  in {
+    hjem.users.${user}.files = {
+      # Rex over SSH looks in ~/.local/bin; the app keeps its own updated copy of the CLI here.
+      ".local/bin/rex".source = "/Users/${user}/Library/Application Support/com.superlogical.rex/RexServer/Versions/Current/Rex Server.app/Contents/MacOS/rex";
+      ".config/rex/init.lua".text = lib.concatStrings (lib.mapAttrsToList (label: host: ''
+          rex.host({ label = "${label}", endpoint = "ssh://${user}@${host}" })
+        '')
+        hosts);
+    };
+  };
 }
