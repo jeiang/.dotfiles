@@ -178,7 +178,7 @@
           tokens.deploy = {
             expires_in = 365;
             renew_before_days = 30;
-            sink.command = ["sops" "set" "--value-stdin" "modules/sops/secrets.admin.yaml" ''["netbird"]["nb-nix-token"]''];
+            sink.command = ["sops" "set" "--value-stdin" "modules/base/sops/secrets.admin.yaml" ''["netbird"]["nb-nix-token"]''];
           };
         };
         ci = {

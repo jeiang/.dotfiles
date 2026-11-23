@@ -21,7 +21,7 @@ the old repository with `-r`.
 2. If the service has a public port on a Hetzner node, add it to the
     `legion` Cloud Firewall before deploying (`just hcloud-drift` shows the
     difference).
-3. The NetBird policies in `modules/netbird-management` open the ports in
+3. The NetBird policies in `modules/netbird/management` open the ports in
     its `meshFlows` between any Legion machines. If the move makes a port
     cross the mesh (one end off the Hetzner private network), add it there;
     `just netbird-plan` shows the change.

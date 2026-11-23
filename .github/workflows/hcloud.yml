@@ -51,7 +51,7 @@ jobs:
         continue-on-error: true
         env:
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_READ_TOKEN }}
-        run: nix shell --inputs-from . nixpkgs#hcloud nixpkgs#jq -c ./modules/hcloud-drift/check.sh
+        run: nix shell --inputs-from . nixpkgs#hcloud nixpkgs#jq -c ./modules/hosts/legion/hcloud-drift/check.sh
 
       # Scheduled/manual/post-merge runs are the drift check: main is
       # expected to already match live state, so any difference is real.
@@ -59,4 +59,4 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_READ_TOKEN }}
-        run: nix shell --inputs-from . nixpkgs#hcloud nixpkgs#jq -c ./modules/hcloud-drift/check.sh
+        run: nix shell --inputs-from . nixpkgs#hcloud nixpkgs#jq -c ./modules/hosts/legion/hcloud-drift/check.sh

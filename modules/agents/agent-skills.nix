@@ -11,7 +11,7 @@
   };
 
   # pi takes only skills from agent-skills. Its instructions, agents, and own skills come from
-  # pi-extensions (modules/pi), and a skill of the same name there replaces the shared one.
+  # pi-extensions (modules/agents/pi), and a skill of the same name there replaces the shared one.
   ownSkills = name: lib.optionals (name == "pi") (builtins.attrNames (builtins.readDir "${inputs.pi-extensions}/skills"));
 
   # The clients write inside these directories themselves, so hjem owns the entries, never the directory.
@@ -56,7 +56,7 @@ in {
   };
 
   # The homes hold OAuth tokens (omp's agent.db among them): persisted, never in the backup allowlist.
-  # .claude stays: Claude Code is still installed (modules/claude-code.nix) and keeps its login there.
+  # .claude stays: Claude Code is still installed (modules/agents/claude-code.nix) and keeps its login there.
   nixos.modules.artemis.persistence.data.directories = map (directory: {
     inherit directory;
     mode = "0700";

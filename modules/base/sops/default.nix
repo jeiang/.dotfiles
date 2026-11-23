@@ -38,7 +38,7 @@
   };
 
   # Stored data only; no host reads them.
-  adminShards = ["modules/sops/secrets.admin.yaml"];
+  adminShards = ["modules/base/sops/secrets.admin.yaml"];
 
   root = "${toString self}/";
   shardPath = host: file: let
@@ -59,7 +59,7 @@
   hostAnchor = host:
     if hostKeys ? ${host}
     then "server_${host}"
-    else throw "${host} reads sops secrets but has no age key in modules/sops/default.nix";
+    else throw "${host} reads sops secrets but has no age key in modules/base/sops/default.nix";
 
   rule = shard:
     [
@@ -88,7 +88,7 @@ in {
 
   perSystem = {pkgs, ...}: {
     checks.sops-config = pkgs.runCommand "sops-config" {} ''
-      diff -u ${../../.sops.yaml} ${pkgs.writeText "sops.yaml" sopsConfig} || {
+      diff -u ${../../../.sops.yaml} ${pkgs.writeText "sops.yaml" sopsConfig} || {
         echo ".sops.yaml is stale; regenerate it with: just sops-config" >&2
         exit 1
       }
