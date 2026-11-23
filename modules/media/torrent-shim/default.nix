@@ -3,7 +3,7 @@
   bundleId = "dev.jeiang.${exe}";
   name = "Send to atrium";
 in {
-  darwin.modules.base = {
+  darwin.modules.workstation = {
     lib,
     pkgs,
     ...

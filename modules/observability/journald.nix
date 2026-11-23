@@ -24,9 +24,7 @@ in {
         "~in.determinate_nixd::api::logger::handle_connection"
         "~reaped.child.process.*succeeded"
       ];
-    };
 
-    artemis = {
       # systemd refuses a /var/lib/private that is not 0700, so the whole directory is the entry; it holds the upload cursor.
       persistence.directories = [
         {
@@ -34,7 +32,9 @@ in {
           mode = "0700";
         }
       ];
+    };
 
+    artemis = {
       # logind rejects the version string NixOS writes into every systemd-boot entry, once per entry each time it lists them.
       systemd.services.systemd-logind.serviceConfig.LogFilterPatterns = "~is.not.a.valid.version";
     };

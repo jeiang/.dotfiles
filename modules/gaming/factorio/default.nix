@@ -6,7 +6,7 @@ _: let
 in {
   flake.lib.factorioPort = port;
 
-  nixos.modules.artemis = {
+  nixos.modules.gaming = {
     config,
     lib,
     ...

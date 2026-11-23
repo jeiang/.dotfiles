@@ -1,7 +1,7 @@
 {self, ...}: let
   cacheDir = "qwen-image-2.1";
 in {
-  nixos.modules.artemis.persistence.cache.directories = [".cache/${cacheDir}"];
+  nixos.modules.workstation.persistence.cache.directories = [".cache/${cacheDir}"];
 
   perSystem = {
     pkgs,

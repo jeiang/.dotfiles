@@ -244,5 +244,5 @@ in {
       // own "skills";
   };
 
-  nixos.modules.artemis.persistence.cache.directories = [".pi-lens"];
+  nixos.modules.workstation.persistence.cache.directories = [".pi-lens"];
 }

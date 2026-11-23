@@ -134,10 +134,11 @@ in {
           };
         };
         monitoredUnits = ["auto-upgrade.service"];
+        gaming.pauseUnits = ["auto-upgrade.timer"];
       };
     };
 
-    artemis = {config, ...}: {
+    impermanence = {config, ...}: {
       environment.etc.persistence-entries.text = builtins.toJSON config.persistence.entries;
 
       # A new kernel, initrd or persistence entry needs a reboot, which stays the operator's decision.
@@ -149,8 +150,6 @@ in {
           fi
         done
       '';
-
-      gaming.pauseUnits = ["auto-upgrade.timer"];
     };
   };
 

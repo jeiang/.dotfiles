@@ -32,7 +32,7 @@ in {
     };
   };
 
-  darwin.modules.base = {config, ...}: {
+  darwin.modules.workstation = {config, ...}: {
     imports = [inputs.nanolight.darwinModules.default];
 
     programs.nanolight = {

@@ -3,7 +3,7 @@
   self,
   ...
 }: {
-  darwin.modules.base = {
+  darwin.modules.workstation = {
     lib,
     pkgs,
     ...

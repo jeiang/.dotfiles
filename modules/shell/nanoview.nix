@@ -7,13 +7,13 @@
     environment.systemPackages = [inputs.nanoview.packages.${pkgs.stdenv.hostPlatform.system}.nanoview];
   };
 
-  nixos.modules.artemis.xdg.mime.defaultApplications = {
+  nixos.modules.desktop.xdg.mime.defaultApplications = {
     "image/png" = "nanoview.desktop";
     "image/jpeg" = "nanoview.desktop";
     "image/gif" = "nanoview.desktop";
   };
 
-  darwin.modules.base = {
+  darwin.modules.workstation = {
     lib,
     pkgs,
     ...

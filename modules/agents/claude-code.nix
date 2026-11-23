@@ -3,7 +3,7 @@
     environment.systemPackages = [inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.claude-code];
   };
 
-  nixos.modules.artemis.persistence = {
+  nixos.modules.workstation.persistence = {
     data.files = [".claude.json"];
     cache.directories = [".cache/claude-cli-nodejs"];
   };

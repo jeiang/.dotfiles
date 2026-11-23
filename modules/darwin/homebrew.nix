@@ -3,7 +3,7 @@
   inputs,
   ...
 }: {
-  darwin.modules.base = {config, ...}: let
+  darwin.modules.workstation = {config, ...}: let
     # brew bundle never installs these; install them from the App Store by hand. Spotlight does not index Bitwarden and Wipr 2, so mas would reinstall them on every switch.
     manualMasApps = {
       Bitwarden = 1352778147;

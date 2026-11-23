@@ -28,12 +28,12 @@ in {
   config = {
     nixos.modules = {
       base.imports = [config.shared.modules.base];
-      artemis.imports = [config.shared.modules.workstation];
+      workstation.imports = [config.shared.modules.workstation];
     };
-    darwin.modules.base.imports = [
-      config.shared.modules.base
-      config.shared.modules.workstation
-    ];
+    darwin.modules = {
+      base.imports = [config.shared.modules.base];
+      workstation.imports = [config.shared.modules.workstation];
+    };
 
     flake.nixosConfigurations =
       lib.mapAttrs (

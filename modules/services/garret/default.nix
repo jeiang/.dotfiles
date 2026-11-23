@@ -29,7 +29,7 @@ in {
 
   shared.modules.workstation = client;
   # The login token; without it every artemis boot makes `just prepush` wait for a device approval.
-  nixos.modules.artemis.persistence.data.directories = [
+  nixos.modules.workstation.persistence.data.directories = [
     {
       directory = ".config/garret";
       mode = "0700";

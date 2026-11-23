@@ -2,7 +2,7 @@
   # A systemd user service, not a system one: hypr-rdp is an ordinary
   # Wayland client (WAYLAND_DISPLAY, HYPRLAND_INSTANCE_SIGNATURE,
   # per-client wlr-screencopy grants), so it lives inside the session.
-  nixos.modules.artemis = {
+  nixos.modules.desktop = {
     config,
     lib,
     pkgs,

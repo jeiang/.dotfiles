@@ -3,7 +3,28 @@
   self,
   ...
 }: {
-  nixos.modules.artemis = {
+  # Any module registers the state it keeps; only a host with the impermanence aspect persists it.
+  nixos.modules.base = {lib, ...}: let
+    persistenceEntryType = lib.types.either lib.types.str (lib.types.attrsOf lib.types.anything);
+    persistenceListOption = description:
+      lib.mkOption {
+        type = lib.types.listOf persistenceEntryType;
+        default = [];
+        description = "${description} Entries may be strings or impermanence-compatible attribute sets.";
+      };
+  in {
+    options.persistence = {
+      directories = persistenceListOption "System directories to persist under `/persist`.";
+      files = persistenceListOption "System files to persist under `/persist`.";
+
+      data.directories = persistenceListOption "User data directories to persist under `/persist/data`.";
+      data.files = persistenceListOption "User data files to persist under `/persist/data`.";
+
+      cache.directories = persistenceListOption "User cache directories to persist under `/persist/cache`.";
+    };
+  };
+
+  nixos.modules.impermanence = {
     config,
     lib,
     pkgs,
@@ -12,13 +33,6 @@
   }: let
     cfg = config.persistence;
     user = self.lib.facts.userName;
-    persistenceEntryType = lib.types.either lib.types.str (lib.types.attrsOf lib.types.anything);
-    persistenceListOption = description:
-      lib.mkOption {
-        type = lib.types.listOf persistenceEntryType;
-        default = [];
-        description = "${description} Entries may be strings or impermanence-compatible attribute sets.";
-      };
 
     rootFs = config.fileSystems."/";
     rootDevice = rootFs.device;
@@ -68,14 +82,6 @@
     ];
 
     options.persistence = {
-      directories = persistenceListOption "System directories to persist under `/persist`.";
-      files = persistenceListOption "System files to persist under `/persist`.";
-
-      data.directories = persistenceListOption "User data directories to persist under `/persist/data`.";
-      data.files = persistenceListOption "User data files to persist under `/persist/data`.";
-
-      cache.directories = persistenceListOption "User cache directories to persist under `/persist/cache`.";
-
       entries = lib.mkOption {
         type = lib.types.listOf (lib.types.attrsOf lib.types.str);
         readOnly = true;
