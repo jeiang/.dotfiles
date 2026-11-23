@@ -17,7 +17,7 @@ in {
   };
 
   nixos.configurations.artemis.module = {
-    imports = with modules; [base workstation impermanence desktop gaming media artemis];
+    imports = with modules; [base workstation impermanence gaming media artemis];
   };
 
   nixos.modules.artemis = {
@@ -108,11 +108,14 @@ in {
         helpers.kernelModuleLLVMOverride (pkgs.linuxKernel.packagesFor kernel);
       blacklistedKernelModules = ["algif_aead"];
     };
-    environment.variables = {
-      AMD_VULKAN_ICD = "RADV";
-      MESA_SHADER_CACHE_MAX_SIZE = "12G";
-      # Pin aquamarine to the dGPU: left alone it makes the iGPU primary and renders the whole session there.
-      AQ_DRM_DEVICES = self.lib.artemisDgpuDevice.card;
+    environment = {
+      systemPackages = [pkgs.btop-rocm];
+      variables = {
+        AMD_VULKAN_ICD = "RADV";
+        MESA_SHADER_CACHE_MAX_SIZE = "12G";
+        # Pin aquamarine to the dGPU: left alone it makes the iGPU primary and renders the whole session there.
+        AQ_DRM_DEVICES = self.lib.artemisDgpuDevice.card;
+      };
     };
     networking = {
       hostName = "artemis";
