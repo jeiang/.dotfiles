@@ -55,6 +55,9 @@
           atuin init fish | source
           if test "$TERM" != dumb
               starship init fish | source
+              function starship_transient_prompt_func
+                  starship module character $argv
+              end
               enable_transience
           end
 
