@@ -49,13 +49,26 @@
     };
   };
 
-  # One connection per host and user carries every session, so agent tools stop opening a login per command.
-  darwin.modules.base.programs.ssh.extraConfig = ''
-    Host *.jeiang.vpn *.svr.jeiang.dev
-      ControlMaster auto
-      ControlPath ~/.ssh/cm-%C
-      ControlPersist 10m
-  '';
+  darwin.modules.base = {
+    # Turns on Remote Login, for Rex and ssh from the iPhone over the mesh.
+    services.openssh = {
+      enable = true;
+      extraConfig = ''
+        PasswordAuthentication no
+        KbdInteractiveAuthentication no
+        PermitRootLogin no
+        AllowUsers ${self.lib.facts.userName}
+      '';
+    };
+
+    # One connection per host and user carries every session, so agent tools stop opening a login per command.
+    programs.ssh.extraConfig = ''
+      Host *.jeiang.vpn *.svr.jeiang.dev
+        ControlMaster auto
+        ControlPath ~/.ssh/cm-%C
+        ControlPersist 10m
+    '';
+  };
 
   nixos.modules.artemis.monitoredUnits = ["sshd.service"];
 }

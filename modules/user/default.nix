@@ -2,6 +2,9 @@
   inherit (self.lib.facts) userName;
   shell = pkgs: self.packages.${pkgs.stdenv.hostPlatform.system}.environment;
   passwordSecret = "passwords/${userName}";
+  authorizedKeys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDX/1mgkG5030b8C3eAZN2vBcoYvS9d+/OTtRf0f6XJJ"
+  ];
 in {
   nixos.modules.base = {
     pkgs,
@@ -19,9 +22,7 @@ in {
         shell = shell pkgs;
 
         hashedPasswordFile = config.sops.secrets.${passwordSecret}.path;
-        openssh.authorizedKeys.keys = [
-          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDX/1mgkG5030b8C3eAZN2vBcoYvS9d+/OTtRf0f6XJJ"
-        ];
+        openssh.authorizedKeys.keys = authorizedKeys;
       };
       users.root = {
         hashedPasswordFile = config.sops.secrets."passwords/root".path;
@@ -46,6 +47,7 @@ in {
       shell = shell pkgs;
       # The wrapped shell's pname no longer reads as bash/fish/zsh, so nix-darwin's programs.<shell>.enable assert doesn't apply.
       ignoreShellProgramCheck = true;
+      openssh.authorizedKeys.keys = authorizedKeys;
     };
 
     environment.shells = [(shell pkgs)];
