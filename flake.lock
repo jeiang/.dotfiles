@@ -1243,11 +1243,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1794530108,
-        "narHash": "sha256-iGRUeVilexR6rMPP+oWaHtzQW78PFrAQhA/jt0Xu3T4=",
+        "lastModified": 1795439759,
+        "narHash": "sha256-9lSGrucrtnSKPiSQBTrCJF779/rk8gdMEOqQHHmb6RU=",
         "owner": "jeiang",
         "repo": "nb-nix",
-        "rev": "c32a514421839ad4086560448c815a17000b8a92",
+        "rev": "f6ed5203232010cb8881d756e37334fd40ba5fe6",
         "type": "github"
       },
       "original": {
