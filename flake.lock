@@ -1658,11 +1658,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1795467482,
-        "narHash": "sha256-o7RXkLCjUyshLvEWS3DEYkG7h9Hb1lRPmjWbwx6sZf8=",
+        "lastModified": 1795468747,
+        "narHash": "sha256-K/VKmGUZB/2vnAEKCyCY3ElTHwx46wIWIYv04+WsGbY=",
         "owner": "jeiang",
         "repo": "pi-extensions",
-        "rev": "ebea25dbaaa0c2d0c53f42998d6478891b599a5f",
+        "rev": "c7042cb2ac1e3e567725b788edeffee38f1e9813",
         "type": "github"
       },
       "original": {
