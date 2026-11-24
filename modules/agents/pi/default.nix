@@ -99,6 +99,7 @@
       "chain/strong".reserveTokens = 300000;
       "chain/light".reserveTokens = 72000;
       "chain/task".reserveTokens = 300000;
+      "strata/inkling-2-mini".reserveTokens = 65536;
     };
     # The first start of a catalog server can fetch it from the binary cache.
     lsp.timeouts.initializeMs = 180000;
