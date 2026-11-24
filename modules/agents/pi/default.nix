@@ -63,7 +63,9 @@
     ];
   };
 
+  # Off until `/advisor on` in a session; the flag is the default for new sessions.
   advisor = {
+    enabled = false;
     models = ["anthropic/claude-fable-5-2:medium" "openai-codex/gpt-6.1-sol:medium" "anthropic/claude-opus-5-5:medium" "mistral/deepseek-v4-1-flash-1017:max"];
   };
 
