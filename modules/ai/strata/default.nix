@@ -31,8 +31,9 @@ in {
         + lib.concatMapStrings (self.lib.fetchWeights weights) [pack tokenizerJson]
         + ''
           if [ ! -e "${tokenizer}/vocab.json" ]; then
-            rm -rf "${tokenizer}"
-            strata-inkling-tokenizer --strata "${weights}/${pack.file}" --hf-json "${weights}/${tokenizerJson.file}" --out "${tokenizer}"
+            rm -rf "${tokenizer}" "${tokenizer}.part"
+            strata-inkling-tokenizer --strata "${weights}/${pack.file}" --hf-json "${weights}/${tokenizerJson.file}" --out "${tokenizer}.part"
+            mv "${tokenizer}.part" "${tokenizer}"
           fi
         '';
     };
