@@ -1134,6 +1134,26 @@
         "type": "github"
       }
     },
+    "mail-organizer": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1795539485,
+        "narHash": "sha256-XQfO2SHb+bhY70kHbQ2SvdE1V8760p0gVw70XcqCtho=",
+        "owner": "jeiang",
+        "repo": "mail-organizer",
+        "rev": "0a6b68a0437d633bb3018c22c7e18693fe07a6be",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "mail-organizer",
+        "type": "github"
+      }
+    },
     "markdown-table-live-editor": {
       "inputs": {
         "nixpkgs": [
@@ -1806,6 +1826,7 @@
         "import-tree": "import-tree_2",
         "k06a-tap": "k06a-tap",
         "llm-agents": "llm-agents",
+        "mail-organizer": "mail-organizer",
         "markdown-table-live-editor": "markdown-table-live-editor",
         "mcp-servers-nix": "mcp-servers-nix",
         "mini-md-view": "mini-md-view",
