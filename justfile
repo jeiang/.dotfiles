@@ -247,4 +247,4 @@ mcp-register: mcp-register-claude mcp-register-codex
 
 # Render mononoki-liga's built ligatures beside plain mononoki and Fira Code, and the Fira Code ones left out
 font-preview:
-  @out=$(nix build --no-link --print-out-paths .#mononoki-liga-preview) && echo "$out/added.png" && echo "$out/skipped.png"
+  @printf '%s\n' "$(nix build --no-link --print-out-paths .#mononoki-liga-preview)"/*.png
