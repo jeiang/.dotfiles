@@ -40,7 +40,8 @@ in {
 
     config = pkgs.writeText "strata.json" (builtins.toJSON {
       exe = "${strata.engine}/libexec/strata/strata-inkling";
-      args = ["--native" "${weights}/${pack.file}" "--max-context" (toString maxContext)];
+      # Leaves room for atrium's embedding server, which otherwise falls back to system memory when it restarts.
+      args = ["--native" "${weights}/${pack.file}" "--max-context" (toString maxContext) "--vram-reserve-mib" "512"];
       cwd = "/run/strata";
       inherit tokenizer;
       model_name = modelName;
