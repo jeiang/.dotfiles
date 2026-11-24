@@ -24,6 +24,45 @@
     };
   };
 
+  # Strata on artemis; zakkart reaches it through `ssh -L 8095:127.0.0.1:8095 artemis.jeiang.vpn`.
+  models.providers.strata = {
+    name = "Strata (artemis)";
+    baseUrl = "http://127.0.0.1:${toString self.lib.strataPort}/v1";
+    api = "openai-completions";
+    # Strata needs no key; pi lists a provider only once it has one.
+    apiKey = "strata";
+    compat = {
+      supportsReasoningEffort = true;
+      thinkingFormat = "openai";
+    };
+    models = [
+      {
+        id = self.lib.strataModelName;
+        name = "Inkling 2 Mini";
+        reasoning = true;
+        # Inkling's chat template accepts these reasoning_effort values; none still reasons a little.
+        thinkingLevelMap = {
+          off = "none";
+          minimal = "minimal";
+          low = "low";
+          medium = "medium";
+          high = "high";
+          xhigh = "xhigh";
+          max = "max";
+        };
+        input = ["text"];
+        contextWindow = self.lib.strataMaxContext;
+        maxTokens = 32768;
+        cost = {
+          input = 0;
+          output = 0;
+          cacheRead = 0;
+          cacheWrite = 0;
+        };
+      }
+    ];
+  };
+
   advisor = {
     models = ["anthropic/claude-fable-5-2:medium" "openai-codex/gpt-6.1-sol:medium" "anthropic/claude-opus-5-5:medium" "mistral/deepseek-v4-1-flash-1017:max"];
   };
@@ -216,6 +255,7 @@ in {
         };
         "${home}/chains.json".source = json pkgs "chains.json" chains;
         "${home}/advisor.json".source = json pkgs "advisor.json" advisor;
+        "${home}/models.json".source = json pkgs "models.json" models;
         "${home}/loadout.json".source = json pkgs "loadout.json" loadout;
         "${home}/subagent.json".source = json pkgs "subagent.json" {maxConcurrent = 3;};
         # pi rewrites mcp.json when /mcp changes exposure; sign in once with `pi mcp login superlogical` (Rex Beta Discord).
