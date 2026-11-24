@@ -1,5 +1,6 @@
 # Adds coding ligatures to a mononoki TTF, built only from mononoki's own glyphs.
 # usage: python3 ligate.py IN.ttf OUT.ttf
+import math
 import sys
 
 import pathops
@@ -18,12 +19,13 @@ NAMES = {
 # ("place", glyph, cell) puts a glyph in its own cell, unchanged;
 # ("bars", glyph, cell, left, right) extends each bar of a glyph until it meets the glyph placed in cell left or right;
 # ("stretch", glyph) widens a glyph through its thinnest vertical slice to span every cell;
+# ("stack", glyph, base) raises a glyph above base's top bar by base's bar gap, along the italic slant, then stretches it;
 # ("center", glyph) places a glyph unchanged in the middle of the cells;
 # ("repeat", glyph) sets one copy per character at the dot spacing of mononoki's ellipsis, centered.
 LIGATURES = {
     "<=>": [("place", "less", 0), ("place", "greater", 2), ("bars", "equal", 1, 0, 2)],
     "<->": [("place", "less", 0), ("place", "greater", 2), ("bars", "hyphen", 1, 0, 2)],
-    "===": [("stretch", "equal"), ("stretch", "hyphen")],
+    "===": [("stretch", "equal"), ("stack", "hyphen", "equal")],
     "...": [("repeat", "period")],
     "->": [("place", "greater", 1), ("bars", "hyphen", 0, None, 1)],
     "<-": [("place", "less", 0), ("bars", "hyphen", 1, 0, None)],
@@ -120,7 +122,7 @@ def rhythm(glyphs):
     return (dots[1][0] - dots[0][0]) / (dots[0][2] - dots[0][0])
 
 
-def build(glyphs, width, chars, recipe):
+def build(glyphs, width, slant, chars, recipe):
     span = (len(chars) - 1) * width
     path = pathops.Path()
     placed = {}
@@ -139,7 +141,11 @@ def build(glyphs, width, chars, recipe):
                 dr = 0 if right is None else meet(placed[right], y0, y1, mid, True) - x1
                 bars += moved(bar, lambda p, m=mid, dl=dl, dr=dr: (p[0] + (dr if p[0] > m else dl), p[1]))
             value = bars
-        elif how == "stretch":
+        elif how in ("stretch", "stack"):
+            if how == "stack":
+                bars = sorted((path_of(c).bounds for c in contours(recording(glyphs, step[2]))), key=lambda b: b[1])
+                dy = bars[-1][3] + (bars[1][1] - bars[0][3]) - path_of(value).bounds[1]
+                value = moved(value, lambda p, dy=dy: (p[0] + dy * slant, p[1] + dy))
             at = thinnest_x(value)
             value = moved(value, lambda p, at=at: (p[0] + span if p[0] > at else p[0], p[1]))
         else:
@@ -229,10 +235,11 @@ def main(source, target):
     font = TTFont(source)
     glyphs = font.getGlyphSet()
     width = font["hmtx"]["space"][0]
+    slant = -math.tan(math.radians(font["post"].italicAngle))
     assert SPACER not in glyphs
     new = {SPACER: TTGlyphPen(None).glyph()}
     for chars, recipe in LIGATURES.items():
-        new[liga_name(chars)] = build(glyphs, width, chars, recipe)
+        new[liga_name(chars)] = build(glyphs, width, slant, chars, recipe)
     font.setGlyphOrder(font.getGlyphOrder() + list(new))
     for name, glyph in new.items():
         font["glyf"][name] = glyph
