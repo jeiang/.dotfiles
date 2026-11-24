@@ -1050,11 +1050,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1795561695,
-        "narHash": "sha256-pzzQxSCMvXLzVvLYxA1CzMwzv9Y3TnjTzabv7gEqmIc=",
+        "lastModified": 1795563388,
+        "narHash": "sha256-V+3bVdXLDgfyU9lHQahdOH6V9Nw95ntqnu/Y8wkyWDk=",
         "owner": "jeiang",
         "repo": "mail-organizer",
-        "rev": "1ca59c6f42ae5d50f2cad88f5879af2fe99ef19a",
+        "rev": "1c19ca7d4dc6bc7a48fd5dbd93bad5e87ef7bf22",
         "type": "github"
       },
       "original": {
