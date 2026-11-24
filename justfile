@@ -244,3 +244,7 @@ mcp-register-codex:
 
 # Register the omp mcp.json servers with Claude Code and Codex
 mcp-register: mcp-register-claude mcp-register-codex
+
+# Render mononoki-liga's built ligatures beside plain mononoki and Fira Code, and the Fira Code ones left out
+font-preview:
+  @printf '%s\n' "$(nix build --no-link --print-out-paths .#mononoki-liga-preview)"/*.png

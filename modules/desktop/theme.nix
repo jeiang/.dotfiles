@@ -1,4 +1,8 @@
-{lib, ...}: let
+{
+  lib,
+  self,
+  ...
+}: let
   kanabox = {
     autumnGreen = "#76946A";
     autumnRed = "#C34043";
@@ -56,10 +60,10 @@ in {
       kanaboxDarkHardHex = lib.mapAttrs (_: c: lib.removePrefix "#" c) kanaboxDarkHard;
     };
 
-    fonts.monospace = "Mononoki Nerd Font";
+    fonts.monospace = "MononokiLiga Nerd Font";
   };
 
   shared.modules.workstation = {pkgs, ...}: {
-    fonts.packages = [pkgs.nerd-fonts.mononoki];
+    fonts.packages = [self.packages.${pkgs.stdenv.hostPlatform.system}.mononoki-liga];
   };
 }
