@@ -94,13 +94,6 @@ in {
             options.path = ./dashboards;
           }
           {
-            name = "atrium";
-            options.path = pkgs.runCommand "atrium-dashboards" {} ''
-              mkdir -p $out
-              cp ${config.services.atrium.monitoring.dashboardFile} $out/atrium.json
-            '';
-          }
-          {
             name = "mail-organizer";
             options.path = pkgs.runCommand "mail-organizer-dashboards" {} ''
               mkdir -p $out

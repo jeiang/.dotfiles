@@ -1,6 +1,5 @@
 {
   self,
-  inputs,
   config,
   lib,
   ...
@@ -67,8 +66,5 @@ in {
     };
 
     netbird.meshFlows.monitoring = map (port: {inherit port;}) (builtins.attrValues ports);
-
-    # atrium ships its own dashboard and alert rules.
-    nixos.modules.monitoring.imports = [inputs.atrium.nixosModules.default];
   };
 }

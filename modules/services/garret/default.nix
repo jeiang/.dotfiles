@@ -148,10 +148,6 @@ in {
         id = "1395832586";
         workflows = ["garret.yml@refs/heads/main" "garret.yml@refs/tags/v*"];
       };
-      atrium = {
-        id = "1423661628";
-        workflows = ["ci.yml@refs/heads/main"];
-      };
       erdtree = {
         id = "1418336240";
         workflows = ["nix.yml@refs/heads/master"];

@@ -162,10 +162,6 @@ on its `legion.services.<name>.node`.
 
 ### artemis
 
-- atrium's listeners never open on another interface. Operator settings
-  are atrium database settings, not Nix. A code change reaches artemis by
-  bumping the `atrium` input; its own `AGENTS.md` holds its decisions.
-- Only `atrium-media-agent` reads or writes `/var/lib/media`.
 - qBittorrent: loopback must authenticate, no subnet is whitelisted, and
   the WireGuard endpoint is ricklent's IP, not its name.
 - Minecraft enters only through ricklent's stream proxy, never a home
