@@ -50,9 +50,6 @@ in {
       };
     };
 
-    # Not started until atrium's history is imported into an empty database.
-    systemd.services.mail-organizer.wantedBy = lib.mkForce [];
-
     monitoredUnits = ["mail-organizer.service"];
 
     persistence.directories = [
