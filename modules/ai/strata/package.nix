@@ -1,7 +1,7 @@
 {
   perSystem = {pkgs, ...}: let
-    version = "0.2.20";
-    engineVersion = "0.1.66";
+    version = "0.2.21";
+    engineVersion = "0.1.67";
 
     # Upstream's prebuilt Inkling engine for gfx1200/gfx1201; it carries its own HIP runtime.
     engine = pkgs.stdenv.mkDerivation {
@@ -9,7 +9,7 @@
       version = engineVersion;
       src = pkgs.fetchurl {
         url = "https://github.com/Niko1221/Strata/releases/download/v${version}/strata-inkling-${engineVersion}-linux-x86_64-hip-rx9070.tar.gz";
-        sha256 = "3cc99f387b2059741dd3956acc0361a889aaeb26bcfa2e86bebe2d312c5578a1";
+        sha256 = "e50f924706574a057f94cfb826aad0428f7da86a324a4c612a06b32e53719ccd";
       };
       sourceRoot = ".";
       nativeBuildInputs = [pkgs.autoPatchelfHook];
@@ -27,7 +27,7 @@
       repo = "Strata";
       tag = "v${version}";
       sparseCheckout = ["terminal"];
-      hash = "sha256-9O4BfLpJFxlByavKZRoRXa6uhtQtj6pwGlsTQtYHNMk=";
+      hash = "sha256-OGDHsehsi9u6fwwXNQC6L/7aNKoRohmJKogFhsB+XEU=";
     };
 
     python = pkgs.python3.withPackages (ps:

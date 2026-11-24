@@ -49,6 +49,8 @@ in {
       host = "127.0.0.1";
       inherit port;
       backend = "hip";
+      # The default "auto" keeps drafting off until `strata launch` has probed the card, which this service never runs.
+      drafting = "dspark";
       # Without a log file the engine's stderr is dropped.
       log = "/var/log/strata/engine.log";
       open_browser = false;
