@@ -10,6 +10,7 @@ in {
   flake.lib = {
     strataPort = port;
     strataModelName = modelName;
+    strataMaxContext = maxContext;
   };
 
   nixos.modules.workstation = {
