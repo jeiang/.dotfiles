@@ -1,4 +1,4 @@
-# Renders added.png (each built ligature: plain mononoki, built, Fira Code) and
+# Renders added.png (each built ligature: plain mononoki, built, Fira Code), zoom.png (plain, built Regular and Bold Italic, large) and
 # skipped.png (Fira Code ligatures not built: plain mononoki, Fira Code).
 # usage: python3 preview.py LIGATE_PY LIGATURIZER_DIR MONONOKI_DIR BUILT_DIR FIRA_DIR OUT_DIR
 import runpy
@@ -12,7 +12,10 @@ char_dict = runpy.run_path(f"{ligaturizer}/char_dict.py")["char_dict"]
 ligatures = runpy.run_path(f"{ligaturizer}/ligatures.py")["ligatures"]
 
 STYLES = ["Regular", "Bold", "Italic", "BoldItalic"]
-SAMPLES = ["if (a != b && c >= d)", "xs.map(x => x == 1)", "a -> b <- c <-> d", "p <=> q, a === b"]
+SAMPLES = [
+    "if (a != b && c >= d)", "xs.map(x => x == 1)", "a -> b <- c <-> d", "p <=> q, a === b",
+    "std::io, xs[1..n]...", "Γ |- e : t",
+]
 tmp = tempfile.mkdtemp()
 count = 0
 
@@ -52,6 +55,15 @@ for style in STYLES:
     ]
     blocks.append(magick(*columns, "+append"))
 subprocess.run(["magick", *blocks, "-background", "#1F1F28", "-append", f"{out}/added.png"], check=True)
+
+line = ["  ".join(LIGATURES)]
+subprocess.run([
+    "magick",
+    view(f"{mononoki}/mononoki-Regular.ttf", line, 72),
+    view(f"{built}/mononoki-liga-Regular.ttf", line, 72),
+    view(f"{built}/mononoki-liga-BoldItalic.ttf", line, 72),
+    "-background", "#1F1F28", "-append", f"{out}/zoom.png",
+], check=True)
 
 skipped = []
 for lig in ligatures:

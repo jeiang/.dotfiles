@@ -10,21 +10,31 @@ from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables import otTables
 
-NAMES = {"-": "hyphen", "=": "equal", "<": "less", ">": "greater", "!": "exclam"}
+NAMES = {
+    "-": "hyphen", "=": "equal", "<": "less", ">": "greater", "!": "exclam",
+    ".": "period", ":": "colon", "|": "bar",
+}
 
-# "stretch" widens a glyph through its thinnest vertical slice to span every cell;
-# "center" places a glyph unchanged in the middle of the cells.
+# ("place", glyph, cell) puts a glyph in its own cell, unchanged;
+# ("bars", glyph, cell, left, right) extends each bar of a glyph until it meets the glyph placed in cell left or right;
+# ("stretch", glyph) widens a glyph through its thinnest vertical slice to span every cell;
+# ("center", glyph) places a glyph unchanged in the middle of the cells;
+# ("repeat", glyph) sets one copy per character at the dot spacing of mononoki's ellipsis, centered.
 LIGATURES = {
-    "<=>": [("stretch", "arrowdblboth")],
-    "<->": [("stretch", "arrowboth")],
+    "<=>": [("place", "less", 0), ("place", "greater", 2), ("bars", "equal", 1, 0, 2)],
+    "<->": [("place", "less", 0), ("place", "greater", 2), ("bars", "hyphen", 1, 0, 2)],
     "===": [("stretch", "equivalence")],
-    "->": [("stretch", "arrowright")],
-    "<-": [("stretch", "arrowleft")],
-    "=>": [("stretch", "arrowdblright")],
+    "...": [("repeat", "period")],
+    "->": [("place", "greater", 1), ("bars", "hyphen", 0, None, 1)],
+    "<-": [("place", "less", 0), ("bars", "hyphen", 1, 0, None)],
+    "=>": [("place", "greater", 1), ("bars", "equal", 0, None, 1)],
+    "|-": [("place", "bar", 0), ("bars", "hyphen", 1, 0, None)],
     "==": [("stretch", "equal")],
     "!=": [("stretch", "equal"), ("center", "notequal")],
     ">=": [("center", "greaterequal")],
     "<=": [("center", "lessequal")],
+    "..": [("repeat", "period")],
+    "::": [("repeat", "colon")],
 }
 
 # Contexts that keep a sequence plain, besides a repeat of its first or last character.
@@ -76,15 +86,67 @@ def thinnest_x(value):
     return min(xs, key=lambda x: (round(coverage(path, x) / 4), abs(x - mid)))
 
 
+def contours(value):
+    out, current = [], []
+    for op, args in value:
+        current.append((op, args))
+        if op in ("closePath", "endPath"):
+            out.append(current)
+            current = []
+    return out
+
+
+def meet(target, y0, y1, x, rightward):
+    """Middle of the nearest part of target that the band y0..y1 crosses, right or left of x."""
+    band = path_of([
+        ("moveTo", ((-4096, y0),)),
+        ("lineTo", ((4096, y0),)),
+        ("lineTo", ((4096, y1),)),
+        ("lineTo", ((-4096, y1),)),
+        ("closePath", ()),
+    ])
+    pen = RecordingPen()
+    pathops.op(target, band, pathops.PathOp.INTERSECTION).draw(pen)
+    pieces = [path_of(c).bounds for c in contours(pen.value)]
+    if rightward:
+        piece = min((b for b in pieces if b[0] > x), key=lambda b: b[0])
+    else:
+        piece = max((b for b in pieces if b[2] < x), key=lambda b: b[2])
+    return (piece[0] + piece[2]) / 2
+
+def rhythm(glyphs):
+    """Dot pitch over dot width in mononoki's own ellipsis."""
+    dots = sorted(path_of(c).bounds for c in contours(recording(glyphs, "ellipsis")))
+    return (dots[1][0] - dots[0][0]) / (dots[0][2] - dots[0][0])
+
+
 def build(glyphs, width, chars, recipe):
     span = (len(chars) - 1) * width
     path = pathops.Path()
-    for how, source in recipe:
-        value = recording(glyphs, source)
-        if how == "stretch":
+    placed = {}
+    for step in recipe:
+        how, value = step[0], recording(glyphs, step[1])
+        if how == "place":
+            value = moved(value, lambda p, dx=step[2] * width: (p[0] + dx, p[1]))
+            placed[step[2]] = path_of(value)
+        elif how == "bars":
+            _, _, cell, left, right = step
+            bars = []
+            for bar in contours(moved(value, lambda p, dx=cell * width: (p[0] + dx, p[1]))):
+                x0, y0, x1, y1 = path_of(bar).bounds
+                mid = (x0 + x1) / 2
+                dl = 0 if left is None else meet(placed[left], y0, y1, mid, False) - x0
+                dr = 0 if right is None else meet(placed[right], y0, y1, mid, True) - x1
+                bars += moved(bar, lambda p, m=mid, dl=dl, dr=dr: (p[0] + (dr if p[0] > m else dl), p[1]))
+            value = bars
+        elif how == "stretch":
             at = thinnest_x(value)
             value = moved(value, lambda p, at=at: (p[0] + span if p[0] > at else p[0], p[1]))
         else:
+            if how == "repeat":
+                x0, _, x1, _ = path_of(value).bounds
+                pitch = rhythm(glyphs) * (x1 - x0)
+                value = [s for i in range(len(chars)) for s in moved(value, lambda p, dx=i * pitch: (p[0] + dx, p[1]))]
             x0, _, x1, _ = path_of(value).bounds
             dx = (span + width) / 2 - (x0 + x1) / 2
             value = moved(value, lambda p, dx=dx: (p[0] + dx, p[1]))
