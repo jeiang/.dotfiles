@@ -2,7 +2,7 @@
   port = 8095;
   stateDir = "/var/lib/strata";
   hf = self.lib.huggingface "strata-engine/Inkling-2-Mini-Strata" "04996a1e2c45009b6a04f2af126cb6bdb2ba3587";
-  pack = hf "Inkling-2-Mini-SQ-15.strata" "2ea32eed533afba257e2cbee7b073dc2c3da80fe55d1d2d794779b5498e30737";
+  pack = hf "Inkling-2-Mini-SQ-10.strata" "ac4d452ad03e4930abd9d46f9c5eec22b2f75a1da45a1e49bd24ccd58b065934";
   tokenizerJson = hf "tokenizer.json" "7f332727f9a3f093dd452a39cc978e6757627e5dad1b0673aa4e75174f236dd6";
   modelName = "inkling-2-mini";
   maxContext = 131072;
