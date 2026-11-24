@@ -27,8 +27,6 @@
     hjem.inputs.nixpkgs.follows = "nixpkgs";
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
-    atrium.url = "github:jeiang/atrium";
-    atrium.inputs.nixpkgs.follows = "nixpkgs";
     mail-organizer.url = "github:jeiang/mail-organizer";
     mail-organizer.inputs.nixpkgs.follows = "nixpkgs";
     nb-nix.url = "github:jeiang/nb-nix";

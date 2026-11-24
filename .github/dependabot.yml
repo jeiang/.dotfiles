@@ -23,7 +23,6 @@ updates:
       own:
         patterns:
           - agent-skills
-          - atrium
           - bill-splitter
           - character-randomizer
           - erdtree

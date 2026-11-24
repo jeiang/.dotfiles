@@ -116,8 +116,8 @@ in {
           LegalNotice.Accepted = true;
           BitTorrent.Session = {
             DefaultSavePath = downloadDir;
-            # Stop, never remove: atrium deletes a stopped
-            # torrent's files only after it has filed them into the library.
+            # Stop, never remove: a stopped torrent's files stay until they
+            # are filed into the library.
             GlobalMaxRatio = 2;
             GlobalMaxSeedingMinutes = 14 * 24 * 60;
             ShareLimitAction = "Stop";
@@ -125,7 +125,7 @@ in {
           # The exit forwards the peer port with a static DNAT.
           Network.PortForwardingEnabled = false;
           # The socket proxy makes every Web UI client loopback, so loopback
-          # must authenticate: atrium with the API key, a browser with the
+          # must authenticate: a client with the API key, a browser with the
           # temporary password qBittorrent prints to its journal at each start.
           WebUI = {
             LocalHostAuth = true;
