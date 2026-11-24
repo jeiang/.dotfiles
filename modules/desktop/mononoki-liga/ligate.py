@@ -23,7 +23,7 @@ NAMES = {
 LIGATURES = {
     "<=>": [("place", "less", 0), ("place", "greater", 2), ("bars", "equal", 1, 0, 2)],
     "<->": [("place", "less", 0), ("place", "greater", 2), ("bars", "hyphen", 1, 0, 2)],
-    "===": [("stretch", "equivalence")],
+    "===": [("stretch", "equal"), ("stretch", "hyphen")],
     "...": [("repeat", "period")],
     "->": [("place", "greater", 1), ("bars", "hyphen", 0, None, 1)],
     "<-": [("place", "less", 0), ("bars", "hyphen", 1, 0, None)],
