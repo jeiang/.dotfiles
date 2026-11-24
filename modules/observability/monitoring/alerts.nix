@@ -7,7 +7,7 @@
       settings = {
         "datasource.url" = "http://127.0.0.1${config.services.victoriametrics.listenAddress}";
         "notifier.url" = ["http://127.0.0.1:${toString config.services.prometheus.alertmanager.port}"];
-        rule = [config.services.atrium.monitoring.ruleFile];
+        rule = [config.services.atrium.monitoring.ruleFile config.services.mail-organizer.monitoring.ruleFile];
       };
       rules.groups = [
         {

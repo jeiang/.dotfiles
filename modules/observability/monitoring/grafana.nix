@@ -10,6 +10,7 @@ in {
     # Mesh address, not the public hostname: probing the edge gets the client banned by CrowdSec.
     grafanaMeshUrl = "http://${self.lib.serviceMeshAddress "monitoring"}:${toString port}";
     grafanaMetricsDatasourceUid = "victoriametrics";
+    grafanaPublicUrl = "https://${hostname}";
   };
 
   gatus.endpoints.Grafana = {
@@ -97,6 +98,13 @@ in {
             options.path = pkgs.runCommand "atrium-dashboards" {} ''
               mkdir -p $out
               cp ${config.services.atrium.monitoring.dashboardFile} $out/atrium.json
+            '';
+          }
+          {
+            name = "mail-organizer";
+            options.path = pkgs.runCommand "mail-organizer-dashboards" {} ''
+              mkdir -p $out
+              cp ${config.services.mail-organizer.monitoring.dashboardFile} $out/mail-organizer.json
             '';
           }
         ];
