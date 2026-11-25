@@ -169,7 +169,7 @@
   };
 
   # The agents in pi-extensions load their extensions by these names.
-  ownExtensions = ["advisor" "chains" "codemode" "emphasis" "footer" "github" "guards" "images" "lint" "loadout" "nix" "papercuts" "plan" "server-compaction" "skill-mentions" "turn-time" "usage" "workspace"];
+  ownExtensions = ["advisor" "chains" "codemode" "emphasis" "footer" "github" "goal" "guards" "images" "lint" "loadout" "nix" "papercuts" "plan" "server-compaction" "skill-mentions" "turn-time" "usage" "workspace"];
 
   # Direct in the tool list: file tools, shell, github, todo, questionnaire, subagent, advise, and pi-lsp navigation.
   loadout.hidden = [
