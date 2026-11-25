@@ -41,7 +41,7 @@ in {
 
     config = pkgs.writeText "strata.json" (builtins.toJSON {
       exe = "${strata.engine}/libexec/strata/strata-inkling";
-      args = ["--native" "${weights}/${pack.file}" "--max-context" (toString maxContext) "--vram-reserve-mib" "512"];
+      args = ["--native" "${weights}/${pack.file}" "--max-context" (toString maxContext)];
       cwd = "/run/strata";
       inherit tokenizer;
       model_name = modelName;
