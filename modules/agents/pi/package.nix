@@ -3,7 +3,7 @@
     inherit (pkgs.stdenv.hostPlatform) system;
     devshellExec = pkgs.writeShellApplication {
       name = "pi-devshell-exec";
-      runtimeInputs = [pkgs.jq];
+      runtimeInputs = [pkgs.jq pkgs.coreutils];
       text = builtins.readFile ./devshell-exec.sh;
     };
   in {
