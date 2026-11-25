@@ -63,6 +63,8 @@ if [ -s "$file" ]; then
 else
   exports=$(evaluate) || exports=""
   if [ -n "$exports" ]; then
+    # Exports can carry credentials a devshell sets; nobody else needs to read the cache.
+    umask 077
     mkdir -p "$cache"
     printf '%s\n' "$exports" >"$file.$$"
     mv -f "$file.$$" "$file"
