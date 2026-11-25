@@ -8,6 +8,7 @@
   json = pkgs: name: value: (pkgs.formats.json {}).generate name value;
 
   chains = {
+    compactRatio = 0.75;
     chains = {
       strong = {
         targets = ["anthropic/claude-opus-5-5:medium" "openai-codex/gpt-6.1-sol:high"];
@@ -97,10 +98,13 @@
     # end). pi keys this by the session model and compacts at the answering target's window minus
     # the reserve, so a reserve must stay below the smallest window of its chain: 500k for
     # gpt-6.1-sol, 272k for gpt-6-luna. That gives 200k on those and 700k to 928k on the 1M models.
+    # A model selected directly has no chain compactAt, so it needs its own reserve; deepseek's 1M
+    # window would otherwise wait for pi's 16k default and compact at 98.4%.
     compaction.modelOverrides = {
       "chain/strong".reserveTokens = 300000;
       "chain/light".reserveTokens = 72000;
       "chain/task".reserveTokens = 300000;
+      "mistral/deepseek-v4-1-flash-1017".reserveTokens = 300000;
       "strata/inkling-2-mini".reserveTokens = 65536;
     };
     # The first start of a catalog server can fetch it from the binary cache.
