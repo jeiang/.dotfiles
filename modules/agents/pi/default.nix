@@ -278,6 +278,8 @@ in {
           autofix.enabled = false;
           readGuard.enabled = false;
           widget.visible = false;
+          # An ast-grep rule at error severity: a build-time script that opens a missing file must fail the build.
+          rules."unchecked-throwing-call-python".disable = true;
         };
         ".pi-lens/rules/ast-grep-rules/rules/nix.yml".source = ./nix-rules.yml;
         "${home}/AGENTS.md".source = "${piExtensions}/prompts/AGENTS.md";
