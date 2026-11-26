@@ -49,10 +49,8 @@
         "roblox"
         "steam"
         "notion-calendar"
-        # These apps update themselves in place, which a read-only store copy under /Applications/Nix Apps cannot take.
-        "claude"
+        # Notion updates itself in place, which a read-only store copy under /Applications/Nix Apps cannot take.
         "notion"
-        "chatgpt"
       ];
     };
   };
