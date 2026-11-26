@@ -1119,6 +1119,26 @@
         "type": "github"
       }
     },
+    "media-organizer": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1795655654,
+        "narHash": "sha256-Ts3fU4mcmtCWy0tijVg0iXqVhg7h6q6qgTcy1qgwJaI=",
+        "owner": "jeiang",
+        "repo": "media-organizer",
+        "rev": "14f2d06d7915619a7ec1b59a9ee6a7991fab6666",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeiang",
+        "repo": "media-organizer",
+        "type": "github"
+      }
+    },
     "mini-md-view": {
       "inputs": {
         "nixpkgs": [
@@ -1743,6 +1763,7 @@
         "mail-organizer": "mail-organizer",
         "markdown-table-live-editor": "markdown-table-live-editor",
         "mcp-servers-nix": "mcp-servers-nix",
+        "media-organizer": "media-organizer",
         "mini-md-view": "mini-md-view",
         "nanocaffeinate": "nanocaffeinate",
         "nanolight": "nanolight",
