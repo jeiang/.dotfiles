@@ -96,6 +96,8 @@
     mini-md-view.inputs.nixpkgs.follows = "nixpkgs";
     nanocaffeinate.url = "github:jeiang/nanocaffeinate";
     nanocaffeinate.inputs.nixpkgs.follows = "nixpkgs";
+    nanoduck.url = "github:jeiang/nanoduck";
+    nanoduck.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);
