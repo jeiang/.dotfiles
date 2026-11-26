@@ -115,7 +115,6 @@ in {
 
       customSettings =
         settings
-        // workstationSettings
         // {
           # extra-, not the bare keys: customSettings does no NixOS-style merging, so bare substituters/trusted-public-keys would replace Determinate's defaults and drop cache.nixos.org.
           extra-substituters = urls (caches ++ workstationCaches);
