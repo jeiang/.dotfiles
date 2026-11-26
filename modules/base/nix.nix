@@ -146,6 +146,11 @@ in {
         }
       ];
     };
+
+    # determinate-nixd appends a line per client connection here and rotates nothing: 160 MB after ten weeks.
+    environment.etc."newsyslog.d/determinate-nix.conf".text = ''
+      /var/log/determinate-nix-daemon.log 640 3 10000 * J
+    '';
   };
 
   nixos.modules = {
