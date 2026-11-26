@@ -8,10 +8,7 @@
 
     environment.systemPackages = with pkgs; [
       discord
-      finetune
       iina
-      moonlight-qt
-      mos
       # Prism defaults to Java 8, 17 and 21 as well, for instances that need them; this host keeps only the current one.
       (prismlauncher.override {jdks = [jdk25];})
       wrapped.ghostty
@@ -25,9 +22,6 @@
       imagemagick
       megatools
       mole-cleaner
-      nodejs
-      pkgconf
-      uv
     ];
   };
 }
