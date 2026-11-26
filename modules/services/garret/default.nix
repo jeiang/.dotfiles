@@ -1,0 +1,364 @@
+{
+  self,
+  inputs,
+  ...
+}: let
+  # The SQLite index is the only record of what is in the S3 bucket.
+  # pusher.nix's default dbPath lives in its StateDirectory.
+  dataDir = "/var/lib/garret";
+  # Written by the Pusher, which can create files only beside the database.
+  backupFile = "${dataDir}/backup.db";
+
+  watermarks = {
+    high = 0.95;
+    low = 0.85;
+  };
+
+  pullerPort = 8081;
+  pusherPort = 8082;
+  pusherMetricsPort = 9091;
+  hostname = self.lib.cacheHostname;
+  pushHostname = self.lib.cachePushHostname;
+  pullerMetricsPort = 9092;
+
+  client = {pkgs, ...}: {
+    environment.systemPackages = [inputs.garret.packages.${pkgs.stdenv.hostPlatform.system}.garret];
+  };
+in {
+  flake.lib.garretHighWatermark = watermarks.high;
+
+  shared.modules.workstation = client;
+  # The login token; without it every artemis boot makes `just prepush` wait for a device approval.
+  nixos.modules.workstation.persistence.data.directories = [
+    {
+      directory = ".config/garret";
+      mode = "0700";
+    }
+  ];
+
+  monitoring = {
+    scrape.garret = {
+      type = "cache";
+      settings.static_configs = map (component: {
+        targets = self.lib.monitoringTargets "garret" "${component}-metrics" "";
+        labels = {
+          type = "cache";
+          inherit component;
+        };
+      }) ["pusher" "puller"];
+    };
+
+    # /ready/deep reads a byte of a real NAR through a presigned URL,
+    # so revoked S3 credentials or an S4 outage fail it; the Pusher's
+    # service port is fully token-gated, so its probe targets the
+    # metrics listener's /healthz instead.
+    probes = {
+      garret-puller = {
+        module = "http_2xx";
+        tier = "warning";
+        targets = self.lib.monitoringTargets "garret" "puller" "/ready/deep";
+      };
+      garret-pusher = {
+        module = "http_2xx";
+        tier = "warning";
+        targets = self.lib.monitoringTargets "garret" "pusher-metrics" "/healthz";
+      };
+    };
+  };
+
+  gatus.endpoints = {
+    # nix-cache-info is the first request every substituter client makes.
+    "Nix cache" = {
+      group = "Services";
+      url = "https://${hostname}/nix-cache-info";
+    };
+    # The cache renews independently of the edge wildcard.
+    "${hostname} certificate" = {
+      group = "Edge";
+      url = "https://${hostname}/nix-cache-info";
+      interval = "1h";
+      conditions = [
+        "[STATUS] == 200"
+        "[CERTIFICATE_EXPIRATION] > 240h"
+      ];
+    };
+  };
+
+  legion.services.garret = {
+    node = "peria";
+    module = "garret";
+    stateful = true;
+    units = ["garret-pusher" "garret-puller"];
+    ports = {
+      puller = pullerPort;
+      pusher-metrics = pusherMetricsPort;
+      puller-metrics = pullerMetricsPort;
+    };
+    # cache-push takes one streaming PUT of a whole NAR; Cloudflare rejects
+    # bodies over 100 MB.
+    publicHostnames = [hostname pushHostname];
+    publicPorts = [
+      {
+        port = 443;
+        proto = "tcp";
+      }
+    ];
+    backupSet = [backupFile];
+  };
+
+  nixos.modules.garret = {
+    config,
+    lib,
+    pkgs,
+    ...
+  }: let
+    garretAdmin = inputs.garret.packages.${pkgs.stdenv.hostPlatform.system}.garret-admin;
+
+    sopsFile = ./secrets.yaml;
+
+    pocketIdAudience = "384a5193-a040-4025-a8d3-7815d6269ca2";
+
+    # garret grants no read/write tiers -- any accepted token means full
+    # push; the real gate is Pocket ID's per-client group restriction,
+    # hence the empty allowed_groups.
+    pocketIdIssuer = {
+      issuer = self.lib.pocketIdUrl;
+      audience = pocketIdAudience;
+      jwks_url = "${self.lib.pocketIdUrl}/.well-known/jwks.json";
+      allowed_groups = [];
+    };
+
+    # GitHub Actions pushers by repository name: the immutable repository id
+    # and the workflow refs that may push. garret checks the two lists
+    # independently.
+    githubPushers = {
+      ".dotfiles" = {
+        id = "553667153";
+        workflows = ["ci.yml@refs/heads/main"];
+      };
+      garret = {
+        id = "1324491067";
+        workflows = ["ci.yml@refs/heads/main" "ci.yml@refs/tags/v*"];
+      };
+      ripper = {
+        id = "1380302823";
+        workflows = ["release.yml@refs/tags/v*" "ci.yml@refs/heads/main"];
+      };
+      renpy_proj = {
+        id = "1395832586";
+        workflows = ["garret.yml@refs/heads/main" "garret.yml@refs/tags/v*"];
+      };
+      erdtree = {
+        id = "1418336240";
+        workflows = ["nix.yml@refs/heads/master"];
+      };
+      cod4-decomp = {
+        id = "1407988188";
+        workflows = ["nix.yml@refs/heads/main"];
+      };
+    };
+
+    s3 = {
+      bucket = "garret";
+      endpointUrl = "https://s3.ca-montreal.megas4.com";
+      region = "ca-montreal";
+      pathStyle = true;
+      credentialsFile = config.sops.templates."garret-s3.env".path;
+    };
+  in {
+    imports = [
+      inputs.garret.nixosModules.pusher
+      inputs.garret.nixosModules.puller
+      # The watcher module is deliberately not imported: it belongs on
+      # build machines, not the cache host.
+    ];
+
+    services = {
+      garret = {
+        pusher = {
+          enable = true;
+          listen = "0.0.0.0:${toString pusherPort}";
+          metricsListen = "0.0.0.0:${toString pusherMetricsPort}";
+          telemetry = {
+            enable = true;
+            endpoint = self.lib.otlpTracesEndpoint config.networking.hostName;
+            sampleRatio = 1.0;
+          };
+          inherit s3;
+          signingKeyFiles = [config.sops.secrets."garret/signing-key".path];
+
+          # Advertised by /api/v1/discovery; without it `garret login` leaves
+          # every client's use/list/tree unconfigured.
+          pullerEndpoint = "https://${hostname}";
+
+          quotaBytes = 268435456000;
+          inherit watermarks;
+
+          # maxInFlightBytes is the real memory bound (a process-wide
+          # semaphore over part-sized buffers); partSize must stay at or
+          # above S3's 5 MiB multipart minimum.
+          limits = {
+            maxConcurrentUploads = 16;
+            maxInFlightBytes = 402653184; # 384 MiB
+            partSize = 33554432; # 32 MiB
+            maxPartsInFlight = 2;
+          };
+
+          # Read-only audit; findings alert via GarretFsckFindings.
+          fsck.calendar = "Sun 04:17";
+
+          oidc = [
+            {
+              issuer = "https://token.actions.githubusercontent.com";
+              audience = "https://${pushHostname}/";
+              jwks_url = "https://token.actions.githubusercontent.com/.well-known/jwks";
+              # Immutable owner id, not the name: names are renameable.
+              github_owner_id = "31970261";
+              # Release tags are unprotected, so ref_protected stays unset.
+              ref_patterns = ["refs/heads/main" "refs/heads/master" "refs/tags/v*"];
+              repository_ids = lib.mapAttrsToList (_: repo: repo.id) githubPushers;
+              event_names = ["push" "workflow_dispatch"];
+              job_workflow_refs = lib.concatLists (lib.mapAttrsToList (name: repo: map (workflow: "jeiang/${name}/.github/workflows/${workflow}") repo.workflows) githubPushers);
+              allowed_groups = [];
+            }
+            # Exactly one issuer may set client_id (discovery advertises the
+            # first that does, and it must be the human one; the Puller's
+            # browseOidc submodule rejects the option entirely). Pocket ID
+            # uses the client id as the audience, hence the same value twice.
+            (pocketIdIssuer // {client_id = pocketIdAudience;})
+          ];
+        };
+
+        puller = {
+          enable = true;
+          listen = "0.0.0.0:${toString pullerPort}";
+          metricsListen = "0.0.0.0:${toString pullerMetricsPort}";
+          telemetry = {
+            enable = true;
+            endpoint = self.lib.otlpTracesEndpoint config.networking.hostName;
+            sampleRatio = 1.0;
+          };
+          # Its own key, limited to GetObject on the bucket: the Puller only
+          # presigns GETs, so this public-facing process cannot write or
+          # delete cache objects.
+          s3.credentialsFile = config.sops.templates."garret-puller-s3.env".path;
+          # narinfo and NAR routes stay anonymous; only the browse API is
+          # gated.
+          browseOidc = pocketIdIssuer;
+        };
+      };
+
+      caddy = {
+        globalConfig = ''
+          servers {
+            protocols h1 h2
+          }
+        '';
+        enable = true;
+        # appsec is not available here, and clients legitimately fetch in
+        # high-volume bursts. garret closes a connection idle for 30 s, so
+        # Caddy must drop its pooled upstream connections first or reuse one
+        # mid-close (502).
+        virtualHosts.${hostname}.extraConfig = ''
+          tracing
+          reverse_proxy 127.0.0.1:${toString pullerPort} {
+            transport http {
+              keepalive 20s
+            }
+          }
+        '';
+        virtualHosts.${pushHostname}.extraConfig = ''
+          tracing
+          reverse_proxy 127.0.0.1:${toString pusherPort} {
+            transport http {
+              keepalive 20s
+              read_timeout 15m
+              write_timeout 15m
+              response_header_timeout 15m
+            }
+          }
+        '';
+      };
+    };
+
+    systemd = {
+      # The Pusher creates a missing database, and its startup orphan sweep
+      # then deletes every bucket object older than 24 h. A missing index
+      # must leave garret stopped until the operator restores one or creates
+      # an empty one on purpose (docs/runbooks/garret.md).
+      services = let
+        indexPresent = {ConditionPathExists = config.services.garret.pusher.dbPath;};
+      in {
+        # garret's sizing rule: 2 x maxInFlightBytes plus a decoder window and
+        # preamble per concurrent upload, plus headroom.
+        garret-pusher = {
+          unitConfig = indexPresent;
+          serviceConfig.MemoryMax = "960M";
+        };
+        garret-puller = {
+          unitConfig = indexPresent;
+          serviceConfig.MemoryMax = "192M";
+        };
+        # Ordering only: a backup must never start a Pusher stopped for a restore.
+        restic-backups-garret.after = ["garret-pusher.service"];
+        caddy.environment =
+          self.lib.otlpTracesEnv config.networking.hostName "caddy-garret"
+          // {
+            # Caddy is the root span for cache traffic; garret is ParentBased and follows it.
+            OTEL_TRACES_SAMPLER = "parentbased_traceidratio";
+            OTEL_TRACES_SAMPLER_ARG = "0.05";
+          };
+      };
+    };
+
+    environment.systemPackages = [garretAdmin];
+
+    backups.jobs.garret = {
+      # The root disk holds the only live index, so the interval is the pushes a lost node forgets.
+      schedule = {
+        onCalendar = "00/6:00";
+        randomizedDelaySec = "15m";
+      };
+      # An online copy, so the backup never stops the cache. The Pusher never
+      # overwrites a file, hence the rm. The Pusher is Type=notify and signals
+      # ready only once the admin socket exists, so ordering after its unit
+      # is enough.
+      pauseUnits = [];
+      prepareCommand = let
+        socket = config.services.garret.pusher.adminSocketPath;
+      in ''
+        rm -f ${backupFile}
+        ${lib.getExe' garretAdmin "garret-admin"} --socket ${socket} backup ${backupFile}
+      '';
+    };
+
+    sops = {
+      secrets = {
+        "garret/s3-access-key-id" = {inherit sopsFile;};
+        "garret/s3-secret-access-key" = {inherit sopsFile;};
+        "garret/puller-s3-access-key-id" = {inherit sopsFile;};
+        "garret/puller-s3-secret-access-key" = {inherit sopsFile;};
+        "garret/signing-key" = {
+          inherit sopsFile;
+          owner = "garret";
+          restartUnits = ["garret-pusher.service"];
+        };
+      };
+
+      templates."garret-s3.env" = {
+        restartUnits = ["garret-pusher.service"];
+        content = ''
+          AWS_ACCESS_KEY_ID=${config.sops.placeholder."garret/s3-access-key-id"}
+          AWS_SECRET_ACCESS_KEY=${config.sops.placeholder."garret/s3-secret-access-key"}
+        '';
+      };
+      templates."garret-puller-s3.env" = {
+        restartUnits = ["garret-puller.service"];
+        content = ''
+          AWS_ACCESS_KEY_ID=${config.sops.placeholder."garret/puller-s3-access-key-id"}
+          AWS_SECRET_ACCESS_KEY=${config.sops.placeholder."garret/puller-s3-secret-access-key"}
+        '';
+      };
+    };
+  };
+}

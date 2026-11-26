@@ -1,0 +1,98 @@
+{inputs, ...}: {
+  nixos.modules.workstation = {
+    persistence.data.directories = [".local/share/fish" ".local/share/zoxide" ".config/fish"];
+    backups.persist.homePaths = [".local/share/fish"];
+  };
+
+  perSystem = {
+    pkgs,
+    lib,
+    self',
+    ...
+  }: let
+    donefish = pkgs.fetchurl {
+      url = "https://raw.githubusercontent.com/franciscolourenco/done/b86292a52a2b8f646ef8d25daa3cc01ccab60b62/conf.d/done.fish";
+      hash = "sha256-SqaOGBBJZlCd0L/W9zeEI+ISeB0GdNroX9OLHTDjA3I=";
+    };
+    fishConf =
+      pkgs.writeText "fishy-fishy"
+      # fish
+      ''
+        function fish_greeting
+          ${lib.optionalString (!pkgs.stdenv.hostPlatform.isDarwin) "nitch"}
+        end
+
+        # Upstream's cd-on-exit wrapper; yazi only writes the directory, the shell has to follow it.
+        function y
+          set tmp (mktemp -t "yazi-cwd.XXXXXX")
+          command yazi $argv --cwd-file="$tmp"
+          if read -z cwd < "$tmp"; and [ "$cwd" != "$PWD" ]; and test -d "$cwd"
+              builtin cd -- "$cwd"
+          end
+          command rm -f -- "$tmp"
+        end
+        ${lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
+
+          # The sandboxed Mac App Store Bitwarden puts its SSH agent socket under the container path, not ~/.bitwarden-ssh-agent.sock.
+          set -gx SSH_AUTH_SOCK $HOME/Library/Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock
+
+          # macOS login shells start from path_helper's PATH, and this fish is deliberately not programs.fish (which normally injects the nix profile paths).
+          fish_add_path --global --move --path $HOME/.nix-profile/bin /etc/profiles/per-user/$USER/bin /run/current-system/sw/bin /nix/var/nix/profiles/default/bin
+          # The same profiles' fish completions, ahead of the man-page generated_completions entry that fish puts last.
+          set fish_complete_path $fish_complete_path[1..-2] {$HOME/.nix-profile,/etc/profiles/per-user/$USER,/run/current-system/sw,/nix/var/nix/profiles/default}/share/fish/vendor_completions.d $fish_complete_path[-1]
+          # Homebrew's shellenv is never sourced either; keep it behind the nix paths.
+          fish_add_path --global --append --path /opt/homebrew/bin /opt/homebrew/sbin
+
+          # DIRENV_CONFIG only reaches shells sourcing nix-darwin's set-environment, which this wrapped fish never does; without it direnv skips the nix-direnv loader.
+          set -gx DIRENV_CONFIG /etc/direnv
+        ''}
+        status is-interactive; and begin
+          # gpg's curses pinentry needs the terminal; NixOS only exports this through programs.fish, which this fish does not use.
+          set -gx GPG_TTY (tty)
+          source ${donefish}
+          zoxide init fish --cmd cd | source
+          fzf --fish | source
+          atuin init fish | source
+          if test "$TERM" != dumb
+              starship init fish | source
+              function starship_transient_prompt_func
+                  starship module character $argv
+              end
+              enable_transience
+          end
+
+          command -q direnv; and direnv hook fish | source
+
+          alias eza 'eza --icons auto --git'
+          alias l 'eza -alhgF always'
+          alias la 'eza -a'
+          alias ll 'eza -l'
+          alias lla 'eza -la'
+          alias ls eza
+          alias lt 'eza --tree'
+          alias mv 'mv -i'
+        end
+      '';
+  in {
+    packages.fish =
+      inputs.wrapper-modules.lib.wrapPackage
+      {
+        inherit pkgs;
+        package = pkgs.fish;
+        runtimePkgs = with pkgs;
+          [
+            self'.packages.starship
+            self'.packages.atuin
+            eza
+            fzf
+            jq
+            zoxide
+          ]
+          # nitch is Linux-only in the pinned nixpkgs.
+          ++ lib.optional (!pkgs.stdenv.hostPlatform.isDarwin) nitch;
+        flags = {
+          "-C" = "source ${fishConf}";
+        };
+      };
+  };
+}

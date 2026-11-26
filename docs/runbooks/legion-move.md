@@ -21,9 +21,10 @@ the old repository with `-r`.
 2. If the service has a public port on a Hetzner node, add it to the
     `legion` Cloud Firewall before deploying (`just hcloud-drift` shows the
     difference).
-3. The NetBird policies in `modules/netbird-management` open the ports in
-    its `meshFlows` between any Legion machines. If the move makes a port
-    cross the mesh (one end off the Hetzner private network), add it there;
+3. The NetBird policies in `modules/netbird/management` open every
+    `netbird.meshFlows` port between any Legion machines. If the move makes a
+    port cross the mesh (one end off the Hetzner private network), add a
+    `netbird.meshFlows` entry in the service's feature file;
     `just netbird-plan` shows the change.
 4. If the service has `publicHostnames`, run `just dns-nodes` and commit
     `dns/nodes.json`; the `legion-nodes-json` check fails until it matches.

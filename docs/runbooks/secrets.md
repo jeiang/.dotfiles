@@ -7,7 +7,7 @@ approval.
 - sops-nix on every host, zakkart included. One shard per consuming module,
   encrypted to the admin key and exactly the hosts that run the consumer. A
   host's recipient is its ed25519 host key through `ssh-to-age`, declared in
-  `modules/sops/default.nix`. There is no `defaultSopsFile`, so a secret
+  `modules/base/sops/default.nix`. There is no `defaultSopsFile`, so a secret
   without a shard fails evaluation.
 - `.sops.yaml` is generated from the `sops.secrets` each host declares; do
   not edit it. To add a shard, declare the secret in its consumer, run
@@ -27,5 +27,5 @@ approval.
   `sysinit.target` or reads a secret in an activation script needs its own
   ordering or a start-time copy (alda's `systemd-networkd`). Secrets with
   `neededForUsers` still install from an activation script.
-- `modules/sops/secrets.admin.yaml` is the admin's own stash. No module
+- `modules/base/sops/secrets.admin.yaml` is the admin's own stash. No module
   consumes it.

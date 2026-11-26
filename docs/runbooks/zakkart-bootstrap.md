@@ -46,7 +46,7 @@ cd ~/Projects/cornn-flaek
 upstream nix-darwin flake; the system config still comes from `--flake
 .#zakkart`, i.e. this repo.
 
-The substituters in `modules/nix.nix` only take effect once
+The substituters in `modules/base/nix.nix` only take effect once
 activation has written `/etc/nix/nix.custom.conf`, so pass them explicitly
 or this first build compiles everything from source:
 
@@ -70,7 +70,7 @@ just nh darwin switch
 Don't reach for `brew trust` by hand. Homebrew >= 6.0 requires unofficial
 taps to be trusted before their formulae/casks load, and the generated
 Brewfile already declares `trusted: true` for every tap
-(`modules/homebrew.nix`) — all pinned flake inputs, so it trusts
+(`modules/darwin/homebrew.nix`) — all pinned flake inputs, so it trusts
 exactly the revisions in `flake.lock`. The `cleanup = "zap"` pass resets
 Homebrew's trust file to the Brewfile on every activation anyway.
 
@@ -84,13 +84,13 @@ its SSH agent in Settings. The socket appears at:
 ```
 
 `SSH_AUTH_SOCK` points there unconditionally on darwin
-(`modules/packages/fish.nix`), so a fresh shell picks it up as soon as the
+(`modules/shell/fish.nix`), so a fresh shell picks it up as soon as the
 socket exists.
 
 ## 7. Wallpaper rotation
 
 Activation symlinks `~/Pictures/Wallpapers` to the recolored wallpaper set
-(`modules/macos-defaults.nix`). The rotation itself is a macOS setting
+(`modules/darwin/macos-defaults.nix`). The rotation itself is a macOS setting
 nothing scriptable reaches, so set it once by hand:
 
 System Settings > Wallpaper > Add Photo (the "+" under the wallpaper
@@ -106,12 +106,12 @@ switch are in [`wallpaper.md`](wallpaper.md).
 ```sh
 dscl . -read /Users/aidanp UserShell   # should end in .../bin/fish (the wrapped environment package)
 echo $SSH_AUTH_SOCK                     # .../Containers/com.bitwarden.desktop/Data/.bitwarden-ssh-agent.sock
-brew list --cask                        # matches modules/homebrew.nix's `casks`
+brew list --cask                        # matches modules/darwin/homebrew.nix's `casks`
 brew list --formula                     # matches `brews`
 mas list                                # Yubico Authenticator and Xcode; Spotlight may omit Bitwarden and Wipr 2
 ```
 
-NetBird is nix-managed (`modules/netbird-client.nix`): nix-darwin's
+NetBird is nix-managed (`modules/netbird/client-darwin.nix`): nix-darwin's
 `services.netbird` runs the daemon from `packages.netbird`, and the app is
 `packages.netbird-ui`, in `/Applications/Nix Apps/NetBird.app`. Open the app
 and sign in (or run `netbird up`), then check:
@@ -123,4 +123,4 @@ sudo launchctl print system/org.nixos.netbird # state = running
 
 The app starts at login from the `org.nixos.netbird-ui` user agent, so leave
 its own "Launch at login" setting off. Upgrades come with the netbird pin in
-`modules/packages/netbird.nix`.
+`modules/netbird/package.nix`.

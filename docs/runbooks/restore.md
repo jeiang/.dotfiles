@@ -78,7 +78,7 @@ Only after the scratch copy passes, and only to recover from data loss.
 ## Minecraft worlds
 
 Minecraft on artemis selects its world with `level-name` in
-`modules/minecraft.nix`. To start a fresh world, set a new, unused
+`modules/gaming/minecraft.nix`. To start a fresh world, set a new, unused
 `level-name` and the requested `level-seed`, then deploy artemis. Changing
 only the seed does not regenerate an existing world.
 

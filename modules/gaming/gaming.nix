@@ -1,0 +1,102 @@
+{self, ...}: {
+  # Any module registers units it can spare; only a host with the gaming aspect pauses them.
+  nixos.modules.base = {lib, ...}: {
+    options.gaming.pauseUnits = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      description = ''
+        Units stopped while a game runs and started again when it ends.
+      '';
+    };
+  };
+
+  nixos.modules.gaming = {
+    config,
+    lib,
+    pkgs,
+    ...
+  }: {
+    users.users.${self.lib.facts.userName}.extraGroups = ["gamemode"];
+
+    environment.systemPackages = with pkgs; [
+      self.packages.${pkgs.stdenv.hostPlatform.system}.mangohud
+      (prismlauncher.override {
+        # ffmpeg required by some mod
+        additionalPrograms = [ffmpeg];
+
+        jdks = [jdk25];
+      })
+      umu-launcher
+    ];
+    programs = {
+      gamescope.enable = true;
+      gamemode = {
+        enable = true;
+        settings = {
+          general.renice = 10;
+          gpu = {
+            apply_gpu_optimisations = "accept-responsibility";
+            gpu_device = self.lib.artemisDgpuDevice.cardIndex;
+            amd_performance_level = "high";
+          };
+          custom = let
+            units = lib.escapeShellArgs config.gaming.pauseUnits;
+          in {
+            start = "systemctl --no-ask-password stop ${units}";
+            end = "systemctl --no-ask-password start ${units}";
+          };
+        };
+      };
+      steam = {
+        enable = true;
+        extest.enable = true;
+        protontricks.enable = true;
+        extraCompatPackages = with pkgs; [
+          proton-ge-bin
+        ];
+      };
+    };
+    # gamemoded runs the custom scripts as the operator with no terminal, so polkit grants exactly these start/stop calls.
+    security.polkit.extraConfig = ''
+      polkit.addRule(function(action, subject) {
+        var units = ${builtins.toJSON config.gaming.pauseUnits};
+        var verb = action.lookup("verb");
+        if (action.id == "org.freedesktop.systemd1.manage-units"
+            && subject.user == "${self.lib.facts.userName}"
+            && units.indexOf(action.lookup("unit")) >= 0
+            && (verb == "start" || verb == "stop")) {
+          return polkit.Result.YES;
+        }
+      });
+    '';
+    hardware.graphics = {
+      enable = true;
+      enable32Bit = true;
+    };
+    services.ananicy = {
+      enable = true;
+      package = pkgs.ananicy-cpp;
+      rulesProvider = pkgs.ananicy-cpp;
+      extraRules = [
+        {
+          "name" = "gamescope";
+          "nice" = -20;
+        }
+      ];
+    };
+
+    persistence = {
+      data.directories = [
+        ".local/share/Steam"
+        ".config/PrismLauncher"
+        ".local/share/PrismLauncher"
+        ".local/share/rivalsmodmanager"
+      ];
+      cache.directories = [
+        ".cache/PrismLauncher"
+        ".cache/protontricks"
+      ];
+    };
+    backups.persist.homePaths = [".local/share/PrismLauncher"];
+  };
+}

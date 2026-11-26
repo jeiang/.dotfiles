@@ -2,7 +2,7 @@
 
 Operator runbook for the NetBird groups, access policies, networks, DNS,
 setup key, users' groups, service users, and account settings declared in
-`modules/netbird-management/`. Review [`AGENTS.md`](../../AGENTS.md) before
+`modules/netbird/management/`. Review [`AGENTS.md`](../../AGENTS.md) before
 running any command here.
 
 nb-nix (`github:jeiang/nb-nix`, pinned in `flake.lock`) compares that
@@ -13,7 +13,8 @@ version.
 
 ## Make a change
 
-1. Edit `modules/netbird-management/default.nix`.
+1. Edit `modules/netbird/management/default.nix`, or the `netbird.meshFlows`
+    entry of the feature that owns a mesh port.
 2. `just netbird-plan` prints what would change and writes
     `.netbird-plan.json`. It only reads.
 3. `just netbird-apply` applies that plan. Deletes, address changes, group
@@ -21,43 +22,43 @@ version.
     after reading them in the plan. Apply refuses a plan whose objects
     changed on the server since it was made; plan again.
 
-Both use the nb-nix admin token from `modules/sops/secrets.admin.yaml`, or
+Both use the nb-nix admin token from `modules/base/sops/secrets.admin.yaml`, or
 the file in `NETBIRD_TOKEN_FILE` when set.
 
 ## Rex remote terminals
 
-Rex listens on each server's NetBird IPv4 address on TCP port 7297. In the
-Mac or iOS client, add `http://<mesh-address>:7297` as a remote host.
-Connections run as the operator's account. Rex does not authenticate these
-connections: the `Admin to Legion` policy must restrict access to
-`infra_admin`, and the host firewall rejects traffic from other interfaces.
-Any peer allowed to reach the port has full access to that account.
+Rex connects over SSH; nothing listens but sshd. In the Mac or iOS client,
+add `ssh://aidanp@<host>` as a remote host: `<node>.svr.jeiang.dev`,
+`artemis.jeiang.vpn`, or `zakkart.jeiang.vpn`. The client logs in with the
+operator's SSH key and starts the account's Rex server if none runs.
+Lingering keeps that server and its sessions after the last logout. The
+iPhone reaches zakkart through the `Admin Devices` policy.
 
-The pinned Rex snapshot can change protocol compatibility when updated.
-Upgrading the server can end sessions; check the Rex client and server
-versions together. On artemis, `~/.local/state/rex` is persisted but is
-not included in the backup allowlist.
+The NixOS hosts run the `rex` input's version; zakkart runs the version
+the Rex app installs, linked at `~/.local/bin/rex`. Check the client and
+server versions together after an update. On artemis, `~/.local/state/rex`
+is persisted but is not included in the backup allowlist.
 
 ## Tokens
 
 | Service user | Role | Token | Lives in |
 | --- | --- | --- | --- |
-| `nb-nix` | admin | `deploy` | `modules/sops/secrets.admin.yaml`, `["netbird"]["nb-nix-token"]` |
+| `nb-nix` | admin | `deploy` | `modules/base/sops/secrets.admin.yaml`, `["netbird"]["nb-nix-token"]` |
 | `cornn-flaek CI checks` | auditor | `CI Token` | GitHub secret `NETBIRD_READ_TOKEN` |
 
 Tokens last 365 days. Within 30 days of expiry the plan shows a risky
 replace; `just netbird-apply --allow-risky` creates the new token, writes it
 to its place (`sops set` or `gh secret set`), and deletes the old one. The
 weekly drift workflow fails during those 30 days, which is the reminder.
-After renewing the `nb-nix` token, commit `modules/sops/secrets.admin.yaml`.
+After renewing the `nb-nix` token, commit `modules/base/sops/secrets.admin.yaml`.
 
 If the `nb-nix` token is lost or expired, sign in to the dashboard, create a
 token for the `nb-nix` service user, and store it with
-`sops set modules/sops/secrets.admin.yaml '["netbird"]["nb-nix-token"]' '"<token>"'`.
+`sops set modules/base/sops/secrets.admin.yaml '["netbird"]["nb-nix-token"]' '"<token>"'`.
 
 ## Pocket ID outage
 
-Local login is off (`localAuthDisabled` in `modules/netbird-server/`), so
+Local login is off (`localAuthDisabled` in `modules/netbird/server/`), so
 the dashboard needs Pocket ID. The API does not: `just netbird-plan` and
 `just netbird-apply` keep working. Existing peers stay connected until
 their login expires. To use the dashboard without Pocket ID, set
@@ -76,4 +77,4 @@ command runs detached on artemis:
     enrolls as a new `artemis` peer in `Legion` with a new address. If it
     does not come back, reach it from `alda` at `10.100.0.2`.
 3. `just netbird-plan` shows the address change back to the one in
-    `modules/netbird-peers.nix`; apply it with `--allow-risky`.
+    `modules/netbird/peers.nix`; apply it with `--allow-risky`.

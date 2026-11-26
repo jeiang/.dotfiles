@@ -1,11 +1,11 @@
 # NETBIRD_READ_TOKEN is an Auditor-role personal access token: read-only
 # across the whole management API, never a mutating call. nb-nix renews it
-# (modules/netbird-management) and writes the new one here with `gh secret set`.
+# (modules/netbird/management) and writes the new one here with `gh secret set`.
 name: NetBird Drift
 
 on:
   schedule:
-    # Weekly drift check: live NetBird state against modules/netbird-management.
+    # Weekly drift check: live NetBird state against modules/netbird/management.
     - cron: "27 6 * * 1"
   workflow_dispatch:
 

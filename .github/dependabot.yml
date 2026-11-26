@@ -10,3 +10,32 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+  - package-ecosystem: nix
+    directory: /
+    schedule:
+      interval: daily
+    # Both rebuild the artemis kernel; they are bumped by hand.
+    ignore:
+      - dependency-name: nixpkgs
+      - dependency-name: nix-cachyos-kernel
+    groups:
+      # jeiang-owned inputs, merged by dependabot-automerge.yml.
+      own:
+        patterns:
+          - agent-skills
+          - bill-splitter
+          - character-randomizer
+          - erdtree
+          - garret
+          - markdown-table-live-editor
+          - mini-md-view
+          - nanolight
+          - nanoview
+          - nb-nix
+          - pi-extensions
+          - pi-subagents
+          - renpy-proj
+          - ripper
+          - website
+      third-party:
+        patterns: ["*"]

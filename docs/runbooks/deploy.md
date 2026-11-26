@@ -8,7 +8,7 @@ user's approval for that action and target.
 
 - Deploy only after the pull request is merged and CI has pushed the
   closures to garret, so targets substitute instead of building.
-- Every NixOS host upgrades itself (`modules/auto-upgrade.nix`). A `main`
+- Every NixOS host upgrades itself (`modules/base/auto-upgrade.nix`). A `main`
   run reports each host's system as the commit status `system/<host>` once
   garret holds it. `auto-upgrade.service` runs hourly, ten minutes apart
   per host. When the status differs from the running system, it evaluates

@@ -27,7 +27,7 @@ in {
   legion.services.caddy = {
     node = "alda";
     module = "edge";
-    units = ["caddy" "website-update"];
+    units = ["caddy"];
     ports.metrics = metricsPort;
     ports.https = httpsPort;
     publicPorts = [
@@ -42,6 +42,47 @@ in {
     ];
   };
 
+  netbird.meshFlows.caddy = [{port = httpsPort;}];
+
+  monitoring.scrape.caddy = {
+    type = "edge";
+    targets = self.lib.monitoringTargets "caddy" "metrics" "";
+  };
+
+  gatus.endpoints = let
+    # Status alone passes an empty 200.
+    home = host: {
+      group = "Web";
+      url = "https://${host}";
+      conditions = ["[STATUS] == 200" "[BODY] == pat(*Aidan Pinard - Home*)"];
+    };
+  in
+    {
+      Website = home apex;
+      "aidanpinard.co" = home "aidanpinard.co";
+      "pinard.co.tt" = home "pinard.co.tt";
+    }
+    // lib.mapAttrs' (_: site:
+      lib.nameValuePair site.title {
+        group = "Web";
+        url = "https://${site.hostname}";
+      })
+    toolSites
+    // {
+      # netbird.jeiang.dev is grey-clouded (DNS-only), so this reads
+      # Caddy's own *.jeiang.dev wildcard cert directly, not
+      # Cloudflare's edge cert as a proxied hostname would.
+      "TLS certificate" = {
+        group = "Edge";
+        url = "https://${self.lib.netbirdDomain}/oauth2/.well-known/openid-configuration";
+        interval = "1h";
+        conditions = [
+          "[STATUS] == 200"
+          "[CERTIFICATE_EXPIRATION] > 240h"
+        ];
+      };
+    };
+
   nixos.modules.edge = {
     config,
     lib,
@@ -51,15 +92,8 @@ in {
     host = config.networking.hostName;
     system = pkgs.stdenv.hostPlatform.system;
     upstream = service: port: "${self.lib.serviceAddress host service}:${toString legionServices.${service}.ports.${port}}";
-    atrium = "${self.lib.netbirdPeers.artemis}:${toString self.lib.atriumWebPort}";
 
-    websiteUpdateDir = "/var/lib/website-update";
-
-    # website-update builds upstream main into this GC root, so the site's
-    # owner's changes land without a flake bump. The pinned input serves
-    # until the first build exists.
-    website = "${websiteUpdateDir}/current";
-    pinnedWebsite = inputs.website.packages.${system}.default;
+    website = inputs.website.packages.${system}.default;
 
     serveRoot = root: ''
       root * ${root}
@@ -213,29 +247,6 @@ in {
             };
           };
 
-          # Sites below are deliberately ungated: their clients are machines,
-          # for which a proof-of-work interstitial is an outage.
-
-          ${self.lib.pocketIdHostname}.config = "reverse_proxy ${upstream "pocket-id" "app"}";
-
-          ${self.lib.grafanaHostname}.config = "reverse_proxy ${upstream "monitoring" "grafana"}";
-
-          # Ungated deliberately: it reports on Pocket ID, so SSO (or
-          # netbird-proxy, which authenticates against it) would take the
-          # outage report down with the outage. appsec skipped, fail-open.
-          ${self.lib.statusHostname} = {
-            appsec = false;
-            config = "reverse_proxy ${upstream "gatus" "app"}";
-          };
-
-          ${self.lib.atriumHostname}.config = ''
-            tracing
-            # atrium trusts this header only from alda (web.trustedProxyCidrs).
-            reverse_proxy ${atrium} {
-              header_up Cf-Connecting-Ip {client_ip}
-            }
-          '';
-
           ${toolSites.bill-split.hostname} = {
             content = true;
             config = serveRoot "${inputs.bill-splitter.packages.${system}.default}/dist";
@@ -331,61 +342,9 @@ in {
         };
       };
 
-      systemd = {
-        services = {
-          caddy = {
-            serviceConfig.MemoryMax = "256M";
-            environment = self.lib.otlpTracesEnv host "caddy-edge";
-          };
-
-          # The build runs unprivileged, so third-party flake evaluation
-          # never runs as root. Caddy and Anubis read the root per request,
-          # so repointing the GC root needs no restart.
-          website-update = {
-            description = "Build the website from upstream main";
-            after = ["network-online.target"];
-            wants = ["network-online.target"];
-            path = [config.nix.package];
-            serviceConfig = {
-              Type = "oneshot";
-              User = config.services.caddy.user;
-              Group = config.services.caddy.group;
-              WorkingDirectory = websiteUpdateDir;
-              StateDirectory = "website-update";
-            };
-            script = ''
-              set -euo pipefail
-              export HOME=${websiteUpdateDir}
-              nix build --refresh --out-link current github:jeiang/website
-            '';
-          };
-
-          # Keeps the GC root at the pinned input until the first build
-          # exists, so Caddy never serves a missing root.
-          website-fallback = {
-            description = "Point the website GC root at the pinned input until the first build";
-            wantedBy = ["multi-user.target"];
-            before = ["caddy.service"];
-            serviceConfig = {
-              Type = "oneshot";
-              User = config.services.caddy.user;
-              Group = config.services.caddy.group;
-              StateDirectory = "website-update";
-            };
-            script = ''
-              [ -e ${websiteUpdateDir}/current ] || ln -s ${pinnedWebsite} ${websiteUpdateDir}/current
-            '';
-          };
-        };
-
-        timers.website-update = {
-          wantedBy = ["timers.target"];
-          timerConfig = {
-            OnCalendar = "*-*-* 00:00:00 UTC";
-            Persistent = true;
-            OnActiveSec = "2m";
-          };
-        };
+      systemd.services.caddy = {
+        serviceConfig.MemoryMax = "256M";
+        environment = self.lib.otlpTracesEnv host "caddy-edge";
       };
     };
   };

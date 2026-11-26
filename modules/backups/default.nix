@@ -85,11 +85,10 @@
     };
   };
 in {
-  flake.lib.backupCopyPort = copyPort;
+  netbird.meshFlows.backups = [{port = copyPort;}];
 
   nixos.modules = {
     # The backup-freshness alert reads the timers' last trigger.
-    base.monitoredUnits = ["restic-backups-*.service" "restic-backups-*.timer" "restic-maintenance-*.service" "restic-maintenance-*.timer" "restic-copy-*.service"];
 
     legion = {
       config,
@@ -231,29 +230,10 @@ in {
       };
     };
 
-    artemis = {
-      config,
-      lib,
-      pkgs,
-      ...
-    }: let
-      cfg = config.backups.persist;
+    # Any module registers persisted paths to back up; only artemis backs up /persist.
+    base = {lib, ...}: {
+      config.monitoredUnits = ["restic-backups-*.service" "restic-backups-*.timer" "restic-maintenance-*.service" "restic-maintenance-*.timer" "restic-copy-*.service"];
 
-      repository = "s3:${s4Endpoint}/artemis-restic-backups/persist";
-      btrfs = "${pkgs.btrfs-progs}/bin/btrfs";
-
-      # A live path's place under /persist, found through the persistence entry
-      # it is, lies inside, or contains; null when no entry covers it.
-      storedPath = path: let
-        covering = lib.filter (e: e.live == path || lib.hasPrefix "${e.live}/" path || lib.hasPrefix "${path}/" e.live) config.persistence.entries;
-        roots = lib.unique (map (e: e.root) covering);
-      in
-        if lib.length roots == 1
-        then lib.removePrefix "/persist/" (lib.head roots + path)
-        else null;
-      inSnapshot = path: "${cfg.snapshot}/${toString (storedPath path)}";
-      stopUnits = lib.concatStringsSep " " cfg.stopUnits;
-    in {
       options.backups.persist = {
         paths = lib.mkOption {
           type = lib.types.listOf lib.types.str;
@@ -278,6 +258,33 @@ in {
           default = [];
           description = "Units stopped while the read-only snapshot is taken.";
         };
+      };
+    };
+
+    artemis = {
+      config,
+      lib,
+      pkgs,
+      ...
+    }: let
+      cfg = config.backups.persist;
+
+      repository = "s3:${s4Endpoint}/artemis-restic-backups/persist";
+      btrfs = "${pkgs.btrfs-progs}/bin/btrfs";
+
+      # A live path's place under /persist, found through the persistence entry
+      # it is, lies inside, or contains; null when no entry covers it.
+      storedPath = path: let
+        covering = lib.filter (e: e.live == path || lib.hasPrefix "${e.live}/" path || lib.hasPrefix "${path}/" e.live) config.persistence.entries;
+        roots = lib.unique (map (e: e.root) covering);
+      in
+        if lib.length roots == 1
+        then lib.removePrefix "/persist/" (lib.head roots + path)
+        else null;
+      inSnapshot = path: "${cfg.snapshot}/${toString (storedPath path)}";
+      stopUnits = lib.concatStringsSep " " cfg.stopUnits;
+    in {
+      options.backups.persist = {
         # Read-only btrfs snapshot of /persist that restic reads, so it never
         # reads a file while it is written.
         snapshot = lib.mkOption {
@@ -382,7 +389,7 @@ in {
     };
   };
 
-  darwin.modules.base = {
+  darwin.modules.workstation = {
     config,
     lib,
     pkgs,

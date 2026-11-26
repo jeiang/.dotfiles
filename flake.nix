@@ -27,8 +27,10 @@
     hjem.inputs.nixpkgs.follows = "nixpkgs";
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
-    atrium.url = "github:jeiang/atrium";
-    atrium.inputs.nixpkgs.follows = "nixpkgs";
+    mail-organizer.url = "github:jeiang/mail-organizer";
+    mail-organizer.inputs.nixpkgs.follows = "nixpkgs";
+    media-organizer.url = "github:jeiang/media-organizer";
+    media-organizer.inputs.nixpkgs.follows = "nixpkgs";
     nb-nix.url = "github:jeiang/nb-nix";
     nb-nix.inputs.nixpkgs.follows = "nixpkgs";
     nix-darwin.url = "github:nix-darwin/nix-darwin";
@@ -61,6 +63,8 @@
     agent-skills.inputs.nixpkgs.follows = "nixpkgs";
     # Deliberately no follows: cache.numtide.com only has the agents built against this flake's own nixpkgs pin.
     llm-agents.url = "github:numtide/llm-agents.nix";
+    pi-extensions.url = "github:jeiang/pi-extensions";
+    pi-extensions.inputs.nixpkgs.follows = "nixpkgs";
     mcp-servers-nix.url = "github:natsukium/mcp-servers-nix";
     mcp-servers-nix.inputs.nixpkgs.follows = "nixpkgs";
     wrapper-modules.url = "github:BirdeeHub/nix-wrapper-modules";
@@ -98,6 +102,8 @@
     nanoview.inputs.nixpkgs.follows = "nixpkgs";
     mini-md-view.url = "github:jeiang/mini-md-view";
     mini-md-view.inputs.nixpkgs.follows = "nixpkgs";
+    nanocaffeinate.url = "github:jeiang/nanocaffeinate";
+    nanocaffeinate.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} (inputs.import-tree ./modules);
