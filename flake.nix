@@ -82,8 +82,6 @@
     garret.url = "github:jeiang/garret";
     # Deliberately no follows: ripper's release CI pushes to garret against this input's own nixpkgs pin, and a different pin here would miss that cache and rebuild from source.
     ripper.url = "github:jeiang/ripper";
-    # Deliberately no follows: renpy_proj's CI pushes the player to garret against this input's own nixpkgs pin, and a different pin here would miss that cache and rebuild from source.
-    renpy-proj.url = "github:jeiang/renpy_proj";
     erdtree.url = "github:jeiang/erdtree";
     erdtree.inputs.nixpkgs.follows = "nixpkgs";
     rex.url = "https://pkgs.superlogical.com/rex/nix/snapshot.tar.gz";

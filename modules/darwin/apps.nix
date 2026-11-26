@@ -19,11 +19,9 @@
       bat
       btop
       defaultbrowser
-      # withWhisper off: whisper-cpp's CoreML backend fails to link on this pinned aarch64-darwin toolchain. doCheck off: ffmpeg's FATE suite is impractical for a CI build.
-      ((ffmpeg-full.override {withWhisper = false;}).overrideAttrs (_: {doCheck = false;}))
+      ffmpeg
       gnupg
       pinentry_mac
-      hcloud
       imagemagick
       megatools
       mole-cleaner
