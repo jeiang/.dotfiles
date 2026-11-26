@@ -27,6 +27,14 @@ in {
         url = "http://127.0.0.1:${toString self.lib.qbittorrentWebuiPort}";
         apiKeyFile = self.lib.qbittorrentApiKeyFile;
       };
+      tmdbTokenFile = config.sops.secrets."media-organizer/tmdb-token".path;
+    };
+
+    # Root-owned; the unit reads it as a systemd credential.
+    sops.secrets."media-organizer/tmdb-token" = {
+      sopsFile = ./secrets.yaml;
+      mode = "0400";
+      restartUnits = ["media-organizer.service"];
     };
 
     systemd.services.media-organizer = {
