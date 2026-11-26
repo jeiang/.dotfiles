@@ -26,11 +26,7 @@
 
     homebrew = {
       enable = true;
-      # Homebrew >= 6.0 refuses formulae/casks from unofficial taps unless the Brewfile marks them trusted; manual `brew trust` doesn't survive the cleanup = "zap" pass.
-      taps = map (name: {
-        inherit name;
-        trusted = true;
-      }) (builtins.attrNames config.nix-homebrew.taps);
+      taps = builtins.attrNames config.nix-homebrew.taps;
 
       onActivation = {
         autoUpdate = false;
