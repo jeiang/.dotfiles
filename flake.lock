@@ -1051,11 +1051,11 @@
         "zig-overlay": "zig-overlay"
       },
       "locked": {
-        "lastModified": 1795732769,
-        "narHash": "sha256-3Vb+tzT+uNDKmc+x1vLEuFiWgeURNKcpoTttUKII5zs=",
+        "lastModified": 1795733710,
+        "narHash": "sha256-OxA6uu6ShUHy6Z/nh/Yh1bQm3/JtrjGGiioHhyCoAH8=",
         "owner": "jeiang",
         "repo": "mac-toolkit",
-        "rev": "733a311ea3ea7f891e1a225680d3f2899248ea09",
+        "rev": "33441d11cf1dc8ec22b5a54f32229363a655f53b",
         "type": "github"
       },
       "original": {
