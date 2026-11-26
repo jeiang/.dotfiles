@@ -29,6 +29,8 @@
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
     mail-organizer.url = "github:jeiang/mail-organizer";
     mail-organizer.inputs.nixpkgs.follows = "nixpkgs";
+    media-organizer.url = "github:jeiang/media-organizer";
+    media-organizer.inputs.nixpkgs.follows = "nixpkgs";
     nb-nix.url = "github:jeiang/nb-nix";
     nb-nix.inputs.nixpkgs.follows = "nixpkgs";
     nix-darwin.url = "github:nix-darwin/nix-darwin";
