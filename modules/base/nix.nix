@@ -121,6 +121,8 @@ in {
           extra-trusted-public-keys = keys (caches ++ workstationCaches);
           # @admin, not @wheel: macOS's wheel group has no members besides root.
           extra-trusted-users = ["@admin"];
+          # Nix keeps the .drv of every live path by default, and a live .drv keeps its whole build closure: 20,313 of this host's 28,155 store paths were derivations pinning compilers, sources, and packages no generation runs any more.
+          keep-derivations = false;
         };
     };
 
