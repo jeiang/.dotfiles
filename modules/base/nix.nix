@@ -134,6 +134,18 @@ in {
         }
       ];
     };
+
+    # Deleting generations only frees store space once a GC runs, so the two run together.
+    launchd.daemons.nix-gc = {
+      command = "/nix/var/nix/profiles/default/bin/nix store gc";
+      serviceConfig.StartCalendarInterval = [
+        {
+          Hour = 4;
+          Minute = 0;
+          Weekday = 0;
+        }
+      ];
+    };
   };
 
   nixos.modules = {

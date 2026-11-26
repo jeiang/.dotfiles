@@ -26,12 +26,10 @@ It owns the daemon and `/etc/nix/nix.conf` from here on; nix-darwin's own
 
 ## 3. Sign into the App Store
 
-Sign in before the first activation. Install Bitwarden, Wipr 2 and Xcode from
-the App Store manually. Spotlight does not index Bitwarden and Wipr 2 on this
-Mac, so `mas` would reinstall them on every switch. All three remain in
-`homebrew.masApps` to keep Homebrew cleanup from uninstalling them, but
-activation skips their installation and leaves updates to the App Store.
-Yubico Authenticator is installed by activation.
+Sign in before the first activation. Install Bitwarden, Wipr 2, Xcode and
+Yubico Authenticator from the App Store by hand: Spotlight does not index
+Bitwarden and Wipr 2, so `mas` would reinstall them on every switch, and the
+flake installs no App Store apps.
 
 ## 4. Clone the repo
 
@@ -56,9 +54,8 @@ sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake .#zakkart \
   --option extra-trusted-public-keys "cache.jeiang.dev-1:owXJK5/UX9NSf1lhmDDT3QTxMtbVk9YfHhjvOXyPhpA="
 ```
 
-This installs Homebrew (via nix-homebrew) and its taps/casks/brews/Yubico
-Authenticator, sets the login shell, and applies every other darwin feature
-module.
+This installs Homebrew (via nix-homebrew) and its taps and casks, sets the
+login shell, and applies every other darwin feature module.
 
 Subsequent switches need no flags; the previous activation's config is
 already in `/etc/nix/nix.custom.conf`:

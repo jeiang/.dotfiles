@@ -1021,22 +1021,6 @@
         "type": "github"
       }
     },
-    "k06a-tap": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1778526894,
-        "narHash": "sha256-l5BMVjnbbiqw6f2rp2cvpwQ2zjORnvgixSggxNEe8ww=",
-        "owner": "k06a",
-        "repo": "homebrew-tap",
-        "rev": "f12acb58b9b9f2a3abf70062891e894acf76dc07",
-        "type": "github"
-      },
-      "original": {
-        "owner": "k06a",
-        "repo": "homebrew-tap",
-        "type": "github"
-      }
-    },
     "llm-agents": {
       "inputs": {
         "bun2nix": "bun2nix",
@@ -1590,22 +1574,6 @@
         "type": "github"
       }
     },
-    "omlahore-tap": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1795244154,
-        "narHash": "sha256-zIDfp+3SB9HfzzFr+RQ8ISN1ZtBlkH0ASgZ+0E0hGbk=",
-        "owner": "omlahore",
-        "repo": "homebrew-tap",
-        "rev": "ccc596032d3b544d7bd21632afab53dc6f84d0d7",
-        "type": "github"
-      },
-      "original": {
-        "owner": "omlahore",
-        "repo": "homebrew-tap",
-        "type": "github"
-      }
-    },
     "pi-extensions": {
       "inputs": {
         "nixpkgs": [
@@ -1758,7 +1726,6 @@
         "hyprland": "hyprland",
         "impermanence": "impermanence",
         "import-tree": "import-tree",
-        "k06a-tap": "k06a-tap",
         "llm-agents": "llm-agents",
         "mail-organizer": "mail-organizer",
         "markdown-table-live-editor": "markdown-table-live-editor",
@@ -1776,7 +1743,6 @@
         "nix-minecraft": "nix-minecraft",
         "nix-topology": "nix-topology",
         "nixpkgs": "nixpkgs_5",
-        "omlahore-tap": "omlahore-tap",
         "pi-extensions": "pi-extensions",
         "portfolio": "portfolio",
         "renpy-proj": "renpy-proj",
