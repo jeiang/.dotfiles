@@ -1,4 +1,4 @@
-{
+{self, ...}: {
   nixos.modules.workstation = {pkgs, ...}: {
     programs.gnupg.agent = {
       enable = true;
@@ -20,5 +20,12 @@
     ];
 
     backups.persist.homePaths = [".gnupg" ".password-store"];
+  };
+
+  # macOS has no binary named `pinentry`, which is what gpg looks for, so every signed commit fails without this.
+  darwin.modules.workstation = {pkgs, ...}: {
+    hjem.users.${self.lib.facts.userName}.files.".gnupg/gpg-agent.conf".text = ''
+      pinentry-program ${pkgs.pinentry_mac}/bin/pinentry-mac
+    '';
   };
 }

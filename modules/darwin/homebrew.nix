@@ -39,7 +39,6 @@
         "helium-browser"
         "gimp"
         "whatsapp"
-        "roblox"
         "steam"
         "notion-calendar"
       ];
