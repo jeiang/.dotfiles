@@ -33,15 +33,6 @@ creation_rules:
       - *server_vida
       - *server_zantark
 
-  - path_regex: modules/backups/secrets\.zakkart\.yaml$
-    key_groups:
-    - age:
-      - *user_aidanp
-      - *user_aidanp_yubikey_a
-      - *user_aidanp_yubikey_b
-      - *user_aidanp_se
-      - *server_zakkart
-
   - path_regex: modules/backups/tunnel/secrets\.yaml$
     key_groups:
     - age:
