@@ -3,14 +3,7 @@
   inputs,
   ...
 }: {
-  darwin.modules.workstation = {config, ...}: let
-    # brew bundle never installs these; install them from the App Store by hand. Spotlight does not index Bitwarden and Wipr 2, so mas would reinstall them on every switch.
-    manualMasApps = {
-      Bitwarden = 1352778147;
-      "Wipr 2" = 1662217862;
-      Xcode = 497799835;
-    };
-  in {
+  darwin.modules.workstation = {config, ...}: {
     imports = [inputs.nix-homebrew.darwinModules.nix-homebrew];
 
     nix-homebrew = {
@@ -28,8 +21,6 @@
       taps = {
         "homebrew/homebrew-core" = inputs.homebrew-core;
         "homebrew/homebrew-cask" = inputs.homebrew-cask;
-        "k06a/homebrew-tap" = inputs.k06a-tap;
-        "omlahore/homebrew-tap" = inputs.omlahore-tap;
       };
     };
 
@@ -45,9 +36,9 @@
         autoUpdate = false;
         upgrade = true;
         cleanup = "zap";
-        extraEnv.HOMEBREW_BUNDLE_MAS_SKIP = toString (builtins.attrValues manualMasApps);
       };
 
+      # Bitwarden, Wipr 2, Xcode and Yubico Authenticator come from the App Store by hand: Spotlight does not index the first two, so mas would reinstall them on every switch, and brew bundle cannot verify App Store apps without mas.
       casks = [
         "helium-browser"
         "gimp"
@@ -61,15 +52,8 @@
         # These apps update themselves in place, which a read-only store copy under /Applications/Nix Apps cannot take.
         "claude"
         "notion"
-        "codex-app"
+        "chatgpt"
       ];
-
-      brews = [
-        "k06a/tap/macpow"
-        "omlahore/tap/removemacai"
-      ];
-
-      masApps = manualMasApps // {"Yubico Authenticator" = 1497506650;};
     };
   };
 }

@@ -7,7 +7,6 @@
     hjem.users.${self.lib.facts.userName}.files.".config/ghostty/config".source = wrapped.ghostty-config;
 
     environment.systemPackages = with pkgs; [
-      crossover
       discord
       finetune
       iina

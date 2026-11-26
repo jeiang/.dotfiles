@@ -51,14 +51,6 @@
       url = "github:Homebrew/homebrew-cask";
       flake = false;
     };
-    k06a-tap = {
-      url = "github:k06a/homebrew-tap";
-      flake = false;
-    };
-    omlahore-tap = {
-      url = "github:omlahore/homebrew-tap";
-      flake = false;
-    };
     agent-skills.url = "github:jeiang/agent-skills";
     agent-skills.inputs.nixpkgs.follows = "nixpkgs";
     # Deliberately no follows: cache.numtide.com only has the agents built against this flake's own nixpkgs pin.
