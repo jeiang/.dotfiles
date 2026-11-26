@@ -38,14 +38,11 @@
         cleanup = "zap";
       };
 
-      # Bitwarden, Wipr 2, Xcode and Yubico Authenticator come from the App Store by hand: Spotlight does not index the first two, so mas would reinstall them on every switch, and brew bundle cannot verify App Store apps without mas.
+      # Bitwarden, Wipr 2, Xcode, Yubico Authenticator and Office come from the App Store by hand: Spotlight does not index Bitwarden and Wipr 2, so mas would reinstall them on every switch, brew bundle cannot verify App Store apps without mas, and the Office cask keeps a 3.5 GB installer payload in Caskroom.
       casks = [
         "helium-browser"
         "gimp"
         "whatsapp"
-        "microsoft-word"
-        "microsoft-excel"
-        "microsoft-powerpoint"
         "roblox"
         "steam"
         "notion-calendar"
