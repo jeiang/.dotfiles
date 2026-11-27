@@ -40,6 +40,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PINS_TOKEN }}
         run: nix run .#tack -- update
 
+      # A pin bumped to an unsigned commit never opens a pull request.
+      - name: Verify pin signatures
+        env:
+          GITHUB_TOKEN: ${{ secrets.PINS_TOKEN }}
+        run: nix run .#tack -- verify
+
       # main requires signed commits, so the key from PINS_SIGNING_KEY signs it.
       - name: Push and enable auto-merge
         env:
@@ -57,7 +63,9 @@ jobs:
           git add .tack
           git commit -S -m "chore: update inputs"
           git push --force origin tack/update-inputs
-          if [ -z "$(gh pr list --head tack/update-inputs --state open --json number --jq '.[0].number')" ]; then
+          open=$(gh pr list --head tack/update-inputs --state open \
+            --json number --jq '.[0].number')
+          if [ -z "$open" ]; then
             gh pr create --base main --head tack/update-inputs \
               --title "chore: update inputs" \
               --body "tack update, from .github/workflows/pins.yml."

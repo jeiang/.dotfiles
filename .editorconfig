@@ -10,3 +10,7 @@ indent_size = 2
 
 [*.lua]
 indent_style = tab
+
+# tack writes these as GitHub serves them, and armor may keep CRLF.
+[.tack/keys/*.asc]
+end_of_line = unset
