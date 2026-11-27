@@ -30,6 +30,10 @@
       url = "https://cache.numtide.com";
       key = "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=";
     }
+    {
+      url = "https://cache.manic.systems";
+      key = "cache.manic.systems-1:s6OZanN8Us8vRi0jVivP3qlMn0cYHBjBALKrNe5nH8s=";
+    }
   ];
   workstationCaches = [
     {

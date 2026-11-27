@@ -24,9 +24,7 @@ EOF
   chmod +x "$tmp/garret-hook"
   ;;
 watch)
-  # The root input's node, not `.nodes.garret`: that name can belong to another input's own garret
-  # pin, whose older client may start no watcher.
-  rev=$(jq -r '.nodes[.nodes.root.inputs.garret].locked.rev' flake.lock)
+  rev=$(jq -r '.garret.rev' .tack/pins.lock.json)
   nix build --out-link "$tmp/garret" "github:jeiang/garret/${rev}#garret"
   # public_keys is the watcher's own-key filter: paths already signed by garret are skipped one by
   # one; the drain's push of the job's outputs still marks their closures as pushed now.

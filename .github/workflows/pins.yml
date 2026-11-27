@@ -1,0 +1,65 @@
+# Refreshes .tack/pins.lock.json nightly. nixpkgs and nix-cachyos-kernel are
+# frozen in .tack/pins.toml, so this never moves them.
+name: Pins
+
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: pins
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      # Pushed with PINS_TOKEN, not GITHUB_TOKEN: a pull request created with
+      # GITHUB_TOKEN starts no ci.yml run, and auto-merge would wait forever.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ secrets.PINS_TOKEN }}
+
+      - name: Install Nix
+        uses: ./.github/actions/install-nix
+
+      - name: Write the signing key
+        env:
+          KEY: ${{ secrets.PINS_SIGNING_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$KEY" >"$RUNNER_TEMP/pins-signing-key"
+
+      - name: Update the pins
+        env:
+          GITHUB_TOKEN: ${{ secrets.PINS_TOKEN }}
+        run: nix run .#tack -- update
+
+      # main requires signed commits, so the key from PINS_SIGNING_KEY signs it.
+      - name: Push and enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.PINS_TOKEN }}
+        run: |
+          if git diff --quiet -- .tack; then
+            echo "pins are current"
+            exit 0
+          fi
+          git config user.name "Aidan Pinard"
+          git config user.email "31970261+jeiang@users.noreply.github.com"
+          git config gpg.format ssh
+          git config user.signingkey "$RUNNER_TEMP/pins-signing-key"
+          git switch --create tack/update-inputs
+          git add .tack
+          git commit -S -m "chore: update inputs"
+          git push --force origin tack/update-inputs
+          if [ -z "$(gh pr list --head tack/update-inputs --state open --json number --jq '.[0].number')" ]; then
+            gh pr create --base main --head tack/update-inputs \
+              --title "chore: update inputs" \
+              --body "tack update, from .github/workflows/pins.yml."
+          fi
+          gh pr merge --auto --merge tack/update-inputs

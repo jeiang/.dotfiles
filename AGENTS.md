@@ -26,6 +26,11 @@ on its `legion.services.<name>.node`.
   so CI does not compile large builds such as the artemis kernel. Run it
   before opening a pull request and after a flake input bump. It needs
   artemis reachable at `artemis.jeiang.vpn` over NetBird.
+- Inputs are tack pins in `.tack/pins.toml`. `tack look` lists drift,
+  `tack update` writes `.tack/pins.lock.json`, and `.github/workflows/pins.yml`
+  opens and auto-merges a nightly bump. `nixpkgs` and `nix-cachyos-kernel` are
+  `frozen`: move them with `tack update nixpkgs nix-cachyos-kernel`. `tack`
+  comes from the devshell.
 - Long builds run on artemis:
   `nix build --eval-store auto --store ssh-ng://artemis.jeiang.vpn <installable>`,
   then `garret push` on artemis.

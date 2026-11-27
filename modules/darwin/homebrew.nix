@@ -12,12 +12,7 @@
       user = self.lib.facts.userName;
       mutableTaps = false;
       # Pin Homebrew itself rather than trusting nix-homebrew's bundled default.
-      package =
-        inputs.homebrew-brew
-        // {
-          name = "brew-${inputs.homebrew-brew.shortRev}";
-          version = inputs.homebrew-brew.shortRev;
-        };
+      package = inputs.homebrew-brew;
       taps = {
         "homebrew/homebrew-core" = inputs.homebrew-core;
         "homebrew/homebrew-cask" = inputs.homebrew-cask;

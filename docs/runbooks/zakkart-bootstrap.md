@@ -67,8 +67,8 @@ just nh darwin switch
 Don't reach for `brew trust` by hand. Homebrew >= 6.0 requires unofficial
 taps to be trusted before their formulae/casks load, and the generated
 Brewfile already declares `trusted: true` for every tap
-(`modules/darwin/homebrew.nix`) — all pinned flake inputs, so it trusts
-exactly the revisions in `flake.lock`. The `cleanup = "zap"` pass resets
+(`modules/darwin/homebrew.nix`) — all tack pins, so it trusts
+exactly the revisions in `.tack/pins.lock.json`. The `cleanup = "zap"` pass resets
 Homebrew's trust file to the Brewfile on every activation anyway.
 
 ## 6. Bitwarden SSH agent
