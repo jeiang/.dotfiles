@@ -33,8 +33,8 @@
 
   language = languageId: extensions: {inherit languageId extensions;};
   # A catalog server runs under pi-devshell-exec: inside the devshell of its root (a worktree's own)
-  # and, when that lacks the command, from nixpkgs. pi-lsp starts a server on the first file of its
-  # language, so an unused entry costs nothing and the pi closure carries none of them.
+  # and, when that lacks the command, from nixpkgs. The lsp extension starts a server on the first file
+  # of its language, so an unused entry costs nothing and the pi closure carries none of them.
   fromNix = attr: command: args: {
     command = "pi-devshell-exec";
     args = [command] ++ args;
@@ -67,130 +67,123 @@
       "chain/task".reserveTokens = 300000;
       "mistral/deepseek-v4-1-flash-1017".reserveTokens = 300000;
     };
-    # The first start of a catalog server can fetch it from the binary cache.
-    lsp.timeouts.initializeMs = 180000;
-    # pi-lsp ships no server catalog. nixd, yaml, and bash are on the wrapper's PATH: almost every session uses them.
-    lsp.servers = {
-      rust =
-        fromNix "rust-analyzer" "rust-analyzer" []
-        // {
-          rootMarkers = ["Cargo.toml"];
-          languages = [(language "rust" [".rs"])];
-        };
-      zig =
-        fromNix "zls" "zls" []
-        // {
-          rootMarkers = ["build.zig"];
-          languages = [(language "zig" [".zig" ".zon"])];
-        };
-      go =
-        fromNix "gopls" "gopls" []
-        // {
-          rootMarkers = ["go.mod"];
-          languages = [(language "go" [".go"])];
-        };
-      typescript =
-        fromNix "typescript-language-server" "typescript-language-server" ["--stdio"]
-        // {
-          rootMarkers = ["tsconfig.json" "package.json"];
+    lsp = {
+      # The first start of a catalog server can fetch it from the binary cache.
+      timeouts.initializeMs = 180000;
+      # Rules a pure flake evaluation breaks, reported with the diagnostics after a .nix edit.
+      astGrep = {
+        command = lib.getExe pkgs.ast-grep;
+        rules = ["${./nix-rules.yml}"];
+      };
+      # The lsp extension ships no server catalog. nixd, yaml, and bash are on the wrapper's PATH: almost every session uses them.
+      servers = {
+        rust =
+          fromNix "rust-analyzer" "rust-analyzer" []
+          // {
+            rootMarkers = ["Cargo.toml"];
+            languages = [(language "rust" [".rs"])];
+          };
+        zig =
+          fromNix "zls" "zls" []
+          // {
+            rootMarkers = ["build.zig"];
+            languages = [(language "zig" [".zig" ".zon"])];
+          };
+        go =
+          fromNix "gopls" "gopls" []
+          // {
+            rootMarkers = ["go.mod"];
+            languages = [(language "go" [".go"])];
+          };
+        typescript =
+          fromNix "typescript-language-server" "typescript-language-server" ["--stdio"]
+          // {
+            rootMarkers = ["tsconfig.json" "package.json"];
+            languages = [
+              (language "typescript" [".ts" ".mts" ".cts"])
+              (language "typescriptreact" [".tsx"])
+              (language "javascript" [".js" ".mjs" ".cjs"])
+              (language "javascriptreact" [".jsx"])
+            ];
+          };
+        clangd =
+          fromNix "clang-tools" "clangd" []
+          // {
+            rootMarkers = ["compile_commands.json" "CMakeLists.txt"];
+            languages = [
+              (language "c" [".c" ".h"])
+              (language "cpp" [".cc" ".cpp" ".cxx" ".hh" ".hpp" ".hxx"])
+            ];
+          };
+        kotlin =
+          fromNix "kotlin-language-server" "kotlin-language-server" []
+          // {
+            rootMarkers = ["settings.gradle.kts" "build.gradle.kts"];
+            languages = [(language "kotlin" [".kt" ".kts"])];
+          };
+        swift =
+          (
+            # The nixpkgs build does not know the iOS SDK; the Xcode toolchain's server does.
+            if pkgs.stdenv.hostPlatform.isDarwin
+            then {
+              command = "xcrun";
+              args = ["sourcekit-lsp"];
+            }
+            else fromNix "sourcekit-lsp" "sourcekit-lsp" []
+          )
+          // {
+            rootMarkers = ["Package.swift"];
+            languages = [(language "swift" [".swift"])];
+          };
+        python =
+          fromNix "basedpyright" "basedpyright-langserver" ["--stdio"]
+          // {
+            rootMarkers = ["pyproject.toml"];
+            languages = [(language "python" [".py"])];
+          };
+        nix = {
+          command = "nixd";
+          args = [];
           languages = [
-            (language "typescript" [".ts" ".mts" ".cts"])
-            (language "typescriptreact" [".tsx"])
-            (language "javascript" [".js" ".mjs" ".cjs"])
-            (language "javascriptreact" [".jsx"])
+            {
+              extensions = [".nix"];
+              languageId = "nix";
+            }
           ];
         };
-      clangd =
-        fromNix "clang-tools" "clangd" []
-        // {
-          rootMarkers = ["compile_commands.json" "CMakeLists.txt"];
+        yaml = {
+          command = "yaml-language-server";
+          args = ["--stdio"];
           languages = [
-            (language "c" [".c" ".h"])
-            (language "cpp" [".cc" ".cpp" ".cxx" ".hh" ".hpp" ".hxx"])
+            {
+              extensions = [".yaml" ".yml"];
+              languageId = "yaml";
+            }
           ];
         };
-      kotlin =
-        fromNix "kotlin-language-server" "kotlin-language-server" []
-        // {
-          rootMarkers = ["settings.gradle.kts" "build.gradle.kts"];
-          languages = [(language "kotlin" [".kt" ".kts"])];
+        bash = {
+          command = "bash-language-server";
+          args = ["start"];
+          languages = [
+            {
+              extensions = [".sh" ".bash"];
+              languageId = "shellscript";
+            }
+          ];
         };
-      swift =
-        (
-          # The nixpkgs build does not know the iOS SDK; the Xcode toolchain's server does.
-          if pkgs.stdenv.hostPlatform.isDarwin
-          then {
-            command = "xcrun";
-            args = ["sourcekit-lsp"];
-          }
-          else fromNix "sourcekit-lsp" "sourcekit-lsp" []
-        )
-        // {
-          rootMarkers = ["Package.swift"];
-          languages = [(language "swift" [".swift"])];
-        };
-      python =
-        fromNix "basedpyright" "basedpyright-langserver" ["--stdio"]
-        // {
-          rootMarkers = ["pyproject.toml"];
-          languages = [(language "python" [".py"])];
-        };
-      nix = {
-        command = "nixd";
-        args = [];
-        languages = [
-          {
-            extensions = [".nix"];
-            languageId = "nix";
-          }
-        ];
-      };
-      yaml = {
-        command = "yaml-language-server";
-        args = ["--stdio"];
-        languages = [
-          {
-            extensions = [".yaml" ".yml"];
-            languageId = "yaml";
-          }
-        ];
-      };
-      bash = {
-        command = "bash-language-server";
-        args = ["start"];
-        languages = [
-          {
-            extensions = [".sh" ".bash"];
-            languageId = "shellscript";
-          }
-        ];
       };
     };
   };
 
   # The agents in pi-extensions load their extensions by these names.
-  ownExtensions = ["advisor" "chains" "codemode" "emphasis" "footer" "github" "goal" "guards" "images" "lint" "loadout" "nix" "papercuts" "plan" "server-compaction" "skill-mentions" "tool-docs" "turn-time" "usage" "workspace"];
+  ownExtensions = ["advisor" "chains" "codemode" "emphasis" "footer" "github" "goal" "guards" "images" "lint" "loadout" "lsp" "nix" "papercuts" "plan" "server-compaction" "skill-mentions" "tool-docs" "turn-time" "usage" "workspace"];
 
-  # Direct in the tool list: file tools, job, github, nix, todo, tool_docs, questionnaire, subagent, advise, and pi-lsp navigation.
+  # Direct in the tool list: file tools, job, github, nix, todo, tool_docs, questionnaire, subagent, advise, and lsp.
   loadout.hidden = [
-    "lsp_status"
-    "lsp_document_symbols"
-    "lsp_workspace_symbols"
-    "lsp_rename"
-    "lsp_code_actions"
-    "lsp_apply"
     "web_search"
     "source_check"
     "fetch_content"
     "get_search_content"
-    "lens_diagnostics"
-    "symbol_search"
-    "effective_config"
-    "project_report"
-    "module_report"
-    "read_symbol"
-    "read_enclosing"
-    "pi_lens_activate_tools"
   ];
 in {
   shared.modules.workstation = {pkgs, ...}: let
@@ -200,8 +193,6 @@ in {
     extensions =
       lib.genAttrs ownExtensions (name: "${piExtensions}/extensions/${name}")
       // {
-        pi-lens = "${piExtensions}/node_modules/pi-lens";
-        pi-lsp = "${piExtensions}/node_modules/@ian-pascoe/pi-lsp";
         pi-web-access = "${piExtensions}/node_modules/pi-web-access";
         "questionnaire.ts" = "${examples}/questionnaire.ts";
       };
@@ -234,22 +225,10 @@ in {
           type = "copy";
           permissions = "0600";
         };
-        # pi-lens formats, autofixes, and guards reads by default; only its diagnostics are wanted.
-        ".pi-lens/config.json".source = json pkgs "pi-lens.json" {
-          format.enabled = false;
-          autofix.enabled = false;
-          readGuard.enabled = false;
-          widget.visible = false;
-          # An ast-grep rule at error severity: a build-time script that opens a missing file must fail the build.
-          rules."unchecked-throwing-call-python".disable = true;
-        };
-        ".pi-lens/rules/ast-grep-rules/rules/nix.yml".source = ./nix-rules.yml;
         "${home}/AGENTS.md".source = "${piExtensions}/prompts/AGENTS.md";
       }
       // lib.mapAttrs' (name: source: lib.nameValuePair "${home}/extensions/${name}" {inherit source;}) extensions
       // own "agents"
       // own "skills";
   };
-
-  nixos.modules.workstation.persistence.cache.directories = [".pi-lens"];
 }
