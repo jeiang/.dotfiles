@@ -5,12 +5,14 @@ recomposable = true
 jeiang = "github:jeiang/{path}"
 
 [all_follow]
-nixpkgs = "nixpkgs"
+nixpkgs = ["nixpkgs-23-11", "nixpkgs-regression"]
 brew-src = "homebrew-brew"
 crane = "crane"
 flake-compat = "flake-compat"
 flake-parts = "flake-parts"
+pre-commit-hooks = "git-hooks-nix"
 treefmt-nix = "treefmt-nix"
+systems = "default"
 zig-overlay = "zig-overlay"
 
 [inputs.nixpkgs]
@@ -95,6 +97,7 @@ exclude_follow = ["nixpkgs"]
 
 [inputs.pi-extensions]
 url = "jeiang:pi-extensions"
+frozen = "a274e985c9490568042f3743dc3d42927cd8685b"
 
 [inputs.mcp-servers-nix]
 url = "github:natsukium/mcp-servers-nix"
@@ -117,6 +120,7 @@ url = "jeiang:website"
 
 [inputs.portfolio]
 url = "github:joshua-noel/portfolio"
+frozen = "65325a37b17950ea7b6c1d2f5b8f2556ffd88b9b"
 
 [inputs.bill-splitter]
 url = "jeiang:bill-splitter"
