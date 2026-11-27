@@ -45,14 +45,14 @@
   settings = pkgs: {
     defaultProvider = "chain";
     defaultModel = "strong";
-    # bash stays callable from codemode; the shell tool runs processes. pi starts grep inactive.
+    # pi's own bash stays off; scripts run commands with run(). pi starts grep inactive.
     defaultTools = ["-bash" "+codemode" "+grep"];
     # The codemode extension in pi-extensions wraps the built-in one.
     extensions = ["-builtin:codemode"];
-    # Scripts find the declarations left out with searchTools(); the rarely used lsp_* ones fill the rest.
+    # run, job, and the other script-only tools are listed first; scripts find the rest with searchTools() or tool_docs.
     codemode = {
       mode = "on";
-      inlineBudget = 1500;
+      inlineBudget = 3000;
     };
     enableInstallTelemetry = false;
     # Mid-run compaction, which does not stop the run (the chains' compactAt waits for the run to
@@ -169,9 +169,9 @@
   };
 
   # The agents in pi-extensions load their extensions by these names.
-  ownExtensions = ["advisor" "chains" "codemode" "emphasis" "footer" "github" "goal" "guards" "images" "lint" "loadout" "nix" "papercuts" "plan" "server-compaction" "skill-mentions" "turn-time" "usage" "workspace"];
+  ownExtensions = ["advisor" "chains" "codemode" "emphasis" "footer" "github" "goal" "guards" "images" "lint" "loadout" "nix" "papercuts" "plan" "server-compaction" "skill-mentions" "tool-docs" "turn-time" "usage" "workspace"];
 
-  # Direct in the tool list: file tools, shell, github, todo, questionnaire, subagent, advise, and pi-lsp navigation.
+  # Direct in the tool list: file tools, job, github, nix, todo, tool_docs, questionnaire, subagent, advise, and pi-lsp navigation.
   loadout.hidden = [
     "lsp_status"
     "lsp_document_symbols"
@@ -203,7 +203,6 @@ in {
         pi-lens = "${piExtensions}/node_modules/pi-lens";
         pi-lsp = "${piExtensions}/node_modules/@ian-pascoe/pi-lsp";
         pi-web-access = "${piExtensions}/node_modules/pi-web-access";
-        "todo.ts" = "${examples}/todo.ts";
         "questionnaire.ts" = "${examples}/questionnaire.ts";
       };
     # The instructions, agents, and pi's own skills live with the extensions they describe.
