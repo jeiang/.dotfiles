@@ -447,9 +447,15 @@
     "type": "github",
     "owner": "jeiang",
     "repo": "pi-extensions",
-    "rev": "a274e985c9490568042f3743dc3d42927cd8685b",
-    "narHash": "sha256-DA9VL/yNe04pt8GvZ389i0E+zrDTI9EAHWZfKXOsRdw=",
-    "lastModified": 1795657325
+    "rev": "3aac9b6abc7031cc7066702d1c297373f69a8947",
+    "narHash": "sha256-jecmOmneWTYi0BhSjLGbX22DYNJnc7z5y+cvVj0b9nI=",
+    "lastModified": 1795761875,
+    "public": true,
+    "signedBy": {
+      "signer": "github",
+      "keys": "sha256-07ad7dc8dda57f83100e20f7c27d27aca3fd5289fbba46bca82b96b7f039f3b1",
+      "since": "3aac9b6abc7031cc7066702d1c297373f69a8947"
+    }
   },
   "portfolio": {
     "type": "github",

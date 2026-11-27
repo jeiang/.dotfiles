@@ -102,7 +102,7 @@ exclude_follow = ["nixpkgs"]
 [inputs.pi-extensions]
 url = "jeiang:pi-extensions"
 signers = ["aidan", "github"]
-frozen = "a274e985c9490568042f3743dc3d42927cd8685b"
+frozen = "3aac9b6abc7031cc7066702d1c297373f69a8947"
 
 [inputs.mcp-servers-nix]
 url = "github:natsukium/mcp-servers-nix"
