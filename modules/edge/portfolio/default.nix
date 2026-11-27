@@ -7,8 +7,9 @@
   stateDir = "/var/lib/portfolio";
   siteHostname = "noelejoshua.com";
   blogHostname = "blog.noelejoshua.com";
+  learnHostname = "learn.noelejoshua.com";
 in {
-  flake.lib.portfolioHostnames = [siteHostname blogHostname];
+  flake.lib.portfolioHostnames = [siteHostname blogHostname learnHostname];
 
   gatus.endpoints = {
     Portfolio = {
@@ -20,6 +21,11 @@ in {
       group = "Web";
       url = "https://${blogHostname}";
       conditions = ["[STATUS] == 200" "[BODY] == pat(*Writing*)"];
+    };
+    "Portfolio lectures" = {
+      group = "Web";
+      url = "https://${learnHostname}";
+      conditions = ["[STATUS] == 200" "[BODY] == pat(*Joshua Noel*)"];
     };
   };
 
@@ -55,8 +61,18 @@ in {
       trustedProxies = [(self.lib.serviceAddress config.networking.hostName "caddy")];
       siteUrl = "https://${siteHostname}";
       blogUrl = "https://${blogHostname}";
+      learnUrl = "https://${learnHostname}";
+      # The lectures are a public repository pinned as a flake input: a
+      # store path, read-only, with nothing private in it.
+      learnContentDirs = [inputs.learn-content];
       adminPasswordHashFile = config.sops.secrets."portfolio/admin-password-hash".path;
     };
+
+    # Stealth release, at the owner's request: the lectures answer at their
+    # address but are not indexed, are left out of every sitemap and feed,
+    # and the main site and blog do not link to them. Remove this line to
+    # launch.
+    systemd.services.portfolio.environment.PORTFOLIO_LEARN_STEALTH = "1";
 
     backups.jobs.portfolio.schedule = {
       onCalendar = "00/12:00";

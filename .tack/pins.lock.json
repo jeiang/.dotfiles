@@ -17,6 +17,7 @@
     "hyprland": "github:hyprwm/Hyprland",
     "impermanence": "github:nix-community/impermanence",
     "import-tree": "github:vic/import-tree",
+    "learn-content": "github:joshua-noel/learn-content",
     "llm-agents": "github:numtide/llm-agents.nix",
     "mac-toolkit": "github:jeiang/mac-toolkit",
     "mail-organizer": "github:jeiang/mail-organizer",
@@ -215,6 +216,19 @@
     "narHash": "sha256-ljEMTXP/rH0tOvDzc9gzwww6KcHRPRnEHzd9lK48V7s=",
     "lastModified": 1788467110
   },
+  "learn-content": {
+    "type": "github",
+    "owner": "joshua-noel",
+    "repo": "learn-content",
+    "rev": "3b3fc64563bd668c8519a1f05cbe2a2ad11ea2d0",
+    "narHash": "sha256-m3oaiAFMSWNoNpAb4LOf3ejubYD3glb3UXn6vT0deb0=",
+    "lastModified": 1795743116,
+    "archive": {
+      "hash": "sha256-tjy8r7Zr9a0CQfydOb7/9cY9wUfiZr9Jjcbb35Hg+qI=",
+      "outHash": "sha256-Dot4ATnczsKrHklbSIe9or4vGNzoETld9UunMNdzAe8="
+    },
+    "public": true
+  },
   "llm-agents": {
     "type": "github",
     "owner": "numtide",
@@ -368,9 +382,10 @@
     "type": "github",
     "owner": "joshua-noel",
     "repo": "portfolio",
-    "rev": "65325a37b17950ea7b6c1d2f5b8f2556ffd88b9b",
-    "narHash": "sha256-qrQ1twHXnsfHGiHs7AMGS/y30jPX+Q3BRd4d7uvbXTI=",
-    "lastModified": 1795281976
+    "rev": "7de4fafdf66a0be03fe254a6f731785d5a5b60a0",
+    "narHash": "sha256-+nYrL9oqire6ANlEFaTCnvuoEHMpEzDETSJLOvNR4jg=",
+    "lastModified": 1795748294,
+    "public": true
   },
   "rex": {
     "type": "tarball",
