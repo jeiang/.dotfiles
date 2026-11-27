@@ -118,6 +118,11 @@ url = "jeiang:website"
 [inputs.portfolio]
 url = "github:joshua-noel/portfolio"
 
+# The portfolio's lecture content: Markdown and SVG only, not a flake.
+[inputs.learn-content]
+url = "github:joshua-noel/learn-content"
+type = "fetch"
+
 [inputs.bill-splitter]
 url = "jeiang:bill-splitter"
 
