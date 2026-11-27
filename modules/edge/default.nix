@@ -235,10 +235,7 @@ in {
         })
         // {
           # In its owner's Cloudflare account, proxied, so not in dns/: renews
-          # via HTTP-01 rather than DNS-01. Not behind Anubis, at the owner's
-          # request: his Cloudflare zone challenges bots, and link previews
-          # and other non-browser readers must reach the pages. The CrowdSec
-          # bouncer and AppSec still apply, and the app throttles sign-in.
+          # via HTTP-01 rather than DNS-01.
           portfolio = {
             hosts = self.lib.portfolioHostnames;
             content = true;
