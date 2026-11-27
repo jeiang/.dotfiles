@@ -1,8 +1,8 @@
-# Runs a language server inside the devshell that governs the working directory (pi-lsp starts
-# servers in their root), the same lookup as the workspace extension's shell. Without one, or when
+# Runs a language server inside the devshell that governs the working directory (the lsp extension
+# starts servers in their root), the same lookup as the workspace extension's shell. Without one, or when
 # it fails to evaluate, the server runs directly. A command that is then still missing runs from
 # the nixpkgs attribute in PI_LSP_NIX; the first use fetches it.
-# Evaluating a devshell costs a nix call, and pi-lens spawns a runner per edit, so the exports are
+# Evaluating a devshell costs a nix call, and a server restarts after an idle stop, so the exports are
 # cached under a digest of the input files: an edited flake or lock re-evaluates, and a collected
 # devshell keeps its stale exports until one does.
 run() {
