@@ -77,6 +77,14 @@
     "narHash": "sha256-TREenflwEjxOSq292FYwbc3kEm7TDRtXCZRNWEdjBmg=",
     "lastModified": 1793836618
   },
+  "default": {
+    "type": "github",
+    "owner": "nix-systems",
+    "repo": "default",
+    "rev": "d36eeed142f88b5a636f2e3856a53c61654cf29b",
+    "narHash": "sha256-uuanbkFk8a313Zfrxdcz8Us/yQtaxNnKJtX8v0ZPpd8=",
+    "lastModified": 1791244623
+  },
   "deploy-rs": {
     "type": "github",
     "owner": "serokell",
@@ -169,12 +177,12 @@
     "type": "github",
     "owner": "Homebrew",
     "repo": "homebrew-cask",
-    "rev": "ce1067961ae716c7a7444436b994b2b03f0c793d",
-    "narHash": "sha256-SmL/OB0pKQ3gE3VcVoCDbuK7YSMtJhwuwzVinNv7cfI=",
-    "lastModified": 1795743935,
+    "rev": "ccb3712352a40ea6618d84fa3ac401377096f2a5",
+    "narHash": "sha256-M2+hSedBZcpc/vui9g3E3tt1fAiAcKq83Qfa79RERuU=",
+    "lastModified": 1795750241,
     "archive": {
-      "hash": "sha256-YSZVb8+pfoHSSYbSbH1a4zXrwqe45g1YDWHX+TnFe3o=",
-      "outHash": "sha256-TBaiZhLCsHRfwUzl/SyomxvQ3r3x0BJNU/qo3tZW/sk="
+      "hash": "sha256-8Zt8ivvA0sKcsY6NlWjte2wjufpZzP+A7XVIh6BOCZs=",
+      "outHash": "sha256-vSGLN5urR5yk9IY1WqPFbGROjlyJwT6toPisJLGViy0="
     },
     "public": true
   },
@@ -233,9 +241,9 @@
     "type": "github",
     "owner": "numtide",
     "repo": "llm-agents.nix",
-    "rev": "b076aec342c1f502b0b4e8765a2ca353d69ac565",
-    "narHash": "sha256-dE9KXf7KGAHA168vFI1sCjxrt8iJuo6iJGUbMkhJBpw=",
-    "lastModified": 1795744401,
+    "rev": "f8f2bdc8ced337b2c7d44b7b45c9442059cedfcb",
+    "narHash": "sha256-v3ruPbCzTcJEGxOsvA/k0UXsnM1WQZrltW/uv0m9U50=",
+    "lastModified": 1795746918,
     "public": true
   },
   "mac-toolkit": {
@@ -323,9 +331,9 @@
     "type": "github",
     "owner": "nix-darwin",
     "repo": "nix-darwin",
-    "rev": "663d8b962a11cda261b6e9f14e03911fac94baf0",
-    "narHash": "sha256-Gd1+Oaj8nS+p1qLpKk4MGv/qGh62+lTkX4262e2UDgc=",
-    "lastModified": 1795373241,
+    "rev": "594c680c429be020d7130cc2b17d43c4760d17c7",
+    "narHash": "sha256-VTPsIOYem/zQCO1QF3cpa4pLg2EoexjX5R1u3fs3L4k=",
+    "lastModified": 1795747999,
     "public": true
   },
   "nix-homebrew": {
