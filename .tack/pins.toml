@@ -59,12 +59,15 @@ url = "github:Mic92/sops-nix"
 
 [inputs.mail-organizer]
 url = "jeiang:mail-organizer"
+signers = ["aidan", "github"]
 
 [inputs.media-organizer]
 url = "jeiang:media-organizer"
+signers = ["aidan", "github"]
 
 [inputs.nb-nix]
 url = "jeiang:nb-nix"
+signers = ["aidan", "github"]
 
 [inputs.nix-darwin]
 url = "github:nix-darwin/nix-darwin"
@@ -90,6 +93,7 @@ type = "fetch"
 
 [inputs.agent-skills]
 url = "jeiang:agent-skills"
+signers = ["aidan", "github"]
 
 [inputs.llm-agents]
 url = "github:numtide/llm-agents.nix"
@@ -97,6 +101,7 @@ exclude_follow = ["nixpkgs"]
 
 [inputs.pi-extensions]
 url = "jeiang:pi-extensions"
+signers = ["aidan", "github"]
 frozen = "a274e985c9490568042f3743dc3d42927cd8685b"
 
 [inputs.mcp-servers-nix]
@@ -117,10 +122,10 @@ url = "github:Infinidoge/nix-minecraft"
 
 [inputs.website]
 url = "jeiang:website"
+signers = ["aidan", "github"]
 
 [inputs.portfolio]
 url = "github:joshua-noel/portfolio"
-frozen = "65325a37b17950ea7b6c1d2f5b8f2556ffd88b9b"
 
 # The portfolio's lecture content: Markdown and SVG only, not a flake.
 [inputs.learn-content]
@@ -129,35 +134,49 @@ type = "fetch"
 
 [inputs.bill-splitter]
 url = "jeiang:bill-splitter"
+signers = ["aidan", "github"]
 
 [inputs.character-randomizer]
 url = "jeiang:character-randomizer"
+signers = ["aidan", "github"]
 
 [inputs.markdown-table-live-editor]
 url = "jeiang:markdown-table-live-editor"
+signers = ["aidan", "github"]
 
 [inputs.garret]
 url = "jeiang:garret"
+signers = ["aidan", "github"]
 exclude_follow = ["nixpkgs"]
 
 [inputs.ripper]
 url = "jeiang:ripper"
+signers = ["aidan", "github"]
 exclude_follow = ["nixpkgs"]
 
 [inputs.erdtree]
 url = "jeiang:erdtree"
+signers = ["aidan", "github"]
 
 [inputs.rex]
 url = "https://pkgs.superlogical.com/rex/nix/snapshot.tar.gz"
 
 [inputs.nanolight]
 url = "jeiang:nanolight"
+signers = ["aidan", "github"]
 
 [inputs.nanoview]
 url = "jeiang:nanoview"
+signers = ["aidan", "github"]
 
 [inputs.mini-md-view]
 url = "jeiang:mini-md-view"
+signers = ["aidan", "github"]
 
 [inputs.mac-toolkit]
 url = "jeiang:mac-toolkit"
+signers = ["aidan", "github"]
+
+[signers]
+aidan = "keys/aidan.asc"
+github = "keys/github.asc"

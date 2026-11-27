@@ -15,6 +15,18 @@ check extraArgs="":
 fast-check extraArgs="":
   nix-fast-build --flake '.#checks' --skip-cached --no-nom {{extraArgs}}
 
+# Show each pin's drift from upstream without writing the lock
+pins-look:
+  tack look
+
+# Move every unfrozen pin to its upstream head and write .tack/pins.lock.json
+pins:
+  tack update
+
+# Check that each locked commit is signed by a signer its pin lists
+pins-verify:
+  tack verify
+
 # Re-render docs/topology/ from the host configurations; commit the result
 topology:
   #!/usr/bin/env bash
