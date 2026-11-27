@@ -6,6 +6,12 @@ jeiang = "github:jeiang/{path}"
 
 [all_follow]
 nixpkgs = "nixpkgs"
+brew-src = "homebrew-brew"
+crane = "crane"
+flake-compat = "flake-compat"
+flake-parts = "flake-parts"
+treefmt-nix = "treefmt-nix"
+zig-overlay = "zig-overlay"
 
 [inputs.nixpkgs]
 url = "github:nixos/nixpkgs/nixos-unstable"
