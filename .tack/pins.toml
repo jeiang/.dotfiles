@@ -1,0 +1,154 @@
+[tack]
+recomposable = true
+
+[shorturls]
+jeiang = "github:jeiang/{path}"
+
+[all_follow]
+nixpkgs = "nixpkgs"
+brew-src = "homebrew-brew"
+crane = "crane"
+flake-compat = "flake-compat"
+flake-parts = "flake-parts"
+treefmt-nix = "treefmt-nix"
+zig-overlay = "zig-overlay"
+
+[inputs.nixpkgs]
+url = "github:nixos/nixpkgs/nixos-unstable"
+frozen = true
+
+[inputs.flake-parts]
+url = "github:hercules-ci/flake-parts"
+
+[inputs.import-tree]
+url = "github:vic/import-tree"
+
+[inputs.git-hooks-nix]
+url = "github:cachix/git-hooks.nix"
+
+[inputs.treefmt-nix]
+url = "github:numtide/treefmt-nix"
+
+[inputs.tack]
+url = "github:manic-systems/tack"
+tag = "v{version}"
+
+[inputs.impermanence]
+url = "github:nix-community/impermanence"
+omit_inputs = ["home-manager"]
+
+[inputs.disko]
+url = "github:nix-community/disko"
+
+[inputs.deploy-rs]
+url = "github:serokell/deploy-rs"
+
+[inputs.nix-index-database]
+url = "github:nix-community/nix-index-database"
+
+[inputs.nix-topology]
+url = "github:oddlama/nix-topology"
+
+[inputs.hjem]
+url = "github:feel-co/hjem"
+
+[inputs.sops-nix]
+url = "github:Mic92/sops-nix"
+
+[inputs.mail-organizer]
+url = "jeiang:mail-organizer"
+
+[inputs.media-organizer]
+url = "jeiang:media-organizer"
+
+[inputs.nb-nix]
+url = "jeiang:nb-nix"
+
+[inputs.nix-darwin]
+url = "github:nix-darwin/nix-darwin"
+
+[inputs.determinate]
+url = "github:DeterminateSystems/determinate"
+exclude_follow = ["nixpkgs"]
+
+[inputs.nix-homebrew]
+url = "github:zhaofengli/nix-homebrew"
+
+[inputs.homebrew-brew]
+url = "github:Homebrew/brew"
+type = "fetch"
+
+[inputs.homebrew-core]
+url = "github:Homebrew/homebrew-core"
+type = "fetch"
+
+[inputs.homebrew-cask]
+url = "github:Homebrew/homebrew-cask"
+type = "fetch"
+
+[inputs.agent-skills]
+url = "jeiang:agent-skills"
+
+[inputs.llm-agents]
+url = "github:numtide/llm-agents.nix"
+exclude_follow = ["nixpkgs"]
+
+[inputs.pi-extensions]
+url = "jeiang:pi-extensions"
+
+[inputs.mcp-servers-nix]
+url = "github:natsukium/mcp-servers-nix"
+
+[inputs.wrapper-modules]
+url = "github:nix-community/nix-wrapper-modules"
+
+[inputs.nix-cachyos-kernel]
+url = "github:xddxdd/nix-cachyos-kernel/release"
+frozen = true
+
+[inputs.hyprland]
+url = "github:hyprwm/Hyprland"
+
+[inputs.nix-minecraft]
+url = "github:Infinidoge/nix-minecraft"
+
+[inputs.website]
+url = "jeiang:website"
+
+[inputs.portfolio]
+url = "github:joshua-noel/portfolio"
+
+[inputs.bill-splitter]
+url = "jeiang:bill-splitter"
+
+[inputs.character-randomizer]
+url = "jeiang:character-randomizer"
+
+[inputs.markdown-table-live-editor]
+url = "jeiang:markdown-table-live-editor"
+
+[inputs.garret]
+url = "jeiang:garret"
+exclude_follow = ["nixpkgs"]
+
+[inputs.ripper]
+url = "jeiang:ripper"
+exclude_follow = ["nixpkgs"]
+
+[inputs.erdtree]
+url = "jeiang:erdtree"
+
+[inputs.rex]
+url = "https://pkgs.superlogical.com/rex/nix/snapshot.tar.gz"
+
+[inputs.nanolight]
+url = "jeiang:nanolight"
+
+[inputs.nanoview]
+url = "jeiang:nanoview"
+
+[inputs.mini-md-view]
+url = "jeiang:mini-md-view"
+
+[inputs.mac-toolkit]
+url = "jeiang:mac-toolkit"

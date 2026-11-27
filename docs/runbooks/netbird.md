@@ -5,7 +5,7 @@ setup key, users' groups, service users, and account settings declared in
 `modules/netbird/management/`. Review [`AGENTS.md`](../../AGENTS.md) before
 running any command here.
 
-nb-nix (`github:jeiang/nb-nix`, pinned in `flake.lock`) compares that
+nb-nix (`github:jeiang/nb-nix`, pinned in `.tack/pins.lock.json`) compares that
 declaration with the live management API and makes the difference. It talks
 only to a server that runs the NetBird version it pins; after a NetBird
 upgrade on vida, bump the `nb-nix` input to a release that pins the new

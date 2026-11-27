@@ -40,4 +40,4 @@ jobs:
       - name: Plan against live state
         env:
           NETBIRD_API_TOKEN: ${{ secrets.NETBIRD_READ_TOKEN }}
-        run: nix run --inputs-from . nb-nix -- plan -c "$(nix build --no-link --print-out-paths .#netbird-desired)" --detailed-exitcode
+        run: nix run .#nb-nix -- plan -c "$(nix build --no-link --print-out-paths .#netbird-desired)" --detailed-exitcode

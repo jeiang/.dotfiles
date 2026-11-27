@@ -1,1 +1,1 @@
-ignore = [".direnv"]
+ignore = [".direnv", ".tack"]

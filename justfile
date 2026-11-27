@@ -94,8 +94,7 @@ prepush:
   push="https://$(nix eval --raw .#lib.cachePushHostname)"
   git fetch origin main
   main="git+file://$PWD?rev=$(git rev-parse origin/main)&shallow=1"
-  # The root input's garret, not .nodes.garret: that name can belong to another input's pin.
-  garret="github:jeiang/garret/$(jq -r '.nodes[.nodes.root.inputs.garret].locked.rev' flake.lock)#garret"
+  garret="github:jeiang/garret/$(jq -r '.garret.rev' .tack/pins.lock.json)#garret"
   differs() { [ "$(nix eval --raw "$main#$1")" != "$(nix eval --raw ".#$1")" ]; }
   linux=()
   for h in $(nix eval --json .#nixosConfigurations --apply builtins.attrNames | jq -r '.[]'); do
@@ -127,7 +126,7 @@ qwen-image *args:
 # Copy iCloud movie files or show folders into artemis's media import queue, one verified file at a time; deletes nothing
 [no-cd, positional-arguments]
 icloud-media-import +paths:
-  nix shell --inputs-from {{justfile_directory()}} nixpkgs#rsync -c {{justfile_directory()}}/modules/media/icloud-import.sh "$(nix eval --raw {{justfile_directory()}}#deploy.nodes.artemis.hostname)" "$(nix eval --raw {{justfile_directory()}}#lib.mediaImportDir)" "$(nix eval --raw {{justfile_directory()}}#lib.mediaIncomingDir)" "$@"
+  nix shell {{justfile_directory()}}#rsync -c {{justfile_directory()}}/modules/media/icloud-import.sh "$(nix eval --raw {{justfile_directory()}}#deploy.nodes.artemis.hostname)" "$(nix eval --raw {{justfile_directory()}}#lib.mediaImportDir)" "$(nix eval --raw {{justfile_directory()}}#lib.mediaIncomingDir)" "$@"
 
 # The nb-nix token: $NETBIRD_TOKEN_FILE, else the one in the admin stash
 _netbird-token:
@@ -142,7 +141,7 @@ netbird-plan *args:
   NETBIRD_API_TOKEN=$({{just_executable()}} _netbird-token)
   export NETBIRD_API_TOKEN
   desired=$(nix build --no-link --print-out-paths .#netbird-desired)
-  nix run --inputs-from . nb-nix -- plan -c "$desired" -o .netbird-plan.json {{args}}
+  nix run {{justfile_directory()}}#nb-nix -- plan -c "$desired" -o .netbird-plan.json {{args}}
 
 # Apply the plan the last `just netbird-plan` wrote (add --allow-risky for deletes and other risky changes); refused if live state changed since
 netbird-apply *args:
@@ -150,7 +149,7 @@ netbird-apply *args:
   set -euo pipefail
   NETBIRD_API_TOKEN=$({{just_executable()}} _netbird-token)
   export NETBIRD_API_TOKEN
-  nix run --inputs-from . nb-nix -- apply {{args}} .netbird-plan.json
+  nix run {{justfile_directory()}}#nb-nix -- apply {{args}} .netbird-plan.json
 
 # Enroll over public root SSH after removing the old peer; setup_key_file is a root-only path on the target
 netbird-enroll node address setup_key_file identity:

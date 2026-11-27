@@ -22,7 +22,7 @@ while :; do
     break
   elif [ -e "$root/flake.nix" ]; then
     dev=(nix print-dev-env --json "$root")
-    inputs=("$root/flake.nix" "$root/flake.lock")
+    inputs=("$root/flake.nix" "$root/.tack/pins.toml" "$root/.tack/pins.lock.json")
     break
   elif [ -e "$root/shell.nix" ]; then
     dev=(nix print-dev-env --json -f "$root/shell.nix")

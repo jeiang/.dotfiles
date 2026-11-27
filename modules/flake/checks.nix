@@ -13,7 +13,9 @@
         lib.mapAttrs' (name: nixosConfig: lib.nameValuePair "toplevel-${name}" nixosConfig.config.system.build.toplevel) self.nixosConfigurations
         // {
           statix = pkgs.runCommand "statix-check" {nativeBuildInputs = [pkgs.statix];} ''
-            statix check ${self}
+            # --config: the build directory holds no statix.toml, so without it the
+            # ignore list (which keeps the generated .tack resolver out) is not read.
+            statix check --config ${self} ${self}
             touch $out
           '';
 
