@@ -239,12 +239,7 @@ in {
           portfolio = {
             hosts = self.lib.portfolioHostnames;
             content = true;
-            config = gate {
-              serve = servePortfolio "{client_ip}";
-              # The admin API is session-authenticated and throttled by the
-              # app; uploads are fetched by crawlers reading og:image.
-              unchallenged = ["/api/*" "/healthz" "/uploads/*"];
-            };
+            config = servePortfolio "{client_ip}";
           };
 
           ${toolSites.bill-split.hostname} = {
@@ -264,12 +259,6 @@ in {
         website = {
           hosts = websiteHostnames;
           serve = serveRoot website;
-        };
-        # Anubis is the peer here, so the forwarded headers Caddy would
-        # derive describe it (plain http from loopback), not the visitor.
-        portfolio = {
-          hosts = self.lib.portfolioHostnames;
-          serve = servePortfolio "{header.X-Real-Ip}";
         };
       };
 
