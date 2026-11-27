@@ -20,6 +20,8 @@ on its `legion.services.<name>.node`.
   the main checkout before the first commit.
 - Validate with `just fmt` and `just check`. Everything evaluates in pure
   mode: never add `--impure`. `nix flake show` fails on this flake.
+- Nix questions go through pi's `nix` tool: `eval`, option defaults, `drv_diff`,
+  `dry_run`, `build`, and `log`. `nix develop -c <cmd>` stays in the shell.
 - `just prepush` pushes the changed host systems to garret (the Nix cache)
   so CI does not compile large builds such as the artemis kernel. Run it
   before opening a pull request and after a flake input bump. It needs
