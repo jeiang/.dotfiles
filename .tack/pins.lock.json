@@ -447,9 +447,9 @@
     "type": "github",
     "owner": "jeiang",
     "repo": "pi-extensions",
-    "rev": "3aac9b6abc7031cc7066702d1c297373f69a8947",
-    "narHash": "sha256-jecmOmneWTYi0BhSjLGbX22DYNJnc7z5y+cvVj0b9nI=",
-    "lastModified": 1795761875,
+    "rev": "8f062e63173d50b66795b9799d24d7f153799816",
+    "narHash": "sha256-68/2q7OFepAFBc7CroJbfYlA2QhAoZgbl1SFCbz98WY=",
+    "lastModified": 1795762472,
     "public": true,
     "signedBy": {
       "signer": "github",
