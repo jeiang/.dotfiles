@@ -54,7 +54,6 @@
       mode = "on";
       inlineBudget = 3000;
     };
-    enableInstallTelemetry = false;
     # Mid-run compaction, which does not stop the run (the chains' compactAt waits for the run to
     # end). pi keys this by the session model and compacts at the answering target's window minus
     # the reserve, so a reserve must stay below the smallest window of its chain: 500k for
